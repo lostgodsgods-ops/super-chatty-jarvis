@@ -94,12 +94,29 @@ export default {
       }
       let rawBody;
       try {
-        rawBody = await request.text();
+        if (!request.body) return json({ ok: false, error: "Invalid request body" }, 400);
+        const reader = request.body.getReader();
+        const chunks = [];
+        let totalBytes = 0;
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          totalBytes += value.byteLength;
+          if (totalBytes > 12000) {
+            await reader.cancel();
+            return json({ ok: false, error: "Request too large" }, 413);
+          }
+          chunks.push(value);
+        }
+        const bytes = new Uint8Array(totalBytes);
+        let offset = 0;
+        for (const chunk of chunks) {
+          bytes.set(chunk, offset);
+          offset += chunk.byteLength;
+        }
+        rawBody = new TextDecoder("utf-8", { fatal: true }).decode(bytes);
       } catch {
         return json({ ok: false, error: "Invalid request body" }, 400);
-      }
-      if (new TextEncoder().encode(rawBody).byteLength > 12000) {
-        return json({ ok: false, error: "Request too large" }, 413);
       }
       let payload;
       try {
@@ -118,6 +135,24 @@ export default {
       // Disabled by default to prevent unexpected provider costs until the owner configures it.
       if (env.CHAT_API_ENABLED !== "true" || !env.OPENAI_API_KEY) {
         return json({ ok: false, error: "AI chat is not configured" }, 503);
+      }
+
+      // Fail closed: never call a paid provider unless a rate-limit binding is configured.
+      if (!env.CHAT_RATE_LIMITER || typeof env.CHAT_RATE_LIMITER.limit !== "function") {
+        return json({ ok: false, error: "AI chat rate limiting is not configured" }, 503);
+      }
+      const clientIp = request.headers.get("cf-connecting-ip");
+      if (!clientIp) {
+        return json({ ok: false, error: "Client identity unavailable" }, 503);
+      }
+      let rateLimitResult;
+      try {
+        rateLimitResult = await env.CHAT_RATE_LIMITER.limit({ key: `chat:${clientIp}` });
+      } catch {
+        return json({ ok: false, error: "AI chat temporarily unavailable" }, 503);
+      }
+      if (!rateLimitResult || rateLimitResult.success !== true) {
+        return json({ ok: false, error: "Rate limit exceeded. Try again later." }, 429);
       }
 
       const model = env.OPENAI_MODEL || "gpt-4o-mini";
