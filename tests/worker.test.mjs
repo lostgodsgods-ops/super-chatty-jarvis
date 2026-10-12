@@ -84,6 +84,13 @@ test("AI chat validates method, content type, and message length", async () => {
   }));
   assert.equal(wrongType.status, 415);
 
+  const oversizedBody = await worker.fetch(new Request("https://example.test/api/chat", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ extra: "x".repeat(13000), message: "hello" }),
+  }), { CHAT_API_ENABLED: "true", OPENAI_API_KEY: "test-only-secret" });
+  assert.equal(oversizedBody.status, 413);
+
   const tooLong = await worker.fetch(new Request("https://example.test/api/chat", {
     method: "POST",
     headers: { "content-type": "application/json" },
