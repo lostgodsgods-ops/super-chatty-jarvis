@@ -20,18 +20,18 @@ VERIFIED PAGE CHECKS (2026-10-12)
 - These checks do not verify live AI agents, real form submissions, account login, payment processing, or automatic deployment.
 
 AUTOMATED TESTS
-- Run the static checks with: npm test
+- Run checks with: npm test
 - Static page tests: tests/static-site.test.mjs
 - Worker handler tests: tests/worker.test.mjs
 - CI workflow: .github/workflows/static-site-checks.yml
-- The CI workflow passed after updating to actions/checkout@v5 and actions/setup-node@v5. Verified run: https://github.com/lostgodsgods-ops/super-chatty-jarvis/actions/runs/38249588236
-- Tests cover page sections, agent-brief boundaries, copy control wiring, preview-only inquiry behavior, obvious credential patterns, Worker health behavior, GitHub access boundary, and asset security headers. These are smoke tests, not a full security audit.
+- Latest verified CI run after aligning the tests with the current deployment-status documentation: https://github.com/lostgodsgods-ops/super-chatty-jarvis/actions/runs/38250221357
+- The suite checks page sections, agent-brief boundaries, copy control wiring, preview-only inquiry behavior, obvious credential patterns, Worker health behavior, GitHub access boundaries, asset security headers, and deployment workflow guardrails. These are smoke tests, not a full security audit.
 
 CLOUDFLARE DEPLOYMENT PREPARATION
-- Worker source is now tracked at src/worker.mjs, with configuration in wrangler.jsonc.
+- Worker source is tracked at src/worker.mjs, with configuration in wrangler.jsonc.
 - A guarded deployment workflow is prepared at .github/workflows/deploy-cloudflare.yml. It only targets main and skips deployment if required GitHub Actions secrets are absent.
 - Required repository Actions secrets: CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID. Never put their values in source code, README, or chat.
-- This deployment workflow has not yet been verified against a real deployment and is not active from this development branch. The current live Worker remains the existing manually uploaded version until a reviewed merge and successful deployment.
+- The deployment workflow has not yet been verified against a real deployment and is not active from this development branch. The current live Worker remains the existing manually uploaded version until a reviewed merge and successful deployment.
 - The deployment path is not complete until the PR is reviewed, secrets are configured privately, the workflow deploys successfully, and the live homepage plus /health and /github-check are rechecked.
 
 PROJECT STATUS
