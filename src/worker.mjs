@@ -74,6 +74,87 @@ export default {
       }
     }
 
+    if (url.pathname === "/api/chat") {
+      if (method !== "POST") {
+        const response = json({ ok: false, error: "Method not allowed" }, 405);
+        response.headers.set("allow", "POST");
+        return response;
+      }
+
+      const origin = request.headers.get("origin");
+      if (origin && origin !== url.origin) {
+        return json({ ok: false, error: "Origin not allowed" }, 403);
+      }
+      if (!(request.headers.get("content-type") || "").toLowerCase().includes("application/json")) {
+        return json({ ok: false, error: "Content-Type must be application/json" }, 415);
+      }
+      const declaredLength = Number(request.headers.get("content-length") || "0");
+      if (declaredLength > 12000) {
+        return json({ ok: false, error: "Request too large" }, 413);
+      }
+      let payload;
+      try {
+        payload = await request.json();
+      } catch {
+        return json({ ok: false, error: "Invalid JSON" }, 400);
+      }
+      if (typeof payload?.message !== "string") {
+        return json({ ok: false, error: "A message is required" }, 400);
+      }
+      const message = payload.message.trim();
+      if (!message || message.length > 4000) {
+        return json({ ok: false, error: "Message must be 1–4000 characters" }, 400);
+      }
+
+      // Disabled by default to prevent unexpected provider costs until the owner configures it.
+      if (env.CHAT_API_ENABLED !== "true" || !env.OPENAI_API_KEY) {
+        return json({ ok: false, error: "AI chat is not configured" }, 503);
+      }
+
+      const model = env.OPENAI_MODEL || "gpt-4o-mini";
+      try {
+        const upstream = await fetch("https://api.openai.com/v1/chat/completions", {
+          method: "POST",
+          headers: {
+            "content-type": "application/json",
+            authorization: `Bearer ${env.OPENAI_API_KEY}`,
+          },
+          body: JSON.stringify({
+            model,
+            messages: [
+              {
+                role: "system",
+                content: "You are Super Chatty Jarvis, a helpful assistant. Be clear and honest about your capabilities. Do not claim access to accounts, devices, files, or tools unless the current conversation actually provides it. Require explicit human approval for sensitive external actions.",
+              },
+              { role: "user", content: message },
+            ],
+            max_tokens: 700,
+            temperature: 0.4,
+          }),
+          signal: AbortSignal.timeout(15000),
+        });
+        if (!upstream.ok) {
+          return json({ ok: false, error: "AI provider request failed" }, 502);
+        }
+        let result;
+        try {
+          result = await upstream.json();
+        } catch {
+          return json({ ok: false, error: "Invalid AI provider response" }, 502);
+        }
+        const reply = result?.choices?.[0]?.message?.content;
+        if (typeof reply !== "string" || !reply.trim()) {
+          return json({ ok: false, error: "AI provider returned no reply" }, 502);
+        }
+        return json({ ok: true, reply: reply.trim(), model: result.model || model });
+      } catch (error) {
+        if (error?.name === "TimeoutError" || error?.name === "AbortError") {
+          return json({ ok: false, error: "AI provider timed out" }, 504);
+        }
+        return json({ ok: false, error: "AI provider request failed" }, 502);
+      }
+    }
+
     if (url.pathname === "/" || url.pathname === "/index.html") {
       if (method !== "GET" && method !== "HEAD") {
         const response = respond("Method not allowed", 405, "text/plain; charset=UTF-8", "no-store");
