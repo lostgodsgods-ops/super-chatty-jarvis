@@ -51,7 +51,7 @@ jobs:
             exit 1
           fi
           echo "::add-mask::$token"
-          printf 'api_token=%s\\n' "$token" >> "$GITHUB_OUTPUT"
+          printf 'api_token=%s\n' "$token" >> "$GITHUB_OUTPUT"
 
       - name: Deploy Worker
         uses: cloudflare/wrangler-action@v3
