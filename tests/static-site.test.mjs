@@ -9,6 +9,10 @@ const deployWorkflow = await readFile(
   new URL("../.github/workflows/deploy-cloudflare.yml", import.meta.url),
   "utf8",
 );
+const wranglerConfig = await readFile(
+  new URL("../wrangler.jsonc", import.meta.url),
+  "utf8",
+);
 
 test("public page contains the core project sections", () => {
   for (const id of ["about", "capabilities", "agents", "invest", "contact"]) {
@@ -52,11 +56,21 @@ test("README accurately marks deployment as not yet live-verified", () => {
   assert.match(readme, /inquiry form is a demo preview only/i);
 });
 
+test("Worker config defines the same fail-closed chat rate limiter used by the handler", () => {
+  assert.match(wranglerConfig, /"name":\s*"CHAT_RATE_LIMITER"/);
+  assert.match(wranglerConfig, /"namespace_id":\s*"1001"/);
+  assert.match(wranglerConfig, /"limit":\s*5/);
+  assert.match(wranglerConfig, /"period":\s*60/);
+});
+
 test("Cloudflare deployment is main-only and gated on private repository secrets", () => {
   assert.match(deployWorkflow, /branches:\s*\n\s+- main/);
   assert.match(deployWorkflow, /CLOUDFLARE_API_TOKEN/);
   assert.match(deployWorkflow, /CLOUDFLARE_ACCOUNT_ID/);
-  assert.match(deployWorkflow, /steps\.credentials\.outputs\.ready == 'true'/);
-  assert.ok(deployWorkflow.indexOf("run: npm test") < deployWorkflow.indexOf("Check deployment credentials"));
+  assert.match(deployWorkflow, /Require deployment credentials/);
+  assert.match(deployWorkflow, /exit 1/);
+  assert.match(deployWorkflow, /::error::Deployment blocked/);
+  assert.doesNotMatch(deployWorkflow, /Deployment skipped/);
+  assert.ok(deployWorkflow.indexOf("run: npm test") < deployWorkflow.indexOf("Require deployment credentials"));
   assert.ok(deployWorkflow.indexOf("run: npm test") < deployWorkflow.indexOf("Deploy Worker"));
 });

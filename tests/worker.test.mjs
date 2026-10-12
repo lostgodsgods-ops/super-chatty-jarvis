@@ -114,9 +114,13 @@ test("AI chat sends provider key server-side and returns only the reply", async 
   try {
     const response = await worker.fetch(new Request("https://example.test/api/chat", {
       method: "POST",
-      headers: { "content-type": "application/json" },
+      headers: { "content-type": "application/json", "cf-connecting-ip": "203.0.113.12" },
       body: JSON.stringify({ message: "Say hello" }),
-    }), { CHAT_API_ENABLED: "true", OPENAI_API_KEY: "test-only-secret" });
+    }), {
+      CHAT_API_ENABLED: "true",
+      OPENAI_API_KEY: "test-only-secret",
+      CHAT_RATE_LIMITER: { limit: async () => ({ success: true }) },
+    });
     const body = await response.json();
     assert.equal(response.status, 200);
     assert.equal(body.ok, true);
@@ -128,6 +132,56 @@ test("AI chat sends provider key server-side and returns only the reply", async 
   } finally {
     globalThis.fetch = originalFetch;
   }
+});
+
+test("AI chat fails closed if the rate limiter binding is missing", async () => {
+  const response = await worker.fetch(new Request("https://example.test/api/chat", {
+    method: "POST",
+    headers: { "content-type": "application/json", "cf-connecting-ip": "203.0.113.10" },
+    body: JSON.stringify({ message: "hello" }),
+  }), { CHAT_API_ENABLED: "true", OPENAI_API_KEY: "test-only-secret" });
+  const body = await response.json();
+  assert.equal(response.status, 503);
+  assert.equal(body.error, "AI chat rate limiting is not configured");
+});
+
+test("AI chat rate-limits before calling the provider", async () => {
+  const originalFetch = globalThis.fetch;
+  let providerCalled = false;
+  globalThis.fetch = async () => {
+    providerCalled = true;
+    return new Response("unexpected", { status: 500 });
+  };
+  try {
+    const response = await worker.fetch(new Request("https://example.test/api/chat", {
+      method: "POST",
+      headers: { "content-type": "application/json", "cf-connecting-ip": "203.0.113.11" },
+      body: JSON.stringify({ message: "hello" }),
+    }), {
+      CHAT_API_ENABLED: "true",
+      OPENAI_API_KEY: "test-only-secret",
+      CHAT_RATE_LIMITER: { limit: async ({ key }) => ({ success: key === "chat:203.0.113.11" ? false : true }) },
+    });
+    const body = await response.json();
+    assert.equal(response.status, 429);
+    assert.match(body.error, /Rate limit exceeded/);
+    assert.equal(providerCalled, false);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test("AI chat rejects requests without a Cloudflare client IP when enabled", async () => {
+  const response = await worker.fetch(new Request("https://example.test/api/chat", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ message: "hello" }),
+  }), {
+    CHAT_API_ENABLED: "true",
+    OPENAI_API_KEY: "test-only-secret",
+    CHAT_RATE_LIMITER: { limit: async () => ({ success: true }) },
+  });
+  assert.equal(response.status, 503);
 });
 
 test("AI chat rejects cross-origin browser requests", async () => {
