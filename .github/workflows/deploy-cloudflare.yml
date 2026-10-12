@@ -11,7 +11,7 @@ permissions:
 
 jobs:
   deploy:
-    name: Deploy Cloudflare Worker and static assets
+    name: Deploy Cloudflare Worker
     if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     steps:
@@ -39,12 +39,6 @@ jobs:
             echo "ready=false" >> "$GITHUB_OUTPUT"
             echo "::notice::Deployment skipped. Add repository Actions secrets CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID to enable deployment."
           fi
-
-      - name: Prepare public assets
-        if: steps.credentials.outputs.ready == 'true'
-        run: |
-          mkdir -p public
-          cp index.html public/index.html
 
       - name: Deploy Worker
         if: steps.credentials.outputs.ready == 'true'

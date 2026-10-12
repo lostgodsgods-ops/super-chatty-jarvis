@@ -3,9 +3,5 @@
   "name": "super-chatty-jarvis-site",
   "main": "src/worker.mjs",
   "compatibility_date": "2026-10-12",
-  "workers_dev": true,
-  "assets": {
-    "directory": "./public",
-    "binding": "ASSETS"
-  }
+  "workers_dev": true
 }
