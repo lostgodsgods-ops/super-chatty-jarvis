@@ -60,6 +60,85 @@ test("old privileged write-check route is absent", async () => {
   assert.equal(response.status, 404);
 });
 
+test("AI chat is disabled by default and never exposes provider credentials", async () => {
+  const response = await worker.fetch(new Request("https://example.test/api/chat", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ message: "hello" }),
+  }));
+  const body = await response.json();
+  assert.equal(response.status, 503);
+  assert.equal(body.error, "AI chat is not configured");
+  assert.equal(JSON.stringify(body).includes("secret"), false);
+});
+
+test("AI chat validates method, content type, and message length", async () => {
+  const wrongMethod = await worker.fetch(new Request("https://example.test/api/chat"));
+  assert.equal(wrongMethod.status, 405);
+  assert.equal(wrongMethod.headers.get("allow"), "POST");
+
+  const wrongType = await worker.fetch(new Request("https://example.test/api/chat", {
+    method: "POST",
+    headers: { "content-type": "text/plain" },
+    body: "hello",
+  }));
+  assert.equal(wrongType.status, 415);
+
+  const oversizedBody = await worker.fetch(new Request("https://example.test/api/chat", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ extra: "x".repeat(13000), message: "hello" }),
+  }), { CHAT_API_ENABLED: "true", OPENAI_API_KEY: "test-only-secret" });
+  assert.equal(oversizedBody.status, 413);
+
+  const tooLong = await worker.fetch(new Request("https://example.test/api/chat", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ message: "x".repeat(4001) }),
+  }), { CHAT_API_ENABLED: "true", OPENAI_API_KEY: "test-only-secret" });
+  assert.equal(tooLong.status, 400);
+});
+
+test("AI chat sends provider key server-side and returns only the reply", async () => {
+  const originalFetch = globalThis.fetch;
+  let upstreamUrl = "";
+  let upstreamOptions;
+  globalThis.fetch = async (url, options) => {
+    upstreamUrl = String(url);
+    upstreamOptions = options;
+    return new Response(JSON.stringify({
+      model: "gpt-4o-mini",
+      choices: [{ message: { content: "Hello from the test provider." } }],
+    }), { status: 200, headers: { "content-type": "application/json" } });
+  };
+  try {
+    const response = await worker.fetch(new Request("https://example.test/api/chat", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ message: "Say hello" }),
+    }), { CHAT_API_ENABLED: "true", OPENAI_API_KEY: "test-only-secret" });
+    const body = await response.json();
+    assert.equal(response.status, 200);
+    assert.equal(body.ok, true);
+    assert.equal(body.reply, "Hello from the test provider.");
+    assert.match(upstreamUrl, /api\.openai\.com\/v1\/chat\/completions/);
+    assert.equal(upstreamOptions.headers.authorization, "Bearer test-only-secret");
+    assert.equal(JSON.parse(upstreamOptions.body).messages[1].content, "Say hello");
+    assert.equal(JSON.stringify(body).includes("test-only-secret"), false);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test("AI chat rejects cross-origin browser requests", async () => {
+  const response = await worker.fetch(new Request("https://example.test/api/chat", {
+    method: "POST",
+    headers: { origin: "https://attacker.example", "content-type": "application/json" },
+    body: JSON.stringify({ message: "hello" }),
+  }), { CHAT_API_ENABLED: "true", OPENAI_API_KEY: "test-only-secret" });
+  assert.equal(response.status, 403);
+});
+
 test("unknown routes return a safe not-found response", async () => {
   const response = await worker.fetch(new Request("https://example.test/unknown"));
   assert.equal(response.status, 404);
