@@ -51,7 +51,7 @@ test("public files contain no obvious provider keys or GitHub tokens", () => {
 });
 
 test("README accurately marks deployment as not yet live-verified", () => {
-  assert.match(readme, /deployment workflow has not yet been verified against a real deployment/i);
+  assert.match(readme, /automated GitHub Actions-to-Cloudflare deployment has not yet been verified end-to-end/i);
   assert.match(readme, /does not itself provide a complete live multi-agent system/i);
   assert.match(readme, /inquiry form is a demo preview only/i);
 });
