@@ -44,6 +44,9 @@ SECURITY
 - Sensitive actions require explicit owner approval; do not infer permissions from project descriptions.
 - The inquiry form is a demo preview only and does not send or save submissions. Configure and test a secure backend and privacy notice before accepting real inquiries.
 - The new Worker source deliberately omits the temporary /github-write-check route.
+- The paid AI endpoint is disabled by default and fails closed unless a server-side provider key, explicit CHAT_API_ENABLED=true setting, and CHAT_RATE_LIMITER binding are all configured.
+- The Worker uses a per-client Cloudflare rate-limit binding (5 requests per 60 seconds) before contacting the AI provider. This is a basic abuse/cost guard, not a complete global quota or billing cap.
+- Request bodies are read with a 12 KB streaming cap; chat messages are limited to 4,000 characters; provider output is capped at 700 tokens and provider requests time out after 15 seconds.
 
 REPOSITORY FILES
 - index.html: public project profile page.
