@@ -50,35 +50,24 @@ export default {
       }
       try {
         const response = await fetch(
-          "https://api.github.com/repos/lostgodsgods-ops/super-chatty-jarvis",
-          {
-            headers: {
-              Accept: "application/vnd.github+json",
-              "X-GitHub-Api-Version": "2022-11-28",
-              "User-Agent": "Super-Chatty-Jarvis-Public-Health-Check",
-            },
-          },
+          "https://raw.githubusercontent.com/lostgodsgods-ops/super-chatty-jarvis/main/README_HI.txt",
+          { headers: { "User-Agent": "Super-Chatty-Jarvis-Public-Health-Check" } },
         );
-        let data = {};
-        try {
-          data = await response.json();
-        } catch {
-          // Keep the public response safe if GitHub returns non-JSON content.
-        }
         if (!response.ok) {
           return json({
             ok: false,
             githubStatus: response.status,
-            message: "Public GitHub repository check failed",
+            message: "Public GitHub source-file check failed",
           }, 502);
         }
         return json({
           ok: true,
           githubStatus: response.status,
-          repository: data.full_name || "lostgodsgods-ops/super-chatty-jarvis",
-          defaultBranch: data.default_branch || null,
-          private: typeof data.private === "boolean" ? data.private : null,
-          message: "Public GitHub repository access verified",
+          repository: "lostgodsgods-ops/super-chatty-jarvis",
+          checkedFile: "README_HI.txt",
+          defaultBranch: "main",
+          private: false,
+          message: "Public GitHub source file is reachable",
         });
       } catch {
         return json({ ok: false, error: "GitHub request failed" }, 502);

@@ -26,16 +26,14 @@ test("homepage serves the exact checked-in project page with security headers", 
   assert.match(response.headers.get("content-security-policy"), /frame-ancestors 'none'/);
 });
 
-test("GitHub check reads only public repository metadata and uses no token", async () => {
+test("GitHub check reads a public raw repository file and uses no token", async () => {
   const originalFetch = globalThis.fetch;
+  let requestedUrl = "";
   let requestHeaders;
-  globalThis.fetch = async (_url, options) => {
+  globalThis.fetch = async (url, options) => {
+    requestedUrl = String(url);
     requestHeaders = options.headers;
-    return new Response(JSON.stringify({
-      full_name: "lostgodsgods-ops/super-chatty-jarvis",
-      default_branch: "main",
-      private: false,
-    }), { status: 200, headers: { "content-type": "application/json" } });
+    return new Response("test project status", { status: 200 });
   };
   try {
     const response = await worker.fetch(new Request("https://example.test/github-check"));
@@ -43,6 +41,8 @@ test("GitHub check reads only public repository metadata and uses no token", asy
     assert.equal(response.status, 200);
     assert.equal(body.ok, true);
     assert.equal(body.repository, "lostgodsgods-ops/super-chatty-jarvis");
+    assert.equal(body.checkedFile, "README_HI.txt");
+    assert.match(requestedUrl, /raw\.githubusercontent\.com\/lostgodsgods-ops\/super-chatty-jarvis\/main\/README_HI\.txt/);
     assert.equal(requestHeaders.Authorization, undefined);
   } finally {
     globalThis.fetch = originalFetch;
