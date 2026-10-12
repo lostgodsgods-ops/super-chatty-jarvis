@@ -57,4 +57,6 @@ test("Cloudflare deployment is main-only and gated on private repository secrets
   assert.match(deployWorkflow, /CLOUDFLARE_API_TOKEN/);
   assert.match(deployWorkflow, /CLOUDFLARE_ACCOUNT_ID/);
   assert.match(deployWorkflow, /steps\.credentials\.outputs\.ready == 'true'/);
+  assert.ok(deployWorkflow.indexOf("run: npm test") < deployWorkflow.indexOf("Check deployment credentials"));
+  assert.ok(deployWorkflow.indexOf("run: npm test") < deployWorkflow.indexOf("Deploy Worker"));
 });
