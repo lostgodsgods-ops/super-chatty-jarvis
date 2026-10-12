@@ -30,49 +30,33 @@ jobs:
         shell: bash
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         run: |
-          if [[ -z "$CLOUDFLARE_API_TOKEN" || -z "$CLOUDFLARE_ACCOUNT_ID" ]]; then
-            echo "::error::Deployment blocked: add repository Actions secrets CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID."
+          if [[ -z "$CLOUDFLARE_API_TOKEN" ]]; then
+            echo "::error::Deployment blocked: add repository Actions secret CLOUDFLARE_API_TOKEN."
             exit 1
           fi
 
-      - name: Normalize deployment credentials
+      - name: Normalize deployment token
         id: deployment-credentials
         shell: bash
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         run: |
-          token="${CLOUDFLARE_API_TOKEN//\\r'/}"
-          token="${token#"${token%%[![:space:]]*}"}"
-          token="${token%"${token##*[![:space:]]}"}"
+          token="$(printf '%s' "$CLOUDFLARE_API_TOKEN" | tr -d '\r' | sed 's/^[[:space:]]*//; s/[[:space:]]*$//')"
           if [[ "$token" =~ ^[Bb][Ee][Aa][Rr][Ee][Rr][[:space:]]+ ]]; then
-            token="${token#* }"
+            token="$(printf '%s' "$token" | sed -E 's/^[Bb][Ee][Aa][Rr][Ee][Rr][[:space:]]+//')"
           fi
-
-          account_id="${CLOUDFLARE_ACCOUNT_ID//\\r'/}"
-          account_id="${account_id#"${account_id%%[![:space:]]*}"}"
-          account_id="${account_id%"${account_id##*[![:space:]]}"}"
-
           if [[ -z "$token" || "$token" =~ [[:space:]] ]]; then
             echo "::error::CLOUDFLARE_API_TOKEN must be a raw Cloudflare API token without internal whitespace."
             exit 1
           fi
-          if [[ ! "$account_id" =~ ^[A-Fa-f0-9]{32}$ ]]; then
-            echo "::error::CLOUDFLARE_ACCOUNT_ID must be the 32-character Cloudflare account ID."
-            exit 1
-          fi
-
           echo "::add-mask::$token"
-          echo "::add-mask::$account_id"
           printf 'api_token=%s\\n' "$token" >> "$GITHUB_OUTPUT"
-          printf 'account_id=%s\\n' "$account_id" >> "$GITHUB_OUTPUT"
 
       - name: Deploy Worker
         uses: cloudflare/wrangler-action@v3
         with:
           apiToken: ${{ steps.deployment-credentials.outputs.api_token }}
-          accountId: ${{ steps.deployment-credentials.outputs.account_id }}
+          accountId: "6c0d1ab7b0d730f94359a89a77a0dcf2"
           wranglerVersion: "4.149.0"
           command: deploy src/worker.mjs --config wrangler.jsonc
