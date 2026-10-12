@@ -21,29 +21,39 @@ VERIFIED PAGE CHECKS (2026-10-12)
 
 AUTOMATED TESTS
 - Run the static checks with: npm test
-- Test file: tests/static-site.test.mjs
-- Workflow: .github/workflows/static-site-checks.yml
-- The workflow runs on branch pushes and pull requests.
-- The workflow passed after updating to actions/checkout@v5 and actions/setup-node@v5. Verified run: https://github.com/lostgodsgods-ops/super-chatty-jarvis/actions/runs/38249588236
-- Tests cover page sections, agent-brief boundaries, copy control wiring, preview-only inquiry behavior, obvious credential patterns, and status documentation. They are smoke tests, not a full security audit.
+- Static page tests: tests/static-site.test.mjs
+- Worker handler tests: tests/worker.test.mjs
+- CI workflow: .github/workflows/static-site-checks.yml
+- The CI workflow passed after updating to actions/checkout@v5 and actions/setup-node@v5. Verified run: https://github.com/lostgodsgods-ops/super-chatty-jarvis/actions/runs/38249588236
+- Tests cover page sections, agent-brief boundaries, copy control wiring, preview-only inquiry behavior, obvious credential patterns, Worker health behavior, GitHub access boundary, and asset security headers. These are smoke tests, not a full security audit.
 
-IMPORTANT DEPLOYMENT NOTE
-The Cloudflare Worker URL is live, but automatic synchronization from GitHub to Cloudflare has not been verified. A successful branch creation or passing test workflow does not prove that pushes automatically deploy. The repository does not currently contain a verified Cloudflare Worker deployment workflow/source package. Do not claim continuous deployment is working until it is configured and tested with the required secrets.
+CLOUDFLARE DEPLOYMENT PREPARATION
+- Worker source is now tracked at src/worker.mjs, with configuration in wrangler.jsonc.
+- A guarded deployment workflow is prepared at .github/workflows/deploy-cloudflare.yml. It only targets main and skips deployment if required GitHub Actions secrets are absent.
+- Required repository Actions secrets: CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID. Never put their values in source code, README, or chat.
+- This deployment workflow has not yet been verified against a real deployment and is not active from this development branch. The current live Worker remains the existing manually uploaded version until a reviewed merge and successful deployment.
+- The deployment path is not complete until the PR is reviewed, secrets are configured privately, the workflow deploys successfully, and the live homepage plus /health and /github-check are rechecked.
 
 PROJECT STATUS
-This repository currently contains a static HTML project profile and supporting text files. It describes planned capabilities; it does not itself provide a live AI-agent endpoint, account login, or an investment/payment facility.
+This repository includes a static project profile and the beginnings of a version-controlled Worker/deployment setup. The public profile describes planned capabilities; it does not itself provide a complete live multi-agent system, account login, or an investment/payment facility.
 
 SECURITY
 - Never commit API keys, passwords, access tokens, private data, or other secrets to this public repository.
 - Keep provider keys in server-side secret storage.
-- Treat sensitive actions as owner-approved; do not infer permissions from project descriptions.
+- The Worker health endpoint reports only whether a token exists; it must never return the token value.
+- Sensitive actions require explicit owner approval; do not infer permissions from project descriptions.
 - The inquiry form is a demo preview only and does not send or save submissions. Configure and test a secure backend and privacy notice before accepting real inquiries.
+- The new Worker source deliberately omits the temporary /github-write-check route.
 
 REPOSITORY FILES
 - index.html: public project profile page.
 - AI_AGENT_PROMPT.md: public brief for AI agents and collaborators.
 - robots.txt: public crawling policy.
-- tests/static-site.test.mjs: automated static-site smoke tests.
-- package.json: zero-dependency test command.
+- src/worker.mjs: version-controlled Worker handler.
+- wrangler.jsonc: Worker and static-assets configuration.
+- tests/static-site.test.mjs: static-site smoke tests.
+- tests/worker.test.mjs: Worker route/security tests.
+- package.json: zero-dependency Node test command.
 - .github/workflows/static-site-checks.yml: CI test workflow.
+- .github/workflows/deploy-cloudflare.yml: guarded deployment workflow, not yet live-verified.
 - README_HI.txt: this status and deployment note.
