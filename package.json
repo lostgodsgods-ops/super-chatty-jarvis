@@ -1,0 +1,12 @@
+{
+  "name": "super-chatty-jarvis-public-site",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Static project profile and safety smoke tests for Super Chatty Jarvis",
+  "scripts": {
+    "test": "node --test"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
