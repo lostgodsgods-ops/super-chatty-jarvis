@@ -29,10 +29,10 @@ AUTOMATED TESTS
 
 CLOUDFLARE DEPLOYMENT PREPARATION
 - Worker source is tracked at src/worker.mjs, with configuration in wrangler.jsonc.
-- A guarded deployment workflow is prepared at .github/workflows/deploy-cloudflare.yml. It only targets main and skips deployment if required GitHub Actions secrets are absent.
+- A guarded deployment workflow is prepared at .github/workflows/deploy-cloudflare.yml. It only targets main and fails explicitly before deployment if required GitHub Actions secrets are absent; it will not report a successful deploy when it skipped the deploy step.
 - Required repository Actions secrets: CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID. Never put their values in source code, README, or chat.
-- The deployment workflow has not yet been verified against a real deployment and is not active from this development branch. The current live Worker remains the existing manually uploaded version until a reviewed merge and successful deployment.
-- The deployment path is not complete until the PR is reviewed, secrets are configured privately, the workflow deploys successfully, and the live homepage plus /health and /github-check are rechecked.
+- The deployment workflow has not yet been verified against a real deployment. The workflow code is still under review on a development branch. The current live Worker remains the existing manually uploaded version until a reviewed merge and successful deployment.
+- The deployment path is not complete until the PR is reviewed, secrets are configured privately, the workflow deploys successfully, and the live homepage plus /health and /github-check are rechecked. Missing secrets now fail the deployment job visibly instead of silently skipping the deploy step.
 
 PROJECT STATUS
 This repository includes a static project profile and the beginnings of a version-controlled Worker/deployment setup. The public profile describes planned capabilities; it does not itself provide a complete live multi-agent system, account login, or an investment/payment facility.
