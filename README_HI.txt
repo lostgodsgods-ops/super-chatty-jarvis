@@ -8,6 +8,8 @@ Review PR: https://github.com/lostgodsgods-ops/super-chatty-jarvis/pull/1
 LIVE WEBSITE
 - Verified public site: https://super-chatty-jarvis-site.lostgodsgods.workers.dev/
 - The homepage returned HTTP 200 during the public-page check on 2026-10-12.
+- /health returned HTTP 200 with ok: true.
+- /github-check returned HTTP 200 and confirmed GitHub repository access.
 - GitHub Pages URL (https://lostgodsgods-ops.github.io/super-chatty-jarvis/) returned 404 during the check. Do not treat GitHub Pages as deployed until it is re-enabled and verified.
 
 VERIFIED PAGE CHECKS (2026-10-12)
@@ -22,7 +24,7 @@ AUTOMATED TESTS
 - Test file: tests/static-site.test.mjs
 - Workflow: .github/workflows/static-site-checks.yml
 - The workflow runs on branch pushes and pull requests.
-- The initial GitHub Actions run completed successfully. Recheck the latest run after any subsequent commit.
+- The workflow passed after updating to actions/checkout@v5 and actions/setup-node@v5. Verified run: https://github.com/lostgodsgods-ops/super-chatty-jarvis/actions/runs/38249588236
 - Tests cover page sections, agent-brief boundaries, copy control wiring, preview-only inquiry behavior, obvious credential patterns, and status documentation. They are smoke tests, not a full security audit.
 
 IMPORTANT DEPLOYMENT NOTE
