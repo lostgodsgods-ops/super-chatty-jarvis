@@ -92,9 +92,18 @@ export default {
       if (declaredLength > 12000) {
         return json({ ok: false, error: "Request too large" }, 413);
       }
+      let rawBody;
+      try {
+        rawBody = await request.text();
+      } catch {
+        return json({ ok: false, error: "Invalid request body" }, 400);
+      }
+      if (new TextEncoder().encode(rawBody).byteLength > 12000) {
+        return json({ ok: false, error: "Request too large" }, 413);
+      }
       let payload;
       try {
-        payload = await request.json();
+        payload = JSON.parse(rawBody);
       } catch {
         return json({ ok: false, error: "Invalid JSON" }, 400);
       }
