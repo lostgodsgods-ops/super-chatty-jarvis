@@ -23,6 +23,9 @@ jobs:
         with:
           node-version: "22"
 
+      - name: Run deployment safety tests
+        run: npm test
+
       - name: Check deployment credentials
         id: credentials
         shell: bash
