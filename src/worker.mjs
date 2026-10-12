@@ -22,7 +22,7 @@ function json(data, status = 200) {
 }
 
 export default {
-  async fetch(request) {
+  async fetch(request, env = {}) {
     const url = new URL(request.url);
     const method = request.method;
 
