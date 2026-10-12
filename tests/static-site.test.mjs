@@ -5,6 +5,10 @@ import { readFile } from "node:fs/promises";
 const html = await readFile(new URL("../index.html", import.meta.url), "utf8");
 const readme = await readFile(new URL("../README_HI.txt", import.meta.url), "utf8");
 const agentBrief = await readFile(new URL("../AI_AGENT_PROMPT.md", import.meta.url), "utf8");
+const deployWorkflow = await readFile(
+  new URL("../.github/workflows/deploy-cloudflare.yml", import.meta.url),
+  "utf8",
+);
 
 test("public page contains the core project sections", () => {
   for (const id of ["about", "capabilities", "agents", "invest", "contact"]) {
@@ -36,14 +40,21 @@ test("inquiry form remains preview-only and does not submit to a backend", () =>
 });
 
 test("public files contain no obvious provider keys or GitHub tokens", () => {
-  const publicFiles = [html, readme, agentBrief].join("\n");
+  const publicFiles = [html, readme, agentBrief, deployWorkflow].join("\n");
   assert.doesNotMatch(publicFiles, /\bsk-[A-Za-z0-9_-]{20,}\b/);
   assert.doesNotMatch(publicFiles, /\bgh[pousr]_[A-Za-z0-9_]{20,}\b/);
   assert.doesNotMatch(publicFiles, /Bearer\s+[A-Za-z0-9._-]{24,}/i);
 });
 
-test("README clearly marks the page as a concept and deployment automation as unverified", () => {
-  assert.match(readme, /automatic synchronization from GitHub to Cloudflare has not been verified/i);
-  assert.match(readme, /does not itself provide a live AI-agent endpoint/i);
+test("README accurately marks deployment as not yet live-verified", () => {
+  assert.match(readme, /deployment workflow has not yet been verified against a real deployment/i);
+  assert.match(readme, /does not itself provide a complete live multi-agent system/i);
   assert.match(readme, /inquiry form is a demo preview only/i);
+});
+
+test("Cloudflare deployment is main-only and gated on private repository secrets", () => {
+  assert.match(deployWorkflow, /branches:\s*\n\s+- main/);
+  assert.match(deployWorkflow, /CLOUDFLARE_API_TOKEN/);
+  assert.match(deployWorkflow, /CLOUDFLARE_ACCOUNT_ID/);
+  assert.match(deployWorkflow, /steps\.credentials\.outputs\.ready == 'true'/);
 });
