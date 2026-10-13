@@ -7,7 +7,7 @@
   "vars": {
     "CHAT_PROVIDER": "gemini",
     "CHAT_API_ENABLED": "true",
-    "GEMINI_MODEL": "gemini-2.5-flash"
+    "GEMINI_MODEL": "gemini-3.8-flash"
   },
   "ratelimits": [
     {
