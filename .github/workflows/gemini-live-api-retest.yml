@@ -1,0 +1,81 @@
+name: Gemini live API retest
+
+on:
+  push:
+    branches:
+      - fix/cloudflare-token-config
+    paths:
+      - ".github/workflows/gemini-live-api-retest.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  live-test:
+    name: Verify Gemini 3.8 Flash and capture feedback
+    if: github.ref == 'refs/heads/fix/cloudflare-token-config'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Call Gemini 3.8 Flash with repository secret
+        shell: bash
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+        run: |
+          [[ -n "$GEMINI_API_KEY" ]] || { echo "::error::GEMINI_API_KEY repository secret is missing."; exit 1; }
+          node --input-type=module <<'NODE'
+          import fs from 'node:fs/promises';
+
+          const endpoint = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent';
+          const prompt = [
+            'Review this Super Chatty Jarvis integration plan based only on these stated facts: a Cloudflare Worker will select the AI provider server-side, store provider credentials as secret bindings, require an explicit enable flag, and apply rate limiting before model calls.',
+            'Return: readiness verdict; three practical engineering improvements; one security caution; and the next validation step. Be clear that you have not inspected the actual deployed system. Do not ask for or include secrets.'
+          ].join(' ');
+
+          const response = await fetch(endpoint, {
+            method: 'POST',
+            headers: {
+              'content-type': 'application/json',
+              'x-goog-api-key': process.env.GEMINI_API_KEY
+            },
+            body: JSON.stringify({
+              systemInstruction: { parts: [{ text: 'Be concise, technically specific, and honest about what is not verified.' }] },
+              contents: [{ role: 'user', parts: [{ text: prompt }] }],
+              generationConfig: { maxOutputTokens: 650 }
+            }),
+            signal: AbortSignal.timeout(25000)
+          });
+
+          const data = await response.json().catch(() => ({}));
+          if (!response.ok) {
+            const detail = typeof data?.error?.message === 'string' ? data.error.message.slice(0, 250) : 'No safe error detail';
+            console.error('Gemini live API FAILED. HTTP:', response.status, 'Reason:', detail);
+            process.exit(1);
+          }
+
+          const parts = data?.candidates?.[0]?.content?.parts;
+          const reply = Array.isArray(parts)
+            ? parts.map(part => typeof part?.text === 'string' ? part.text : '').join('').trim()
+            : '';
+          if (!reply) {
+            console.error('Gemini live API FAILED: no text candidate.');
+            process.exit(1);
+          }
+
+          const summary = [
+            '## Gemini 3.8 Flash live API test',
+            '',
+            '- Result: **PASS**',
+            '- HTTP status: ' + response.status,
+            '- Model: `gemini-3.8-flash`',
+            '- Reply length: ' + reply.length + ' characters',
+            '',
+            '### Gemini feedback',
+            '',
+            reply.slice(0, 5000),
+            '',
+            '> Direct Google API call using the GitHub Actions secret. This is not a Cloudflare deployment test.'
+          ].join('\n');
+          await fs.appendFile(process.env.GITHUB_STEP_SUMMARY, summary + '\n');
+          console.log('Gemini 3.8 Flash live API PASS. Reply length:', reply.length, 'characters. Key not logged.');
+          NODE
