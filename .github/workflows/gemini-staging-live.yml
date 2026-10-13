@@ -86,7 +86,7 @@ jobs:
             if (response.ok && data.ok === true && typeof data.reply === 'string' && data.reply.trim()) break;
             const transient = [502, 503, 504].includes(response.status);
             if (!transient || attempt === 4) {
-              console.error('Gemini live call FAILED. HTTP:', response.status, 'Worker error:', data.error || 'invalid response');
+              console.error('Gemini live call FAILED. HTTP:', response.status, 'Worker error:', data.error || 'invalid response', 'Provider status:', data.diagnostic?.providerStatus, 'Provider code:', data.diagnostic?.providerCode, 'Provider status text:', data.diagnostic?.providerErrorStatus, 'Provider message:', data.diagnostic?.providerMessage);
               process.exit(1);
             }
             const waitMs = attempt * 2000;
