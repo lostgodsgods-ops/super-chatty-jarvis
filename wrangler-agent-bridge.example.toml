@@ -1,0 +1,14 @@
+# Example only — create a dedicated staging Worker and KV namespace first.
+name = "super-chatty-jarvis-agent-relay-staging"
+main = "agent-bridge-worker.js"
+compatibility_date = "2026-10-13"
+
+[[kv_namespaces]]
+binding = "JARVIS_KV"
+id = "REPLACE_WITH_STAGING_KV_NAMESPACE_ID"
+
+[vars]
+ENVIRONMENT = "staging"
+# Set ALLOWED_ORIGINS to a comma-separated exact-origin list only if browser access is needed.
+# Configure RELAY_SECRET with: wrangler secret put RELAY_SECRET
+# Configure AUTHORIZED_EMAIL_SENDERS with an exact sender allowlist.
