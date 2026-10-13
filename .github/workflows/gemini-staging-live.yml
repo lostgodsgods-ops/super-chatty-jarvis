@@ -1,0 +1,107 @@
+name: Gemini live staging smoke test
+
+on:
+  push:
+    branches:
+      - fix/cloudflare-token-config
+    paths:
+      - "src/worker.mjs"
+      - "wrangler.gemini-staging.jsonc"
+      - ".github/workflows/gemini-staging-live.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  gemini-staging:
+    name: Deploy isolated staging Worker and call Gemini
+    if: github.ref == 'refs/heads/fix/cloudflare-token-config'
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v5
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: "22"
+
+      - name: Run safety and behavior tests
+        run: npm test
+
+      - name: Require live credentials before deployment
+        shell: bash
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID || vars.CLOUDFLARE_ACCOUNT_ID || '6c0d1ab7b0d730f94359a89a77a0dcf2' }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+        run: |
+          [[ -n "$CLOUDFLARE_API_TOKEN" ]] || { echo "::error::CLOUDFLARE_API_TOKEN is missing."; exit 1; }
+          [[ -n "$CLOUDFLARE_ACCOUNT_ID" ]] || { echo "::error::CLOUDFLARE_ACCOUNT_ID is missing."; exit 1; }
+          [[ -n "$GEMINI_API_KEY" ]] || { echo "::error::GEMINI_API_KEY repository secret is missing."; exit 1; }
+          echo "Required credentials are present (values are not printed)."
+
+      - name: Deploy isolated Gemini staging Worker
+        shell: bash
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID || vars.CLOUDFLARE_ACCOUNT_ID || '6c0d1ab7b0d730f94359a89a77a0dcf2' }}
+        run: npx --yes wrangler@4.149.0 deploy src/worker.mjs --config wrangler.gemini-staging.jsonc
+
+      - name: Bind Gemini API key as a Cloudflare secret
+        shell: bash
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID || vars.CLOUDFLARE_ACCOUNT_ID || '6c0d1ab7b0d730f94359a89a77a0dcf2' }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+        run: |
+          printf '%s' "$GEMINI_API_KEY" | npx --yes wrangler@4.149.0 secret put GEMINI_API_KEY --config wrangler.gemini-staging.jsonc
+          echo "Gemini key bound to staging Worker; value was not printed."
+
+      - name: Call live Gemini and collect technical feedback
+        shell: bash
+        run: |
+          node --input-type=module <<'NODE'
+          import fs from 'node:fs/promises';
+
+          const endpoint = 'https://super-chatty-gemini-staging.lostgodsgods.workers.dev/api/chat';
+          const message = [
+            'Review this Super Chatty Jarvis staging design using only the facts in this prompt.',
+            'It is a Cloudflare Worker using server-side provider selection, a GEMINI_API_KEY secret binding, a CHAT_API_ENABLED flag, and a rate-limit binding. It calls Gemini generateContent and returns a reply.',
+            'Give: (1) a one-line readiness verdict, (2) three concrete engineering improvements, (3) one security caution, and (4) one next test to run. Do not claim you inspected code or systems beyond this description. Keep it concise.'
+          ].join(' ');
+
+          const response = await fetch(endpoint, {
+            method: 'POST',
+            headers: { 'content-type': 'application/json' },
+            body: JSON.stringify({ message }),
+            signal: AbortSignal.timeout(25000)
+          });
+          const data = await response.json().catch(() => ({}));
+          if (!response.ok || data.ok !== true || typeof data.reply !== 'string' || !data.reply.trim()) {
+            console.error('Gemini live call FAILED. HTTP:', response.status, 'Worker error:', data.error || 'invalid response');
+            process.exit(1);
+          }
+          const reply = data.reply.trim().slice(0, 5000);
+          const model = typeof data.model === 'string' ? data.model : 'not reported';
+          const summary = [
+            '## Gemini live staging smoke test',
+            '',
+            '- Result: **PASS**',
+            '- Endpoint: `/api/chat` on isolated staging Worker',
+            '- HTTP status: ' + response.status,
+            '- Model reported by Worker: `' + model.replaceAll('`', '') + '`',
+            '- Reply length: ' + reply.length + ' characters',
+            '',
+            '### Gemini feedback',
+            '',
+            reply,
+            '',
+            '> This was a live API response from the staging Worker. No API key value is included.'
+          ].join('\n');
+          await fs.appendFile(process.env.GITHUB_STEP_SUMMARY, summary + '\n');
+          console.log('Gemini live call PASS. Model:', model, 'Reply length:', reply.length);
+          console.log('Feedback is available in the GitHub Actions run summary; no credentials were logged.');
+          NODE
