@@ -192,16 +192,25 @@ export default {
               code: typeof providerError.code === "number" ? providerError.code : upstream.status,
               message: providerMessage,
             }));
+            const providerStatus = upstream.status;
+            const mappedStatus = [429, 503, 504].includes(providerStatus) ? providerStatus : 502;
+            const publicError = providerStatus === 429
+              ? "Gemini API quota or rate limit exceeded"
+              : providerStatus === 503
+                ? "Gemini API is temporarily overloaded"
+                : providerStatus === 504
+                  ? "Gemini API timed out"
+                  : "AI provider request failed";
             return json({
               ok: false,
-              error: "AI provider request failed",
+              error: publicError,
               diagnostic: {
-                providerStatus: upstream.status,
-                providerCode: typeof providerError.code === "number" ? providerError.code : upstream.status,
+                providerStatus,
+                providerCode: typeof providerError.code === "number" ? providerError.code : providerStatus,
                 providerErrorStatus: typeof providerError.status === "string" ? providerError.status : "unknown",
                 providerMessage,
               },
-            }, 502);
+            }, mappedStatus);
           }
           let result;
           try {
