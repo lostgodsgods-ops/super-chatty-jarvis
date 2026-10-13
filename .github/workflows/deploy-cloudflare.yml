@@ -30,9 +30,14 @@ jobs:
         shell: bash
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID || vars.CLOUDFLARE_ACCOUNT_ID || '6c0d1ab7b0d730f94359a89a77a0dcf2' }}
         run: |
           if [[ -z "$CLOUDFLARE_API_TOKEN" ]]; then
-            echo "::error::Deployment blocked: add repository Actions secret CLOUDFLARE_API_TOKEN."
+            echo "::error::Deployment blocked: add a scoped Cloudflare API Token as repository Actions secret CLOUDFLARE_API_TOKEN (not the Global API Key)."
+            exit 1
+          fi
+          if [[ -z "$CLOUDFLARE_ACCOUNT_ID" ]]; then
+            echo "::error::Deployment blocked: configure CLOUDFLARE_ACCOUNT_ID as a repository Actions secret or variable."
             exit 1
           fi
 
@@ -57,6 +62,6 @@ jobs:
         uses: cloudflare/wrangler-action@v3
         with:
           apiToken: ${{ steps.deployment-credentials.outputs.api_token }}
-          accountId: "6c0d1ab7b0d730f94359a89a77a0dcf2"
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID || vars.CLOUDFLARE_ACCOUNT_ID || '6c0d1ab7b0d730f94359a89a77a0dcf2' }}
           wranglerVersion: "4.149.0"
           command: deploy src/worker.mjs --config wrangler.jsonc
