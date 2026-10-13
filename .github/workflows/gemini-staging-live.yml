@@ -60,6 +60,25 @@ jobs:
           printf '%s' "$GEMINI_API_KEY" | npx --yes wrangler@4.149.0 secret put GEMINI_API_KEY --config wrangler.gemini-staging.jsonc
           echo "Gemini key bound to staging Worker; value was not printed."
 
+      - name: Discover Gemini models available to this API key
+        shell: bash
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+        run: |
+          node --input-type=module <<'NODE'
+          const response = await fetch('https://generativelanguage.googleapis.com/v1beta/models?pageSize=100', {
+            headers: { 'x-goog-api-key': process.env.GEMINI_API_KEY }
+          });
+          const data = await response.json().catch(() => ({}));
+          if (!response.ok) {
+            console.error('Gemini model discovery failed. HTTP:', response.status, 'status:', data.error?.status || 'unknown', 'message:', String(data.error?.message || 'No message').slice(0, 200));
+            process.exit(1);
+          }
+          const models = (data.models || []).filter(m => (m.supportedGenerationMethods || []).includes('generateContent'));
+          console.log('Models supporting generateContent:', models.map(m => m.name.replace(/^models\\//, '')).join(', '));
+          if (!models.length) process.exit(1);
+          NODE
+
       - name: Call live Gemini and collect technical feedback
         shell: bash
         run: |
