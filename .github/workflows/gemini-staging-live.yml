@@ -73,15 +73,28 @@ jobs:
             'Give: (1) a one-line readiness verdict, (2) three concrete engineering improvements, (3) one security caution, and (4) one next test to run. Do not claim you inspected code or systems beyond this description. Keep it concise.'
           ].join(' ');
 
-          const response = await fetch(endpoint, {
-            method: 'POST',
-            headers: { 'content-type': 'application/json' },
-            body: JSON.stringify({ message }),
-            signal: AbortSignal.timeout(25000)
-          });
-          const data = await response.json().catch(() => ({}));
+          let response;
+          let data = {};
+          for (let attempt = 1; attempt <= 4; attempt++) {
+            response = await fetch(endpoint, {
+              method: 'POST',
+              headers: { 'content-type': 'application/json' },
+              body: JSON.stringify({ message }),
+              signal: AbortSignal.timeout(25000)
+            });
+            data = await response.json().catch(() => ({}));
+            if (response.ok && data.ok === true && typeof data.reply === 'string' && data.reply.trim()) break;
+            const transient = [502, 503, 504].includes(response.status);
+            if (!transient || attempt === 4) {
+              console.error('Gemini live call FAILED. HTTP:', response.status, 'Worker error:', data.error || 'invalid response');
+              process.exit(1);
+            }
+            const waitMs = attempt * 2000;
+            console.log('Transient upstream response', response.status, '- retrying in', waitMs, 'ms (attempt', attempt + 1, 'of 4).');
+            await new Promise(resolve => setTimeout(resolve, waitMs));
+          }
           if (!response.ok || data.ok !== true || typeof data.reply !== 'string' || !data.reply.trim()) {
-            console.error('Gemini live call FAILED. HTTP:', response.status, 'Worker error:', data.error || 'invalid response');
+            console.error('Gemini live call FAILED after retries. HTTP:', response.status, 'Worker error:', data.error || 'invalid response');
             process.exit(1);
           }
           const reply = data.reply.trim().slice(0, 5000);
