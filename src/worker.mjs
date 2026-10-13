@@ -165,7 +165,7 @@ export default {
       const systemPrompt = "You are Super Chatty Jarvis, a helpful assistant. Be clear and honest about your capabilities. Do not claim access to accounts, devices, files, or tools unless the current conversation actually provides it. Require explicit human approval for sensitive external actions.";
       try {
         if (provider === "gemini") {
-          const model = env.GEMINI_MODEL || "gemini-2.5-flash";
+          const model = env.GEMINI_MODEL || "gemini-3.8-flash";
           const upstream = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`, {
             method: "POST",
             headers: {
@@ -175,7 +175,7 @@ export default {
             body: JSON.stringify({
               systemInstruction: { parts: [{ text: systemPrompt }] },
               contents: [{ role: "user", parts: [{ text: message }] }],
-              generationConfig: { maxOutputTokens: 700, temperature: 0.4 },
+              generationConfig: { maxOutputTokens: 700 },
             }),
             signal: AbortSignal.timeout(15000),
           });
