@@ -198,3 +198,74 @@ test("unknown routes return a safe not-found response", async () => {
   assert.equal(response.status, 404);
   assert.equal(response.headers.get("cache-control"), "no-store");
 });
+
+test("Gemini provider uses server-side key and normalizes its response", async () => {
+  const originalFetch = globalThis.fetch;
+  let upstreamUrl = "";
+  let upstreamOptions;
+  globalThis.fetch = async (url, options) => {
+    upstreamUrl = String(url);
+    upstreamOptions = options;
+    return new Response(JSON.stringify({
+      candidates: [{ content: { parts: [{ text: "Hello from Gemini." }] } }],
+    }), { status: 200, headers: { "content-type": "application/json" } });
+  };
+  try {
+    const response = await worker.fetch(new Request("https://example.test/api/chat", {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        "cf-connecting-ip": "203.0.113.13",
+      },
+      body: JSON.stringify({ message: "Say hello" }),
+    }), {
+      CHAT_API_ENABLED: "true",
+      CHAT_PROVIDER: "gemini",
+      GEMINI_API_KEY: "test-only-gemini-secret",
+      GEMINI_MODEL: "gemini-test-model",
+      CHAT_RATE_LIMITER: { limit: async () => ({ success: true }) },
+    });
+    const body = await response.json();
+    assert.equal(response.status, 200);
+    assert.equal(body.ok, true);
+    assert.equal(body.reply, "Hello from Gemini.");
+    assert.equal(body.model, "gemini-test-model");
+    assert.match(upstreamUrl, /generativelanguage\.googleapis\.com\/v1beta\/models\/gemini-test-model:generateContent/);
+    assert.equal(upstreamOptions.headers["x-goog-api-key"], "test-only-gemini-secret");
+    assert.equal(JSON.parse(upstreamOptions.body).contents[0].parts[0].text, "Say hello");
+    assert.equal(JSON.stringify(body).includes("test-only-gemini-secret"), false);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test("unsupported chat provider fails closed without an upstream request", async () => {
+  const originalFetch = globalThis.fetch;
+  let called = false;
+  globalThis.fetch = async () => {
+    called = true;
+    return new Response("unexpected", { status: 200 });
+  };
+  try {
+    const response = await worker.fetch(new Request("https://example.test/api/chat", {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        "cf-connecting-ip": "203.0.113.14",
+      },
+      body: JSON.stringify({ message: "hello" }),
+    }), {
+      CHAT_API_ENABLED: "true",
+      CHAT_PROVIDER: "unknown",
+      OPENAI_API_KEY: "test-only-secret",
+      CHAT_RATE_LIMITER: { limit: async () => ({ success: true }) },
+    });
+    const body = await response.json();
+    assert.equal(response.status, 503);
+    assert.equal(body.error, "AI provider is not supported");
+    assert.equal(called, false);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
