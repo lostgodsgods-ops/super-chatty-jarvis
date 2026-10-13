@@ -132,8 +132,15 @@ export default {
         return json({ ok: false, error: "Message must be 1–4000 characters" }, 400);
       }
 
+      // Provider selection is server-side. Never accept provider names or credentials from request bodies.
+      const provider = String(env.CHAT_PROVIDER || "openai").toLowerCase();
+      if (provider !== "openai" && provider !== "gemini") {
+        return json({ ok: false, error: "AI provider is not supported" }, 503);
+      }
+      const apiKey = provider === "gemini" ? env.GEMINI_API_KEY : env.OPENAI_API_KEY;
+
       // Disabled by default to prevent unexpected provider costs until the owner configures it.
-      if (env.CHAT_API_ENABLED !== "true" || !env.OPENAI_API_KEY) {
+      if (env.CHAT_API_ENABLED !== "true" || !apiKey) {
         return json({ ok: false, error: "AI chat is not configured" }, 503);
       }
 
@@ -170,6 +177,74 @@ export default {
                 role: "system",
                 content: "You are Super Chatty Jarvis, a helpful assistant. Be clear and honest about your capabilities. Do not claim access to accounts, devices, files, or tools unless the current conversation actually provides it. Require explicit human approval for sensitive external actions.",
               },
+              { role: "user", content: message },
+            ],
+            max_tokens: 700,
+            temperature: 0.4,
+          }),
+          signal: AbortSignal.timeout(15000),
+        });
+        if (!upstream.ok) {
+          return json({ ok: false, error: "AI provider request failed" }, 502);
+        }
+        let result;
+        try {
+          result = await upstream.json();
+        } catch {
+          return json({ ok: false, error: "Invalid AI provider response" }, 502);
+        }
+        const reply = result?.choices?.[0]?.message?.content;
+        if (typeof reply !== "string" || !reply.trim()) {
+          return json({ ok: false, error: "AI provider returned no reply" }, 502);
+        }
+        return json({ ok: true, reply: reply.trim(), model: result.model || model });
+      const systemPrompt = "You are Super Chatty Jarvis, a helpful assistant. Be clear and honest about your capabilities. Do not claim access to accounts, devices, files, or tools unless the current conversation actually provides it. Require explicit human approval for sensitive external actions.";
+      try {
+        if (provider === "gemini") {
+          const model = env.GEMINI_MODEL || "gemini-2.5-flash";
+          const upstream = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`, {
+            method: "POST",
+            headers: {
+              "content-type": "application/json",
+              "x-goog-api-key": apiKey,
+            },
+            body: JSON.stringify({
+              systemInstruction: { parts: [{ text: systemPrompt }] },
+              contents: [{ role: "user", parts: [{ text: message }] }],
+              generationConfig: { maxOutputTokens: 700, temperature: 0.4 },
+            }),
+            signal: AbortSignal.timeout(15000),
+          });
+          if (!upstream.ok) {
+            return json({ ok: false, error: "AI provider request failed" }, 502);
+          }
+          let result;
+          try {
+            result = await upstream.json();
+          } catch {
+            return json({ ok: false, error: "Invalid AI provider response" }, 502);
+          }
+          const parts = result?.candidates?.[0]?.content?.parts;
+          const reply = Array.isArray(parts)
+            ? parts.map(part => typeof part?.text === "string" ? part.text : "").join("").trim()
+            : "";
+          if (!reply) {
+            return json({ ok: false, error: "AI provider returned no reply" }, 502);
+          }
+          return json({ ok: true, reply, model });
+        }
+
+        const model = env.OPENAI_MODEL || "gpt-4o-mini";
+        const upstream = await fetch("https://api.openai.com/v1/chat/completions", {
+          method: "POST",
+          headers: {
+            "content-type": "application/json",
+            authorization: `Bearer ${apiKey}`,
+          },
+          body: JSON.stringify({
+            model,
+            messages: [
+              { role: "system", content: systemPrompt },
               { role: "user", content: message },
             ],
             max_tokens: 700,
