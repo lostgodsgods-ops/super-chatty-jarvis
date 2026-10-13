@@ -34,7 +34,7 @@ jobs:
           node --input-type=module <<'NODE'
           import fs from 'node:fs/promises';
 
-          const endpoint = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent';
+          const endpoint = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent';
           const prompt = [
             'You are reviewing the Super Chatty Jarvis integration design. Facts provided: its intended backend uses a Cloudflare Worker, selects the AI provider server-side, stores provider credentials as secrets, requires an explicit enable flag, and applies request rate limiting before calling a model.',
             'Give a short readiness verdict, three practical engineering improvements, one security caution, and the next validation step. Do not claim to have inspected the repository or live systems. Do not ask for or include secrets.'
@@ -49,7 +49,7 @@ jobs:
             body: JSON.stringify({
               systemInstruction: { parts: [{ text: 'Be honest about what is and is not verified. Give actionable technical feedback.' }] },
               contents: [{ role: 'user', parts: [{ text: prompt }] }],
-              generationConfig: { maxOutputTokens: 650, temperature: 0.3 }
+              generationConfig: { maxOutputTokens: 650 }
             }),
             signal: AbortSignal.timeout(25000)
           });
@@ -76,7 +76,7 @@ jobs:
             '- Result: **PASS**',
             '- Endpoint: Google Gemini `generateContent`',
             '- HTTP status: ' + response.status,
-            '- Model requested: `gemini-2.5-flash`',
+            '- Model requested: `gemini-3.8-flash`',
             '- Reply length: ' + reply.length + ' characters',
             '',
             '### Gemini feedback',
@@ -86,6 +86,6 @@ jobs:
             '> This verifies a direct API call using the GitHub Actions secret. It does not by itself verify the Cloudflare Worker deployment.'
           ].join('\n');
           await fs.appendFile(process.env.GITHUB_STEP_SUMMARY, summary + '\n');
-          console.log('Gemini direct API test PASS. Model: gemini-2.5-flash. Reply length:', reply.length);
+          console.log('Gemini direct API test PASS. Model: gemini-3.8-flash. Reply length:', reply.length);
           console.log('Feedback was written to the run summary. The API key was not printed.');
           NODE
