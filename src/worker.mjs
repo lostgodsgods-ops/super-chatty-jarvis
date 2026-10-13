@@ -180,7 +180,28 @@ export default {
             signal: AbortSignal.timeout(15000),
           });
           if (!upstream.ok) {
-            return json({ ok: false, error: "AI provider request failed" }, 502);
+            // Staging diagnostics: expose only Google's status/code/message, never request headers or credentials.
+            const providerBody = await upstream.json().catch(() => ({}));
+            const providerError = providerBody?.error || {};
+            const providerMessage = typeof providerError.message === "string"
+              ? providerError.message.slice(0, 240)
+              : "No provider error message";
+            console.error("Gemini upstream failure", JSON.stringify({
+              httpStatus: upstream.status,
+              status: typeof providerError.status === "string" ? providerError.status : "unknown",
+              code: typeof providerError.code === "number" ? providerError.code : upstream.status,
+              message: providerMessage,
+            }));
+            return json({
+              ok: false,
+              error: "AI provider request failed",
+              diagnostic: {
+                providerStatus: upstream.status,
+                providerCode: typeof providerError.code === "number" ? providerError.code : upstream.status,
+                providerErrorStatus: typeof providerError.status === "string" ? providerError.status : "unknown",
+                providerMessage,
+              },
+            }, 502);
           }
           let result;
           try {
