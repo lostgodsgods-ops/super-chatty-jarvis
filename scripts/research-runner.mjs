@@ -1,3 +1,5 @@
+import { pathToFileURL } from "node:url";
+import { resolve } from "node:path";
 /**
  * Read-only public-market research runner.
  * No credentials, trading, accounts, writes, or arbitrary URLs are supported.
@@ -119,7 +121,7 @@ export async function runOilPriceResearch() {
   };
 }
 
-if (import.meta.url === `file://${process.argv[1]}`) {
+if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1])).href) {
   try {
     const report = await runOilPriceResearch();
     process.stdout.write(JSON.stringify(report, null, 2) + "\n");
