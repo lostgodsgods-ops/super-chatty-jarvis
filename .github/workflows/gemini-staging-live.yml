@@ -75,7 +75,7 @@ jobs:
             process.exit(1);
           }
           const models = (data.models || []).filter(m => (m.supportedGenerationMethods || []).includes('generateContent'));
-          console.log('Models supporting generateContent:', models.map(m => m.name.replace(/^models\\//, '')).join(', '));
+          console.log('Models supporting generateContent:', models.map(m => m.name.split('models/').pop()).join(', '));
           if (!models.length) process.exit(1);
           NODE
 
