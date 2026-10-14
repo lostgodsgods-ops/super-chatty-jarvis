@@ -56,3 +56,44 @@ test("AI TTS route rejects unauthenticated requests", async () => {
   }), { ALLOWED_ORIGIN: origin, AUTH_RATE_LIMITER: { limit: async () => ({ success: true }) } });
   assert.equal(response.status, 401);
 });
+
+test("authenticated English AI TTS returns audio and maps male voice preference", async () => {
+  let calledModel = "";
+  let calledInput;
+  const response = await worker.fetch(new Request(origin + "/api/tts", {
+    method: "POST",
+    headers: { origin, cookie: "scj_owner_session=test-session", "content-type": "application/json" },
+    body: JSON.stringify({ text: "Hello Chatty", language: "en-IN", voiceProfile: "male" }),
+  }), {
+    ALLOWED_ORIGIN: origin,
+    CHAT_API_ENABLED: "true",
+    AUTH_RATE_LIMITER: { limit: async () => ({ success: true }) },
+    SESSIONS: { get: async () => JSON.stringify({ ownerId: 1, credentialId: "test" }) },
+    AI: { run: async (model, input) => { calledModel = model; calledInput = input; return { audio: Buffer.from("ID3").toString("base64") }; } },
+  });
+  assert.equal(response.status, 200);
+  assert.match(response.headers.get("content-type") || "", /audio\/mpeg/);
+  assert.equal(calledModel, "@cf/deepgram/aura-1");
+  assert.equal(calledInput.speaker, "orion");
+  assert.equal((await response.arrayBuffer()).byteLength, 3);
+});
+
+test("authenticated Hindi AI TTS routes to multilingual speech model", async () => {
+  let calledModel = "";
+  let calledInput;
+  const response = await worker.fetch(new Request(origin + "/api/tts", {
+    method: "POST",
+    headers: { origin, cookie: "scj_owner_session=test-session", "content-type": "application/json" },
+    body: JSON.stringify({ text: "नमस्ते", language: "hi-IN", voiceProfile: "standard" }),
+  }), {
+    ALLOWED_ORIGIN: origin,
+    CHAT_API_ENABLED: "true",
+    AUTH_RATE_LIMITER: { limit: async () => ({ success: true }) },
+    SESSIONS: { get: async () => JSON.stringify({ ownerId: 1, credentialId: "test" }) },
+    AI: { run: async (model, input) => { calledModel = model; calledInput = input; return { audio: Buffer.from("ID3").toString("base64") }; } },
+  });
+  assert.equal(response.status, 200);
+  assert.equal(calledModel, "@cf/myshell-ai/melotts");
+  assert.equal(calledInput.prompt, "नमस्ते");
+  assert.equal(calledInput.lang, "hi");
+});
