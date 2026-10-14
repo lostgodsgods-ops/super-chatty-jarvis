@@ -47,7 +47,7 @@ test("Owner page is served with a restrictive same-origin policy and native pass
 
 test("authenticated status never discloses internal session metadata", async () => {
   const request = new Request("https://staging.example/auth/status", {
-    headers: { authorization: "Bearer test-session-token" },
+    headers: { cookie: "scj_owner_session=test-session-token" },
   });
   const env = {
     SESSIONS: {
@@ -71,4 +71,20 @@ test("passkey verification rejects oversized JSON even without Content-Length", 
   const response = await worker.fetch(request, { ALLOWED_ORIGIN: "https://owner.example" });
   assert.equal(response.status, 400);
   assert.deepEqual(await response.json(), { error: "Request rejected" });
+});
+
+test("logout revokes a cookie-backed Owner session without a JavaScript bearer token", async () => {
+  let deletedKey = "";
+  const request = new Request("https://staging.example/auth/logout", {
+    method: "POST",
+    headers: { Origin: "https://owner.example", cookie: "scj_owner_session=test-session-token" },
+    body: "{}",
+  });
+  const response = await worker.fetch(request, {
+    ALLOWED_ORIGIN: "https://owner.example",
+    SESSIONS: { async delete(key) { deletedKey = key; } },
+  });
+  assert.equal(response.status, 200);
+  assert.match(deletedKey, /^owner-session:/);
+  assert.match(response.headers.get("set-cookie") || "", /Max-Age=0/);
 });
