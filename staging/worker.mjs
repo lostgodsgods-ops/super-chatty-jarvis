@@ -401,7 +401,7 @@ export default {
             // Some model/runtime combinations accept prompt input more reliably than chat messages.
             // Try the same known-good model set once more with prompt input before returning an error.
             if (!reply) {
-              const prompt = systemPrompt + "\\n\\nUser: " + body.message.trim() + "\\n\\nAssistant:";
+              const prompt = systemPrompt + "\n\nUser: " + body.message.trim() + "\n\nAssistant:";
               for (const model of models) {
                 try {
                   const result = await env.AI.run(model, { prompt, max_tokens: 500, temperature: 0.4 });
