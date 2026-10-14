@@ -22,3 +22,5 @@ jobs:
           node-version: "22"
       - name: Run static site tests
         run: npm test
+      - name: Run Central Agent policy and owner-auth tests
+        run: node --test central-agent/policy.test.mjs central-agent/owner-auth.test.mjs
