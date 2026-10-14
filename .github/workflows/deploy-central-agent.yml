@@ -1,0 +1,58 @@
+name: Deploy Central Agent
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: super-chatty-central-agent-deploy
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Run policy and owner-auth tests
+        run: node --test central-agent/policy.test.mjs central-agent/owner-auth.test.mjs
+
+      - name: Validate required secrets
+        shell: bash
+        env:
+          CF_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CF_ACCOUNT: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          SETUP_TOKEN: ${{ secrets.OWNER_SETUP_TOKEN }}
+        run: |
+          set -euo pipefail
+          test -n "$CF_TOKEN" || { echo "Missing CLOUDFLARE_API_TOKEN"; exit 1; }
+          test -n "$CF_ACCOUNT" || { echo "Missing CLOUDFLARE_ACCOUNT_ID"; exit 1; }
+          test -n "$SETUP_TOKEN" || { echo "Missing OWNER_SETUP_TOKEN"; exit 1; }
+          echo "Required secret values are present (values not displayed)."
+
+      - name: Configure Worker one-time setup secret
+        shell: bash
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          OWNER_SETUP_TOKEN: ${{ secrets.OWNER_SETUP_TOKEN }}
+        run: |
+          set -euo pipefail
+          printf '%s' "$OWNER_SETUP_TOKEN" | npx --yes wrangler@4 secret put OWNER_SETUP_TOKEN --config central-agent/wrangler.jsonc
+
+      - name: Deploy isolated Central Agent
+        shell: bash
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          set -euo pipefail
+          npx --yes wrangler@4 deploy --config central-agent/wrangler.jsonc
