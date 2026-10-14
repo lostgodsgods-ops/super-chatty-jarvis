@@ -130,3 +130,88 @@ test("Owner auth rejects requests when the rate limiter reports a limit exceeded
   assert.equal(response.headers.get("retry-after"), "60");
   assert.deepEqual(await response.json(), { error: "Rate limit exceeded" });
 });
+
+
+test("expired or revoked Owner sessions are rejected", async () => {
+  const request = new Request("https://staging.example/auth/status", {
+    headers: { cookie: "scj_owner_session=expired-token" },
+  });
+  const response = await worker.fetch(request, {
+    AUTH_RATE_LIMITER: { async limit() { return { success: true }; } },
+    SESSIONS: { async get() { return null; } },
+  });
+  assert.equal(response.status, 401);
+  assert.deepEqual(await response.json(), { authenticated: false });
+});
+
+test("unknown passkey credentials cannot create an Owner session", async () => {
+  const request = new Request("https://staging.example/passkey/login/verify", {
+    method: "POST",
+    headers: { Origin: "https://owner.example", "content-type": "application/json" },
+    body: JSON.stringify({ challengeId: "challenge-1", response: { id: "unknown-credential" } }),
+  });
+  let sessionCreated = false;
+  const env = {
+    ALLOWED_ORIGIN: "https://owner.example",
+    AUTH_RATE_LIMITER: { async limit() { return { success: true }; } },
+    DB: {
+      prepare(sql) {
+        return {
+          bind() {
+            return {
+              async first() {
+                if (sql.startsWith("UPDATE webauthn_challenges")) return { challenge: "expected-challenge" };
+                if (sql.startsWith("SELECT credential_id")) return null;
+                throw new Error("Unexpected SQL query");
+              },
+            };
+          },
+        };
+      },
+    },
+    SESSIONS: { async put() { sessionCreated = true; } },
+  };
+  const response = await worker.fetch(request, env);
+  assert.equal(response.status, 401);
+  assert.deepEqual(await response.json(), { error: "Unknown passkey credential" });
+  assert.equal(sessionCreated, false);
+});
+
+test("a WebAuthn challenge can be claimed only once under concurrent login attempts", async () => {
+  let consumed = false;
+  const makeRequest = () => new Request("https://staging.example/passkey/login/verify", {
+    method: "POST",
+    headers: { Origin: "https://owner.example", "content-type": "application/json" },
+    body: JSON.stringify({ challengeId: "shared-challenge", response: { id: "unknown-credential" } }),
+  });
+  const env = {
+    ALLOWED_ORIGIN: "https://owner.example",
+    AUTH_RATE_LIMITER: { async limit() { return { success: true }; } },
+    DB: {
+      prepare(sql) {
+        return {
+          bind() {
+            return {
+              async first() {
+                if (sql.startsWith("UPDATE webauthn_challenges")) {
+                  if (consumed) return null;
+                  consumed = true;
+                  return { challenge: "expected-challenge" };
+                }
+                if (sql.startsWith("SELECT credential_id")) return null;
+                throw new Error("Unexpected SQL query");
+              },
+            };
+          },
+        };
+      },
+    },
+    SESSIONS: { async put() { throw new Error("Unknown credential must never create a session"); } },
+  };
+  const responses = await Promise.all([worker.fetch(makeRequest(), env), worker.fetch(makeRequest(), env)]);
+  const bodies = await Promise.all(responses.map((response) => response.json()));
+  assert.equal(responses.filter((response) => response.status === 401).length, 1);
+  assert.equal(responses.filter((response) => response.status === 400).length, 1);
+  assert.ok(bodies.some((body) => body.error === "Unknown passkey credential"));
+  assert.ok(bodies.some((body) => body.error === "Request rejected"));
+});
