@@ -55,3 +55,15 @@ test("authenticated status never discloses internal session metadata", async () 
   assert.equal(response.status, 200);
   assert.deepEqual(await response.json(), { authenticated: true });
 });
+
+test("passkey verification rejects oversized JSON even without Content-Length", async () => {
+  const body = JSON.stringify({ challengeId: "test", response: { id: "x", padding: "x".repeat(65_000) } });
+  const request = new Request("https://staging.example/passkey/login/verify", {
+    method: "POST",
+    headers: { Origin: "https://owner.example", "content-type": "application/json" },
+    body,
+  });
+  const response = await worker.fetch(request, { ALLOWED_ORIGIN: "https://owner.example" });
+  assert.equal(response.status, 400);
+  assert.deepEqual(await response.json(), { error: "Request rejected" });
+});
