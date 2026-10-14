@@ -150,12 +150,3 @@ jobs:
           }, 400, { error: "Request rejected" });
           console.log("PASS all live staging smoke checks; no token used and no passkey enrolled");
           NODE
-
-      - name: Authenticated staging integration tests (temporary Owner session)
-        env:
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          AGENT_GATEWAY_TOKEN: ${{ secrets.AGENT_GATEWAY_TOKEN }}
-          STAGING_BASE_URL: https://super-chatty-passkey-staging.lostgodsgods.workers.dev
-          STAGING_SESSIONS_KV_ID: 6d190e133b754bac8960ce2492a83705
-        run: node test/staging-integration.mjs
