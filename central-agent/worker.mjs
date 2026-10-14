@@ -10,6 +10,12 @@ const DEFAULT_WORKERS_AI_MODEL = "@cf/meta/llama-3.1-8b-instruct";
 const PASSWORD_ITERATIONS = 210000;
 const SESSION_TTL_SECONDS = 3600;
 
+export function parseSetupToken(hash) {
+  if (typeof hash !== "string" || !hash.startsWith("#")) return "";
+  try { return new URLSearchParams(hash.slice(1)).get("setup") || ""; }
+  catch { return ""; }
+}
+
 function json(data, status = 200, headers = {}) {
   return new Response(JSON.stringify(data), {
     status,
@@ -87,19 +93,21 @@ function ownerPage() {
 :root{color-scheme:dark;font-family:system-ui,sans-serif;background:#07111f;color:#e8f2ff}*{box-sizing:border-box}body{margin:0;min-height:100vh;display:grid;place-items:center;padding:20px;background:radial-gradient(ellipse at top,#12304a,#07111f 60%)}main{width:min(100%,440px);padding:24px;border:1px solid #25465f;border-radius:22px;background:#0b1928;box-shadow:0 20px 70px #0006}h1{font-size:1.5rem;margin:0 0 8px}p{color:#a9bfd2;line-height:1.5}.tag{color:#55e0d0;font-size:.8rem;letter-spacing:.12em;text-transform:uppercase}label{display:block;margin:16px 0 7px;font-size:.92rem}input{width:100%;padding:14px;border-radius:12px;border:1px solid #35546b;background:#06111d;color:#fff;font:inherit}button{width:100%;margin-top:18px;padding:14px;border:0;border-radius:12px;background:#55e0d0;color:#06202a;font:700 1rem system-ui;cursor:pointer}button:disabled{opacity:.45;cursor:not-allowed}.status{margin-top:16px;padding:12px;border-radius:10px;background:#102638;overflow-wrap:anywhere}.hidden{display:none}.hint{font-size:.84rem}
 </style></head><body><main><div class="tag">Super Chatty Jarvis</div><h1>Owner Access</h1><p>Set a password only you know, then use it to sign in. Your password is stored as a salted PBKDF2 hash, not as readable text. Sessions expire after one hour.</p>
 <section id="setup"><h2>Set your password</h2><p class="hint">Use at least 12 characters. This one-time setup page must be opened using your private setup link.</p>
-<form id="setupForm"><label for="password">Choose password</label><input id="password" type="password" minlength="12" maxlength="256" autocomplete="new-password" required><label for="confirm">Confirm password</label><input id="confirm" type="password" minlength="12" maxlength="256" autocomplete="new-password" required><button id="setupButton" type="submit">Save Password</button></form></section>
+<form id="setupForm"><label for="setupTokenInput">One-time setup token</label><input id="setupTokenInput" type="password" autocomplete="off" autocapitalize="none" spellcheck="false" aria-describedby="setupTokenHelp" required><p id="setupTokenHelp" class="hint">Paste the token from Cloudflare here, or open your private setup link. The token is never displayed.</p><label for="password">Choose password</label><input id="password" type="password" minlength="12" maxlength="256" autocomplete="new-password" required><label for="confirm">Confirm password</label><input id="confirm" type="password" minlength="12" maxlength="256" autocomplete="new-password" required><button id="setupButton" type="submit">Save Password</button></form></section>
 <section id="login" class="hidden"><h2>Owner login</h2><form id="loginForm"><label for="loginPassword">Password</label><input id="loginPassword" type="password" autocomplete="current-password" required><button type="submit">Sign in</button></form></section>
 <div id="status" class="status" role="status" aria-live="polite">Checking setup status…</div></main>
 <script>
 const statusBox=document.getElementById("status");
 const setupSection=document.getElementById("setup");
 const loginSection=document.getElementById("login");
-let setupToken=location.hash.startsWith("#setup=")?decodeURIComponent(location.hash.slice(7)):"";
+const setupTokenInput=document.getElementById("setupTokenInput");
+const initialSetupToken=new URLSearchParams(location.hash.slice(1)).get("setup")||"";
+if(initialSetupToken) setupTokenInput.value=initialSetupToken;
 history.replaceState(null,"",location.pathname);
 function say(message){statusBox.textContent=message}
 async function send(path,data){const response=await fetch(path,{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify(data)});const payload=await response.json().catch(()=>({error:"Unexpected server response"}));if(!response.ok)throw new Error(payload.error||"Request failed");return payload}
-(async()=>{try{const response=await fetch("/auth/status",{cache:"no-store"});const info=await response.json();if(!response.ok)throw new Error(info.error||"Unable to check setup");if(info.setupRequired){setupSection.classList.remove("hidden");loginSection.classList.add("hidden");if(!setupToken){document.getElementById("setupButton").disabled=true;say("Owner setup is locked. Open the private setup link supplied by the project owner.");}else say("Choose a password you will remember.");}else{setupSection.classList.add("hidden");loginSection.classList.remove("hidden");say("Owner password is set. Sign in to continue.");}}catch(error){say(error.message)}})();
-document.getElementById("setupForm").addEventListener("submit",async event=>{event.preventDefault();const password=document.getElementById("password").value;const confirm=document.getElementById("confirm").value;if(password!==confirm){say("Passwords do not match.");return}if(password.length<12){say("Use at least 12 characters.");return}try{await send("/auth/setup",{setupToken,password});setupToken="";setupSection.classList.add("hidden");loginSection.classList.remove("hidden");document.getElementById("password").value="";document.getElementById("confirm").value="";say("Password saved securely. Sign in with your new password.");}catch(error){say(error.message)}});
+(async()=>{try{const response=await fetch("/auth/status",{cache:"no-store"});const info=await response.json();if(!response.ok)throw new Error(info.error||"Unable to check setup");if(info.setupRequired){setupSection.classList.remove("hidden");loginSection.classList.add("hidden");if(!setupTokenInput.value){say("Paste your one-time setup token above, or open the private setup link.");}else say("Choose a password you will remember.");}else{setupSection.classList.add("hidden");loginSection.classList.remove("hidden");say("Owner password is set. Sign in to continue.");}}catch(error){say(error.message)}})();
+document.getElementById("setupForm").addEventListener("submit",async event=>{event.preventDefault();const password=document.getElementById("password").value;const confirm=document.getElementById("confirm").value;if(password!==confirm){say("Passwords do not match.");return}if(password.length<12){say("Use at least 12 characters.");return}const setupToken=setupTokenInput.value;if(!setupToken){say("Enter your one-time setup token.");return}try{await send("/auth/setup",{setupToken,password});setupTokenInput.value="";setupSection.classList.add("hidden");loginSection.classList.remove("hidden");document.getElementById("password").value="";document.getElementById("confirm").value="";say("Password saved securely. Sign in with your new password.");}catch(error){say(error.message)}});
 document.getElementById("loginForm").addEventListener("submit",async event=>{event.preventDefault();try{const result=await send("/auth/login",{password:document.getElementById("loginPassword").value});sessionStorage.setItem("superChattyOwnerSession",result.token);document.getElementById("loginPassword").value="";say("Signed in. Owner session saved for this browser tab for up to one hour. You can now use this session with protected API requests.");}catch(error){say(error.message)}});
 </script></body></html>`;
   return new Response(html, {
