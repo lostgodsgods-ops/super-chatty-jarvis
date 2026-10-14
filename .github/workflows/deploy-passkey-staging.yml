@@ -62,7 +62,7 @@ jobs:
         run: printf '%s' "$OWNER_SETUP_TOKEN" | npx wrangler secret put OWNER_SETUP_TOKEN --config staging/wrangler.jsonc
       - name: Smoke-test deployed staging routes without enrolling a credential
         env:
-          STAGING_BASE_URL: https://super-chatty-passkey-staging.lostgods.workers.dev
+          STAGING_BASE_URL: https://super-chatty-passkey-staging.lostgodsgods.workers.dev
         run: |
           node --input-type=module <<'NODE'
           import assert from "node:assert/strict";
