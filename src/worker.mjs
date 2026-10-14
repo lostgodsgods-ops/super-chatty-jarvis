@@ -88,6 +88,11 @@ export default {
       if (!(request.headers.get("content-type") || "").toLowerCase().includes("application/json")) {
         return json({ ok: false, error: "Content-Type must be application/json" }, 415);
       }
+
+      // Short-circuit disabled chat before reading/parsing the body or touching the provider secret.
+      if (env.CHAT_API_ENABLED !== "true") {
+        return json({ ok: false, error: "AI chat is not configured" }, 503);
+      }
       const declaredLength = Number(request.headers.get("content-length") || "0");
       if (declaredLength > 12000) {
         return json({ ok: false, error: "Request too large" }, 413);
@@ -140,7 +145,7 @@ export default {
       const apiKey = provider === "gemini" ? env.GEMINI_API_KEY : env.OPENAI_API_KEY;
 
       // Disabled by default to prevent unexpected provider costs until the owner configures it.
-      if (env.CHAT_API_ENABLED !== "true" || !apiKey) {
+      if (!apiKey) {
         return json({ ok: false, error: "AI chat is not configured" }, 503);
       }
 
