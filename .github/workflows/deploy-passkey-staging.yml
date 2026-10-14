@@ -67,6 +67,17 @@ jobs:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           OWNER_SETUP_TOKEN: ${{ secrets.OWNER_SETUP_TOKEN }}
         run: printf '%s' "$OWNER_SETUP_TOKEN" | npx wrangler secret put OWNER_SETUP_TOKEN --config staging/wrangler.jsonc
+      - name: Set optional agent gateway token without logging it
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          AGENT_GATEWAY_TOKEN: ${{ secrets.AGENT_GATEWAY_TOKEN }}
+        run: |
+          if [ -n "$AGENT_GATEWAY_TOKEN" ]; then
+            printf '%s' "$AGENT_GATEWAY_TOKEN" | npx wrangler secret put AGENT_GATEWAY_TOKEN --config staging/wrangler.jsonc
+          else
+            echo "Optional AGENT_GATEWAY_TOKEN not configured; agent claim/result submission stays disabled."
+          fi
       - name: Smoke-test deployed staging routes without enrolling a credential
         env:
           STAGING_BASE_URL: https://super-chatty-passkey-staging.lostgodsgods.workers.dev
@@ -104,6 +115,7 @@ jobs:
           assert.equal(new URL(app.headers.get("location"), base).pathname, "/owner");
           console.log("PASS /app: unauthenticated access redirected");
           await check("/results", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ taskId: "test", result: { summary: "test" } }) }, 503, { error: "Agent result submission is disabled until gateway authentication is configured" });
+          await check("/tasks/claim", { method: "POST", headers: { "content-type": "application/json" }, body: "{}" }, 503, { error: "Agent task claiming is disabled until gateway authentication is configured" });
           await check("/passkey/register/options", {
             method: "POST",
             headers: { Origin: origin, "content-type": "application/json" },
