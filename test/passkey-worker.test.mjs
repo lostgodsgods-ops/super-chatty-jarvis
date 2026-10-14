@@ -14,9 +14,14 @@ test("staging Worker rejects cross-origin passkey API calls", async () => {
     headers: { Origin: "https://attacker.example", "content-type": "application/json" },
     body: "{}",
   });
-  const response = await worker.fetch(request, { ALLOWED_ORIGIN: "https://owner.example" });
+  let dbTouched = false;
+  const response = await worker.fetch(request, {
+    ALLOWED_ORIGIN: "https://owner.example",
+    DB: { prepare() { dbTouched = true; throw new Error("DB should not be reached"); } },
+  });
   assert.equal(response.status, 400);
   assert.deepEqual(await response.json(), { error: "Request rejected" });
+  assert.equal(dbTouched, false, "oversized body must be rejected before database access");
 });
 
 test("staging Worker rejects preflight from an unapproved origin", async () => {
