@@ -85,7 +85,7 @@ jobs:
           async function check(path, init, expectedStatus, expectedBody = {}) {
             const response = await fetch(new URL(path, base), init);
             const body = await response.json().catch(() => ({}));
-            assert.equal(response.status, expectedStatus, `${path}: unexpected HTTP status`);
+            assert.equal(response.status, expectedStatus, `${path}: unexpected HTTP status ${response.status}; body=${JSON.stringify(body)}`);
             for (const [key, value] of Object.entries(expectedBody)) {
               assert.equal(body[key], value, `${path}: unexpected ${key}`);
             }
@@ -102,10 +102,10 @@ jobs:
           assert.ok(html.includes("Sign in with passkey"), "passkey sign-in UI missing");
           console.log("PASS /owner: passkey UI present");
           await check("/auth/status", { method: "GET" }, 401, { authenticated: false });
-          await check("/tasks", { method: "GET" }, 401, { error: "Owner authentication required" });
-          await check("/results", { method: "GET" }, 401, { error: "Owner authentication required" });
-          await check("/memory", { method: "GET" }, 401, { error: "Owner authentication required" });
-          await check("/audit", { method: "GET" }, 401, { error: "Owner authentication required" });
+          await check("/tasks", { method: "GET", headers: { Origin: origin } }, 401, { error: "Owner authentication required" });
+          await check("/results", { method: "GET", headers: { Origin: origin } }, 401, { error: "Owner authentication required" });
+          await check("/memory", { method: "GET", headers: { Origin: origin } }, 401, { error: "Owner authentication required" });
+          await check("/audit", { method: "GET", headers: { Origin: origin } }, 401, { error: "Owner authentication required" });
           const app = await fetch(new URL("/app", base), { redirect: "manual", cache: "no-store" });
           assert.equal(app.status, 303, "/app must redirect unauthenticated requests");
           assert.equal(new URL(app.headers.get("location"), base).pathname, "/owner");
