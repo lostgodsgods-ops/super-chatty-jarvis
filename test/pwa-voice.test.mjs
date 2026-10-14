@@ -97,3 +97,70 @@ test("authenticated Hindi AI TTS routes to multilingual speech model", async () 
   assert.equal(calledInput.prompt, "नमस्ते");
   assert.equal(calledInput.lang, "hi");
 });
+
+
+test("authenticated chat uses Workers AI and returns a usable assistant reply", async () => {
+  let calledModel = "";
+  const response = await worker.fetch(new Request(origin + "/api/chat", {
+    method: "POST",
+    headers: { origin, cookie: "scj_owner_session=test-session", "content-type": "application/json" },
+    body: JSON.stringify({ message: "यह बताओ कि तुम मेरे लिए क्या-क्या कर सकते हो", language: "hi-IN" }),
+  }), {
+    ALLOWED_ORIGIN: origin,
+    CHAT_API_ENABLED: "true",
+    CHAT_MODEL: "@cf/meta/llama-3.1-8b-instruct",
+    AUTH_RATE_LIMITER: { limit: async () => ({ success: true }) },
+    SESSIONS: { get: async () => JSON.stringify({ ownerId: 1, credentialId: "test" }) },
+    AI: { run: async (model, input) => {
+      calledModel = model;
+      assert.equal(input.messages[1].content, "यह बताओ कि तुम मेरे लिए क्या-क्या कर सकते हो");
+      return { response: "मैं सवालों के जवाब, लेखन, जानकारी और योजना बनाने में मदद कर सकता हूँ।" };
+    } },
+  });
+  assert.equal(response.status, 200);
+  const body = await response.json();
+  assert.equal(body.ok, true);
+  assert.match(body.reply, /जवाब/);
+  assert.equal(body.model, "@cf/meta/llama-3.1-8b-instruct");
+  assert.equal(calledModel, body.model);
+});
+
+test("chat falls back to the known staging model when configured model throws", async () => {
+  const attempted = [];
+  const response = await worker.fetch(new Request(origin + "/api/chat", {
+    method: "POST",
+    headers: { origin, cookie: "scj_owner_session=test-session", "content-type": "application/json" },
+    body: JSON.stringify({ message: "Hello", language: "en-US" }),
+  }), {
+    ALLOWED_ORIGIN: origin,
+    CHAT_API_ENABLED: "true",
+    CHAT_MODEL: "@cf/unknown/model",
+    AUTH_RATE_LIMITER: { limit: async () => ({ success: true }) },
+    SESSIONS: { get: async () => JSON.stringify({ ownerId: 1, credentialId: "test" }) },
+    AI: { run: async (model) => {
+      attempted.push(model);
+      if (model === "@cf/unknown/model") throw new Error("provider unavailable");
+      return { choices: [{ message: { content: "I can help with questions and planning." } }] };
+    } },
+  });
+  assert.equal(response.status, 200);
+  const body = await response.json();
+  assert.match(body.reply, /questions and planning/);
+  assert.equal(body.model, "@cf/meta/llama-3.1-8b-instruct");
+  assert.deepEqual(attempted, ["@cf/unknown/model", "@cf/meta/llama-3.1-8b-instruct"]);
+});
+
+test("chat remains available with an AI binding when optional enable flag is absent", async () => {
+  const response = await worker.fetch(new Request(origin + "/api/chat", {
+    method: "POST",
+    headers: { origin, cookie: "scj_owner_session=test-session", "content-type": "application/json" },
+    body: JSON.stringify({ message: "Hello", language: "en-US" }),
+  }), {
+    ALLOWED_ORIGIN: origin,
+    AUTH_RATE_LIMITER: { limit: async () => ({ success: true }) },
+    SESSIONS: { get: async () => JSON.stringify({ ownerId: 1, credentialId: "test" }) },
+    AI: { run: async () => ({ response: "Hello from the staging AI." }) },
+  });
+  assert.equal(response.status, 200);
+  assert.equal((await response.json()).reply, "Hello from the staging AI.");
+});
