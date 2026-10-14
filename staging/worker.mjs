@@ -215,7 +215,7 @@ async function authStatus(request, env) {
   if (!token) return json({ authenticated: false }, 401);
   const session = await env.SESSIONS.get(`owner-session:${await hash(token)}`);
   if (!session) return json({ authenticated: false }, 401);
-  return json({ authenticated: true, session: JSON.parse(session) });
+  return json({ authenticated: true });
 }
 
 async function logout(request, env) {
