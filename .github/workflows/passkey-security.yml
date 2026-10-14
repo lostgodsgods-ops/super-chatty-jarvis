@@ -24,5 +24,7 @@ jobs:
         run: npm install --ignore-scripts --no-audit --no-fund
       - name: Check staging Worker syntax
         run: npm run check:passkey-worker
+      - name: Bundle staging Worker without deploying
+        run: npm run build:passkey-staging
       - name: Run passkey security tests
         run: npm test
