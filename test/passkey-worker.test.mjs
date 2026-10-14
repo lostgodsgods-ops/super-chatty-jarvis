@@ -215,3 +215,60 @@ test("a WebAuthn challenge can be claimed only once under concurrent login attem
   assert.ok(bodies.some((body) => body.error === "Unknown passkey credential"));
   assert.ok(bodies.some((body) => body.error === "Request rejected"));
 });
+
+
+test("voice app redirects unauthenticated users to Owner sign-in", async () => {
+  const response = await worker.fetch(new Request("https://staging.example/app"), {
+    SESSIONS: { async get() { return null; } },
+  });
+  assert.equal(response.status, 303);
+  assert.equal(response.headers.get("location"), "https://staging.example/owner");
+});
+
+test("voice app serves bilingual microphone controls only for an Owner session", async () => {
+  const request = new Request("https://staging.example/app", {
+    headers: { cookie: "scj_owner_session=valid-session" },
+  });
+  const response = await worker.fetch(request, {
+    SESSIONS: { async get(key) {
+      assert.match(key, /^owner-session:/);
+      return JSON.stringify({ ownerId: 1, credentialId: "private-id", createdAt: "2026-10-14T00:00:00.000Z" });
+    } },
+  });
+  assert.equal(response.status, 200);
+  assert.match(response.headers.get("content-security-policy") || "", /connect-src 'self'/);
+  const html = await response.text();
+  assert.match(html, /value="hi-IN"/);
+  assert.match(html, /value="en-IN"/);
+  assert.match(html, /id="mic"/);
+});
+
+test("chat API validates Owner session then fails honestly while no provider is configured", async () => {
+  const request = new Request("https://staging.example/api/chat", {
+    method: "POST",
+    headers: { Origin: "https://owner.example", cookie: "scj_owner_session=valid-session", "content-type": "application/json" },
+    body: JSON.stringify({ message: "नमस्ते Chatty", language: "hi-IN" }),
+  });
+  const response = await worker.fetch(request, {
+    ALLOWED_ORIGIN: "https://owner.example",
+    AUTH_RATE_LIMITER: { async limit() { return { success: true }; } },
+    SESSIONS: { async get() { return JSON.stringify({ ownerId: 1 }); } },
+  });
+  assert.equal(response.status, 503);
+  assert.deepEqual(await response.json(), { error: "Chat provider is not configured in staging", code: "CHAT_PROVIDER_NOT_CONFIGURED" });
+});
+
+test("chat API rejects missing Owner session", async () => {
+  const request = new Request("https://staging.example/api/chat", {
+    method: "POST",
+    headers: { Origin: "https://owner.example", "content-type": "application/json" },
+    body: JSON.stringify({ message: "hello", language: "en-IN" }),
+  });
+  const response = await worker.fetch(request, {
+    ALLOWED_ORIGIN: "https://owner.example",
+    AUTH_RATE_LIMITER: { async limit() { return { success: true }; } },
+    SESSIONS: { async get() { return null; } },
+  });
+  assert.equal(response.status, 401);
+  assert.deepEqual(await response.json(), { error: "Owner authentication required" });
+});
