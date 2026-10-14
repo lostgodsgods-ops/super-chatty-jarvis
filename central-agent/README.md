@@ -1,49 +1,64 @@
 # Super Chatty Central Agent v1
 
-This is an isolated, initial AI gateway for Super Chatty Jarvis. It is intentionally separate from the existing site and Workers.
+An isolated, initial AI gateway for Super Chatty Jarvis. It is separate from the existing site and Workers.
 
 ## Current scope
 
-- `GET /health`: public health and configuration status; never returns secrets.
-- `POST /chat`: owner-authenticated Workers AI chat.
-- `GET /agents`: owner-authenticated planned agent roles.
-- `POST /tasks` and `GET /results`: currently return 503 until durable storage and an executor are implemented.
+- `GET /health`: public health/configuration status; never returns secrets.
+- `POST /chat`: owner-authenticated Workers AI chat. It plans and advises only.
+- `GET /agents`: owner-authenticated catalogue of proposed child-agent roles; it does not spawn agents.
+- `GET /policy`: owner-authenticated fail-closed policy description.
+- `POST /tasks` and `GET /results`: return 503 until durable storage, single-use approval consumption, audit logging, and a tested executor exist.
+- `policy.mjs`: pure policy checks; unknown actions are denied by default.
+- `policy.test.mjs`: Node.js built-in tests for approval and role restrictions. Run with `node --test central-agent/policy.test.mjs`.
+
+## Authority model
+
+1. The owner is the final authority. ChatGPT is a command/coordination channel, not a source of additional permissions.
+2. The Central Agent can plan, summarize, review and propose work. It cannot self-grant permissions.
+3. Creating/activating child agents and all external side effects require explicit, action-scoped owner approval.
+4. Every executor must independently enforce the policy. A model response is never an authorization decision.
+5. Unknown actions, missing tools, missing approvals, or missing durable audit/approval infrastructure must fail closed.
+6. Child roles are bounded to `research`, `development`, `integration`, and `testing`; no root/admin role is available through the policy module.
+7. “Self-repair” should mean diagnose, create a patch/PR, run tests and report evidence. Merge, secret changes, permission changes and deployment remain separately owner-approved.
 
 ## Security boundaries
 
-- The Worker expects the secret `OWNER_API_KEY`; never commit it to GitHub source code.
-- Do not place `OWNER_API_KEY` in browser JavaScript, an HTML file, or a mobile app bundle. Those locations are inspectable by users and apps.
-- Do not paste third-party API keys into ChatGPT or agent prompts. Add them only through the provider's secret manager / Cloudflare Worker secrets.
-- This v1 does not create third-party API keys, change permissions on external services, run arbitrary tools, deploy other agents, or bypass owner approval.
-- All integrations should use least-privilege credentials. Broad "allow everything" keys increase risk and are not required for an initial setup.
-- The `/agents` list is a plan, not evidence that those agents are running.
-- The AI model must not be allowed to approve its own permissions or grant itself new tools.
+- The Worker expects `OWNER_API_KEY`; never commit it to source code.
+- Do not put `OWNER_API_KEY` in browser JavaScript, HTML, or a mobile app bundle.
+- Do not paste third-party API keys into ChatGPT or agent prompts. Store them only in the provider's secret manager / Cloudflare Worker secrets.
+- This version does not create third-party API keys, change external permissions, run arbitrary tools, deploy child agents, or connect itself to the existing site.
+- Use least-privilege credentials; broad “allow everything” keys are not necessary.
+- The `/agents` list is a plan, not evidence that agents are running.
 
 ## Required GitHub Actions secrets
 
-Set these in the repository's Actions secrets before running the manual workflow:
+Before using the manual workflow, set these repository Actions secrets:
 
-1. `CLOUDFLARE_API_TOKEN`: a valid Cloudflare API token with only the permissions required to deploy Workers and use Workers AI for this account.
-2. `CLOUDFLARE_ACCOUNT_ID`: the Cloudflare account ID.
-3. `CENTRAL_AGENT_OWNER_KEY`: a strong random owner key, generated and stored privately. Do not paste it into chat or commit it.
+1. `CLOUDFLARE_API_TOKEN`: valid Cloudflare token with only required Worker deployment permissions.
+2. `CLOUDFLARE_ACCOUNT_ID`: Cloudflare account ID.
+3. `CENTRAL_AGENT_OWNER_KEY`: strong random owner key, generated and stored privately. Do not paste it into chat or commit it.
 
-The existing Cloudflare token must be verified before deployment; this workflow cannot fix a revoked or invalid token.
+The workflow cannot repair a revoked/invalid Cloudflare token. Secret values are not printed by the workflow.
 
 ## Deployment
 
-Run the GitHub Actions workflow named **Deploy Central Agent** from the Actions tab after reviewing the files and adding the required secrets. The workflow uploads `CENTRAL_AGENT_OWNER_KEY` to the Worker as the secret `OWNER_API_KEY` and deploys the isolated Worker.
+Run **Deploy Central Agent** manually from GitHub Actions only after reviewing the files and adding the required secrets. It deploys the isolated Worker and sets `OWNER_API_KEY`.
 
-After deployment, verify `GET /health` returns HTTP 200. A 200 health check proves the Worker is reachable; it does not prove chat, task execution, or project integration works.
+After deployment, verify `GET /health` returns HTTP 200. This only proves reachability, not that chat, task execution, monitoring, or project integration works.
 
-## Safe project integration
+## Integration plan
 
-The existing project site must not receive the owner key in frontend code. To connect the UI, add a server-side proxy in the existing site Worker (or use a protected authenticated server route) that forwards an authorized request to this Worker. Review and test that change separately before deploying it.
+Connect the existing site only through a protected server-side proxy. Never expose the owner key in frontend code. Review and test that change separately before deploying it.
 
-## Known gaps before calling this a full agent leader
+## Gaps before calling this a functioning multi-agent system
 
-- Durable task queue and result persistence (KV or Durable Objects).
-- Explicit approval records and a non-bypassable execution policy.
-- A real executor/runner for registered child agents.
+- Durable queue and result persistence (KV or Durable Objects).
+- Single-use, action-scoped owner approval records.
+- Audit trail and emergency stop/revocation.
+- Sandboxed runner for registered child agents.
+- Safe test execution and patch/PR workflow.
 - Server-side proxy integration with the existing site.
-- Integration-specific secrets and provider permissions, added individually and least-privileged.
-- Automated tests and a live deployment verification report.
+- Individual provider integrations and least-privilege credentials.
+- Automated tests and verified live deployment.
+- Monitoring/alerting that runs after a real deployment.
