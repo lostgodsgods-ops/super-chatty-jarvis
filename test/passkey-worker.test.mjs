@@ -272,3 +272,31 @@ test("chat API rejects missing Owner session", async () => {
   assert.equal(response.status, 401);
   assert.deepEqual(await response.json(), { error: "Owner authentication required" });
 });
+
+
+test("module APIs remain Owner-gated and fail closed on missing sessions", async () => {
+  let dbTouched = false;
+  const response = await worker.fetch(new Request("https://staging.example/tasks"), {
+    ALLOWED_ORIGIN: "https://owner.example",
+    AUTH_RATE_LIMITER: { async limit() { return { success: true }; } },
+    SESSIONS: { async get() { return null; } },
+    DB: { prepare() { dbTouched = true; throw new Error("DB must not be touched for unauthorized requests"); } },
+  });
+  assert.equal(response.status, 401);
+  assert.deepEqual(await response.json(), { error: "Owner authentication required" });
+  assert.equal(dbTouched, false);
+});
+
+test("agent result route is server-to-server and fails closed without a gateway secret", async () => {
+  const request = new Request("https://staging.example/results", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ taskId: "123e4567-e89b-12d3-a456-426614174000", result: { summary: "test" } }),
+  });
+  const response = await worker.fetch(request, {
+    AUTH_RATE_LIMITER: { async limit() { return { success: true }; } },
+    DB: { prepare() { throw new Error("DB must not be touched without a gateway secret"); } },
+  });
+  assert.equal(response.status, 503);
+  assert.deepEqual(await response.json(), { error: "Agent result submission is disabled until gateway authentication is configured" });
+});
