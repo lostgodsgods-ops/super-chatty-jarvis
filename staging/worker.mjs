@@ -347,37 +347,60 @@ export default {
           const body = await readJson(request);
           if (typeof body?.message !== "string" || !body.message.trim() || body.message.length > 8000) response = json({ error: "Message must contain 1-8000 characters" }, 400);
           else if (!["hi-IN", "en-IN", "en-US"].includes(body.language)) response = json({ error: "Unsupported language" }, 400);
-          else if (env.CHAT_API_ENABLED !== "true" || !env.AI || typeof env.AI.run !== "function") {
+          else if (env.CHAT_API_ENABLED === "false" || !env.AI || typeof env.AI.run !== "function") {
             response = json({ error: "Chat provider is not configured in staging", code: "CHAT_PROVIDER_NOT_CONFIGURED" }, 503);
           } else {
-            const model = typeof env.CHAT_MODEL === "string" && env.CHAT_MODEL.trim()
+            const defaultModel = "@cf/meta/llama-3.1-8b-instruct";
+            const configuredModel = typeof env.CHAT_MODEL === "string" && env.CHAT_MODEL.trim()
               ? env.CHAT_MODEL.trim()
-              : "@cf/meta/llama-3.1-8b-instruct";
-            try {
-              const result = await env.AI.run(model, {
-                messages: [
-                  {
-                    role: "system",
-                    content: "You are Super Chatty Jarvis. Reply in the user's selected language (" + body.language + "). Be helpful, concise, and honest. Never claim you performed external actions or accessed accounts unless the system actually did so. Ask for explicit Owner approval before sensitive actions.",
-                  },
-                  { role: "user", content: body.message.trim() },
-                ],
-                max_tokens: 700,
-                temperature: 0.4,
-              });
-              const reply = typeof result?.response === "string"
-                ? result.response.trim()
-                : typeof result?.choices?.[0]?.message?.content === "string"
-                  ? result.choices[0].message.content.trim()
-                  : "";
-              if (!reply) {
-                response = json({ error: "AI provider returned no reply", code: "AI_PROVIDER_EMPTY_RESPONSE" }, 502);
-              } else {
-                response = json({ ok: true, reply, model });
+              : defaultModel;
+            const models = [...new Set([configuredModel, defaultModel])];
+            const input = {
+              messages: [
+                {
+                  role: "system",
+                  content: "You are Super Chatty Jarvis. Reply in the user's selected language (" + body.language + "). Be helpful, concise, and honest. Never claim you performed external actions or accessed accounts unless the system actually did so. Ask for explicit Owner approval before sensitive actions.",
+                },
+                { role: "user", content: body.message.trim() },
+              ],
+              max_tokens: 700,
+              temperature: 0.4,
+            };
+            let reply = "";
+            let usedModel = "";
+            let lastFailure = "AI_PROVIDER_UNAVAILABLE";
+            for (const model of models) {
+              try {
+                const result = await env.AI.run(model, input);
+                reply = typeof result?.response === "string"
+                  ? result.response.trim()
+                  : typeof result?.choices?.[0]?.message?.content === "string"
+                    ? result.choices[0].message.content.trim()
+                    : typeof result?.result?.response === "string"
+                      ? result.result.response.trim()
+                      : "";
+                if (reply) {
+                  usedModel = model;
+                  break;
+                }
+                lastFailure = "AI_PROVIDER_EMPTY_RESPONSE";
+                console.warn("SCJ_CHAT_PROVIDER_EMPTY_RESPONSE", { model });
+              } catch (error) {
+                lastFailure = "AI_PROVIDER_UNAVAILABLE";
+                console.error("SCJ_CHAT_PROVIDER_ATTEMPT_FAILED", {
+                  model,
+                  errorName: typeof error?.name === "string" ? error.name : "Error",
+                });
               }
-            } catch {
-              response = json({ error: "AI provider temporarily unavailable", code: "AI_PROVIDER_UNAVAILABLE" }, 502);
             }
+            response = reply
+              ? json({ ok: true, reply, model: usedModel })
+              : json({
+                  error: lastFailure === "AI_PROVIDER_EMPTY_RESPONSE"
+                    ? "AI provider returned no reply"
+                    : "AI provider temporarily unavailable",
+                  code: lastFailure,
+                }, 502);
           }
         }
       }
