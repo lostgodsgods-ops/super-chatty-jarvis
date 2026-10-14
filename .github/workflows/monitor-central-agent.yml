@@ -1,0 +1,70 @@
+name: Monitor Central Agent
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "*/15 * * * *"
+
+permissions:
+  contents: read
+  issues: write
+
+concurrency:
+  group: super-chatty-central-agent-health
+  cancel-in-progress: true
+
+jobs:
+  health-check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check configured Central Agent health endpoint
+        id: health
+        shell: bash
+        env:
+          CENTRAL_AGENT_URL: ${{ vars.CENTRAL_AGENT_URL }}
+        run: |
+          set -euo pipefail
+          if [[ -z "${CENTRAL_AGENT_URL:-}" ]]; then
+            echo "::error::Repository variable CENTRAL_AGENT_URL is missing. Set it to the deployed Worker base URL after deployment."
+            exit 2
+          fi
+          case "$CENTRAL_AGENT_URL" in
+            https://*) ;;
+            *) echo "::error::CENTRAL_AGENT_URL must use HTTPS."; exit 2 ;;
+          esac
+          body="$(mktemp)"
+          code="$(curl --silent --show-error --max-time 15 --output "$body" --write-out '%{http_code}' "$CENTRAL_AGENT_URL/health" || true)"
+          echo "http_code=$code" >> "$GITHUB_OUTPUT"
+          if [[ "$code" != "200" ]]; then
+            echo "::error::Central Agent health check failed with HTTP $code."
+            cat "$body"
+            exit 1
+          fi
+          cat "$body"
+          node -e 'const fs=require("fs"); const x=JSON.parse(fs.readFileSync(process.argv[1],"utf8")); if(x.ok!==true) process.exit(1)' "$body"
+
+      - name: Open or update incident issue on failure
+        if: failure() && github.event_name != 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const title = "Central Agent health check failed";
+            const { owner, repo } = context.repo;
+            const open = await github.rest.issues.listForRepo({
+              owner, repo, state: "open", per_page: 100
+            });
+            const existing = open.data.find(i => i.title === title && !i.pull_request);
+            const body = [
+              "The scheduled Central Agent health check failed.",
+              "",
+              "Workflow run: " + context.serverUrl + "/" + owner + "/" + repo + "/actions/runs/" + context.runId,
+              "Event: " + context.eventName,
+              "",
+              "Check the configured CENTRAL_AGENT_URL, Worker deployment status, and Cloudflare logs.",
+              "This monitor reports failures; it does not change secrets, modify permissions, merge code, or deploy fixes."
+            ].join("\n");
+            if (existing) {
+              await github.rest.issues.createComment({ owner, repo, issue_number: existing.number, body });
+            } else {
+              await github.rest.issues.create({ owner, repo, title, body });
+            }
