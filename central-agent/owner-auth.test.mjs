@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { webcrypto } from "node:crypto";
 
 // Cloudflare Workers provide Web Crypto globally; make the same API explicit in Node tests.
-globalThis.crypto ??= webcrypto;
+Object.defineProperty(globalThis, "crypto", { value: webcrypto, configurable: true, writable: true });
 import worker, { parseSetupToken } from "./worker.mjs";
 
 class FakeKV {
