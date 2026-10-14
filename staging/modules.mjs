@@ -13,6 +13,7 @@ const newId = () => crypto.randomUUID();
 export function isModuleRoute(method, path) {
   if (path === "/tasks" && ["GET", "POST"].includes(method)) return true;
   if (path === "/results" && ["GET", "POST"].includes(method)) return true;
+  if (path === "/tasks/claim" && method === "POST") return true;
   if (path === "/memory" && ["GET", "POST"].includes(method)) return true;
   if (path === "/audit" && method === "GET") return true;
   if (path.startsWith("/memory/") && method === "DELETE") return true;
@@ -99,6 +100,26 @@ async function getResults(request, env, session) {
     try { value = JSON.parse(row.result_json); } catch { value = { error: "Stored result is invalid" }; }
     return { id: row.id, taskId: row.task_id, result: value, createdAt: row.created_at };
   }) });
+}
+
+async function claimTask(request, env) {
+  if (!env.AGENT_GATEWAY_TOKEN) return json({ error: "Agent task claiming is disabled until gateway authentication is configured" }, 503);
+  const supplied = request.headers.get("x-agent-gateway-token") || "";
+  if (supplied.length !== env.AGENT_GATEWAY_TOKEN.length || supplied !== env.AGENT_GATEWAY_TOKEN) return json({ error: "Agent gateway authorization failed" }, 401);
+  const now = nowIso();
+  const claimed = await env.DB.prepare(
+    "UPDATE owner_tasks SET status = 'running', updated_at = ? WHERE id = (SELECT id FROM owner_tasks WHERE owner_id = ? AND status = 'queued' ORDER BY created_at ASC LIMIT 1) AND owner_id = ? AND status = 'queued' RETURNING id, task_type, payload_json, created_at, updated_at"
+  ).bind(now, OWNER_ID, OWNER_ID).first();
+  if (!claimed) return json({ task: null });
+  try {
+    await writeAudit(env, "task.claimed", "task", claimed.id, { taskType: claimed.task_type, status: "running" });
+  } catch {
+    await env.DB.prepare("UPDATE owner_tasks SET status = 'queued', updated_at = ? WHERE id = ? AND owner_id = ? AND status = 'running'").bind(nowIso(), claimed.id, OWNER_ID).run();
+    return json({ error: "Audit logging unavailable; task returned to queue" }, 503);
+  }
+  let payload = {};
+  try { payload = JSON.parse(claimed.payload_json); } catch { payload = { error: "Invalid stored task payload" }; }
+  return json({ task: { id: claimed.id, taskType: claimed.task_type, payload, status: "running", createdAt: claimed.created_at, updatedAt: claimed.updated_at } });
 }
 
 async function submitResult(request, env) {
@@ -188,6 +209,7 @@ export async function handleModuleRoute(request, env, path, session) {
   if (path === "/tasks" && request.method === "POST") return createTask(request, env, session);
   if (/^\/tasks\/[a-f0-9-]+\/approve$/i.test(path) && request.method === "POST") return approveTask(request, env, path, session);
   if (path === "/results" && request.method === "GET") return getResults(request, env, session);
+  if (path === "/tasks/claim" && request.method === "POST") return claimTask(request, env);
   if (path === "/results" && request.method === "POST") return submitResult(request, env);
   if (path === "/memory" || path.startsWith("/memory/")) return memoryRoute(request, env, path, session);
   if (path === "/audit" && request.method === "GET") return auditRoute(request, env, session);
