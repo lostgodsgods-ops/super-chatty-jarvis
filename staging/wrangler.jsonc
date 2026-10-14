@@ -5,7 +5,12 @@
   "compatibility_date": "2026-10-14",
   "compatibility_flags": ["nodejs_compat"],
   "workers_dev": true,
+  "ai": {
+    "binding": "AI"
+  },
   "vars": {
+    "CHAT_API_ENABLED": "true",
+    "CHAT_MODEL": "@cf/meta/llama-3.1-8b-instruct",
     "RP_ID": "super-chatty-passkey-staging.lostgodsgods.workers.dev",
     "RP_NAME": "Super Chatty Jarvis",
     "ALLOWED_ORIGIN": "https://super-chatty-passkey-staging.lostgodsgods.workers.dev"
