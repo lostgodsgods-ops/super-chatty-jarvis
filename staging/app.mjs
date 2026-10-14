@@ -66,6 +66,19 @@ async function speakText(text){
 if("speechSynthesis" in window)window.speechSynthesis.onvoiceschanged=()=>{voiceLoadReady=true;};
 $("speak").addEventListener("click",()=>{const replyText=$("reply").textContent.trim();const text=replyText&&!replyText.startsWith("Voice input and spoken output are available")?replyText:$("message").value.trim();if(!text){sayStatus("There is no text to read aloud yet.");return;}void speakText(text);});
 if("serviceWorker" in navigator){navigator.serviceWorker.register("/service-worker.js").catch(()=>sayStatus("PWA offline shell could not be registered; online use remains available."));}
-$("send").addEventListener("click",async()=>{const message=$("message").value.trim();if(!message){sayStatus("Speak or type a message first.");return;}const r=await fetch("/api/chat",{method:"POST",credentials:"same-origin",headers:{"content-type":"application/json"},body:JSON.stringify({message,language:$("language").value})});const data=await r.json().catch(()=>({error:"Invalid server response"}));if(r.status===503){$("reply").textContent="Chat backend is not configured in staging yet. Your text was not sent to an AI provider.";sayStatus("Voice UI is ready; AI provider integration is still pending.");return;}if(!r.ok){sayStatus(data.error||"Chat request failed.");return;}$("reply").textContent=data.reply||"No response returned.";sayStatus("Response received.");if(data.reply)void speakText(data.reply);}).catch(()=>sayStatus("Chat request failed. Check connection and try again."));
+$("send").addEventListener("click",async()=>{
+ const message=$("message").value.trim();
+ if(!message){sayStatus("Speak or type a message first.");return;}
+ $("send").disabled=true;
+ try{
+  const r=await fetch("/api/chat",{method:"POST",credentials:"same-origin",headers:{"content-type":"application/json"},body:JSON.stringify({message,language:$("language").value})});
+  const data=await r.json().catch(()=>({error:"Invalid server response"}));
+  if(r.status===503){$("reply").textContent="Chat provider is not configured or available in staging.";sayStatus(data.error||"AI provider unavailable.");return;}
+  if(!r.ok){sayStatus(data.error||"Chat request failed.");return;}
+  $("reply").textContent=data.reply||"No response returned.";sayStatus("Response received.");
+  if(data.reply)void speakText(data.reply);
+ }catch(e){sayStatus("Chat request failed. Check connection and try again.");}
+ finally{$("send").disabled=false;}
+});
 checkSession();
 </script></body></html>`;
