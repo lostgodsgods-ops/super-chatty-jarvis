@@ -1,67 +1,42 @@
-# Super Chatty Central Agent v1
+# Super Chatty Central Agent
 
-An isolated AI gateway for Super Chatty Jarvis. It is separate from the existing site and other Workers.
+Central Agent v1.3.0 adds an owner-defined password flow. It does not connect to Google Gemini.
 
-## Live endpoints
+## Owner password setup
 
-- Health: https://super-chatty-central-agent-v1.lostgodsgods.workers.dev/health
-- Site origin allowed for browser CORS: https://super-chatty-jarvis-site.lostgodsgods.workers.dev
+- Open `/owner#setup=<one-time-token>` using the private setup link.
+- Choose and confirm a password of 12–256 characters.
+- The Worker derives a salted PBKDF2-HMAC-SHA-256 hash (210,000 iterations). The raw password is not stored.
+- Sign-in returns a random session token stored in browser `sessionStorage`; sessions expire after one hour.
+- The credential row is protected by a D1 primary key so first-time setup can succeed only once.
+- Keep `OWNER_SETUP_TOKEN` as a Cloudflare Worker secret. Never put it in source code, a public issue, or a normal chat message. After the owner password is set, remove the setup secret from Worker settings.
+- Password login and setup require HTTPS. The owner setup page uses a fragment token so the token is not sent in the initial HTTP request or referrer.
 
-## Current scope
+## Required bindings and variables
 
-- `GET /health`: public health/configuration status; never returns secrets.
-- `POST /chat`: owner-authenticated chat. Use JSON `{"message":"..."}`; optional `"provider":"gemini"` selects Gemini, while the default `workers-ai` uses Cloudflare Workers AI.
-- `GET /agents`: owner-authenticated catalogue of proposed child-agent roles; it does not spawn agents.
-- `GET /policy`: owner-authenticated fail-closed policy description.
-- `POST /tasks` and `GET /results`: return 503 until durable storage, single-use approval consumption, audit logging, and a tested executor exist.
-- `policy.mjs`: pure policy checks; unknown actions are denied by default.
-- `policy.test.mjs`: Node.js built-in tests. Run with `node --test central-agent/policy.test.mjs`.
+- D1 binding `DB` → database `super-chatty-owner-auth` (table `owner_credentials` is provisioned).
+- KV binding `SESSIONS` → namespace `SUPER_CHATY_OWNER_AUTH`.
+- AI binding `AI` for Cloudflare Workers AI.
+- `ALLOWED_ORIGINS` limits browser cross-origin access.
 
-## Provider and secret setup
+Required secret for first-time setup:
+- `OWNER_SETUP_TOKEN` — one-time bootstrap secret. Do not use your actual owner password as this token.
 
-Secrets must be added in Cloudflare Workers & Pages → `super-chatty-central-agent-v1` → Settings → Variables and Secrets. Exact UI labels may vary.
+## Endpoints
 
-- `OWNER_API_KEY` (Secret): required before any protected endpoint works. Generate a strong random value privately and keep it in a password manager. Never put it in frontend JavaScript, HTML, a mobile bundle, or a chat message.
-- `GEMINI_API_KEY` (Secret): optional; required to use `"provider":"gemini"`. Create/manage the key in Google AI Studio and store it only as a Worker secret. Never commit or expose it.
-- `GEMINI_MODEL` is a non-secret variable and defaults to `gemini-2.5-flash`.
-- `ALLOWED_ORIGINS` is a non-secret comma-separated exact-origin allowlist. Do not use `*` for the owner API.
+- `GET /health` — public status only; does not expose secrets.
+- `GET /owner` — password setup/login page.
+- `GET /auth/status` — reports whether first-time setup is required.
+- `POST /auth/setup` — one-time password setup; requires bootstrap token.
+- `POST /auth/login` — verifies password and creates a one-hour session.
+- `POST /auth/logout` — revokes current session.
+- `GET /policy`, `GET /agents`, `POST /chat` — require a valid owner session.
+- `POST /tasks` and `GET /results` — remain blocked (503); no durable task executor exists.
 
-The code supports both providers, but Gemini is not live until `GEMINI_API_KEY` is configured and a real authenticated chat call succeeds. Do not treat `geminiConfigured: false` as a working integration.
+## Security status and limitations
 
-## Authority model
-
-1. The owner is the final authority. ChatGPT is a command/coordination channel, not a source of additional permissions.
-2. The Central Agent can plan, summarize, review and propose work. It cannot self-grant permissions.
-3. Creating/activating child agents and all external side effects require explicit, action-scoped owner approval.
-4. Every executor must independently enforce the policy. A model response is never an authorization decision.
-5. Unknown actions, missing tools, missing approvals, or missing durable audit/approval infrastructure must fail closed.
-6. Child roles are bounded to `research`, `development`, `integration`, and `testing`; no root/admin role is available through the policy module.
-7. “Self-repair” should mean diagnose, create a patch/PR, run tests and report evidence. Merge, secret changes, permission changes and deployment remain separately owner-approved.
-
-## Security boundaries
-
-- Do not put secrets in source control, frontend code, app bundles, logs, or model prompts.
-- This version does not run arbitrary tools, deploy child agents, or execute external side effects.
-- The `/agents` list is a plan, not evidence that agents are running.
-- `/tasks` and `/results` remain unavailable until a durable queue, approval records, audit trail, emergency stop/revocation, and a tested executor are implemented.
-
-## GitHub Actions deployment
-
-The manual workflow requires repository Actions secrets `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID`, and `CENTRAL_AGENT_OWNER_KEY`. The Cloudflare API token must have least-privilege Worker deployment permissions. A revoked/invalid token cannot be repaired by the workflow.
-
-## Monitoring
-
-The workflow **Monitor Central Agent** checks `$CENTRAL_AGENT_URL/health` every 15 minutes and can open/update an incident issue when the check fails. It requires a repository Actions variable `CENTRAL_AGENT_URL` containing the deployed Worker base URL (HTTPS, without `/health`). It is useful only after the workflow is merged into the default branch and the variable is configured. It reports failures; it does not automatically repair code or deploy.
-
-## Remaining gaps before calling this a functioning multi-agent system
-
-- Configure `OWNER_API_KEY` and verify correct/incorrect authentication.
-- Configure `GEMINI_API_KEY` and verify a real Gemini response.
-- Test Workers AI response with a valid owner key.
-- Durable queue and result persistence (KV or Durable Objects).
-- Single-use, action-scoped owner approval records.
-- Audit trail and emergency stop/revocation.
-- Sandboxed runner for registered child agents.
-- Safe test execution and patch/PR workflow.
-- Server-side proxy integration with the existing site.
-- Full automated tests and verified end-to-end deployment.
+- No Gemini API key or Gemini provider is used.
+- Unknown actions fail closed; no child agents or external tools execute.
+- This is password authentication, not account recovery. If you forget the password, a separately reviewed owner recovery procedure is required.
+- Add rate limiting / abuse monitoring before treating this as a production internet-facing login.
+- Run `npm test` from the repository root. The owner auth tests use Node's built-in test runner.
