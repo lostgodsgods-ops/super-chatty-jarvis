@@ -269,3 +269,123 @@ test("unsupported chat provider fails closed without an upstream request", async
   }
 });
 
+
+
+test("disabled CHAT_API_ENABLED rejects before any provider request", async () => {
+  const originalFetch = globalThis.fetch;
+  let providerCalled = false;
+  globalThis.fetch = async () => {
+    providerCalled = true;
+    return new Response("unexpected provider call", { status: 200 });
+  };
+  try {
+    const response = await worker.fetch(new Request("https://example.test/api/chat", {
+      method: "POST",
+      headers: { "content-type": "application/json", "cf-connecting-ip": "203.0.113.21" },
+      body: JSON.stringify({ message: "hello" }),
+    }), {
+      CHAT_API_ENABLED: "false",
+      CHAT_PROVIDER: "gemini",
+      GEMINI_API_KEY: "test-only-gemini-secret",
+      CHAT_RATE_LIMITER: { limit: async () => ({ success: true }) },
+    });
+    assert.equal(response.status, 503);
+    assert.equal(providerCalled, false);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test("Gemini timeout returns a structured 504 response without exposing secrets", async () => {
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async () => {
+    throw new DOMException("request timed out", "TimeoutError");
+  };
+  try {
+    const response = await worker.fetch(new Request("https://example.test/api/chat", {
+      method: "POST",
+      headers: { "content-type": "application/json", "cf-connecting-ip": "203.0.113.22" },
+      body: JSON.stringify({ message: "test timeout" }),
+    }), {
+      CHAT_API_ENABLED: "true",
+      CHAT_PROVIDER: "gemini",
+      GEMINI_API_KEY: "test-only-gemini-secret",
+      CHAT_RATE_LIMITER: { limit: async () => ({ success: true }) },
+    });
+    const body = await response.json();
+    assert.equal(response.status, 504);
+    assert.equal(body.ok, false);
+    assert.equal(body.error, "AI provider timed out");
+    assert.equal(JSON.stringify(body).includes("test-only-gemini-secret"), false);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test("Gemini upstream failures return structured safe errors and never leak the API key", async () => {
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async () => new Response(JSON.stringify({
+    error: { code: 429, status: "RESOURCE_EXHAUSTED", message: "quota exhausted" },
+  }), { status: 429, headers: { "content-type": "application/json" } });
+  try {
+    const response = await worker.fetch(new Request("https://example.test/api/chat", {
+      method: "POST",
+      headers: { "content-type": "application/json", "cf-connecting-ip": "203.0.113.23" },
+      body: JSON.stringify({ message: "test error mapping" }),
+    }), {
+      CHAT_API_ENABLED: "true",
+      CHAT_PROVIDER: "gemini",
+      GEMINI_API_KEY: "test-only-gemini-secret",
+      CHAT_RATE_LIMITER: { limit: async () => ({ success: true }) },
+    });
+    const body = await response.json();
+    assert.equal(response.status, 429);
+    assert.equal(body.ok, false);
+    assert.equal(body.error, "Gemini API quota or rate limit exceeded");
+    assert.equal(body.diagnostic.providerStatus, 429);
+    assert.equal(body.diagnostic.providerErrorStatus, "RESOURCE_EXHAUSTED");
+    assert.equal(JSON.stringify(body).includes("test-only-gemini-secret"), false);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test("invalid JSON and missing/blank messages are rejected before provider calls", async () => {
+  const originalFetch = globalThis.fetch;
+  let providerCalled = false;
+  globalThis.fetch = async () => {
+    providerCalled = true;
+    return new Response("unexpected", { status: 200 });
+  };
+  try {
+    const env = {
+      CHAT_API_ENABLED: "true",
+      CHAT_PROVIDER: "gemini",
+      GEMINI_API_KEY: "test-only-gemini-secret",
+      CHAT_RATE_LIMITER: { limit: async () => ({ success: true }) },
+    };
+    const invalidJson = await worker.fetch(new Request("https://example.test/api/chat", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: "{bad json",
+    }), env);
+    assert.equal(invalidJson.status, 400);
+
+    const missingMessage = await worker.fetch(new Request("https://example.test/api/chat", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({}),
+    }), env);
+    assert.equal(missingMessage.status, 400);
+
+    const blankMessage = await worker.fetch(new Request("https://example.test/api/chat", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ message: "   " }),
+    }), env);
+    assert.equal(blankMessage.status, 400);
+    assert.equal(providerCalled, false);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
