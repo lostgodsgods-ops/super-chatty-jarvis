@@ -13,7 +13,7 @@ CREATE INDEX IF NOT EXISTS idx_owner_tasks_owner_created ON owner_tasks(owner_id
 
 CREATE TABLE IF NOT EXISTS owner_task_results (
   id TEXT PRIMARY KEY NOT NULL,
-  task_id TEXT NOT NULL REFERENCES owner_tasks(id) ON DELETE CASCADE,
+  task_id TEXT NOT NULL UNIQUE REFERENCES owner_tasks(id) ON DELETE CASCADE,
   owner_id INTEGER NOT NULL CHECK (owner_id = 1),
   result_json TEXT NOT NULL,
   created_at TEXT NOT NULL
