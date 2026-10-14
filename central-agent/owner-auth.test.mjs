@@ -1,5 +1,9 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import { webcrypto } from "node:crypto";
+
+// Cloudflare Workers provide Web Crypto globally; make the same API explicit in Node tests.
+globalThis.crypto ??= webcrypto;
 import worker, { parseSetupToken } from "./worker.mjs";
 
 class FakeKV {
