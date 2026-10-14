@@ -243,19 +243,77 @@ test("voice app serves bilingual microphone controls only for an Owner session",
   assert.match(html, /id="mic"/);
 });
 
-test("chat API validates Owner session then fails honestly while no provider is configured", async () => {
+test("chat API returns a real Workers AI response for an authenticated Owner", async () => {
   const request = new Request("https://staging.example/api/chat", {
     method: "POST",
     headers: { Origin: "https://owner.example", cookie: "scj_owner_session=valid-session", "content-type": "application/json" },
     body: JSON.stringify({ message: "नमस्ते Chatty", language: "hi-IN" }),
   });
+  let modelUsed = "";
+  let aiInput;
   const response = await worker.fetch(request, {
     ALLOWED_ORIGIN: "https://owner.example",
     AUTH_RATE_LIMITER: { async limit() { return { success: true }; } },
     SESSIONS: { async get() { return JSON.stringify({ ownerId: 1 }); } },
+    AI: { async run(model, input) { modelUsed = model; aiInput = input; return { response: "नमस्ते! मैं Chatty हूँ।" }; } },
+    CHAT_MODEL: "@cf/meta/llama-3.1-8b-instruct",
+    CHAT_API_ENABLED: "true",
+  });
+  assert.equal(response.status, 200);
+  assert.deepEqual(await response.json(), { ok: true, reply: "नमस्ते! मैं Chatty हूँ।", model: "@cf/meta/llama-3.1-8b-instruct" });
+  assert.equal(modelUsed, "@cf/meta/llama-3.1-8b-instruct");
+  assert.equal(aiInput.messages.at(-1).content, "नमस्ते Chatty");
+});
+
+test("chat API fails closed when Workers AI binding is missing", async () => {
+  const request = new Request("https://staging.example/api/chat", {
+    method: "POST",
+    headers: { Origin: "https://owner.example", cookie: "scj_owner_session=valid-session", "content-type": "application/json" },
+    body: JSON.stringify({ message: "hello", language: "en-IN" }),
+  });
+  const response = await worker.fetch(request, {
+    ALLOWED_ORIGIN: "https://owner.example",
+    AUTH_RATE_LIMITER: { async limit() { return { success: true }; } },
+    SESSIONS: { async get() { return JSON.stringify({ ownerId: 1 }); } },
+    CHAT_API_ENABLED: "true",
   });
   assert.equal(response.status, 503);
   assert.deepEqual(await response.json(), { error: "Chat provider is not configured in staging", code: "CHAT_PROVIDER_NOT_CONFIGURED" });
+});
+
+test("chat API does not call the AI provider without an Owner session", async () => {
+  let aiCalled = false;
+  const request = new Request("https://staging.example/api/chat", {
+    method: "POST",
+    headers: { Origin: "https://owner.example", "content-type": "application/json" },
+    body: JSON.stringify({ message: "hello", language: "en-IN" }),
+  });
+  const response = await worker.fetch(request, {
+    ALLOWED_ORIGIN: "https://owner.example",
+    AUTH_RATE_LIMITER: { async limit() { return { success: true }; } },
+    SESSIONS: { async get() { return null; } },
+    AI: { async run() { aiCalled = true; return { response: "should not happen" }; } },
+    CHAT_API_ENABLED: "true",
+  });
+  assert.equal(response.status, 401);
+  assert.equal(aiCalled, false);
+});
+
+test("chat API hides provider exceptions from the client", async () => {
+  const request = new Request("https://staging.example/api/chat", {
+    method: "POST",
+    headers: { Origin: "https://owner.example", cookie: "scj_owner_session=valid-session", "content-type": "application/json" },
+    body: JSON.stringify({ message: "hello", language: "en-IN" }),
+  });
+  const response = await worker.fetch(request, {
+    ALLOWED_ORIGIN: "https://owner.example",
+    AUTH_RATE_LIMITER: { async limit() { return { success: true }; } },
+    SESSIONS: { async get() { return JSON.stringify({ ownerId: 1 }); } },
+    AI: { async run() { throw new Error("sensitive provider detail"); } },
+    CHAT_API_ENABLED: "true",
+  });
+  assert.equal(response.status, 502);
+  assert.deepEqual(await response.json(), { error: "AI provider temporarily unavailable", code: "AI_PROVIDER_UNAVAILABLE" });
 });
 
 test("chat API rejects missing Owner session", async () => {
