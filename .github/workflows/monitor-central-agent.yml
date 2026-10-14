@@ -21,11 +21,11 @@ jobs:
         id: health
         shell: bash
         env:
-          CENTRAL_AGENT_URL: ${{ vars.CENTRAL_AGENT_URL }}
+          CENTRAL_AGENT_URL: ${{ vars.CENTRAL_AGENT_URL || 'https://super-chatty-central-agent-v1.lostgodsgods.workers.dev' }}
         run: |
           set -euo pipefail
           if [[ -z "${CENTRAL_AGENT_URL:-}" ]]; then
-            echo "::error::Repository variable CENTRAL_AGENT_URL is missing. Set it to the deployed Worker base URL after deployment."
+            echo "::error::Central Agent URL is missing; set repository variable CENTRAL_AGENT_URL or restore the verified default Worker URL."
             exit 2
           fi
           case "$CENTRAL_AGENT_URL" in
