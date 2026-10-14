@@ -389,3 +389,20 @@ test("invalid JSON and missing/blank messages are rejected before provider calls
     globalThis.fetch = originalFetch;
   }
 });
+
+
+test("disabled chat flag short-circuits before parsing the request body", async () => {
+  const response = await worker.fetch(new Request("https://example.test/api/chat", {
+    method: "POST",
+    headers: { "content-type": "application/json", "cf-connecting-ip": "203.0.113.24" },
+    body: "{malformed json",
+  }), {
+    CHAT_API_ENABLED: "false",
+    CHAT_PROVIDER: "gemini",
+    GEMINI_API_KEY: "test-only-gemini-secret",
+    CHAT_RATE_LIMITER: { limit: async () => ({ success: true }) },
+  });
+  const body = await response.json();
+  assert.equal(response.status, 503);
+  assert.equal(body.error, "AI chat is not configured");
+});
