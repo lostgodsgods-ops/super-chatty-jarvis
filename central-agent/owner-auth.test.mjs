@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import worker from "./worker.mjs";
+import worker, { parseSetupToken } from "./worker.mjs";
 
 class FakeKV {
   constructor() { this.values = new Map(); }
@@ -82,4 +82,18 @@ test("protected endpoints reject requests without a valid owner session", async 
   const login = await call(e, "/auth/login", { password: "a-long-memorable-password" });
   const { token } = await login.json();
   assert.equal((await call(e, "/policy", undefined, token)).status, 200);
+});
+
+
+test("setup token parser accepts URL-safe tokens and percent-encoded spaces", () => {
+  assert.equal(parseSetupToken("#setup=abc123XYZ_-%"), "abc123XYZ_-%");
+  assert.equal(parseSetupToken("#setup=alpha%20beta%20123"), "alpha beta 123");
+  assert.equal(parseSetupToken("#other=abc123"), "");
+});
+
+test("owner page provides a manual setup-token field when the fragment is missing", async () => {
+  const response = await call(env(), "/owner");
+  const html = await response.text();
+  assert.match(html, /id="setupTokenInput"/);
+  assert.match(html, /new URLSearchParams\(location\.hash\.slice\(1\)\)/);
 });
