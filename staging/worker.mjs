@@ -40,9 +40,9 @@ const api=async(path,opts={})=>{const res=await fetch(path,{cache:"no-store",...
 const serialize=(cred,mode)=>{const r=cred.response;const response={clientDataJSON:enc(r.clientDataJSON)};if(mode==="register"){response.attestationObject=enc(r.attestationObject);response.transports=typeof r.getTransports==="function"?r.getTransports():[];}else{response.authenticatorData=enc(r.authenticatorData);response.signature=enc(r.signature);response.userHandle=r.userHandle?enc(r.userHandle):null;}return{id:cred.id,rawId:enc(cred.rawId),type:cred.type,response,clientExtensionResults:cred.getClientExtensionResults(),authenticatorAttachment:cred.authenticatorAttachment||null};};
 const prepare=(options)=>{options.challenge=dec(options.challenge);if(options.user)options.user.id=dec(options.user.id);for(const key of ["excludeCredentials","allowCredentials"]){if(Array.isArray(options[key]))options[key]=options[key].map(c=>({...c,id:dec(c.id)}));}return options;};
 el("enroll").addEventListener("click",async()=>{el("enroll").disabled=true;try{if(!window.PublicKeyCredential||!navigator.credentials)throw new Error("Passkeys are not supported in this browser.");const token=el("setupToken").value;if(!token)throw new Error("Enter the one-time setup token on this private page.");say("Requesting registration challenge…");const start=await api("/passkey/register/options",{method:"POST",headers:{"x-owner-setup-token":token},body:"{}"});const cred=await navigator.credentials.create({publicKey:prepare(start.options)});if(!cred)throw new Error("Passkey enrollment cancelled.");say("Verifying passkey registration…");const result=await api("/passkey/register/verify",{method:"POST",headers:{"x-owner-setup-token":token},body:JSON.stringify({challengeId:start.challengeId,response:serialize(cred,"register")})});el("setupToken").value="";say(result.message||"Passkey enrolled. Now sign in with passkey.");}catch(e){say("Enrollment not completed: "+e.message);}finally{el("enroll").disabled=false;}});
-el("login").addEventListener("click",async()=>{el("login").disabled=true;try{if(!window.PublicKeyCredential||!navigator.credentials)throw new Error("Passkeys are not supported in this browser.");say("Requesting sign-in challenge…");const start=await api("/passkey/login/options",{method:"POST",body:"{}"});const cred=await navigator.credentials.get({publicKey:prepare(start.options)});if(!cred)throw new Error("Passkey sign-in cancelled.");say("Verifying signature and creating a short-lived session…");const result=await api("/passkey/login/verify",{method:"POST",body:JSON.stringify({challengeId:start.challengeId,response:serialize(cred,"login")})});sessionStorage.setItem("scj_owner_session",result.token);say("Owner authenticated with passkey. Session expires in "+Math.round(result.expiresIn/60)+" minutes.");}catch(e){say("Sign-in not completed: "+e.message);}finally{el("login").disabled=false;}});
-el("check").addEventListener("click",async()=>{try{const token=sessionStorage.getItem("scj_owner_session");if(!token)throw new Error("No Owner session in this tab.");const result=await api("/auth/status",{headers:{authorization:"Bearer "+token}});say(result.authenticated?"Owner session is active.":"No active Owner session.");}catch(e){say("Session check: "+e.message);}});
-el("logout").addEventListener("click",async()=>{try{const token=sessionStorage.getItem("scj_owner_session");if(token)await api("/auth/logout",{method:"POST",headers:{authorization:"Bearer "+token},body:"{}"});}catch(e){}finally{sessionStorage.removeItem("scj_owner_session");say("Owner session removed from this tab. Any server-side session was revoked if the request reached the Worker.");}});
+el("login").addEventListener("click",async()=>{el("login").disabled=true;try{if(!window.PublicKeyCredential||!navigator.credentials)throw new Error("Passkeys are not supported in this browser.");say("Requesting sign-in challenge…");const start=await api("/passkey/login/options",{method:"POST",body:"{}"});const cred=await navigator.credentials.get({publicKey:prepare(start.options)});if(!cred)throw new Error("Passkey sign-in cancelled.");say("Verifying signature and creating a short-lived session…");const result=await api("/passkey/login/verify",{method:"POST",body:JSON.stringify({challengeId:start.challengeId,response:serialize(cred,"login")})});say("Owner authenticated with passkey. Secure session expires in "+Math.round(result.expiresIn/60)+" minutes.");}catch(e){say("Sign-in not completed: "+e.message);}finally{el("login").disabled=false;}});
+el("check").addEventListener("click",async()=>{try{const result=await api("/auth/status");say(result.authenticated?"Owner session is active.":"No active Owner session.");}catch(e){say("Session check: "+e.message);}});
+el("logout").addEventListener("click",async()=>{try{await api("/auth/logout",{method:"POST",body:"{}"});}catch(e){}finally{say("Owner session revoked and browser cookie cleared.");}});
 </script></body></html>`;
 
 const json = (body, status = 200, headers = {}) => new Response(JSON.stringify(body), {
@@ -209,11 +209,21 @@ async function loginVerify(request, env) {
   const token = randomToken();
   const tokenHash = await hash(token);
   await env.SESSIONS.put(`owner-session:${tokenHash}`, JSON.stringify({ ownerId: OWNER_ID, credentialId: credential.credential_id, createdAt: now }), { expirationTtl: SESSION_TTL_SECONDS });
-  return json({ authenticated: true, token, expiresIn: SESSION_TTL_SECONDS, authMethod: "webauthn-passkey" });
+  return json({ authenticated: true, expiresIn: SESSION_TTL_SECONDS, authMethod: "webauthn-passkey" }, 200, {
+    "set-cookie": `scj_owner_session=${encodeURIComponent(token)}; Path=/; HttpOnly; Secure; SameSite=Strict; Max-Age=${SESSION_TTL_SECONDS}`
+  });
+}
+
+function sessionTokenFromRequest(request) {
+  const cookie = request.headers.get("Cookie") || "";
+  const match = cookie.split(";").map((part) => part.trim()).find((part) => part.startsWith("scj_owner_session="));
+  const cookieToken = match ? decodeURIComponent(match.slice("scj_owner_session=".length)) : "";
+  const bearerToken = (request.headers.get("Authorization") || "").replace(/^Bearer\s+/i, "");
+  return cookieToken || bearerToken;
 }
 
 async function authStatus(request, env) {
-  const token = (request.headers.get("Authorization") || "").replace(/^Bearer\s+/i, "");
+  const token = sessionTokenFromRequest(request);
   if (!token) return json({ authenticated: false }, 401);
   const session = await env.SESSIONS.get(`owner-session:${await hash(token)}`);
   if (!session) return json({ authenticated: false }, 401);
@@ -221,9 +231,9 @@ async function authStatus(request, env) {
 }
 
 async function logout(request, env) {
-  const token = (request.headers.get("Authorization") || "").replace(/^Bearer\s+/i, "");
+  const token = sessionTokenFromRequest(request);
   if (token) await env.SESSIONS.delete(`owner-session:${await hash(token)}`);
-  return json({ loggedOut: true });
+  return json({ loggedOut: true }, 200, { "set-cookie": "scj_owner_session=; Path=/; HttpOnly; Secure; SameSite=Strict; Max-Age=0" });
 }
 
 export default {
