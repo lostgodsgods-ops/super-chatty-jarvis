@@ -65,8 +65,10 @@ async function createTask(request, env, session) {
   return json({ task: { id, taskType: body.taskType, status: "pending_approval", createdAt: now, updatedAt: now } }, 201);
 }
 
-async function approveTask(env, path, session) {
+async function approveTask(request, env, path, session) {
   if (!requireOwner(session)) return json({ error: "Owner authentication required" }, 401);
+  const body = await readBody(request);
+  if (body?.approved !== true) return json({ error: "Explicit approval is required" }, 400);
   const id = path.match(/^\/tasks\/([a-f0-9-]+)\/approve$/i)?.[1];
   if (!id) return json({ error: "Invalid task id" }, 400);
   const current = await env.DB.prepare("SELECT id, task_type, status FROM owner_tasks WHERE id = ? AND owner_id = ?").bind(id, OWNER_ID).first();
@@ -184,7 +186,7 @@ export async function handleModuleRoute(request, env, path, session) {
     return json({ tasks: await listTasks(env) });
   }
   if (path === "/tasks" && request.method === "POST") return createTask(request, env, session);
-  if (/^\/tasks\/[a-f0-9-]+\/approve$/i.test(path) && request.method === "POST") return approveTask(env, path, session);
+  if (/^\/tasks\/[a-f0-9-]+\/approve$/i.test(path) && request.method === "POST") return approveTask(request, env, path, session);
   if (path === "/results" && request.method === "GET") return getResults(request, env, session);
   if (path === "/results" && request.method === "POST") return submitResult(request, env);
   if (path === "/memory" || path.startsWith("/memory/")) return memoryRoute(request, env, path, session);
