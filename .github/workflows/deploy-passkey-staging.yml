@@ -60,3 +60,53 @@ jobs:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           OWNER_SETUP_TOKEN: ${{ secrets.OWNER_SETUP_TOKEN }}
         run: printf '%s' "$OWNER_SETUP_TOKEN" | npx wrangler secret put OWNER_SETUP_TOKEN --config staging/wrangler.jsonc
+      - name: Smoke-test deployed staging routes without enrolling a credential
+        env:
+          STAGING_BASE_URL: https://super-chatty-passkey-staging.lostgods.workers.dev
+        run: |
+          node --input-type=module <<'NODE'
+          import assert from "node:assert/strict";
+          const base = process.env.STAGING_BASE_URL;
+          const origin = base;
+          async function check(path, init, expectedStatus, expectedBody = {}) {
+            const response = await fetch(new URL(path, base), init);
+            const body = await response.json().catch(() => ({}));
+            assert.equal(response.status, expectedStatus, `${path}: unexpected HTTP status`);
+            for (const [key, value] of Object.entries(expectedBody)) {
+              assert.equal(body[key], value, `${path}: unexpected ${key}`);
+            }
+            console.log(`PASS ${path}: HTTP ${response.status}`);
+          }
+          const health = await fetch(new URL("/health", base), { cache: "no-store" });
+          assert.equal(health.status, 200, "/health must return HTTP 200");
+          assert.deepEqual(await health.json(), { ok: true, component: "passkey-auth-staging", production: false });
+          console.log("PASS /health: staging identity verified");
+          const owner = await fetch(new URL("/owner", base), { cache: "no-store" });
+          assert.equal(owner.status, 200, "/owner must return HTTP 200");
+          const html = await owner.text();
+          assert.ok(html.includes("Set up this device's passkey"), "passkey enrollment UI missing");
+          assert.ok(html.includes("Sign in with passkey"), "passkey sign-in UI missing");
+          console.log("PASS /owner: passkey UI present");
+          await check("/auth/status", { method: "GET" }, 401, { authenticated: false });
+          await check("/passkey/register/options", {
+            method: "POST",
+            headers: { Origin: origin, "content-type": "application/json" },
+            body: "{}"
+          }, 401, { error: "Owner bootstrap authorization failed" });
+          await check("/passkey/register/verify", {
+            method: "POST",
+            headers: { Origin: origin, "content-type": "application/json" },
+            body: "{}"
+          }, 401, { error: "Owner bootstrap authorization failed" });
+          await check("/passkey/login/verify", {
+            method: "POST",
+            headers: { Origin: origin, "content-type": "application/json" },
+            body: "{}"
+          }, 400, { error: "challengeId and assertion response are required" });
+          await check("/passkey/login/options", {
+            method: "POST",
+            headers: { Origin: "https://evil.example", "content-type": "application/json" },
+            body: "{}"
+          }, 400, { error: "Request rejected" });
+          console.log("PASS all live staging smoke checks; no token used and no passkey enrolled");
+          NODE
