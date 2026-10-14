@@ -29,6 +29,7 @@ h1{font-size:1.6rem;margin:0 0 8px}p{color:var(--muted)}label{display:block;marg
 <button id="enroll">Set up this device's passkey</button>
 <button id="login" class="secondary">Sign in with passkey</button>
 <button id="check" class="secondary">Check Owner session</button>
+<button id="openApp" class="secondary">Open Voice-First Chatty</button>
 <button id="logout" class="secondary">Lock / log out</button>
 <div id="status" role="status" aria-live="polite">Ready. Use HTTPS and a browser that supports passkeys.</div>
 <p><small>Fingerprint/face verification stays with the device's passkey provider. This page never receives biometric templates. Keep the setup token private; do not share it in chat.</small></p>
@@ -45,6 +46,7 @@ el("enroll").addEventListener("click",async()=>{el("enroll").disabled=true;try{i
 el("login").addEventListener("click",async()=>{el("login").disabled=true;try{if(!window.PublicKeyCredential||!navigator.credentials)throw new Error("Passkeys are not supported in this browser.");say("Requesting sign-in challenge…");const start=await api("/passkey/login/options",{method:"POST",body:"{}"});const cred=await navigator.credentials.get({publicKey:prepare(start.options)});if(!cred)throw new Error("Passkey sign-in cancelled.");say("Verifying signature and creating a short-lived session…");const result=await api("/passkey/login/verify",{method:"POST",body:JSON.stringify({challengeId:start.challengeId,response:serialize(cred,"login")})});say("Owner authenticated with passkey. Secure session expires in "+Math.round(result.expiresIn/60)+" minutes.");}catch(e){say("Sign-in not completed: "+e.message);}finally{el("login").disabled=false;}});
 el("check").addEventListener("click",async()=>{try{const result=await api("/auth/status");say(result.authenticated?"Owner session is active.":"No active Owner session.");}catch(e){say("Session check: "+e.message);}});
 el("logout").addEventListener("click",async()=>{try{await api("/auth/logout",{method:"POST",body:"{}"});}catch(e){}finally{say("Owner session revoked and browser cookie cleared.");}});
+el("openApp").addEventListener("click",()=>{location.href="/app";});
 </script></body></html>`;
 
 const json = (body, status = 200, headers = {}) => new Response(JSON.stringify(body), {
