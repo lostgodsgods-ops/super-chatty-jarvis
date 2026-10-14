@@ -17,7 +17,7 @@ export function isModuleRoute(method, path) {
   if (path === "/memory" && ["GET", "POST"].includes(method)) return true;
   if (path === "/audit" && method === "GET") return true;
   if (path.startsWith("/memory/") && method === "DELETE") return true;
-  if (/^\/tasks\/[a-f0-9-]+\/approve$/i.test(path) && method === "POST") return true;
+  if (/^\/tasks\/[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}\/approve$/i.test(path) && method === "POST") return true;
   return false;
 }
 
@@ -70,7 +70,7 @@ async function approveTask(request, env, path, session) {
   if (!requireOwner(session)) return json({ error: "Owner authentication required" }, 401);
   const body = await readBody(request);
   if (body?.approved !== true) return json({ error: "Explicit approval is required" }, 400);
-  const id = path.match(/^\/tasks\/([a-f0-9-]+)\/approve$/i)?.[1];
+  const id = path.match(/^\/tasks\/([0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12})\/approve$/i)?.[1];
   if (!id) return json({ error: "Invalid task id" }, 400);
   const current = await env.DB.prepare("SELECT id, task_type, status FROM owner_tasks WHERE id = ? AND owner_id = ?").bind(id, OWNER_ID).first();
   if (!current) return json({ error: "Task not found" }, 404);
