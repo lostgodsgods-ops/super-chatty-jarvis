@@ -219,7 +219,7 @@ function sessionTokenFromRequest(request) {
   const match = cookie.split(";").map((part) => part.trim()).find((part) => part.startsWith("scj_owner_session="));
   const cookieToken = match ? decodeURIComponent(match.slice("scj_owner_session=".length)) : "";
   const bearerToken = (request.headers.get("Authorization") || "").replace(/^Bearer\s+/i, "");
-  return cookieToken || bearerToken;
+  return cookieToken;
 }
 
 async function authStatus(request, env) {
@@ -249,6 +249,15 @@ export default {
     try {
       if (!(request.method === "GET" && path === "/auth/status" && !request.headers.get("Origin"))) requireAllowedOrigin(request, env);
       if (request.method !== "POST" && !(request.method === "GET" && path === "/auth/status")) return json({ error: "Not found" }, 404, headers);
+      const bootstrapRoute = request.method === "POST" && (path === "/passkey/register/options" || path === "/passkey/register/verify");
+      const ownerRoute = (request.method === "POST" && (path === "/passkey/login/options" || path === "/passkey/login/verify" || path === "/auth/logout")) || (request.method === "GET" && path === "/auth/status");
+      if (bootstrapRoute || ownerRoute) {
+        const limiter = bootstrapRoute ? env.BOOTSTRAP_RATE_LIMITER : env.AUTH_RATE_LIMITER;
+        if (!limiter || typeof limiter.limit !== "function") return json({ error: "Authentication rate limiting unavailable" }, 503, headers);
+        const ip = request.headers.get("CF-Connecting-IP") || "unknown";
+        const rate = await limiter.limit({ key: `${ip}:${path}` });
+        if (!rate?.success) return json({ error: "Rate limit exceeded" }, 429, { ...headers, "retry-after": "60" });
+      }
       let response;
       if (request.method === "POST" && path === "/passkey/register/options") response = await registerOptions(request, env);
       else if (request.method === "POST" && path === "/passkey/register/verify") response = await registerVerify(request, env);
