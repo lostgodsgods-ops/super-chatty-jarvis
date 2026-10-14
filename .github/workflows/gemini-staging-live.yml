@@ -56,21 +56,31 @@ jobs:
         run: |
           node --input-type=module <<'NODE'
           const endpoint = 'https://super-chatty-gemini-staging.lostgodsgods.workers.dev/api/chat';
-          const response = await fetch(endpoint, {
-            method: 'POST',
-            headers: { 'content-type': 'application/json' },
-            body: JSON.stringify({ message: 'This request must be rejected while chat is disabled.' }),
-            signal: AbortSignal.timeout(10000)
-          });
-          const data = await response.json().catch(() => ({}));
+          let response;
+          let data = {};
+          for (let attempt = 1; attempt <= 10; attempt++) {
+            response = await fetch(endpoint, {
+              method: 'POST',
+              headers: { 'content-type': 'application/json' },
+              body: JSON.stringify({ message: 'This request must be rejected while chat is disabled.' }),
+              signal: AbortSignal.timeout(10000)
+            });
+            data = await response.json().catch(() => ({}));
+            if (response.status === 503 && data.ok === false && data.error === 'AI chat is not configured') break;
+            if (attempt < 10) {
+              console.log('Staging propagation not yet visible; retrying negative test (' + attempt + '/10). HTTP:', response.status);
+              await new Promise(resolve => setTimeout(resolve, 2000));
+            }
+          }
           if (response.status !== 503 || data.ok !== false || data.error !== 'AI chat is not configured') {
-            console.error('Disabled-mode negative test FAILED. HTTP:', response.status, 'error:', data.error || 'invalid JSON response');
+            console.error('Disabled-mode negative test FAILED after retries. HTTP:', response.status, 'error:', data.error || 'non-JSON response');
             process.exit(1);
           }
           console.log('PASS: CHAT_API_ENABLED=false returned HTTP 503 with the expected safe error.');
-          console.log('No provider call is expected: the worker checks the feature flag before rate limiting and upstream fetch.');
-          await import('node:fs/promises').then(fs => fs.appendFile(process.env.GITHUB_STEP_SUMMARY,
-            '## Gemini staging disabled-mode negative test\\n\\n- Result: **PASS**\\n- HTTP status: 503\\n- Expected error: `AI chat is not configured`\\n- Worker rejects the request before any provider fetch (also covered by a unit test).\\n\\n'));
+          console.log('The local unit test also proves this branch makes no provider fetch.');
+          const fs = await import('node:fs/promises');
+          await fs.appendFile(process.env.GITHUB_STEP_SUMMARY,
+            '## Gemini staging disabled-mode negative test\n\n- Result: **PASS**\n- HTTP status: 503\n- Expected error: `AI chat is not configured`\n- Unit test verifies no provider fetch occurs when disabled.\n\n');
           NODE
 
       - name: Restore enabled Gemini staging Worker
