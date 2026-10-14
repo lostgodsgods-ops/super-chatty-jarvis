@@ -27,3 +27,15 @@ test("staging Worker rejects preflight from an unapproved origin", async () => {
   const response = await worker.fetch(request, { ALLOWED_ORIGIN: "https://owner.example" });
   assert.equal(response.status, 403);
 });
+
+test("Owner page is served with a restrictive same-origin policy and native passkey controls", async () => {
+  const response = await worker.fetch(new Request("https://staging.example/owner"), {});
+  assert.equal(response.status, 200);
+  assert.match(response.headers.get("content-security-policy"), /connect-src 'self'/);
+  assert.match(response.headers.get("content-security-policy"), /frame-ancestors 'none'/);
+  const html = await response.text();
+  assert.match(html, /Set up this device's passkey/);
+  assert.match(html, /Sign in with passkey/);
+  assert.match(html, /navigator\.credentials\.create/);
+  assert.match(html, /navigator\.credentials\.get/);
+});
