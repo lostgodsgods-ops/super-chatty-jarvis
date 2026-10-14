@@ -76,11 +76,13 @@ jobs:
           if [ -n "$AGENT_GATEWAY_TOKEN" ]; then
             printf '%s' "$AGENT_GATEWAY_TOKEN" | npx wrangler secret put AGENT_GATEWAY_TOKEN --config staging/wrangler.jsonc
           else
+            npx wrangler secret delete AGENT_GATEWAY_TOKEN --config staging/wrangler.jsonc || true
             echo "Optional AGENT_GATEWAY_TOKEN not configured; agent claim/result submission stays disabled."
           fi
       - name: Smoke-test deployed staging routes without enrolling a credential
         env:
           STAGING_BASE_URL: https://super-chatty-passkey-staging.lostgodsgods.workers.dev
+          AGENT_GATEWAY_TOKEN: ${{ secrets.AGENT_GATEWAY_TOKEN }}
         run: |
           node --input-type=module <<'NODE'
           import assert from "node:assert/strict";
@@ -114,8 +116,11 @@ jobs:
           assert.equal(app.status, 303, "/app must redirect unauthenticated requests");
           assert.equal(new URL(app.headers.get("location"), base).pathname, "/owner");
           console.log("PASS /app: unauthenticated access redirected");
-          await check("/results", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ taskId: "test", result: { summary: "test" } }) }, 503, { error: "Agent result submission is disabled until gateway authentication is configured" });
-          await check("/tasks/claim", { method: "POST", headers: { "content-type": "application/json" }, body: "{}" }, 503, { error: "Agent task claiming is disabled until gateway authentication is configured" });
+          const agentExpectedStatus = process.env.AGENT_GATEWAY_TOKEN ? 401 : 503;
+          const agentExpectedError = process.env.AGENT_GATEWAY_TOKEN ? "Agent gateway authorization failed" : "Agent result submission is disabled until gateway authentication is configured";
+          await check("/results", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ taskId: "test", result: { summary: "test" } }) }, agentExpectedStatus, { error: agentExpectedError });
+          const claimExpectedError = process.env.AGENT_GATEWAY_TOKEN ? "Agent gateway authorization failed" : "Agent task claiming is disabled until gateway authentication is configured";
+          await check("/tasks/claim", { method: "POST", headers: { "content-type": "application/json" }, body: "{}" }, agentExpectedStatus, { error: claimExpectedError });
           await check("/passkey/register/options", {
             method: "POST",
             headers: { Origin: origin, "content-type": "application/json" },
