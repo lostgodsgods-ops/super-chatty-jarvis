@@ -107,8 +107,13 @@ test("authenticated memory creation, search, and audit writes work together", as
           const [id, owner_id, content, tags_json, created_at, updated_at] = s.args;
           memories.push({ id, owner_id, content, tags_json, created_at, updated_at });
         } else if (s.sql.startsWith("INSERT INTO owner_audit_log")) {
-          const [id, owner_id, action, resource_type, resource_id, detail_json, created_at] = s.args;
-          events.push({ id, owner_id, action, resource_type, resource_id, detail_json, created_at });
+          if (s.sql.includes("'memory.created'")) {
+            const [id, owner_id, resource_id, detail_json, created_at] = s.args;
+            events.push({ id, owner_id, action: "memory.created", resource_type: "memory", resource_id, detail_json, created_at });
+          } else {
+            const [id, owner_id, action, resource_type, resource_id, detail_json, created_at] = s.args;
+            events.push({ id, owner_id, action, resource_type, resource_id, detail_json, created_at });
+          }
         } else throw new Error("Unexpected batch query: " + s.sql);
       }
       return [];
