@@ -260,11 +260,26 @@ export default {
     }
     const path = new URL(request.url).pathname;
     if (request.method === "GET" && path === "/health") return json({ ok: true, component: "passkey-auth-staging", production: false }, 200, headers);
+    if (request.method === "GET" && path === "/manifest.webmanifest") {
+      return new Response(JSON.stringify({ id: "/app", name: "Super Chatty Jarvis", short_name: "Super Chatty", description: "Voice-first owner-controlled AI assistant", start_url: "/app", scope: "/", display: "standalone", background_color: "#07111f", theme_color: "#07111f", orientation: "portrait", icons: [{ src: "/icon.svg", sizes: "any", type: "image/svg+xml", purpose: "any maskable" }] }), { status: 200, headers: { "content-type": "application/manifest+json; charset=utf-8", "cache-control": "public, max-age=3600", "x-content-type-options": "nosniff" } });
+    }
+    if (request.method === "GET" && path === "/icon.svg") {
+      const icon = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><rect width="512" height="512" rx="112" fill="#07111f"/><circle cx="256" cy="256" r="174" fill="#0c3b61" stroke="#35d8ff" stroke-width="14"/><path d="M256 110 292 220 402 256 292 292 256 402 220 292 110 256 220 220Z" fill="#35d8ff"/><circle cx="256" cy="256" r="38" fill="#eef7ff"/></svg>';
+      return new Response(icon, { status: 200, headers: { "content-type": "image/svg+xml; charset=utf-8", "cache-control": "public, max-age=86400", "x-content-type-options": "nosniff" } });
+    }
+    if (request.method === "GET" && path === "/service-worker.js") {
+      const source = "const CACHE=\"scj-pwa-v1\";\nself.addEventListener(\"install\",event=>event.waitUntil(caches.open(CACHE).then(cache=>cache.addAll([\"/download\",\"/manifest.webmanifest\",\"/icon.svg\"])).then(()=>self.skipWaiting())));\nself.addEventListener(\"activate\",event=>event.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(key=>key.startsWith(\"scj-pwa-\")&&key!==CACHE).map(key=>caches.delete(key)))).then(()=>self.clients.claim())));\nself.addEventListener(\"fetch\",event=>{const request=event.request;const url=new URL(request.url);if(request.method!==\"GET\"||url.origin!==self.location.origin||url.pathname.startsWith(\"/api/\")||url.pathname===\"/owner\"||url.pathname===\"/app\"||url.pathname.startsWith(\"/tasks\")||url.pathname.startsWith(\"/results\")||url.pathname===\"/memory\"||url.pathname===\"/audit\")return;event.respondWith(fetch(request).catch(()=>caches.match(request).then(hit=>hit||(request.mode===\"navigate\"?caches.match(\"/download\"):undefined)).then(hit=>hit||Response.error())));});";
+      return new Response(source, { status: 200, headers: { "content-type": "application/javascript; charset=utf-8", "cache-control": "no-cache", "service-worker-allowed": "/", "x-content-type-options": "nosniff" } });
+    }
+    if (request.method === "GET" && (path === "/download" || path === "/app/install")) {
+      const html = "<!doctype html><html lang=\"en\"><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\"><meta name=\"theme-color\" content=\"#07111f\"><link rel=\"manifest\" href=\"/manifest.webmanifest\"><link rel=\"icon\" href=\"/icon.svg\" type=\"image/svg+xml\"><title>Install Super Chatty Jarvis</title><style>body{margin:0;padding:24px;background:#07111f;color:#eef7ff;font:16px/1.6 system-ui,sans-serif}main{max-width:520px;margin:6vh auto;padding:24px;border:1px solid #24506c;border-radius:18px;background:#0d1b2d}a,button{color:#fff}button,a.btn{display:inline-block;padding:12px 16px;border-radius:10px;border:1px solid #24506c;background:#145b9b;text-decoration:none;font:inherit;font-weight:700;margin:8px 8px 8px 0}small{color:#a8bfd4}</style></head><body><main><h1>Install Super Chatty Jarvis</h1><p>Install the mobile PWA from your browser when supported. Sign in with your Owner passkey to use the protected voice app.</p><button id=\"install\" hidden>Install app</button><a class=\"btn\" href=\"/app\">Open Super Chatty</a><p id=\"status\" role=\"status\">If Install is unavailable, open your browser menu and choose “Install app” or “Add to Home screen”.</p><p><small>This is an installable web app, not a signed native APK. The protected assistant and AI features require a network connection.</small></p></main><script>let deferred;const b=document.getElementById(\"install\"),s=document.getElementById(\"status\");if(\"serviceWorker\" in navigator)navigator.serviceWorker.register(\"/service-worker.js\").catch(()=>{});window.addEventListener(\"beforeinstallprompt\",e=>{e.preventDefault();deferred=e;b.hidden=false;s.textContent=\"Ready to install.\";});b.addEventListener(\"click\",async()=>{if(!deferred)return;deferred.prompt();await deferred.userChoice;deferred=null;b.hidden=true;});window.addEventListener(\"appinstalled\",()=>{s.textContent=\"Super Chatty Jarvis was installed.\";});</script></body></html>";
+      return new Response(html, { status: 200, headers: { "content-type": "text/html; charset=utf-8", "cache-control": "no-store", "content-security-policy": "default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; connect-src 'self'; manifest-src 'self'; img-src 'self'; base-uri 'none'; frame-ancestors 'none'", "x-content-type-options": "nosniff", "referrer-policy": "no-referrer" } });
+    }
     if (request.method === "GET" && path === "/owner") return new Response(OWNER_HTML, { status: 200, headers: { "content-type": "text/html; charset=utf-8", "cache-control": "no-store", "x-content-type-options": "nosniff", "referrer-policy": "no-referrer", "content-security-policy": "default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; connect-src 'self'; base-uri 'none'; frame-ancestors 'none'; form-action 'none'" } });
     if (request.method === "GET" && path === "/app") {
       const session = await getOwnerSession(request, env);
       if (!session) return Response.redirect(new URL("/owner", request.url).toString(), 303);
-      const csp = "default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; connect-src 'self'; base-uri 'none'; frame-ancestors 'none'; form-action 'none'";
+      const csp = "default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; connect-src 'self'; manifest-src 'self'; worker-src 'self'; media-src 'self' blob:; base-uri 'none'; frame-ancestors 'none'; form-action 'none'";
       return new Response(APP_HTML, { status: 200, headers: { "content-type": "text/html; charset=utf-8", "cache-control": "no-store", "x-content-type-options": "nosniff", "referrer-policy": "no-referrer", "content-security-policy": csp } });
     }
     try {
@@ -273,7 +288,7 @@ export default {
       if (!safeReadRoute && !serviceResultRoute) requireAllowedOrigin(request, env);
       if (!["GET", "POST", "DELETE"].includes(request.method)) return json({ error: "Not found" }, 404, headers);
       const bootstrapRoute = request.method === "POST" && (path === "/passkey/register/options" || path === "/passkey/register/verify");
-      const ownerRoute = (request.method === "POST" && (path === "/passkey/login/options" || path === "/passkey/login/verify" || path === "/auth/logout" || path === "/api/chat")) || (request.method === "GET" && path === "/auth/status") || isModuleRoute(request.method, path);
+      const ownerRoute = (request.method === "POST" && (path === "/passkey/login/options" || path === "/passkey/login/verify" || path === "/auth/logout" || path === "/api/chat" || path === "/api/tts")) || (request.method === "GET" && path === "/auth/status") || isModuleRoute(request.method, path);
       if (bootstrapRoute || ownerRoute) {
         const limiter = bootstrapRoute ? env.BOOTSTRAP_RATE_LIMITER : env.AUTH_RATE_LIMITER;
         if (!limiter || typeof limiter.limit !== "function") return json({ error: "Authentication rate limiting unavailable" }, 503, headers);
@@ -288,6 +303,43 @@ export default {
       else if (request.method === "POST" && path === "/passkey/login/verify") response = await loginVerify(request, env);
       else if (request.method === "GET" && path === "/auth/status") response = await authStatus(request, env);
       else if (request.method === "POST" && path === "/auth/logout") response = await logout(request, env);
+      else if (request.method === "POST" && path === "/api/tts") {
+        const session = await getOwnerSession(request, env);
+        if (!session) response = json({ error: "Owner authentication required" }, 401);
+        else {
+          const body = await readJson(request);
+          const text = typeof body?.text === "string" ? body.text.trim() : "";
+          const language = body?.language;
+          const voiceProfile = body?.voiceProfile || "standard";
+          if (!text || text.length > 1200) response = json({ error: "Text must contain 1-1200 characters" }, 400);
+          else if (!["hi-IN", "en-IN", "en-US"].includes(language)) response = json({ error: "Unsupported language" }, 400);
+          else if (!["standard", "male", "female", "child", "senior"].includes(voiceProfile)) response = json({ error: "Unsupported voice profile" }, 400);
+          else if (env.CHAT_API_ENABLED !== "true" || !env.AI || typeof env.AI.run !== "function") response = json({ error: "AI speech is not configured", code: "TTS_NOT_CONFIGURED" }, 503);
+          else {
+            try {
+              let result;
+              if (language === "hi-IN") result = await env.AI.run("@cf/myshell-ai/melotts", { prompt: text, lang: "hi" });
+              else {
+                const speaker = voiceProfile === "male" ? "orion" : "asteria";
+                result = await env.AI.run("@cf/deepgram/aura-1", { text, speaker });
+              }
+              let audio = result && typeof result === "object" && "audio" in result ? result.audio : result;
+              let bytes;
+              if (audio instanceof ReadableStream) response = new Response(audio, { status: 200, headers: { "content-type": "audio/mpeg", "cache-control": "no-store", "x-content-type-options": "nosniff" } });
+              else {
+                if (audio instanceof ArrayBuffer) bytes = new Uint8Array(audio);
+                else if (ArrayBuffer.isView(audio)) bytes = new Uint8Array(audio.buffer, audio.byteOffset, audio.byteLength);
+                else if (typeof audio === "string") {
+                  const encoded = audio.replace(/^data:audio\/[^;]+;base64,/i, "");
+                  try { const binary = atob(encoded); bytes = Uint8Array.from(binary, c => c.charCodeAt(0)); } catch { bytes = null; }
+                }
+                if (bytes && bytes.byteLength) response = new Response(bytes, { status: 200, headers: { "content-type": "audio/mpeg", "cache-control": "no-store", "x-content-type-options": "nosniff" } });
+                else response = json({ error: "AI speech returned no audio", code: "TTS_EMPTY_AUDIO" }, 502);
+              }
+            } catch { response = json({ error: "AI speech temporarily unavailable", code: "TTS_PROVIDER_UNAVAILABLE" }, 502); }
+          }
+        }
+      }
       else if (request.method === "POST" && path === "/api/chat") {
         const session = await getOwnerSession(request, env);
         if (!session) response = json({ error: "Owner authentication required" }, 401);
