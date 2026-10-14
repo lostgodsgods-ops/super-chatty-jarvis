@@ -8,7 +8,7 @@ test("staging Worker exposes a non-sensitive health response", async () => {
   assert.deepEqual(await response.json(), { ok: true, component: "passkey-auth-staging", production: false });
 });
 
-test("staging Worker rejects cross-origin passkey API calls", async () => {
+test("staging Worker rejects cross-origin passkey API calls before touching the database", async () => {
   const request = new Request("https://staging.example/passkey/login/options", {
     method: "POST",
     headers: { Origin: "https://attacker.example", "content-type": "application/json" },
@@ -21,7 +21,7 @@ test("staging Worker rejects cross-origin passkey API calls", async () => {
   });
   assert.equal(response.status, 400);
   assert.deepEqual(await response.json(), { error: "Request rejected" });
-  assert.equal(dbTouched, false, "oversized body must be rejected before database access");
+  assert.equal(dbTouched, false, "cross-origin requests must be rejected before database access");
 });
 
 test("staging Worker rejects preflight from an unapproved origin", async () => {
@@ -50,6 +50,7 @@ test("authenticated status never discloses internal session metadata", async () 
     headers: { cookie: "scj_owner_session=test-session-token" },
   });
   const env = {
+    AUTH_RATE_LIMITER: { async limit() { return { success: true }; } },
     SESSIONS: {
       async get() {
         return JSON.stringify({ ownerId: 1, credentialId: "private-credential-id", createdAt: "2026-10-14T00:00:00.000Z" });
@@ -68,7 +69,7 @@ test("passkey verification rejects oversized JSON even without Content-Length", 
     headers: { Origin: "https://owner.example", "content-type": "application/json" },
     body,
   });
-  const response = await worker.fetch(request, { ALLOWED_ORIGIN: "https://owner.example" });
+  const response = await worker.fetch(request, { ALLOWED_ORIGIN: "https://owner.example", AUTH_RATE_LIMITER: { async limit() { return { success: true }; } } });
   assert.equal(response.status, 400);
   assert.deepEqual(await response.json(), { error: "Request rejected" });
 });
@@ -82,6 +83,7 @@ test("logout revokes a cookie-backed Owner session without a JavaScript bearer t
   });
   const response = await worker.fetch(request, {
     ALLOWED_ORIGIN: "https://owner.example",
+    AUTH_RATE_LIMITER: { async limit() { return { success: true }; } },
     SESSIONS: { async delete(key) { deletedKey = key; } },
   });
   assert.equal(response.status, 200);
@@ -95,8 +97,36 @@ test("legacy JavaScript bearer tokens are not accepted as Owner sessions", async
     headers: { authorization: "Bearer legacy-token" },
   });
   const response = await worker.fetch(request, {
+    AUTH_RATE_LIMITER: { async limit() { return { success: true }; } },
     SESSIONS: { async get() { return JSON.stringify({ ownerId: 1 }); } },
   });
   assert.equal(response.status, 401);
   assert.deepEqual(await response.json(), { authenticated: false });
+});
+
+
+test("Owner auth fails closed if its rate limiter binding is missing", async () => {
+  const request = new Request("https://staging.example/passkey/login/options", {
+    method: "POST",
+    headers: { Origin: "https://owner.example", "content-type": "application/json" },
+    body: "{}",
+  });
+  const response = await worker.fetch(request, { ALLOWED_ORIGIN: "https://owner.example" });
+  assert.equal(response.status, 503);
+  assert.deepEqual(await response.json(), { error: "Authentication rate limiting unavailable" });
+});
+
+test("Owner auth rejects requests when the rate limiter reports a limit exceeded", async () => {
+  const request = new Request("https://staging.example/passkey/login/options", {
+    method: "POST",
+    headers: { Origin: "https://owner.example", "CF-Connecting-IP": "192.0.2.10", "content-type": "application/json" },
+    body: "{}",
+  });
+  const response = await worker.fetch(request, {
+    ALLOWED_ORIGIN: "https://owner.example",
+    AUTH_RATE_LIMITER: { async limit(input) { assert.equal(input.key, "192.0.2.10:/passkey/login/options"); return { success: false }; } },
+  });
+  assert.equal(response.status, 429);
+  assert.equal(response.headers.get("retry-after"), "60");
+  assert.deepEqual(await response.json(), { error: "Rate limit exceeded" });
 });
