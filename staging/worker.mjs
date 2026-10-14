@@ -1,3 +1,5 @@
+import { APP_HTML } from "./app.mjs";
+import { handleModuleRoute, isModuleRoute } from "./modules.mjs";
 import {
   generateRegistrationOptions,
   verifyRegistrationResponse,
@@ -27,6 +29,7 @@ h1{font-size:1.6rem;margin:0 0 8px}p{color:var(--muted)}label{display:block;marg
 <button id="enroll">Set up this device's passkey</button>
 <button id="login" class="secondary">Sign in with passkey</button>
 <button id="check" class="secondary">Check Owner session</button>
+<button id="openApp" class="secondary">Open Voice-First Chatty</button>
 <button id="logout" class="secondary">Lock / log out</button>
 <div id="status" role="status" aria-live="polite">Ready. Use HTTPS and a browser that supports passkeys.</div>
 <p><small>Fingerprint/face verification stays with the device's passkey provider. This page never receives biometric templates. Keep the setup token private; do not share it in chat.</small></p>
@@ -43,6 +46,7 @@ el("enroll").addEventListener("click",async()=>{el("enroll").disabled=true;try{i
 el("login").addEventListener("click",async()=>{el("login").disabled=true;try{if(!window.PublicKeyCredential||!navigator.credentials)throw new Error("Passkeys are not supported in this browser.");say("Requesting sign-in challenge…");const start=await api("/passkey/login/options",{method:"POST",body:"{}"});const cred=await navigator.credentials.get({publicKey:prepare(start.options)});if(!cred)throw new Error("Passkey sign-in cancelled.");say("Verifying signature and creating a short-lived session…");const result=await api("/passkey/login/verify",{method:"POST",body:JSON.stringify({challengeId:start.challengeId,response:serialize(cred,"login")})});say("Owner authenticated with passkey. Secure session expires in "+Math.round(result.expiresIn/60)+" minutes.");}catch(e){say("Sign-in not completed: "+e.message);}finally{el("login").disabled=false;}});
 el("check").addEventListener("click",async()=>{try{const result=await api("/auth/status");say(result.authenticated?"Owner session is active.":"No active Owner session.");}catch(e){say("Session check: "+e.message);}});
 el("logout").addEventListener("click",async()=>{try{await api("/auth/logout",{method:"POST",body:"{}"});}catch(e){}finally{say("Owner session revoked and browser cookie cleared.");}});
+el("openApp").addEventListener("click",()=>{location.href="/app";});
 </script></body></html>`;
 
 const json = (body, status = 200, headers = {}) => new Response(JSON.stringify(body), {
@@ -74,7 +78,7 @@ function originHeaders(request, env) {
   if (origin && origin === env.ALLOWED_ORIGIN) {
     return {
       "access-control-allow-origin": origin,
-      "access-control-allow-methods": "GET, POST, OPTIONS",
+      "access-control-allow-methods": "GET, POST, DELETE, OPTIONS",
       "access-control-allow-headers": "content-type, authorization, x-owner-setup-token",
       "access-control-allow-credentials": "true",
       "vary": "Origin",
@@ -222,10 +226,21 @@ function sessionTokenFromRequest(request) {
   return cookieToken;
 }
 
-async function authStatus(request, env) {
+async function getOwnerSession(request, env) {
   const token = sessionTokenFromRequest(request);
-  if (!token) return json({ authenticated: false }, 401);
-  const session = await env.SESSIONS.get(`owner-session:${await hash(token)}`);
+  if (!token) return null;
+  const raw = await env.SESSIONS.get("owner-session:" + await hash(token));
+  if (!raw) return null;
+  try {
+    const session = JSON.parse(raw);
+    return session?.ownerId === OWNER_ID ? session : null;
+  } catch {
+    return null;
+  }
+}
+
+async function authStatus(request, env) {
+  const session = await getOwnerSession(request, env);
   if (!session) return json({ authenticated: false }, 401);
   return json({ authenticated: true });
 }
@@ -246,11 +261,19 @@ export default {
     const path = new URL(request.url).pathname;
     if (request.method === "GET" && path === "/health") return json({ ok: true, component: "passkey-auth-staging", production: false }, 200, headers);
     if (request.method === "GET" && path === "/owner") return new Response(OWNER_HTML, { status: 200, headers: { "content-type": "text/html; charset=utf-8", "cache-control": "no-store", "x-content-type-options": "nosniff", "referrer-policy": "no-referrer", "content-security-policy": "default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; connect-src 'self'; base-uri 'none'; frame-ancestors 'none'; form-action 'none'" } });
+    if (request.method === "GET" && path === "/app") {
+      const session = await getOwnerSession(request, env);
+      if (!session) return Response.redirect(new URL("/owner", request.url).toString(), 303);
+      const csp = "default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; connect-src 'self'; base-uri 'none'; frame-ancestors 'none'; form-action 'none'";
+      return new Response(APP_HTML, { status: 200, headers: { "content-type": "text/html; charset=utf-8", "cache-control": "no-store", "x-content-type-options": "nosniff", "referrer-policy": "no-referrer", "content-security-policy": csp } });
+    }
     try {
-      if (!(request.method === "GET" && path === "/auth/status" && !request.headers.get("Origin"))) requireAllowedOrigin(request, env);
-      if (request.method !== "POST" && !(request.method === "GET" && path === "/auth/status")) return json({ error: "Not found" }, 404, headers);
+      const safeReadRoute = request.method === "GET" && ["/auth/status", "/tasks", "/results", "/memory", "/audit"].includes(path);
+      const serviceResultRoute = request.method === "POST" && ["/results", "/tasks/claim"].includes(path);
+      if (!safeReadRoute && !serviceResultRoute) requireAllowedOrigin(request, env);
+      if (!["GET", "POST", "DELETE"].includes(request.method)) return json({ error: "Not found" }, 404, headers);
       const bootstrapRoute = request.method === "POST" && (path === "/passkey/register/options" || path === "/passkey/register/verify");
-      const ownerRoute = (request.method === "POST" && (path === "/passkey/login/options" || path === "/passkey/login/verify" || path === "/auth/logout")) || (request.method === "GET" && path === "/auth/status");
+      const ownerRoute = (request.method === "POST" && (path === "/passkey/login/options" || path === "/passkey/login/verify" || path === "/auth/logout" || path === "/api/chat")) || (request.method === "GET" && path === "/auth/status") || isModuleRoute(request.method, path);
       if (bootstrapRoute || ownerRoute) {
         const limiter = bootstrapRoute ? env.BOOTSTRAP_RATE_LIMITER : env.AUTH_RATE_LIMITER;
         if (!limiter || typeof limiter.limit !== "function") return json({ error: "Authentication rate limiting unavailable" }, 503, headers);
@@ -265,7 +288,22 @@ export default {
       else if (request.method === "POST" && path === "/passkey/login/verify") response = await loginVerify(request, env);
       else if (request.method === "GET" && path === "/auth/status") response = await authStatus(request, env);
       else if (request.method === "POST" && path === "/auth/logout") response = await logout(request, env);
-      else response = json({ error: "Not found" }, 404);
+      else if (request.method === "POST" && path === "/api/chat") {
+        const session = await getOwnerSession(request, env);
+        if (!session) response = json({ error: "Owner authentication required" }, 401);
+        else {
+          const body = await readJson(request);
+          if (typeof body?.message !== "string" || !body.message.trim() || body.message.length > 8000) response = json({ error: "Message must contain 1-8000 characters" }, 400);
+          else if (!["hi-IN", "en-IN", "en-US"].includes(body.language)) response = json({ error: "Unsupported language" }, 400);
+          else response = json({ error: "Chat provider is not configured in staging", code: "CHAT_PROVIDER_NOT_CONFIGURED" }, 503);
+        }
+      }
+      else {
+        const moduleResponse = isModuleRoute(request.method, path)
+          ? await handleModuleRoute(request, env, path, request.method === "POST" && ["/results", "/tasks/claim"].includes(path) ? null : await getOwnerSession(request, env))
+          : null;
+        response = moduleResponse || json({ error: "Not found" }, 404);
+      }
       const merged = new Headers(response.headers);
       for (const [key, value] of Object.entries(headers)) merged.set(key, value);
       return new Response(response.body, { status: response.status, headers: merged });
