@@ -267,7 +267,7 @@ export default {
     }
     try {
       const safeReadRoute = request.method === "GET" && ["/auth/status", "/tasks", "/results", "/memory", "/audit"].includes(path);
-      const serviceResultRoute = request.method === "POST" && path === "/results";
+      const serviceResultRoute = request.method === "POST" && ["/results", "/tasks/claim"].includes(path);
       if (!safeReadRoute && !serviceResultRoute) requireAllowedOrigin(request, env);
       if (!["GET", "POST", "DELETE"].includes(request.method)) return json({ error: "Not found" }, 404, headers);
       const bootstrapRoute = request.method === "POST" && (path === "/passkey/register/options" || path === "/passkey/register/verify");
@@ -298,7 +298,7 @@ export default {
       }
       else {
         const moduleResponse = isModuleRoute(request.method, path)
-          ? await handleModuleRoute(request, env, path, request.method === "POST" && path === "/results" ? null : await getOwnerSession(request, env))
+          ? await handleModuleRoute(request, env, path, request.method === "POST" && ["/results", "/tasks/claim"].includes(path) ? null : await getOwnerSession(request, env))
           : null;
         response = moduleResponse || json({ error: "Not found" }, 404);
       }
