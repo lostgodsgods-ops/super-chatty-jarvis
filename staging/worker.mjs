@@ -351,46 +351,75 @@ export default {
             response = json({ error: "Chat provider is not configured in staging", code: "CHAT_PROVIDER_NOT_CONFIGURED" }, 503);
           } else {
             const defaultModel = "@cf/meta/llama-3.1-8b-instruct";
+            const fallbackModels = [
+              defaultModel,
+              "@cf/meta/llama-3.3-70b-instruct-fp8-fast",
+              "@cf/meta/llama-4-scout-17b-16e-instruct",
+            ];
             const configuredModel = typeof env.CHAT_MODEL === "string" && env.CHAT_MODEL.trim()
               ? env.CHAT_MODEL.trim()
               : defaultModel;
-            const models = [...new Set([configuredModel, defaultModel])];
+            const models = [...new Set([configuredModel, ...fallbackModels])];
+            const systemPrompt = "You are Super Chatty Jarvis. Reply in the user's selected language (" + body.language + "). Be helpful, concise, and honest. Never claim you performed external actions or accessed accounts unless the system actually did so. Ask for explicit Owner approval before sensitive actions.";
             const input = {
               messages: [
-                {
-                  role: "system",
-                  content: "You are Super Chatty Jarvis. Reply in the user's selected language (" + body.language + "). Be helpful, concise, and honest. Never claim you performed external actions or accessed accounts unless the system actually did so. Ask for explicit Owner approval before sensitive actions.",
-                },
+                { role: "system", content: systemPrompt },
                 { role: "user", content: body.message.trim() },
               ],
-              max_tokens: 700,
+              max_tokens: 500,
               temperature: 0.4,
             };
+            const readReply = (result) => typeof result?.response === "string"
+              ? result.response.trim()
+              : typeof result?.choices?.[0]?.message?.content === "string"
+                ? result.choices[0].message.content.trim()
+                : typeof result?.result?.response === "string"
+                  ? result.result.response.trim()
+                  : "";
             let reply = "";
             let usedModel = "";
             let lastFailure = "AI_PROVIDER_UNAVAILABLE";
             for (const model of models) {
               try {
                 const result = await env.AI.run(model, input);
-                reply = typeof result?.response === "string"
-                  ? result.response.trim()
-                  : typeof result?.choices?.[0]?.message?.content === "string"
-                    ? result.choices[0].message.content.trim()
-                    : typeof result?.result?.response === "string"
-                      ? result.result.response.trim()
-                      : "";
+                reply = readReply(result);
                 if (reply) {
                   usedModel = model;
                   break;
                 }
                 lastFailure = "AI_PROVIDER_EMPTY_RESPONSE";
-                console.warn("SCJ_CHAT_PROVIDER_EMPTY_RESPONSE", { model });
+                console.warn("SCJ_CHAT_PROVIDER_EMPTY_RESPONSE", { model, inputMode: "messages" });
               } catch (error) {
                 lastFailure = "AI_PROVIDER_UNAVAILABLE";
                 console.error("SCJ_CHAT_PROVIDER_ATTEMPT_FAILED", {
                   model,
+                  inputMode: "messages",
                   errorName: typeof error?.name === "string" ? error.name : "Error",
                 });
+              }
+            }
+            // Some model/runtime combinations accept prompt input more reliably than chat messages.
+            // Try the same known-good model set once more with prompt input before returning an error.
+            if (!reply) {
+              const prompt = systemPrompt + "\\n\\nUser: " + body.message.trim() + "\\n\\nAssistant:";
+              for (const model of models) {
+                try {
+                  const result = await env.AI.run(model, { prompt, max_tokens: 500, temperature: 0.4 });
+                  reply = readReply(result);
+                  if (reply) {
+                    usedModel = model;
+                    break;
+                  }
+                  lastFailure = "AI_PROVIDER_EMPTY_RESPONSE";
+                  console.warn("SCJ_CHAT_PROVIDER_EMPTY_RESPONSE", { model, inputMode: "prompt" });
+                } catch (error) {
+                  lastFailure = "AI_PROVIDER_UNAVAILABLE";
+                  console.error("SCJ_CHAT_PROVIDER_ATTEMPT_FAILED", {
+                    model,
+                    inputMode: "prompt",
+                    errorName: typeof error?.name === "string" ? error.name : "Error",
+                  });
+                }
               }
             }
             response = reply
