@@ -22,6 +22,9 @@ jobs:
         with:
           node-version: "20"
 
+      - name: Run owner-approval policy tests
+        run: node --test central-agent/policy.test.mjs
+
       - name: Validate required secrets
         shell: bash
         env:
