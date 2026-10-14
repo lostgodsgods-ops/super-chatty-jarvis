@@ -10,8 +10,8 @@ This folder is an isolated implementation proposal. It is **not connected to the
 - `POST /passkey/register/verify` — validates WebAuthn registration and consumes the one-time challenge.
 - `POST /passkey/login/options` — generates a five-minute challenge for a discoverable passkey.
 - `POST /passkey/login/verify` — verifies the assertion, updates the signature counter, then issues a random 1-hour KV session.
-- `GET /auth/status` — checks the Bearer session.
-- `POST /auth/logout` — revokes the current KV session.
+- `GET /auth/status` — checks the server-issued `HttpOnly` session cookie; JavaScript bearer tokens are not accepted.
+- `POST /auth/logout` — revokes the cookie-backed KV session and clears the cookie.
 
 ## Required environment
 
@@ -21,6 +21,7 @@ This folder is an isolated implementation proposal. It is **not connected to the
 - `OWNER_SETUP_TOKEN`: Cloudflare secret used only for initial passkey enrollment.
 - `DB`: a **new staging-only** D1 database with `passkey-schema.sql` applied.
 - `SESSIONS`: a **new staging-only** KV namespace.
+- `AUTH_RATE_LIMITER` and `BOOTSTRAP_RATE_LIMITER`: Cloudflare Rate Limiting bindings; auth requests fail closed if the bindings are absent.
 
 Do not point staging at the production D1 database or production session KV. Do not put secrets in GitHub source, commits, or chat. The setup token should be entered only in the private staging UI/request, never committed.
 
@@ -34,7 +35,7 @@ Do not point staging at the production D1 database or production session KV. Do 
 
 1. Provision separate staging D1 and KV resources.
 2. Confirm `RP_ID` and `ALLOWED_ORIGIN` match the actual staging hostname exactly.
-3. Add an explicit rate limit to registration/login routes and protect the bootstrap token with rotation and expiry.
+3. Keep the configured Cloudflare rate limits enabled (10 requests/minute per IP and route for owner auth; 5/minute for bootstrap routes) and protect the bootstrap token with rotation and expiry.
 4. Add route-level tests with D1/KV mocks, including concurrent challenge reuse, invalid attestation, unknown credential, session expiry, logout, and wrong origin.
 5. Run the GitHub Actions workflow and review all checks.
 6. Use the manually gated `Deploy passkey authentication to staging only` workflow only after fixing the Cloudflare API token and adding a private `OWNER_SETUP_TOKEN` repository secret. It targets the isolated staging Worker only.
@@ -44,6 +45,6 @@ Do not point staging at the production D1 database or production session KV. Do 
 ## Known limitations
 
 - This branch currently permits only one initial Owner passkey; adding/recovering credentials needs an authenticated and audited owner flow.
-- The one-time bootstrap token does not expire automatically at the application layer. Configure/rotate it as a Cloudflare secret and do not expose it in URLs.
+- The bootstrap token is not time-limited by the application. Registration is blocked while an Owner credential exists; configure it as a private Cloudflare secret, rotate/remove it after enrollment, and never expose it in URLs.
 - The Worker does not execute agent tasks or grant permissions. It only covers the authentication API.
 - No biometric template or raw biometric data is received by this server.
