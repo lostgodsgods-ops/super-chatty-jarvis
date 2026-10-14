@@ -1,9 +1,11 @@
 /**
  * Super Chatty Central Agent v1
- * Minimal owner-authenticated AI gateway. No arbitrary tool execution.
+ * Owner-authenticated coordinator. No arbitrary tool execution.
  * Secrets are read only from Worker bindings and are never returned.
  */
-const VERSION = "1.0.0";
+import { describePolicy } from "./policy.mjs";
+
+const VERSION = "1.1.0";
 const MODEL = "@cf/meta/llama-3.1-8b-instruct";
 
 function json(data, status = 200, headers = {}) {
@@ -44,9 +46,7 @@ export default {
     const url = new URL(request.url);
     const cors = corsHeaders(request, env);
 
-    if (request.method === "OPTIONS") {
-      return new Response(null, { status: 204, headers: cors });
-    }
+    if (request.method === "OPTIONS") return new Response(null, { status: 204, headers: cors });
 
     if (url.pathname === "/health" && request.method === "GET") {
       return json({
@@ -56,29 +56,32 @@ export default {
         capabilities: {
           aiChat: Boolean(env.AI),
           ownerAuthentication: Boolean(env.OWNER_API_KEY),
+          policyEndpoint: true,
           durableTaskQueue: false,
-          externalToolExecution: false
+          childAgentExecution: false,
+          externalToolExecution: false,
+          selfGrantedPermissions: false
         }
       }, 200, cors);
     }
 
-    if (!env.OWNER_API_KEY) {
-      return json({ error: "Owner authentication is not configured." }, 503, cors);
-    }
-    if (!authorized(request, env)) {
-      return json({ error: "Unauthorized" }, 401, cors);
+    if (!env.OWNER_API_KEY) return json({ error: "Owner authentication is not configured." }, 503, cors);
+    if (!authorized(request, env)) return json({ error: "Unauthorized" }, 401, cors);
+
+    if (url.pathname === "/policy" && request.method === "GET") {
+      return json({ policy: describePolicy() }, 200, cors);
     }
 
     if (url.pathname === "/agents" && request.method === "GET") {
       return json({
         leader: "super-chatty-central-agent",
         agents: [
-          { id: "research", status: "planned", permissions: ["read-only research"] },
-          { id: "development", status: "planned", permissions: ["propose code changes"] },
-          { id: "integration", status: "planned", permissions: ["propose integrations"] },
-          { id: "testing", status: "planned", permissions: ["run configured tests"] }
+          { id: "research", status: "planned", permissions: ["read-only research"], ownerApprovalRequiredToActivate: true },
+          { id: "development", status: "planned", permissions: ["propose code changes"], ownerApprovalRequiredToActivate: true },
+          { id: "integration", status: "planned", permissions: ["propose integrations"], ownerApprovalRequiredToActivate: true },
+          { id: "testing", status: "planned", permissions: ["run configured tests"], ownerApprovalRequiredToActivate: true }
         ],
-        note: "These are planned roles, not running agents. No child agent is granted execution permissions by this endpoint."
+        note: "Role catalogue only. No child agents are running or can be spawned by this endpoint. Activation and side effects require explicit, scoped owner approval and a separately tested executor."
       }, 200, cors);
     }
 
@@ -87,16 +90,14 @@ export default {
       let body;
       try { body = await request.json(); } catch { return json({ error: "Expected JSON body." }, 400, cors); }
       const message = typeof body.message === "string" ? body.message.trim() : "";
-      if (!message || message.length > 8000) {
-        return json({ error: "message must contain 1–8000 characters." }, 400, cors);
-      }
+      if (!message || message.length > 8000) return json({ error: "message must contain 1–8000 characters." }, 400, cors);
 
       try {
         const result = await env.AI.run(MODEL, {
           messages: [
             {
               role: "system",
-              content: "You are Super Chatty Central Agent, a careful coordinator for the Super Chatty Jarvis project. Follow owner instructions only within configured permissions. Never claim an external action, API key creation, integration, test, or deployment succeeded unless a tool result proves it. Do not request secrets in chat. You cannot execute external tools from this endpoint."
+              content: "You are Super Chatty Central Agent, a coordinator for the Super Chatty Jarvis project. Treat owner authorization as the highest application-level authority. Never bypass, reinterpret, or expand the owner's permissions. Never self-grant permissions. You may plan and propose work, but this endpoint cannot execute tools, spawn child agents, change files, connect providers, create API keys, or deploy. Every external side effect requires explicit, action-scoped owner approval through a separately implemented executor. Never claim an action, integration, test, API-key creation, or deployment succeeded unless verified evidence proves it. Never ask the user to paste secrets into chat."
             },
             { role: "user", content: message }
           ],
@@ -110,15 +111,13 @@ export default {
 
     if (url.pathname === "/tasks" && request.method === "POST") {
       return json({
-        error: "Durable task queue is not configured yet.",
-        nextStep: "Configure a Cloudflare KV namespace and add the JARVIS_KV binding before enabling task persistence."
+        error: "Task persistence and approval-token consumption are not implemented; no task was queued.",
+        requiredBeforeEnablement: ["durable queue binding", "single-use action-scoped owner approval", "audit log", "executor allowlist", "tests"]
       }, 503, cors);
     }
 
     if (url.pathname === "/results" && request.method === "GET") {
-      return json({
-        error: "Task results are unavailable because the durable task queue is not configured."
-      }, 503, cors);
+      return json({ error: "Task results are unavailable because the durable task queue is not configured." }, 503, cors);
     }
 
     return json({ error: "Not found" }, 404, cors);
