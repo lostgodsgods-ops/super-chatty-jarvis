@@ -6,12 +6,16 @@
   "scripts": {
     "test": "node --test",
     "test:passkey": "node --test test/passkey-security.test.mjs",
-    "check:passkey-worker": "node --check staging/worker.mjs"
+    "check:passkey-worker": "node --check staging/worker.mjs",
+    "build:passkey-staging": "wrangler deploy --dry-run --outdir /tmp/passkey-staging-bundle --config staging/wrangler.jsonc"
   },
   "dependencies": {
     "@simplewebauthn/server": "14.0.3"
   },
   "engines": {
     "node": ">=22"
+  },
+  "devDependencies": {
+    "wrangler": "4.149.0"
   }
 }
