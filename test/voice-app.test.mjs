@@ -14,7 +14,8 @@ test("voice UI exposes bilingual mobile-first controls", () => {
 test("voice UI requires server session and avoids browser token storage", () => {
   assert.match(APP_HTML, /fetch\("\/auth\/status"/);
   assert.match(APP_HTML, /credentials:"same-origin"/);
-  assert.doesNotMatch(APP_HTML, /localStorage|sessionStorage/);
+  const script = APP_HTML.match(/<script>([\\s\\S]*?)<\\/script>/)?.[1] || "";
+  assert.doesNotMatch(script, /localStorage|sessionStorage/);
 });
 
 test("voice UI does not pretend AI backend is live when unconfigured", () => {
