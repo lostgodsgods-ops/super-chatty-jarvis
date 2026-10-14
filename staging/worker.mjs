@@ -9,6 +9,42 @@ const CHALLENGE_TTL_SECONDS = 300;
 const SESSION_TTL_SECONDS = 3600;
 const OWNER_ID = 1;
 
+const OWNER_HTML = String.raw`<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#07111f"><title>Super Chatty Jarvis · Owner Passkey</title>
+<style>
+:root{color-scheme:dark;--bg:#07111f;--panel:#10243b;--line:#24506c;--text:#eef7ff;--muted:#a8bfd4;--cyan:#35d8ff;--blue:#245bd5}
+*{box-sizing:border-box}body{margin:0;background:radial-gradient(ellipse at 15% 0%,#102b4c,transparent 45%),var(--bg);color:var(--text);font:16px/1.55 system-ui,sans-serif;padding:22px}
+main{max-width:520px;margin:6vh auto}.panel{background:#0d1b2d;border:1px solid var(--line);border-radius:18px;padding:22px}
+h1{font-size:1.6rem;margin:0 0 8px}p{color:var(--muted)}label{display:block;margin:16px 0 6px}input{width:100%;padding:13px;border-radius:10px;border:1px solid var(--line);background:#07111f;color:var(--text)}button{width:100%;padding:13px;margin-top:12px;border-radius:10px;border:1px solid var(--line);background:linear-gradient(120deg,#087eb7,#235bd5);color:white;font-weight:750;font-size:1rem}button.secondary{background:#10243b}button:disabled{opacity:.5}#status{white-space:pre-wrap;overflow-wrap:anywhere;border:1px solid var(--line);border-radius:10px;padding:12px;margin-top:16px;min-height:48px;color:var(--cyan)}small{color:var(--muted)}
+</style></head>
+<body><main><section class="panel">
+<h1>Super Chatty Jarvis</h1><p>Owner authentication · Passkey first · Password not required for this setup</p>
+<label for="setupToken">One-time Owner setup token (only for first enrollment)</label>
+<input id="setupToken" type="password" autocomplete="off" spellcheck="false" placeholder="Enter token privately">
+<button id="enroll">Set up this device's passkey</button>
+<button id="login" class="secondary">Sign in with passkey</button>
+<button id="check" class="secondary">Check Owner session</button>
+<button id="logout" class="secondary">Lock / log out</button>
+<div id="status" role="status" aria-live="polite">Ready. Use HTTPS and a browser that supports passkeys.</div>
+<p><small>Fingerprint/face verification stays with the device's passkey provider. This page never receives biometric templates. Keep the setup token private; do not share it in chat.</small></p>
+</section></main>
+<script>
+const el=(id)=>document.getElementById(id);
+const say=(text)=>{el("status").textContent=text;};
+const enc=(buf)=>{const bytes=new Uint8Array(buf);let s="";for(const b of bytes)s+=String.fromCharCode(b);return btoa(s).replace(/\+/g,"-").replace(/\//g,"_").replace(/=+$/g,"");};
+const dec=(s)=>{const b=s.replace(/-/g,"+").replace(/_/g,"/");const raw=atob(b+"=".repeat((4-b.length%4)%4));return Uint8Array.from(raw,c=>c.charCodeAt(0)).buffer;};
+const api=async(path,opts={})=>{const res=await fetch(path,{cache:"no-store",...opts,headers:{"content-type":"application/json",...(opts.headers||{})}});const data=await res.json().catch(()=>({error:"Invalid server response"}));if(!res.ok)throw new Error(data.error||("HTTP "+res.status));return data;};
+const serialize=(cred,mode)=>{const r=cred.response;const response={clientDataJSON:enc(r.clientDataJSON)};if(mode==="register"){response.attestationObject=enc(r.attestationObject);response.transports=typeof r.getTransports==="function"?r.getTransports():[];}else{response.authenticatorData=enc(r.authenticatorData);response.signature=enc(r.signature);response.userHandle=r.userHandle?enc(r.userHandle):null;}return{id:cred.id,rawId:enc(cred.rawId),type:cred.type,response,clientExtensionResults:cred.getClientExtensionResults(),authenticatorAttachment:cred.authenticatorAttachment||null};};
+const prepare=(options)=>{options.challenge=dec(options.challenge);if(options.user)options.user.id=dec(options.user.id);for(const key of ["excludeCredentials","allowCredentials"]){if(Array.isArray(options[key]))options[key]=options[key].map(c=>({...c,id:dec(c.id)}));}return options;};
+el("enroll").addEventListener("click",async()=>{el("enroll").disabled=true;try{if(!window.PublicKeyCredential||!navigator.credentials)throw new Error("Passkeys are not supported in this browser.");const token=el("setupToken").value;if(!token)throw new Error("Enter the one-time setup token on this private page.");say("Requesting registration challenge…");const start=await api("/passkey/register/options",{method:"POST",headers:{"x-owner-setup-token":token},body:"{}"});const cred=await navigator.credentials.create({publicKey:prepare(start.options)});if(!cred)throw new Error("Passkey enrollment cancelled.");say("Verifying passkey registration…");const result=await api("/passkey/register/verify",{method:"POST",headers:{"x-owner-setup-token":token},body:JSON.stringify({challengeId:start.challengeId,response:serialize(cred,"register")})});say(result.message||"Passkey enrolled. Now sign in with passkey.");}catch(e){say("Enrollment not completed: "+e.message);}finally{el("enroll").disabled=false;}});
+el("login").addEventListener("click",async()=>{el("login").disabled=true;try{if(!window.PublicKeyCredential||!navigator.credentials)throw new Error("Passkeys are not supported in this browser.");say("Requesting sign-in challenge…");const start=await api("/passkey/login/options",{method:"POST",body:"{}"});const cred=await navigator.credentials.get({publicKey:prepare(start.options)});if(!cred)throw new Error("Passkey sign-in cancelled.");say("Verifying signature and creating a short-lived session…");const result=await api("/passkey/login/verify",{method:"POST",body:JSON.stringify({challengeId:start.challengeId,response:serialize(cred,"login")})});sessionStorage.setItem("scj_owner_session",result.token);say("Owner authenticated with passkey. Session expires in "+Math.round(result.expiresIn/60)+" minutes.");}catch(e){say("Sign-in not completed: "+e.message);}finally{el("login").disabled=false;}});
+el("check").addEventListener("click",async()=>{try{const token=sessionStorage.getItem("scj_owner_session");if(!token)throw new Error("No Owner session in this tab.");const result=await api("/auth/status",{headers:{authorization:"Bearer "+token}});say(result.authenticated?"Owner session is active.":"No active Owner session.");}catch(e){say("Session check: "+e.message);}});
+el("logout").addEventListener("click",async()=>{try{const token=sessionStorage.getItem("scj_owner_session");if(token)await api("/auth/logout",{method:"POST",headers:{authorization:"Bearer "+token},body:"{}"});}catch(e){}finally{sessionStorage.removeItem("scj_owner_session");say("Owner session removed from this tab. Any server-side session was revoked if the request reached the Worker.");}});
+</script></body></html>`;
+
 const json = (body, status = 200, headers = {}) => new Response(JSON.stringify(body), {
   status,
   headers: { "content-type": "application/json; charset=utf-8", "cache-control": "no-store", ...headers },
@@ -197,8 +233,9 @@ export default {
     }
     const path = new URL(request.url).pathname;
     if (request.method === "GET" && path === "/health") return json({ ok: true, component: "passkey-auth-staging", production: false }, 200, headers);
+    if (request.method === "GET" && path === "/owner") return new Response(OWNER_HTML, { status: 200, headers: { "content-type": "text/html; charset=utf-8", "cache-control": "no-store", "x-content-type-options": "nosniff", "referrer-policy": "no-referrer", "content-security-policy": "default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; connect-src 'self'; base-uri 'none'; frame-ancestors 'none'; form-action 'none'" } });
     try {
-      requireAllowedOrigin(request, env);
+      if (!(request.method === "GET" && path === "/auth/status" && !request.headers.get("Origin"))) requireAllowedOrigin(request, env);
       if (request.method !== "POST" && !(request.method === "GET" && path === "/auth/status")) return json({ error: "Not found" }, 404, headers);
       let response;
       if (request.method === "POST" && path === "/passkey/register/options") response = await registerOptions(request, env);
