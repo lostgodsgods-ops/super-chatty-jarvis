@@ -39,3 +39,19 @@ test("Owner page is served with a restrictive same-origin policy and native pass
   assert.match(html, /navigator\.credentials\.create/);
   assert.match(html, /navigator\.credentials\.get/);
 });
+
+test("authenticated status never discloses internal session metadata", async () => {
+  const request = new Request("https://staging.example/auth/status", {
+    headers: { authorization: "Bearer test-session-token" },
+  });
+  const env = {
+    SESSIONS: {
+      async get() {
+        return JSON.stringify({ ownerId: 1, credentialId: "private-credential-id", createdAt: "2026-10-14T00:00:00.000Z" });
+      },
+    },
+  };
+  const response = await worker.fetch(request, env);
+  assert.equal(response.status, 200);
+  assert.deepEqual(await response.json(), { authenticated: true });
+});
