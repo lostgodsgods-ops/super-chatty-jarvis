@@ -164,3 +164,34 @@ test("chat remains available with an AI binding when optional enable flag is abs
   assert.equal(response.status, 200);
   assert.equal((await response.json()).reply, "Hello from the staging AI.");
 });
+
+
+test("chat retries on a distinct known-good model when the configured model fails", async () => {
+  const attempted = [];
+  const response = await worker.fetch(new Request(origin + "/api/chat", {
+    method: "POST",
+    headers: { origin, cookie: "scj_owner_session=test-session", "content-type": "application/json" },
+    body: JSON.stringify({ message: "नमस्ते", language: "hi-IN" }),
+  }), {
+    ALLOWED_ORIGIN: origin,
+    CHAT_API_ENABLED: "true",
+    CHAT_MODEL: "@cf/unknown/model",
+    AUTH_RATE_LIMITER: { limit: async () => ({ success: true }) },
+    SESSIONS: { get: async () => JSON.stringify({ ownerId: 1, credentialId: "test" }) },
+    AI: { run: async (model) => {
+      attempted.push(model);
+      if (model === "@cf/unknown/model") throw new Error("unknown configured model");
+      if (model === "@cf/meta/llama-3.1-8b-instruct") throw new Error("primary model unavailable");
+      return { response: "नमस्ते! मैं आपकी मदद कर सकता हूँ।" };
+    } },
+  });
+  assert.equal(response.status, 200);
+  const body = await response.json();
+  assert.match(body.reply, /मदद/);
+  assert.equal(body.model, "@cf/meta/llama-3.3-70b-instruct-fp8-fast");
+  assert.deepEqual(attempted, [
+    "@cf/unknown/model",
+    "@cf/meta/llama-3.1-8b-instruct",
+    "@cf/meta/llama-3.3-70b-instruct-fp8-fast",
+  ]);
+});
