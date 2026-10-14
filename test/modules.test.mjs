@@ -114,3 +114,69 @@ test("task, memory, and audit reads bind the fixed Owner ID", async () => {
     assert.ok(query.args.includes(1), "every query must bind the fixed Owner ID");
   }
 });
+
+
+test("agent task claiming is disabled without a private gateway token", async () => {
+  let touched = false;
+  const response = await handleModuleRoute(req("/tasks/claim", "POST", {}), {
+    DB: { prepare() { touched = true; } },
+  }, "/tasks/claim", null);
+  assert.equal(response.status, 503);
+  assert.equal(touched, false);
+});
+
+test("agent task claiming atomically claims queued work and audits it", async () => {
+  const statements = [];
+  const env = {
+    AGENT_GATEWAY_TOKEN: "test-private-token",
+    DB: {
+      prepare(sql) {
+        return { sql, bind(...args) { return {
+          sql, args,
+          async first() {
+            if (sql.startsWith("UPDATE owner_tasks")) return {
+              id: "123e4567-e89b-12d3-a456-426614174000",
+              task_type: "read_only_research",
+              payload_json: JSON.stringify({ question: "Public documentation only" }),
+              created_at: "2026-10-14T00:00:00.000Z",
+              updated_at: "2026-10-14T00:00:01.000Z",
+            };
+            throw new Error("Unexpected first query");
+          },
+          async run() { statements.push({ sql, args }); return { success: true }; },
+        }; } };
+      },
+    },
+  };
+  const response = await handleModuleRoute(req("/tasks/claim", "POST", {}, { "x-agent-gateway-token": "test-private-token" }), env, "/tasks/claim", null);
+  assert.equal(response.status, 200);
+  const body = await response.json();
+  assert.equal(body.task.status, "running");
+  assert.equal(body.task.payload.question, "Public documentation only");
+  assert.equal(statements.length, 1);
+  assert.match(statements[0].sql, /INSERT INTO owner_audit_log/);
+});
+
+test("agent results can only complete an owned queued or running task", async () => {
+  const batchStatements = [];
+  const env = {
+    AGENT_GATEWAY_TOKEN: "test-private-token",
+    DB: {
+      prepare(sql) { return { sql, bind(...args) { return {
+        sql, args,
+        async first() { return { id: args[0], task_type: "read_only_research", status: "running" }; },
+      }; } }; },
+      async batch(statements) { batchStatements.push(...statements); return []; },
+    },
+  };
+  const taskId = "123e4567-e89b-12d3-a456-426614174000";
+  const response = await handleModuleRoute(req("/results", "POST", { taskId, result: { summary: "Public sources reviewed" } }, { "x-agent-gateway-token": "test-private-token" }), env, "/results", null);
+  assert.equal(response.status, 201);
+  const body = await response.json();
+  assert.equal(body.accepted, true);
+  assert.equal(body.taskId, taskId);
+  assert.equal(batchStatements.length, 3);
+  assert.match(batchStatements[0].sql, /INSERT INTO owner_task_results/);
+  assert.match(batchStatements[1].sql, /status = 'completed'/);
+  assert.match(batchStatements[2].sql, /INSERT INTO owner_audit_log/);
+});
