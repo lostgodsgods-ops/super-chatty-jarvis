@@ -95,8 +95,22 @@ test("memory writes require an Owner session and reject oversized content", asyn
   assert.equal(touched, false);
 });
 
-test("memory and audit SQL always scopes reads and writes to the Owner", () => {
-  // Route behavior is tested separately; this protects the intended storage contract.
-  const migrationContract = ["owner_memory", "owner_audit_log", "owner_id"];
-  assert.deepEqual(migrationContract, ["owner_memory", "owner_audit_log", "owner_id"]);
+test("task, memory, and audit reads bind the fixed Owner ID", async () => {
+  const queries = [];
+  const env = { DB: {
+    prepare(sql) {
+      return { sql, bind(...args) { queries.push({ sql, args }); return {
+        async all() { return { results: [] }; },
+        async first() { return { id: "123e4567-e89b-12d3-a456-426614174000" }; },
+      }; } };
+    },
+  } };
+  await handleModuleRoute(req("/tasks"), env, "/tasks", owner);
+  await handleModuleRoute(req("/memory?q=project"), env, "/memory", owner);
+  await handleModuleRoute(req("/audit?limit=20"), env, "/audit", owner);
+  assert.equal(queries.length, 3);
+  for (const query of queries) {
+    assert.match(query.sql, /owner_id = \?/);
+    assert.ok(query.args.includes(1), "every query must bind the fixed Owner ID");
+  }
 });
