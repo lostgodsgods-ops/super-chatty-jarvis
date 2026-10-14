@@ -73,7 +73,7 @@ $("send").addEventListener("click",async()=>{
  try{
   const r=await fetch("/api/chat",{method:"POST",credentials:"same-origin",headers:{"content-type":"application/json"},body:JSON.stringify({message,language:$("language").value})});
   const data=await r.json().catch(()=>({error:"Invalid server response"}));
-  if(r.status===503){$("reply").textContent="Chat provider is not configured or available in staging.";sayStatus(data.error||"AI provider unavailable.");return;}
+  if(r.status===503){$("reply").textContent="Chat backend is not configured in staging yet or is temporarily unavailable.";sayStatus(data.error||"AI provider unavailable.");return;}
   if(!r.ok){sayStatus(data.error||"Chat request failed.");return;}
   $("reply").textContent=data.reply||"No response returned.";sayStatus("Response received.");
   if(data.reply)void speakText(data.reply);
