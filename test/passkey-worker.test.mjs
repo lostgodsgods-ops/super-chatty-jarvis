@@ -88,3 +88,15 @@ test("logout revokes a cookie-backed Owner session without a JavaScript bearer t
   assert.match(deletedKey, /^owner-session:/);
   assert.match(response.headers.get("set-cookie") || "", /Max-Age=0/);
 });
+
+
+test("legacy JavaScript bearer tokens are not accepted as Owner sessions", async () => {
+  const request = new Request("https://staging.example/auth/status", {
+    headers: { authorization: "Bearer legacy-token" },
+  });
+  const response = await worker.fetch(request, {
+    SESSIONS: { async get() { return JSON.stringify({ ownerId: 1 }); } },
+  });
+  assert.equal(response.status, 401);
+  assert.deepEqual(await response.json(), { authenticated: false });
+});
