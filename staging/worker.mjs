@@ -1,4 +1,5 @@
 import { APP_HTML } from "./app.mjs";
+import { handleModuleRoute, isModuleRoute } from "./modules.mjs";
 import {
   generateRegistrationOptions,
   verifyRegistrationResponse,
@@ -75,7 +76,7 @@ function originHeaders(request, env) {
   if (origin && origin === env.ALLOWED_ORIGIN) {
     return {
       "access-control-allow-origin": origin,
-      "access-control-allow-methods": "GET, POST, OPTIONS",
+      "access-control-allow-methods": "GET, POST, DELETE, OPTIONS",
       "access-control-allow-headers": "content-type, authorization, x-owner-setup-token",
       "access-control-allow-credentials": "true",
       "vary": "Origin",
@@ -265,10 +266,12 @@ export default {
       return new Response(APP_HTML, { status: 200, headers: { "content-type": "text/html; charset=utf-8", "cache-control": "no-store", "x-content-type-options": "nosniff", "referrer-policy": "no-referrer", "content-security-policy": csp } });
     }
     try {
-      if (!(request.method === "GET" && path === "/auth/status" && !request.headers.get("Origin"))) requireAllowedOrigin(request, env);
-      if (request.method !== "POST" && !(request.method === "GET" && path === "/auth/status")) return json({ error: "Not found" }, 404, headers);
+      const safeReadRoute = request.method === "GET" && ["/auth/status", "/tasks", "/results", "/memory", "/audit"].includes(path);
+      const serviceResultRoute = request.method === "POST" && path === "/results";
+      if (!safeReadRoute && !serviceResultRoute) requireAllowedOrigin(request, env);
+      if (!["GET", "POST", "DELETE"].includes(request.method)) return json({ error: "Not found" }, 404, headers);
       const bootstrapRoute = request.method === "POST" && (path === "/passkey/register/options" || path === "/passkey/register/verify");
-      const ownerRoute = (request.method === "POST" && (path === "/passkey/login/options" || path === "/passkey/login/verify" || path === "/auth/logout" || path === "/api/chat")) || (request.method === "GET" && path === "/auth/status");
+      const ownerRoute = (request.method === "POST" && (path === "/passkey/login/options" || path === "/passkey/login/verify" || path === "/auth/logout" || path === "/api/chat")) || (request.method === "GET" && path === "/auth/status") || isModuleRoute(request.method, path);
       if (bootstrapRoute || ownerRoute) {
         const limiter = bootstrapRoute ? env.BOOTSTRAP_RATE_LIMITER : env.AUTH_RATE_LIMITER;
         if (!limiter || typeof limiter.limit !== "function") return json({ error: "Authentication rate limiting unavailable" }, 503, headers);
@@ -293,7 +296,12 @@ export default {
           else response = json({ error: "Chat provider is not configured in staging", code: "CHAT_PROVIDER_NOT_CONFIGURED" }, 503);
         }
       }
-      else response = json({ error: "Not found" }, 404);
+      else {
+        const moduleResponse = isModuleRoute(request.method, path)
+          ? await handleModuleRoute(request, env, path, request.method === "POST" && path === "/results" ? null : await getOwnerSession(request, env))
+          : null;
+        response = moduleResponse || json({ error: "Not found" }, 404);
+      }
       const merged = new Headers(response.headers);
       for (const [key, value] of Object.entries(headers)) merged.set(key, value);
       return new Response(response.body, { status: response.status, headers: merged });
