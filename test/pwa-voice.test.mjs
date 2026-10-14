@@ -53,6 +53,6 @@ test("AI TTS route rejects unauthenticated requests", async () => {
     method: "POST",
     headers: { origin, "content-type": "application/json" },
     body: JSON.stringify({ text: "Hello", language: "en", voiceProfile: "female" }),
-  }), { AUTH_RATE_LIMITER: { limit: async () => ({ success: true }) } });
+  }), { ALLOWED_ORIGIN: origin, AUTH_RATE_LIMITER: { limit: async () => ({ success: true }) } });
   assert.equal(response.status, 401);
 });
