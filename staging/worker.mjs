@@ -195,10 +195,10 @@ export default {
       if (!request.headers.get("Origin") || request.headers.get("Origin") !== env.ALLOWED_ORIGIN) return new Response(null, { status: 403 });
       return new Response(null, { status: 204, headers });
     }
+    const path = new URL(request.url).pathname;
+    if (request.method === "GET" && path === "/health") return json({ ok: true, component: "passkey-auth-staging", production: false }, 200, headers);
     try {
       requireAllowedOrigin(request, env);
-      const path = new URL(request.url).pathname;
-      if (request.method === "GET" && path === "/health") return json({ ok: true, component: "passkey-auth-staging", production: false }, 200, headers);
       if (request.method !== "POST" && !(request.method === "GET" && path === "/auth/status")) return json({ error: "Not found" }, 404, headers);
       let response;
       if (request.method === "POST" && path === "/passkey/register/options") response = await registerOptions(request, env);
