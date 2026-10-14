@@ -25,4 +25,4 @@ jobs:
       - name: Check staging Worker syntax
         run: npm run check:passkey-worker
       - name: Run passkey security tests
-        run: npm run test:passkey
+        run: npm test
