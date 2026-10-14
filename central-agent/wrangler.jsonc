@@ -7,8 +7,20 @@
   "ai": {
     "binding": "AI"
   },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "super-chatty-owner-auth",
+      "database_id": "cb1a54a2-eafe-4e02-8187-90c9e471edc0"
+    }
+  ],
+  "kv_namespaces": [
+    {
+      "binding": "SESSIONS",
+      "id": "272afa11c15d44bd82be38c034049564"
+    }
+  ],
   "vars": {
-    "ALLOWED_ORIGINS": "https://super-chatty-jarvis-site.lostgodsgods.workers.dev",
-    "GEMINI_MODEL": "gemini-2.5-flash"
+    "ALLOWED_ORIGINS": "https://super-chatty-jarvis-site.lostgodsgods.workers.dev"
   }
 }
