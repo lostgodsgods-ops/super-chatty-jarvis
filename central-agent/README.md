@@ -10,7 +10,7 @@ An isolated, initial AI gateway for Super Chatty Jarvis. It is separate from the
 - `GET /policy`: owner-authenticated fail-closed policy description.
 - `POST /tasks` and `GET /results`: return 503 until durable storage, single-use approval consumption, audit logging, and a tested executor exist.
 - `policy.mjs`: pure policy checks; unknown actions are denied by default.
-- `policy.test.mjs`: Node.js built-in tests for approval and role restrictions. Run with `node --test central-agent/policy.test.mjs`.
+- `policy.test.mjs`: Node.js built-in tests. Run with `node --test central-agent/policy.test.mjs`.
 
 ## Authority model
 
@@ -33,7 +33,7 @@ An isolated, initial AI gateway for Super Chatty Jarvis. It is separate from the
 
 ## Required GitHub Actions secrets
 
-Before using the manual workflow, set these repository Actions secrets:
+Before using the manual deployment workflow, set these repository Actions secrets:
 
 1. `CLOUDFLARE_API_TOKEN`: valid Cloudflare token with only required Worker deployment permissions.
 2. `CLOUDFLARE_ACCOUNT_ID`: Cloudflare account ID.
@@ -45,7 +45,11 @@ The workflow cannot repair a revoked/invalid Cloudflare token. Secret values are
 
 Run **Deploy Central Agent** manually from GitHub Actions only after reviewing the files and adding the required secrets. It deploys the isolated Worker and sets `OWNER_API_KEY`.
 
-After deployment, verify `GET /health` returns HTTP 200. This only proves reachability, not that chat, task execution, monitoring, or project integration works.
+After deployment, verify `GET /health` returns HTTP 200. This only proves reachability, not that chat, task execution, or project integration works.
+
+## Monitoring
+
+The workflow **Monitor Central Agent** checks `$CENTRAL_AGENT_URL/health` every 15 minutes and can open/update an incident issue when the check fails. It requires a repository Actions variable named `CENTRAL_AGENT_URL` containing the deployed Worker base URL (HTTPS, without `/health`). It becomes useful only after this workflow is merged into the default branch, the Worker is deployed, and the variable is configured. It reports failures; it does not automatically repair code or deploy.
 
 ## Integration plan
 
@@ -61,4 +65,4 @@ Connect the existing site only through a protected server-side proxy. Never expo
 - Server-side proxy integration with the existing site.
 - Individual provider integrations and least-privilege credentials.
 - Automated tests and verified live deployment.
-- Monitoring/alerting that runs after a real deployment.
+- Automatic diagnosis/repair proposals beyond health-incident reporting.
