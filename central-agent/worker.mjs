@@ -176,7 +176,10 @@ export default {
           .bind(salt, passwordHash, new Date().toISOString()).run();
         if (!inserted?.meta || inserted.meta.changes !== 1) return json({ error: "Owner password is already set. Setup can only be completed once." }, 409, cors);
         return json({ ok: true, message: "Owner password saved securely." }, 201, cors);
-      } catch {
+      } catch (error) {
+        // Log the runtime/SQL exception and stack for diagnosis. Never log request bodies,
+        // setup tokens, passwords, salts, or password hashes.
+        console.error("owner_setup_failed", error);
         return json({ error: "Unable to save owner password securely." }, 503, cors);
       }
     }
