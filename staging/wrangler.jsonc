@@ -10,6 +10,18 @@
     "RP_NAME": "Super Chatty Jarvis",
     "ALLOWED_ORIGIN": "https://super-chatty-passkey-staging.lostgodsgods.workers.dev"
   },
+  "ratelimits": [
+    {
+      "name": "AUTH_RATE_LIMITER",
+      "namespace_id": "483021",
+      "simple": { "limit": 10, "period": 60 }
+    },
+    {
+      "name": "BOOTSTRAP_RATE_LIMITER",
+      "namespace_id": "483022",
+      "simple": { "limit": 5, "period": 60 }
+    }
+  ],
   "d1_databases": [
     {
       "binding": "DB",
