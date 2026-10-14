@@ -85,6 +85,57 @@ test("agent result submission rejects an incorrect gateway token", async () => {
   assert.equal(touched, false);
 });
 
+test("authenticated memory creation, search, and audit writes work together", async () => {
+  const memories = [], events = [];
+  const env = { DB: {
+    prepare(sql) { return { sql, bind(...args) { return {
+      sql, args,
+      async all() {
+        if (sql.includes("FROM owner_memory")) {
+          const query = args.length > 1 ? String(args[1]).toLowerCase() : "";
+          return { results: memories.filter(row => row.owner_id === args[0] && (!query || row.content.toLowerCase().includes(query))) };
+        }
+        if (sql.includes("FROM owner_audit_log")) return { results: events.filter(row => row.owner_id === args[0]).slice(0, args[1] || 50) };
+        throw new Error("Unexpected all query: " + sql);
+      },
+      async first() { throw new Error("Unexpected first query: " + sql); },
+      async run() { throw new Error("Unexpected run query: " + sql); },
+    }; } }; },
+    async batch(statements) {
+      for (const s of statements) {
+        if (s.sql.startsWith("INSERT INTO owner_memory")) {
+          const [id, owner_id, content, tags_json, created_at, updated_at] = s.args;
+          memories.push({ id, owner_id, content, tags_json, created_at, updated_at });
+        } else if (s.sql.startsWith("INSERT INTO owner_audit_log")) {
+          const [id, owner_id, action, resource_type, resource_id, detail_json, created_at] = s.args;
+          events.push({ id, owner_id, action, resource_type, resource_id, detail_json, created_at });
+        } else throw new Error("Unexpected batch query: " + s.sql);
+      }
+      return [];
+    },
+  } };
+
+  const created = await handleModuleRoute(req("/memory", "POST", {
+    content: "Super Chatty authenticated integration memory",
+    tags: ["integration", "staging"],
+  }), env, "/memory", owner);
+  assert.equal(created.status, 201);
+  const createdBody = await created.json();
+  assert.equal(createdBody.memory.content, "Super Chatty authenticated integration memory");
+  assert.deepEqual(createdBody.memory.tags, ["integration", "staging"]);
+
+  const searched = await handleModuleRoute(req("/memory?q=authenticated integration"), env, "/memory", owner);
+  assert.equal(searched.status, 200);
+  const searchBody = await searched.json();
+  assert.equal(searchBody.memories.length, 1);
+  assert.equal(searchBody.memories[0].id, createdBody.memory.id);
+
+  const audit = await handleModuleRoute(req("/audit?limit=10"), env, "/audit", owner);
+  assert.equal(audit.status, 200);
+  const auditBody = await audit.json();
+  assert.ok(auditBody.events.some(event => event.action === "memory.created" && event.resourceId === createdBody.memory.id));
+});
+
 test("memory writes require an Owner session and reject oversized content", async () => {
   let touched = false;
   const env = { DB: { prepare() { touched = true; throw new Error("database must not be touched"); } } };
