@@ -93,7 +93,9 @@ function requireAllowedOrigin(request, env) {
 async function readJson(request) {
   const length = Number(request.headers.get("content-length") || "0");
   if (length > 64_000) throw new Error("Request too large");
-  return await request.json();
+  const raw = await request.text();
+  if (new TextEncoder().encode(raw).byteLength > 64_000) throw new Error("Request too large");
+  return JSON.parse(raw);
 }
 
 async function claimChallenge(env, challengeId, ceremony) {
