@@ -16,24 +16,23 @@ class FakeDB {
   constructor() { this.row = null; }
   prepare(sql) {
     const db = this;
-    return {
-      bind(...params) {
-        return {
-          async first() {
-            if (sql.includes("SELECT salt")) return db.row ? { salt: db.row.salt, password_hash: db.row.password_hash } : null;
-            return null;
-          },
-          async run() {
-            if (sql.includes("INSERT INTO owner_credentials")) {
-              if (db.row) return { meta: { changes: 0 } };
-              db.row = { id: 1, salt: params[0], password_hash: params[1], created_at: params[2] };
-              return { meta: { changes: 1 } };
-            }
-            return { meta: { changes: 0 } };
-          }
-        };
+    const statement = {
+      params: [],
+      bind(...params) { this.params = params; return this; },
+      async first() {
+        if (sql.includes("SELECT salt")) return db.row ? { salt: db.row.salt, password_hash: db.row.password_hash } : null;
+        return null;
+      },
+      async run() {
+        if (sql.includes("INSERT INTO owner_credentials")) {
+          if (db.row) return { meta: { changes: 0 } };
+          db.row = { id: 1, salt: this.params[0], password_hash: this.params[1], created_at: this.params[2] };
+          return { meta: { changes: 1 } };
+        }
+        return { meta: { changes: 0 } };
       }
     };
+    return statement;
   }
 }
 function env() {
