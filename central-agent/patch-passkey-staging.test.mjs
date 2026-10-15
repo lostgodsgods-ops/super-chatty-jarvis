@@ -12,29 +12,28 @@ __name(runLiveSearch, "runLiveSearch");
 if (request.method === "GET" && path === "/health") return json2({ ok: true, component: "passkey-auth-staging", production: false }, 200, headers);
 `;
 
-test("patch switches the PWA search provider from Brave to Tavily", () => {
+test("patch routes PWA search through the protected central Tavily gateway", () => {
   const result = patchWorkerBundle(fixture);
-  assert.match(result, /var TAVILY_SEARCH_ENDPOINT = "https:\/\/api\.tavily\.com\/search"/);
+  assert.match(result, /var CENTRAL_AGENT_SEARCH_ENDPOINT = "https:\/\/shrill-silence-164f\.lostgodsgods\.workers\.dev\/internal\/search"/);
   assert.doesNotMatch(result, /api\.search\.brave\.com/);
-  assert.match(result, /"authorization": "Bearer " \+ env\.SEARCH_API_KEY/);
-  assert.match(result, /Array\.isArray\(payload\?\.results\)/);
-  assert.match(result, /AbortSignal\.timeout\(8000\)/);
+  assert.match(result, /authorization: "Bearer " \+ gatewayToken/);
+  assert.match(result, /Array\.isArray\(payload\?\.sources\)/);
+  assert.match(result, /AbortSignal\.timeout\(15000\)/);
 });
 
-test("search synthesis makes one model call and has a fast source-list fallback", () => {
+test("PWA delegates synthesis to central gateway and validates successful search", () => {
   const result = patchWorkerBundle(fixture);
   const start = result.indexOf("async function runLiveSearch");
   const end = result.indexOf('__name(runLiveSearch, "runLiveSearch");', start);
   const searchFunction = result.slice(start, end);
-  assert.equal((searchFunction.match(/env\.AI\.run\(/g) || []).length, 1);
-  assert.match(searchFunction, /max_tokens: 450/);
-  assert.match(searchFunction, /source-list-fallback/);
-  assert.match(searchFunction, /synthesisMode: synthesisFailure \? "source-list-fallback" : "workers-ai-single-call"/);
+  assert.equal((searchFunction.match(/env\.AI\.run\(/g) || []).length, 0);
+  assert.match(searchFunction, /CENTRAL_AGENT_SEARCH_ENDPOINT/);
+  assert.match(searchFunction, /payload\?\.core\?\.webSearchExecuted !== true/);
 });
 
 test("health reports only whether Tavily is configured and adds a protected smoke route", () => {
   const result = patchWorkerBundle(fixture);
-  assert.match(result, /liveSearchConfigured: Boolean\(env\.SEARCH_API_KEY\)/);
+  assert.match(result, /liveSearchConfigured: Boolean\(env\.AGENT_GATEWAY_TOKEN\)/);
   assert.match(result, /searchProvider: "tavily"/);
   assert.match(result, /path === "\/internal\/search-smoke"/);
   assert.match(result, /env\.AGENT_GATEWAY_TOKEN/);
