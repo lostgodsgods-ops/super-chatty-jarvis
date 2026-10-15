@@ -370,3 +370,50 @@ test("Owner can execute one previously approved queued task and persist its resu
   assert.equal(aiTouched, true);
   assert.equal(batches.length, 3);
 });
+
+
+test("mission routes expose a bounded agent catalog and require Owner authentication", async () => {
+  assert.equal(isModuleRoute("GET", "/agents"), true);
+  assert.equal(isModuleRoute("GET", "/missions"), true);
+  assert.equal(isModuleRoute("POST", "/missions"), true);
+  let touched = false;
+  const response = await handleModuleRoute(req("/missions", "POST", { goal: "Review my app" }), {
+    DB: { prepare() { touched = true; throw new Error("database must not be touched"); } },
+  }, "/missions", null);
+  assert.equal(response.status, 401);
+  assert.equal(touched, false);
+});
+
+test("mission creation recruits a bounded three-role swarm and requires approval for every task", async () => {
+  const batches = [];
+  const env = {
+    DB: {
+      prepare(sql) { return { sql, bind(...args) { return { sql, args }; } }; },
+      async batch(statements) { batches.push(statements); return []; },
+    },
+  };
+  const response = await handleModuleRoute(req("/missions", "POST", {
+    goal: "Assess this pasted app code and suggest safe improvements",
+    context: "const answer = 42;",
+  }), env, "/missions", owner);
+  assert.equal(response.status, 201);
+  const body = await response.json();
+  assert.equal(body.mission.status, "awaiting_task_approval");
+  assert.equal(body.mission.agentCount, 3);
+  assert.equal(body.tasks.length, 3);
+  assert.ok(body.tasks.every(task => task.status === "pending_approval"));
+  assert.deepEqual(body.tasks.map(task => task.agentRole), ["pathfinder", "research_synthesizer", "code_reviewer"]);
+  assert.equal(batches.length, 1);
+  assert.equal(batches[0].length, 4);
+  assert.ok(batches[0].every(statement => statement.sql.includes("owner_tasks") || statement.sql.includes("owner_audit_log")));
+});
+
+test("mission creation rejects oversized goals and never creates an unbounded swarm", async () => {
+  let touched = false;
+  const env = { DB: { prepare() { touched = true; throw new Error("database must not be touched"); } } };
+  const tooLong = await handleModuleRoute(req("/missions", "POST", { goal: "x".repeat(12001) }), env, "/missions", owner);
+  assert.equal(tooLong.status, 413);
+  const badCount = await handleModuleRoute(req("/missions", "POST", { goal: "Do a task", agentCount: 999 }), env, "/missions", owner);
+  assert.equal(badCount.status, 400);
+  assert.equal(touched, false);
+});
