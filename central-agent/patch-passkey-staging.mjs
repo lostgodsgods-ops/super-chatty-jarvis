@@ -111,6 +111,7 @@ const LIVE_SEARCH_FUNCTION = `async function runLiveSearch(query, env, language)
         : typeof result?.choices?.[0]?.message?.content === "string" ? result.choices[0].message.content.trim()
         : "";
       if (!reply) synthesisFailure = "AI_PROVIDER_EMPTY_RESPONSE";
+      else synthesisFailure = "";
     } catch (error) {
       synthesisFailure = "AI_PROVIDER_UNAVAILABLE";
       console.warn("SCJ_SEARCH_SYNTHESIS_FAILED", {
@@ -130,7 +131,7 @@ const LIVE_SEARCH_FUNCTION = `async function runLiveSearch(query, env, language)
   return json2({
     ok: true,
     reply,
-    model: reply && synthesisFailure === "AI_PROVIDER_UNAVAILABLE" ? "tavily-source-fallback" : (synthesisFailure === "AI_PROVIDER_EMPTY_RESPONSE" || synthesisFailure === "AI_BINDING_UNAVAILABLE" ? "tavily-source-fallback" : model),
+    model: synthesisFailure ? "tavily-source-fallback" : model,
     sources,
     core: {
       intent: "web_search",
@@ -138,8 +139,8 @@ const LIVE_SEARCH_FUNCTION = `async function runLiveSearch(query, env, language)
       webSearchExecuted: true,
       searchProvider: "tavily",
       sourceCount: sources.length,
-      synthesisMode: synthesisFailure === "AI_PROVIDER_UNAVAILABLE" || synthesisFailure === "AI_PROVIDER_EMPTY_RESPONSE" || synthesisFailure === "AI_BINDING_UNAVAILABLE" ? "source-list-fallback" : "workers-ai-single-call",
-      synthesisFailure: synthesisFailure === "AI_PROVIDER_UNAVAILABLE" || synthesisFailure === "AI_PROVIDER_EMPTY_RESPONSE" || synthesisFailure === "AI_BINDING_UNAVAILABLE" ? synthesisFailure : null,
+      synthesisMode: synthesisFailure ? "source-list-fallback" : "workers-ai-single-call",
+      synthesisFailure: synthesisFailure || null,
       requiresTaskApproval: false,
       externalActionsPerformed: false
     }
@@ -179,7 +180,7 @@ export function patchWorkerBundle(source) {
   else if (!patched.includes(tavilyConstant)) throw new Error("Could not find the expected search provider constant; refusing to deploy.");
 
   const functionStart = patched.indexOf('async function runLiveSearch(query, env, language) {');
-  const functionMarker = '\\n}\\n__name(runLiveSearch, "runLiveSearch");';
+  const functionMarker = '\n}\n__name(runLiveSearch, "runLiveSearch");';
   const functionEnd = patched.indexOf(functionMarker, functionStart);
   if (functionEnd < 0) throw new Error("Could not locate the end of the live-search function; refusing to deploy.");
   patched = patched.slice(0, functionStart) + LIVE_SEARCH_FUNCTION + patched.slice(functionEnd + 2);
