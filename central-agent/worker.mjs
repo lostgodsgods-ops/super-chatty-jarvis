@@ -189,7 +189,7 @@ export default {
           passwordAuthentication: Boolean(env.DB && env.SESSIONS),
           ownerAuthentication: passwordConfigured,
           policyEndpoint: true,
-          durableTaskQueue: false,
+          durableTaskQueue: Boolean(env.DB && typeof env.DB.prepare === "function" && typeof env.DB.batch === "function"),
           childAgentExecution: false,
           externalToolExecution: false,
           selfGrantedPermissions: false
