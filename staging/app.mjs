@@ -25,7 +25,7 @@ main{max-width:560px;margin:0 auto;padding:env(safe-area-inset-top) 0 env(safe-a
 <script>
 const $=id=>document.getElementById(id);
 const sayStatus=text=>{$("status").textContent=text;};
-let recognition=null, listening=false, continuousSessionRequested=false, processingVoice=false;
+let recognition=null, listening=false, continuousSessionRequested=false, processingVoice=false, voiceReplySpeaking=false;
 const HISTORY_DB_NAME="scj-chat-history-v1",HISTORY_STORE="messages",HISTORY_LIMIT=200;
 let historyDbPromise=null;
 function openHistoryDb(){
@@ -220,7 +220,7 @@ function makeRecognition(){
   let interimText="",finalText="";
   for(let i=e.resultIndex;i<e.results.length;i++){const piece=e.results[i][0].transcript;if(e.results[i].isFinal)finalText+=piece;else interimText+=piece;}
   if(finalText.trim())$("message").value=finalText.trim();else if(interimText.trim())$("message").value=interimText.trim();
-  if(finalText.trim()&&continuousSessionRequested&&$("continuousListen").checked){if(recognition&&listening)recognition.stop();void sendCurrentMessage({fromVoice:true});}
+  if(finalText.trim()&&continuousSessionRequested&&$("continuousListen").checked&&!processingVoice){if(recognition&&listening)recognition.stop();void sendCurrentMessage({fromVoice:true});}
  };
  r.onerror=e=>sayStatus("Microphone status: "+e.error+". Check browser microphone permission.");
  r.onend=()=>{listening=false;$("mic").setAttribute("aria-pressed","false");if(!continuousSessionRequested||!$("continuousListen").checked){$("micHint").textContent="Tap the microphone and speak";return;}if(!processingVoice)startContinuousListeningIfNeeded();};
@@ -267,8 +267,8 @@ async function speakText(text){
    const utterance=new SpeechSynthesisUtterance(text);utterance.lang=lang;
    const chosen=localVoiceFor(lang,profile);if(chosen)utterance.voice=chosen;
    utterance.onstart=()=>sayStatus("Speaking with your phone's voice engine…");
-   utterance.onend=()=>sayStatus("Speech finished.");
-   utterance.onerror=async()=>{sayStatus("Device speech failed; trying server-side AI speech…");try{await playWorkerTTS(text,lang);sayStatus("Cloudflare AI speech finished.");}catch(e){sayStatus("Speech unavailable. Check device voices and staging AI TTS configuration.");}};
+   utterance.onend=()=>{sayStatus("Speech finished.");resumeContinuousListeningAfterSpeech();};
+   utterance.onerror=async()=>{sayStatus("Device speech failed; trying server-side AI speech…");try{await playWorkerTTS(text,lang);sayStatus("Cloudflare AI speech finished.");}catch(e){sayStatus("Speech unavailable. Check device voices and staging AI TTS configuration.");}finally{resumeContinuousListeningAfterSpeech();}};
    window.speechSynthesis.speak(utterance);
    sayStatus(chosen?"Reading aloud with selected voice preference.":"Reading aloud with the best available device voice.");
    return;
@@ -276,7 +276,9 @@ async function speakText(text){
  }
  try{await playWorkerTTS(text,lang);sayStatus("Cloudflare AI speech finished.");}
  catch(e){sayStatus("Speech unavailable. Check device voices and staging AI TTS configuration.");}
+ finally{resumeContinuousListeningAfterSpeech();}
 }
+function resumeContinuousListeningAfterSpeech(){voiceReplySpeaking=false;if(continuousSessionRequested&&$("continuousListen").checked)startContinuousListeningIfNeeded();}
 if("speechSynthesis" in window)window.speechSynthesis.onvoiceschanged=()=>{voiceLoadReady=true;};
 $("speak").addEventListener("click",()=>{const replyText=$("reply").textContent.trim();const text=replyText&&!replyText.startsWith("Voice input and spoken output are available")?replyText:$("message").value.trim();if(!text){sayStatus("There is no text to read aloud yet.");return;}void speakText(text);});
 if("serviceWorker" in navigator){navigator.serviceWorker.register("/service-worker.js").catch(()=>sayStatus("PWA offline shell could not be registered; online use remains available."));}
@@ -295,12 +297,12 @@ async function sendCurrentMessage({fromVoice=false}={}){
   sayStatus(data.core?.intent==="create_mission"?"Mission created · review the tasks and approve each one in Mission Control.":data.core?.intent==="web_search"?(data.core.webSearchExecuted?"Live web search completed · source links are shown below.":"Live web search did not run."):"Response received.");
   if(data.core?.intent==="create_mission"){await refreshTasks();await refreshMissions();}
   if(Array.isArray(data.sources)&&data.sources.length){
-   const sourceText=data.sources.map((source,index)=>(index+1)+". "+source.title+" — "+source.url).join("\\n");
-   $("reply").textContent=(data.reply||"Search results") + "\\n\\nSources:\\n" + sourceText;
+   const sourceText=data.sources.map((source,index)=>(index+1)+". "+source.title+" — "+source.url).join("\n");
+   $("reply").textContent=(data.reply||"Search results") + "\n\nSources:\n" + sourceText;
   }
-  if(data.reply){if(!$("historyPanel").hidden)await persistConversationMessage("assistant",data.reply);void speakText(data.reply);}
+  if(data.reply){if(!$("historyPanel").hidden)await persistConversationMessage("assistant",data.reply);if(continuousSessionRequested&&$("continuousListen").checked)voiceReplySpeaking=true;void speakText(data.reply);}
  }catch(e){sayStatus("Chat request failed. Check connection and try again.");}
- finally{$("send").disabled=false;if(fromVoice)processingVoice=false;if(continuousSessionRequested&&$("continuousListen").checked)startContinuousListeningIfNeeded();}
+ finally{$("send").disabled=false;if(fromVoice)processingVoice=false;if(continuousSessionRequested&&$("continuousListen").checked&&!voiceReplySpeaking)startContinuousListeningIfNeeded();}
 }
 $("send").addEventListener("click",()=>void sendCurrentMessage());
 checkSession();
