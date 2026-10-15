@@ -94,8 +94,25 @@ async function refreshMissions(){
   for(const mission of data.missions||[]){
    const item=document.createElement("li");
    const text=document.createElement("span");
-   text.textContent="Mission "+mission.id+" · "+mission.status+" · "+mission.agentCount+" agents";
-   item.append(text);list.append(item);
+   text.textContent="Mission "+mission.id+" · "+mission.status+" · "+mission.agentCount+" agents"+(mission.synthesized?" · synthesis saved":"");
+   item.append(text);
+   if(mission.status==="completed"){
+    const synth=document.createElement("button");synth.type="button";synth.textContent=mission.synthesized?"View synthesis":"Synthesize results";
+    synth.addEventListener("click",async()=>{
+     synth.disabled=true;$("missionStatus").textContent="Combining the three specialist results…";
+     try{
+      const response=await fetch("/missions/"+encodeURIComponent(mission.id)+"/synthesize",{method:"POST",credentials:"same-origin",headers:{"content-type":"application/json"},body:"{}"});
+      const result=await response.json().catch(()=>({}));
+      if(!response.ok)throw new Error(result.error||"Mission synthesis failed");
+      $("taskResult").textContent=result.result?.summary||"Mission synthesis saved.";
+      $("missionStatus").textContent=result.reused?"Loaded saved mission synthesis.":"Combined result saved to D1.";
+      await refreshMissions();
+     }catch(error){$("missionStatus").textContent=error.message||"Mission synthesis failed.";}
+     finally{synth.disabled=false;}
+    });
+    item.append(synth);
+   }
+   list.append(item);
   }
  }catch(error){$("missionStatus").textContent=error.message||"Mission history unavailable.";}
 }
