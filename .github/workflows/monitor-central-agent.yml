@@ -83,7 +83,7 @@ jobs:
         shell: bash
         env:
           PASSKEY_WORKER_URL: https://super-chatty-passkey-staging.lostgodsgods.workers.dev
-          AGENT_GATEWAY_TOKEN: \${{ secrets.AGENT_GATEWAY_TOKEN }}
+          AGENT_GATEWAY_TOKEN: ${{ secrets.AGENT_GATEWAY_TOKEN }}
         run: |
           set -euo pipefail
           test -n "$AGENT_GATEWAY_TOKEN" || { echo "::error::Missing AGENT_GATEWAY_TOKEN"; exit 1; }
