@@ -85,6 +85,16 @@ test("health reports only whether Tavily is configured and adds a protected smok
   assert.doesNotMatch(result, /SEARCH_API_KEY[^\n]{0,80}console\.log/);
 });
 
+test("upgrades an already-patched legacy internal search endpoint", () => {
+  const legacy = patchWorkerBundle(fixture).replace(
+    'var CENTRAL_AGENT_SEARCH_ENDPOINT = "https://shrill-silence-164f.lostgodsgods.workers.dev/search";',
+    'var CENTRAL_AGENT_SEARCH_ENDPOINT = "https://shrill-silence-164f.lostgodsgods.workers.dev/internal/search";'
+  );
+  const upgraded = patchWorkerBundle(legacy);
+  assert.ok(upgraded.includes('var CENTRAL_AGENT_SEARCH_ENDPOINT = "https://shrill-silence-164f.lostgodsgods.workers.dev/search";'));
+  assert.ok(!upgraded.includes('var CENTRAL_AGENT_SEARCH_ENDPOINT = "https://shrill-silence-164f.lostgodsgods.workers.dev/internal/search";'));
+});
+
 test("patch is idempotent and refuses an unknown deployed bundle", () => {
   const once = patchWorkerBundle(fixture);
   const twice = patchWorkerBundle(once);
