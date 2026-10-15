@@ -481,3 +481,5 @@ test("mission synthesis combines and persists the completed specialist results",
   assert.ok(batches[0][0].sql.includes("owner_mission_results"));
   assert.ok(batches[0][1].sql.includes("owner_audit_log"));
 });
+
+// Regression coverage for bounded, Owner-approved mission synthesis.
