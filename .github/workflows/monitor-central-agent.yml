@@ -79,6 +79,24 @@ jobs:
           fi
           node -e 'const fs=require("fs"); const x=JSON.parse(fs.readFileSync(process.argv[1],"utf8")); if(x.ok!==true||x.provider!=="tavily"||!Array.isArray(x.results)||x.results.length<1) throw Error("Expected ok=true, provider=tavily, and at least one result"); const urls=x.results.map(r=>r.url); if(urls.some(u=>typeof u!=="string"||!/^https?:\/\//i.test(u))) throw Error("One or more result URLs are invalid"); console.log(JSON.stringify({ok:x.ok,provider:x.provider,resultCount:x.results.length,sourceUrls:urls},null,2));' "$tmp/search.json"
 
+      - name: Verify scoped PWA bridge search endpoint directly
+        shell: bash
+        env:
+          CENTRAL_AGENT_URL: https://shrill-silence-164f.lostgodsgods.workers.dev
+          AGENT_GATEWAY_TOKEN: ${{ secrets.AGENT_GATEWAY_TOKEN }}
+        run: |
+          set -euo pipefail
+          test -n "$AGENT_GATEWAY_TOKEN" || { echo "::error::Missing AGENT_GATEWAY_TOKEN"; exit 1; }
+          tmp="$(mktemp)"
+          trap 'rm -f "$tmp"; unset AGENT_GATEWAY_TOKEN' EXIT
+          code="$(curl --silent --show-error --max-time 20 --output "$tmp" --write-out '%{http_code}' -H 'content-type: application/json' -H "authorization: Bearer $AGENT_GATEWAY_TOKEN" -X POST "$CENTRAL_AGENT_URL/internal/search" --data '{"query":"Cloudflare Workers health checks documentation","language":"en-IN"}')"
+          if [[ "$code" != "200" ]]; then
+            echo "::error::Scoped bridge endpoint /internal/search failed with HTTP $code"
+            node -e 'const fs=require("fs"); try {const x=JSON.parse(fs.readFileSync(process.argv[1],"utf8")); console.log(JSON.stringify({error:x.error||"Bridge search failed",code:x.code||null}));} catch {console.log("Bridge response was not valid JSON.");}' "$tmp"
+            exit 1
+          fi
+          node -e 'const fs=require("fs"); const x=JSON.parse(fs.readFileSync(process.argv[1],"utf8")); if(x.ok!==true||x.core?.webSearchExecuted!==true||x.core?.searchProvider!=="tavily"||!Array.isArray(x.sources)||x.sources.length<1) throw Error("Expected the protected bridge route to return live Tavily sources"); console.log(JSON.stringify({ok:x.ok,provider:x.provider,sourceCount:x.sources.length,searchProvider:x.core.searchProvider}));' "$tmp"
+
       - name: Probe Central Agent chat route dispatch without credentials
         shell: bash
         env:
