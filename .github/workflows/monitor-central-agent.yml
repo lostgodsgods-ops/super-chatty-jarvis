@@ -7,6 +7,10 @@ on:
       - main
     paths:
       - ".github/workflows/monitor-central-agent.yml"
+  workflow_run:
+    workflows: ["Deploy Central Agent"]
+    types: [completed]
+    branches: [main]
   schedule:
     - cron: "*/15 * * * *"
 
