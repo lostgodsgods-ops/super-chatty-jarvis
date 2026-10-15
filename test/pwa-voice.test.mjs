@@ -265,3 +265,18 @@ test("Owner task console creates, approves, runs, and refreshes bounded tasks", 
   assert.match(APP_HTML, /\/tasks\/"\+encodeURIComponent\(task\.id\)\+"\/approve/);
   assert.match(APP_HTML, /renderTaskList/);
 });
+
+
+test("Owner mission console exposes bounded swarm planning with explicit approvals", () => {
+  assert.match(APP_HTML, /id="missionGoal"/);
+  assert.match(APP_HTML, /id="createMission"/);
+  assert.match(APP_HTML, /id="agentLibrary"/);
+  assert.match(APP_HTML, /\/missions/);
+  assert.match(APP_HTML, /\/agents/);
+  assert.match(APP_HTML, /maximum three/);
+});
+
+test("Jarvis identity accurately describes the bounded agent capabilities", () => {
+  assert.match(APP_HTML, /up to three specialized read-only agents/);
+  assert.match(APP_HTML, /does not have unrestricted internet access/);
+});
