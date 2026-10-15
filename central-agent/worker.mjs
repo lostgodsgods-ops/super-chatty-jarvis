@@ -143,7 +143,7 @@ export default {
         capabilities: {
           workersAIConfigured: Boolean(env.AI),
           tavilySearchConfigured: Boolean(env.SEARCH_API_KEY),
-          gatewaySearchConfigured: Boolean(env.SEARCH_API_KEY && env.AGENT_GATEWAY_TOKEN),
+          gatewaySearchConfigured: Boolean(env.SEARCH_API_KEY && env.SEARCH_BRIDGE_TOKEN),
           passwordAuthentication: Boolean(env.DB && env.SESSIONS),
           ownerAuthentication: passwordConfigured,
           policyEndpoint: true,
@@ -156,7 +156,7 @@ export default {
     }
 
     if (url.pathname === "/internal/search" && request.method === "POST") {
-      const expected = typeof env.AGENT_GATEWAY_TOKEN === "string" ? env.AGENT_GATEWAY_TOKEN.trim() : "";
+      const expected = typeof env.SEARCH_BRIDGE_TOKEN === "string" ? env.SEARCH_BRIDGE_TOKEN.trim() : "";
       const authorization = request.headers.get("authorization") || "";
       const supplied = authorization.startsWith("Bearer ") ? authorization.slice(7).trim() : "";
       if (!expected || !equalSecret(supplied, expected)) return json({ error: "Unauthorized" }, 401, cors);
