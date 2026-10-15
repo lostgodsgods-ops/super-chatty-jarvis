@@ -55,25 +55,32 @@ jobs:
           set -euo pipefail
           npx --yes wrangler@4 deploy --config central-agent/wrangler.jsonc
 
-      - name: Configure Worker one-time setup secret
+      - name: Configure Worker runtime secrets in one operation
         shell: bash
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           OWNER_SETUP_TOKEN: ${{ secrets.OWNER_SETUP_TOKEN }}
-        run: |
-          set -euo pipefail
-          printf '%s' "$OWNER_SETUP_TOKEN" | npx --yes wrangler@4 secret put OWNER_SETUP_TOKEN --config central-agent/wrangler.jsonc
-
-      - name: Configure Tavily Search API secret
-        shell: bash
-        env:
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           SEARCH_API_KEY: ${{ secrets.SEARCH_API_KEY }}
         run: |
           set -euo pipefail
-          printf '%s' "$SEARCH_API_KEY" | npx --yes wrangler@4 secret put SEARCH_API_KEY --config central-agent/wrangler.jsonc
+          umask 077
+          secrets_file="$(mktemp)"
+          trap 'rm -f "$secrets_file"' EXIT
+          node - "$secrets_file" <<'NODE'
+          const fs = require("node:fs");
+          const path = process.argv[2];
+          const payload = {
+            OWNER_SETUP_TOKEN: process.env.OWNER_SETUP_TOKEN,
+            SEARCH_API_KEY: process.env.SEARCH_API_KEY
+          };
+          if (!payload.OWNER_SETUP_TOKEN || !payload.SEARCH_API_KEY) {
+            throw new Error("Required Worker secret values are missing.");
+          }
+          fs.writeFileSync(path, JSON.stringify(payload), { mode: 0o600 });
+          NODE
+          npx --yes wrangler@4 secret bulk "$secrets_file" --config central-agent/wrangler.jsonc
+          sleep 5
 
       - name: Initialize owner password when needed
         shell: bash
