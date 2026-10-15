@@ -45,7 +45,7 @@ else if (request.method === "POST" && path === "/api/chat") {
 
 test("patch routes PWA search through the protected central Tavily gateway", () => {
   const result = patchWorkerBundle(fixture);
-  assert.match(result, /var CENTRAL_AGENT_SEARCH_ENDPOINT = "https:\/\/shrill-silence-164f\.lostgodsgods\.workers\.dev\/internal\/search"/);
+  assert.match(result, /var CENTRAL_AGENT_SEARCH_ENDPOINT = "https:\/\/shrill-silence-164f\.lostgodsgods\.workers\.dev\/search"/);
   assert.doesNotMatch(result, /api\.search\.brave\.com/);
   assert.match(result, /authorization: "Bearer " \+ gatewayToken/);
   assert.match(result, /Array\.isArray\(payload\?\.sources\)/);
