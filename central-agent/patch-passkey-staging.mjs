@@ -243,7 +243,7 @@ async function main() {
     tail_consumers: settings.tail_consumers,
     logpush: settings.logpush,
     annotations: settings.annotations,
-    bindings: settings.bindings,
+    bindings: settings.bindings.filter((binding) => binding.type !== "secret_text"),
     placement: settings.placement
   };
   for (const key of Object.keys(metadata)) if (metadata[key] === undefined) delete metadata[key];
