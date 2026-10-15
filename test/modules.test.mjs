@@ -483,3 +483,5 @@ test("mission synthesis combines and persists the completed specialist results",
 });
 
 // Regression coverage for bounded, Owner-approved mission synthesis.
+
+// Mission synthesis tests ensure incomplete agent sets cannot be combined.
