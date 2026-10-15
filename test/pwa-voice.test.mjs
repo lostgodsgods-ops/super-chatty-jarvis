@@ -217,3 +217,38 @@ test("chat retries prompt input when chat-message input is rejected", async () =
   assert.match((await response.json()).reply, /मदद/);
   assert.deepEqual(modes, ["messages", "messages", "messages", "prompt"]);
 });
+
+
+test("voice app persists chat history locally and provides a clear-history control", () => {
+  assert.match(APP_HTML, /indexedDB\\.open/);
+  assert.match(APP_HTML, /localStorage/);
+  assert.match(APP_HTML, /id="historyList"/);
+  assert.match(APP_HTML, /id="clearHistory"/);
+  assert.match(APP_HTML, /persistConversationMessage/);
+  assert.match(APP_HTML, /restoreConversationHistory/);
+});
+
+test("service worker caches only the authenticated app shell after a successful response", async () => {
+  const response = await worker.fetch(new Request(origin + "/service-worker.js"), {});
+  const source = await response.text();
+  assert.match(source, /url\\.pathname===["']\\/app["']/);
+  assert.match(source, /cache\\.put\\(request,response\\.clone\\(\\)\\)/);
+  assert.match(source, /url\\.pathname\\.startsWith\\(["']\\/api\\/["']\\)/);
+  assert.match(source, /caches\\.match\\(request\\)/);
+});
+
+test("agent task claiming rejects a wrong gateway token before database access", async () => {
+  let touched = false;
+  const response = await handleTaskRouteForTest();
+  async function handleTaskRouteForTest() {
+    const { handleModuleRoute } = await import("../staging/modules.mjs");
+    return handleModuleRoute(new Request(origin + "/tasks/claim", {
+      method: "POST",
+      headers: { "content-type": "application/json", "x-agent-gateway-token": "wrong" },
+      body: "{}",
+    }), { AGENT_GATEWAY_TOKEN: "correct-token", DB: { prepare() { touched = true; throw new Error("database must not be touched"); } } }, "/tasks/claim", null);
+  }
+  assert.equal(response.status, 401);
+  assert.deepEqual(await response.json(), { error: "Agent gateway authorization failed" });
+  assert.equal(touched, false);
+});
