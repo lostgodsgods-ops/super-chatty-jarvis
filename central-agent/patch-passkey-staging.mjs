@@ -150,6 +150,46 @@ const HEALTH_AND_SMOKE_ROUTES = `if (request.method === "GET" && path === "/heal
       const query = typeof body?.query === "string" ? body.query.trim() : "";
       if (!query || query.length > 400) return json2({ error: "query must contain 1–400 characters" }, 400, headers);
       return await runLiveSearch(query, env, "en-IN");
+    }
+    if (request.method === "POST" && path === "/internal/chat-smoke") {
+      const expectedTokens = [env.SEARCH_BRIDGE_TOKEN, env.AGENT_GATEWAY_TOKEN].filter((value) => typeof value === "string" && value.trim()).map((value) => value.trim());
+      const header = request.headers.get("authorization") || "";
+      const supplied = header.startsWith("Bearer ") ? header.slice(7).trim() : "";
+      let authenticated = false;
+      for (const expected of expectedTokens) {
+        let mismatch = supplied.length ^ expected.length;
+        const maxLength = Math.max(supplied.length, expected.length);
+        for (let i = 0; i < maxLength; i++) mismatch |= (supplied.charCodeAt(i) || 0) ^ (expected.charCodeAt(i) || 0);
+        if (mismatch === 0 && expected) authenticated = true;
+      }
+      if (!authenticated) return json2({ error: "Unauthorized" }, 401, headers);
+      const limiter = env.AUTH_RATE_LIMITER;
+      if (!limiter || typeof limiter.limit !== "function") return json2({ error: "Chat smoke-test rate limiting unavailable" }, 503, headers);
+      const ip = request.headers.get("CF-Connecting-IP") || "unknown";
+      const rate = await limiter.limit({ key: ip + ":internal-chat-smoke" });
+      if (!rate?.success) return json2({ error: "Rate limit exceeded" }, 429, { ...headers, "retry-after": "60" });
+      const body = await readJson(request);
+      const message = typeof body?.message === "string" ? body.message.trim() : "";
+      const language = ["hi-IN", "en-IN", "en-US"].includes(body?.language) ? body.language : "en-IN";
+      if (!message || message.length > 8000) return json2({ error: "message must contain 1–8000 characters" }, 400, headers);
+      const gatewayToken = typeof env.SEARCH_BRIDGE_TOKEN === "string" ? env.SEARCH_BRIDGE_TOKEN.trim() : "";
+      if (!gatewayToken) return json2({ error: "AI response gateway is not configured" }, 503, headers);
+      try {
+        const response = await fetch(CENTRAL_AGENT_CHAT_ENDPOINT, {
+          method: "POST",
+          headers: { authorization: "Bearer " + gatewayToken, "content-type": "application/json", accept: "application/json" },
+          body: JSON.stringify({ message, language }),
+          signal: AbortSignal.timeout(12000)
+        });
+        const payload = await response.json().catch(() => ({}));
+        if (!response.ok || payload?.ok !== true || typeof payload?.reply !== "string" || !payload.reply.trim()) {
+          return json2({ error: payload.error || "AI response smoke test failed", code: payload.code || "CHAT_GATEWAY_INCOMPLETE" }, response.ok ? 502 : response.status, headers);
+        }
+        return json2({ ok: true, provider: payload.provider || "workers-ai", reply: payload.reply, model: payload.model || "central-agent-workers-ai", core: { ...(payload.core || {}), intent: "chat", externalActionsPerformed: false } }, 200, headers);
+      } catch (error) {
+        console.warn("SCJ_CHAT_SMOKE_ERROR", { errorName: typeof error?.name === "string" ? error.name : "Error" });
+        return json2({ error: "AI response smoke test could not reach the gateway", code: "CHAT_GATEWAY_NETWORK_ERROR" }, 502, headers);
+      }
     }`;
 
 function validateModuleSyntax(source) {
