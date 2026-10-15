@@ -267,8 +267,10 @@ export function patchWorkerBundle(source) {
   const gatewayConstant = 'var CENTRAL_AGENT_SEARCH_ENDPOINT = "https://shrill-silence-164f.lostgodsgods.workers.dev/internal/search";';
   if (patched.includes(braveConstant)) patched = patched.replace(braveConstant, gatewayConstant);
   else if (!patched.includes(gatewayConstant)) throw new Error("Could not find the expected search provider constant; refusing to deploy.");
+  const oldChatGatewayConstant = 'var CENTRAL_AGENT_CHAT_ENDPOINT = "https://shrill-silence-164f.lostgodsgods.workers.dev/internal/chat";';
   const chatGatewayConstant = 'var CENTRAL_AGENT_CHAT_ENDPOINT = "https://shrill-silence-164f.lostgodsgods.workers.dev/chat";';
-  if (!patched.includes(chatGatewayConstant)) patched = patched.replace(gatewayConstant, gatewayConstant + "\n" + chatGatewayConstant);
+  if (patched.includes(oldChatGatewayConstant)) patched = patched.replace(oldChatGatewayConstant, chatGatewayConstant);
+  else if (!patched.includes(chatGatewayConstant)) patched = patched.replace(gatewayConstant, gatewayConstant + "\n" + chatGatewayConstant);
 
   const functionStart = patched.indexOf('async function runLiveSearch(query, env, language) {');
   const functionMarker = '\n}\n__name(runLiveSearch, "runLiveSearch");';
