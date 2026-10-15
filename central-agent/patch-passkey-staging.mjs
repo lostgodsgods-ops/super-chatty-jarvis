@@ -386,6 +386,8 @@ async function cloudflareRequest(path, options = {}) {
 async function main() {
   const accountId = process.env.CLOUDFLARE_ACCOUNT_ID;
   if (!accountId) throw new Error("Missing CLOUDFLARE_ACCOUNT_ID.");
+  const bridgeToken = process.env.AGENT_GATEWAY_TOKEN;
+  if (!bridgeToken) throw new Error("Missing AGENT_GATEWAY_TOKEN; refusing to deploy a mismatched PWA bridge.");
   const base = "/accounts/" + encodeURIComponent(accountId) + "/workers/scripts/" + WORKER_NAME;
 
   const [scriptResponse, settingsPayload] = await Promise.all([
@@ -401,6 +403,12 @@ async function main() {
   if (!settings.bindings.some((binding) => binding.name === "SEARCH_BRIDGE_TOKEN" && binding.type === "secret_text")) {
     throw new Error("SEARCH_BRIDGE_TOKEN is not bound to the staging Worker; refusing to add the protected smoke-test route.");
   }
+
+  await cloudflareRequest(base + "/secrets", {
+    method: "PUT",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ name: "SEARCH_BRIDGE_TOKEN", type: "secret_text", text: bridgeToken })
+  });
 
   const patched = patchWorkerBundle(original);
   validateModuleSyntax(patched);
