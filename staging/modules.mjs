@@ -15,6 +15,7 @@ export function isModuleRoute(method, path) {
   if (path === "/results" && ["GET", "POST"].includes(method)) return true;
   if (path === "/tasks/claim" && method === "POST") return true;
   if (path === "/tasks/execute" && method === "POST") return true;
+  if (path === "/tasks/run-next" && method === "POST") return true;
   if (path === "/memory" && ["GET", "POST"].includes(method)) return true;
   if (path === "/audit" && method === "GET") return true;
   if (path.startsWith("/memory/") && method === "DELETE") return true;
@@ -124,12 +125,8 @@ async function claimTask(request, env) {
 }
 
 
-async function executeApprovedTask(request, env) {
-  if (!env.AGENT_GATEWAY_TOKEN) return json({ error: "Autonomous execution is disabled until gateway authentication is configured" }, 503);
-  const supplied = request.headers.get("x-agent-gateway-token") || "";
-  if (supplied.length !== env.AGENT_GATEWAY_TOKEN.length || supplied !== env.AGENT_GATEWAY_TOKEN) return json({ error: "Agent gateway authorization failed" }, 401);
+async function executeNextApprovedTask(env) {
   if (!env.AI || typeof env.AI.run !== "function") return json({ error: "Workers AI execution binding is unavailable" }, 503);
-
   const now = nowIso();
   const claimed = await env.DB.prepare(
     "UPDATE owner_tasks SET status = 'running', updated_at = ? WHERE id = (SELECT id FROM owner_tasks WHERE owner_id = ? AND status = 'queued' AND task_type IN ('read_only_research', 'code_review') ORDER BY created_at ASC LIMIT 1) AND owner_id = ? AND status = 'queued' RETURNING id, task_type, payload_json, created_at, updated_at"
@@ -191,6 +188,18 @@ async function executeApprovedTask(request, env) {
     } catch {}
     return json({ error: "Task execution failed", code: failureCode, taskId: claimed.id }, 502);
   }
+}
+
+async function executeApprovedTask(request, env) {
+  if (!env.AGENT_GATEWAY_TOKEN) return json({ error: "Autonomous execution is disabled until gateway authentication is configured" }, 503);
+  const supplied = request.headers.get("x-agent-gateway-token") || "";
+  if (supplied.length !== env.AGENT_GATEWAY_TOKEN.length || supplied !== env.AGENT_GATEWAY_TOKEN) return json({ error: "Agent gateway authorization failed" }, 401);
+  return executeNextApprovedTask(env);
+}
+
+async function ownerRunNextTask(env, session) {
+  if (!requireOwner(session)) return json({ error: "Owner authentication required" }, 401);
+  return executeNextApprovedTask(env);
 }
 
 async function submitResult(request, env) {
@@ -282,6 +291,7 @@ export async function handleModuleRoute(request, env, path, session) {
   if (path === "/results" && request.method === "GET") return getResults(request, env, session);
   if (path === "/tasks/claim" && request.method === "POST") return claimTask(request, env);
   if (path === "/tasks/execute" && request.method === "POST") return executeApprovedTask(request, env);
+  if (path === "/tasks/run-next" && request.method === "POST") return ownerRunNextTask(env, session);
   if (path === "/results" && request.method === "POST") return submitResult(request, env);
   if (path === "/memory" || path.startsWith("/memory/")) return memoryRoute(request, env, path, session);
   if (path === "/audit" && request.method === "GET") return auditRoute(request, env, session);
