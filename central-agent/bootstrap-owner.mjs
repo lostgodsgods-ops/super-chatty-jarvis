@@ -23,6 +23,15 @@ export async function runOwnerBootstrap({
   if (!password) return fail("Missing CENTRAL_AGENT_OWNER_PASSWORD; owner authentication cannot be bootstrapped.");
 
   const endpoint = path => new URL(path, base);
+  const request = async (url, options = {}) => {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 12000);
+    try {
+      return await fetchImpl(url, { ...options, signal: options.signal || controller.signal });
+    } finally {
+      clearTimeout(timeout);
+    }
+  };
   const pause = async attempt => {
     const delay = Math.min(baseDelayMs * attempt, maxDelayMs);
     log(`Transient Worker response; retrying in ${delay}ms (attempt ${attempt + 1}/${maxAttempts}).`);
@@ -33,7 +42,7 @@ export async function runOwnerBootstrap({
   for (let attempt = 1; attempt <= maxAttempts; attempt++) {
     let response;
     try {
-      response = await fetchImpl(endpoint("/auth/status"), { cache: "no-store" });
+      response = await request(endpoint("/auth/status"), { cache: "no-store" });
     } catch {
       if (attempt === maxAttempts) return fail("Owner setup status check failed after retrying transient network errors.");
       await pause(attempt);
@@ -66,7 +75,7 @@ export async function runOwnerBootstrap({
   for (let attempt = 1; attempt <= maxAttempts; attempt++) {
     let response;
     try {
-      response = await fetchImpl(endpoint("/auth/setup"), {
+      response = await request(endpoint("/auth/setup"), {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ setupToken, password })
@@ -84,7 +93,7 @@ export async function runOwnerBootstrap({
     if (response.status === 409) {
       // Another attempt may have succeeded even if its response was lost.
       try {
-        const statusResponse = await fetchImpl(endpoint("/auth/status"), { cache: "no-store" });
+        const statusResponse = await request(endpoint("/auth/status"), { cache: "no-store" });
         if (statusResponse.ok && (await statusResponse.json()).setupRequired === false) {
           log("Owner password is configured; bootstrap verified after HTTP 409.");
           return { outcome: "already-configured" };
