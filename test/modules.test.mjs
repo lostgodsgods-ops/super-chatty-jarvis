@@ -278,9 +278,9 @@ test("autonomous executor runs only an approved queued allowlisted task and reco
           if (sql.includes("UPDATE owner_tasks") && sql.includes("RETURNING id, task_type")) return queuedTask;
           throw new Error("Unexpected first query: " + sql);
         },
+        async run() { return { success: true }; },
       }; } }; },
       async batch(statements) { batches.push(...statements); return []; },
-      async prepare(sql) { return { sql, bind(...args) { return { sql, args, async first() { return queuedTask; } }; } }; },
     },
   };
   const response = await handleModuleRoute(req("/tasks/execute", "POST", {}, {
