@@ -220,7 +220,7 @@ test("chat retries prompt input when chat-message input is rejected", async () =
 
 
 test("voice app persists chat history locally and provides a clear-history control", () => {
-  assert.match(APP_HTML, /indexedDB\\.open/);
+  assert.match(APP_HTML, /indexedDB\.open/);
   assert.match(APP_HTML, /localStorage/);
   assert.match(APP_HTML, /id="historyList"/);
   assert.match(APP_HTML, /id="clearHistory"/);
@@ -231,10 +231,10 @@ test("voice app persists chat history locally and provides a clear-history contr
 test("service worker caches only the authenticated app shell after a successful response", async () => {
   const response = await worker.fetch(new Request(origin + "/service-worker.js"), {});
   const source = await response.text();
-  assert.match(source, /url\\.pathname===["']\\/app["']/);
-  assert.match(source, /cache\\.put\\(request,response\\.clone\\(\\)\\)/);
-  assert.match(source, /url\\.pathname\\.startsWith\\(["']\\/api\\/["']\\)/);
-  assert.match(source, /caches\\.match\\(request\\)/);
+  assert.match(source, /url\.pathname===["']\/app["']/);
+  assert.match(source, /cache\.put\(request,response\.clone\(\)\)/);
+  assert.match(source, /url\.pathname\.startsWith\(["']\/api\/["']\)/);
+  assert.match(source, /caches\.match\(request\)/);
 });
 
 test("agent task claiming rejects a wrong gateway token before database access", async () => {
