@@ -229,8 +229,8 @@ export default {
         if (!equalSecret(currentHash, credentials.password_hash)) return json({ error: "Current password is incorrect." }, 401, cors);
         const salt = base64url(crypto.getRandomValues(new Uint8Array(16)));
         const passwordHash = await derivePasswordHash(newPassword, salt);
-        const result = await env.DB.prepare("UPDATE owner_credentials SET salt = ?, password_hash = ?, updated_at = ? WHERE id = 1")
-          .bind(salt, passwordHash, new Date().toISOString()).run();
+        const result = await env.DB.prepare("UPDATE owner_credentials SET salt = ?, password_hash = ? WHERE id = 1")
+          .bind(salt, passwordHash).run();
         if (!result?.meta || result.meta.changes !== 1) return json({ error: "Unable to update owner password." }, 503, cors);
         // Revoke all active sessions after a credential change.
         if (typeof env.SESSIONS.list === "function") {
