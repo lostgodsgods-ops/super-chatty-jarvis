@@ -273,7 +273,7 @@ test("Owner mission console exposes bounded swarm planning with explicit approva
   assert.match(APP_HTML, /id="agentLibrary"/);
   assert.match(APP_HTML, /\/missions/);
   assert.match(APP_HTML, /\/agents/);
-  assert.match(APP_HTML, /maximum three/);
+  assert.match(APP_HTML, /up to three specialized read-only agents/);
 });
 
 test("Jarvis identity accurately describes the bounded agent capabilities", () => {
