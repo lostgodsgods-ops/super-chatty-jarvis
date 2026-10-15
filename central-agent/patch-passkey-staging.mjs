@@ -256,10 +256,17 @@ export function patchWorkerBundle(source) {
   }
 
   patched = patched.replaceAll("AI response service is not connected in this staging build yet.", "Ready. Send a message to Chatty.");
-  const originGuardOld = 'const serviceResultRoute = request.method === "POST" && ["/results", "/tasks/claim"].includes(path);';
   const originGuardNew = 'const serviceResultRoute = request.method === "POST" && ["/results", "/tasks/claim", "/internal/search-smoke", "/internal/chat-smoke"].includes(path);';
-  if (patched.includes(originGuardOld)) patched = patched.replace(originGuardOld, originGuardNew);
-  else if (!patched.includes(originGuardNew)) throw new Error("Could not update the origin guard for protected internal smoke routes.");
+  if (!patched.includes(originGuardNew)) {
+    const guardStart = patched.indexOf("const serviceResultRoute =");
+    const guardEnd = guardStart >= 0 ? patched.indexOf(";", guardStart) : -1;
+    const currentGuard = guardStart >= 0 && guardEnd >= guardStart ? patched.slice(guardStart, guardEnd + 1) : "";
+    if (currentGuard.includes('"/results"') && currentGuard.includes('"/tasks/claim"')) {
+      patched = patched.slice(0, guardStart) + originGuardNew + patched.slice(guardEnd + 1);
+    } else {
+      throw new Error("Could not update the origin guard for protected internal smoke routes.");
+    }
+  }
 
   patched = patched.replaceAll("scj-pwa-v2", "scj-pwa-v3");
   patched = patched.replace('if(!r.ok){sayStatus(data.error||"Chat request failed.");return;}', 'if(!r.ok){$(\"reply\").textContent=data.error||\"Chat request failed.\";sayStatus(data.error||\"Chat request failed.\");return;}');
