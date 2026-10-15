@@ -75,6 +75,126 @@ jobs:
           set -euo pipefail
           npx --yes wrangler@4 deploy --config central-agent/wrangler.jsonc
 
+      - name: Initialize owner password when needed
+        shell: bash
+        env:
+          OWNER_SETUP_TOKEN: ${{ secrets.OWNER_SETUP_TOKEN }}
+          OWNER_PASSWORD: ${{ secrets.CENTRAL_AGENT_OWNER_PASSWORD }}
+          CENTRAL_AGENT_URL: https://shrill-silence-164f.lostgodsgods.workers.dev
+        run: |
+          set -euo pipefail
+          node --input-type=module <<'NODE'
+          const base = process.env.CENTRAL_AGENT_URL;
+          const statusResponse = await fetch(new URL("/auth/status", base), { cache: "no-store" });
+          if (!statusResponse.ok) {
+            console.error(`Owner setup status check failed with HTTP ${statusResponse.status}; response body withheld.`);
+            process.exit(1);
+          }
+          const status = await statusResponse.json();
+          if (status.setupRequired === false) {
+            console.log("Owner password is already configured; one-time bootstrap skipped.");
+            process.exit(0);
+          }
+          if (status.setupRequired !== true) {
+            console.error("Owner setup status response was not recognized; bootstrap stopped.");
+            process.exit(1);
+          }
+          if (!process.env.OWNER_PASSWORD) {
+            console.log("Owner password setup is still required. Add CENTRAL_AGENT_OWNER_PASSWORD as a GitHub Actions secret to bootstrap it.");
+            process.exit(0);
+          }
+          const response = await fetch(new URL("/auth/setup", base), {
+            method: "POST",
+            headers: { "content-type": "application/json" },
+            body: JSON.stringify({
+              setupToken: process.env.OWNER_SETUP_TOKEN,
+              password: process.env.OWNER_PASSWORD
+            })
+          });
+          if (response.status === 201) {
+            console.log("Owner password bootstrap completed (HTTP 201).");
+          } else if (response.status === 409) {
+            console.log("Owner password already exists; one-time bootstrap was not repeated (HTTP 409).");
+          } else {
+            console.error(`Owner bootstrap failed with HTTP ${response.status}; response body withheld.`);
+            process.exit(1);
+          }
+          NODE
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - "central-agent/**"
+      - ".github/workflows/deploy-central-agent.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: super-chatty-central-agent-deploy
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Run policy and owner-auth tests
+        run: node --test central-agent/policy.test.mjs central-agent/owner-auth.test.mjs
+
+      - name: Validate required secrets
+        shell: bash
+        env:
+          CF_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CF_ACCOUNT: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          SETUP_TOKEN: ${{ secrets.OWNER_SETUP_TOKEN }}
+          SEARCH_KEY: ${{ secrets.SEARCH_API_KEY }}
+        run: |
+          set -euo pipefail
+          test -n "$CF_TOKEN" || { echo "Missing CLOUDFLARE_API_TOKEN"; exit 1; }
+          test -n "$CF_ACCOUNT" || { echo "Missing CLOUDFLARE_ACCOUNT_ID"; exit 1; }
+          test -n "$SETUP_TOKEN" || { echo "Missing OWNER_SETUP_TOKEN"; exit 1; }
+          test -n "$SEARCH_KEY" || { echo "Missing SEARCH_API_KEY"; exit 1; }
+          echo "Required secret values are present (values not displayed)."
+
+      - name: Configure Worker one-time setup secret
+        shell: bash
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          OWNER_SETUP_TOKEN: ${{ secrets.OWNER_SETUP_TOKEN }}
+        run: |
+          set -euo pipefail
+          printf '%s' "$OWNER_SETUP_TOKEN" | npx --yes wrangler@4 secret put OWNER_SETUP_TOKEN --config central-agent/wrangler.jsonc
+
+      - name: Configure Tavily Search API secret
+        shell: bash
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          SEARCH_API_KEY: ${{ secrets.SEARCH_API_KEY }}
+        run: |
+          set -euo pipefail
+          printf '%s' "$SEARCH_API_KEY" | npx --yes wrangler@4 secret put SEARCH_API_KEY --config central-agent/wrangler.jsonc
+
+      - name: Deploy isolated Central Agent
+        shell: bash
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          set -euo pipefail
+          npx --yes wrangler@4 deploy --config central-agent/wrangler.jsonc
+
       - name: Initialize owner password when secret is configured
         shell: bash
         env:
