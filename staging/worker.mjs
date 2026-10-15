@@ -283,7 +283,7 @@ export default {
       return new Response(APP_HTML, { status: 200, headers: { "content-type": "text/html; charset=utf-8", "cache-control": "no-store", "x-content-type-options": "nosniff", "referrer-policy": "no-referrer", "content-security-policy": csp } });
     }
     try {
-      const safeReadRoute = request.method === "GET" && ["/auth/status", "/tasks", "/results", "/memory", "/audit"].includes(path);
+      const safeReadRoute = request.method === "GET" && ["/auth/status", "/tasks", "/agents", "/missions", "/results", "/memory", "/audit"].includes(path);
       const serviceResultRoute = request.method === "POST" && ["/results", "/tasks/claim"].includes(path);
       if (!safeReadRoute && !serviceResultRoute) requireAllowedOrigin(request, env);
       if (!["GET", "POST", "DELETE"].includes(request.method)) return json({ error: "Not found" }, 404, headers);
@@ -360,7 +360,7 @@ export default {
               ? env.CHAT_MODEL.trim()
               : defaultModel;
             const models = [...new Set([configuredModel, ...fallbackModels])];
-            const systemPrompt = "You are Super Chatty Jarvis. Reply in the user's selected language (" + body.language + "). Be helpful, concise, and honest. Never claim you performed external actions or accessed accounts unless the system actually did so. Ask for explicit Owner approval before sensitive actions.";
+            const systemPrompt = "You are Super Chatty Jarvis, an owner-controlled AI assistant. Reply in the user's selected language (" + body.language + "). Be helpful, concise, and honest. You can answer questions, help plan goals, create approved task plans, and coordinate up to three built-in specialist roles (pathfinder planner, research synthesizer, read-only code reviewer) through the mission console. Task execution is bounded to Workers AI summaries of supplied context; live web browsing, arbitrary code execution, unrestricted internet access, automatic agent recruitment beyond the three-role library, and external account changes are not enabled unless a separately verified tool is actually connected. Never claim you performed external actions or accessed accounts unless the system actually did so. Never bypass Owner authentication, security controls, approvals, or technical access restrictions. Ask for explicit Owner approval before sensitive actions and clearly state which capabilities are available versus planned.";
             const input = {
               messages: [
                 { role: "system", content: systemPrompt },
