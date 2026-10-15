@@ -2,6 +2,11 @@ name: Monitor Central Agent
 
 on:
   workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - ".github/workflows/monitor-central-agent.yml"
   schedule:
     - cron: "*/15 * * * *"
 
