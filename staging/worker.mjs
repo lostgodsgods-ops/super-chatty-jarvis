@@ -351,7 +351,39 @@ export default {
             response = json({ error: "Chat provider is not configured in staging", code: "CHAT_PROVIDER_NOT_CONFIGURED" }, 503);
           } else {
             const bossCommand = parseBossCommand(body.message);
-            if (bossCommand.intent === "create_mission") {
+            if (bossCommand.intent === "help") {
+              const reply = body.language === "hi-IN"
+                ? "मैं सामान्य बातचीत कर सकता हूँ, mission plan बना सकता हूँ, system status दिखा सकता हूँ और तीन read-only specialists से मदद ले सकता हूँ। Mission बनाने के लिए कहो: ‘एक mission बनाओ कि…’। हर task को चलाने से पहले तुम्हारी अलग approval जरूरी है। अभी live browsing, मनमाना code execution और external account changes enabled नहीं हैं।"
+                : "I can chat, create a bounded mission plan, show system status, and coordinate three read-only specialists. Say “create a mission to…” to start one. Each task still needs your separate approval before it runs. Live browsing, arbitrary code execution, and external account changes are not enabled.";
+              response = json({ ok: true, reply, model: "core-command-router", core: { intent: "help", requiresTaskApproval: false, externalActionsPerformed: false } });
+            } else if (bossCommand.intent === "system_status") {
+              const missionRequest = new Request(new URL("/missions", request.url), { method: "GET", headers: { "origin": request.headers.get("origin") || new URL(request.url).origin } });
+              const taskRequest = new Request(new URL("/tasks", request.url), { method: "GET", headers: { "origin": request.headers.get("origin") || new URL(request.url).origin } });
+              const [missionResponse, taskResponse] = await Promise.all([
+                handleModuleRoute(missionRequest, env, "/missions", session),
+                handleModuleRoute(taskRequest, env, "/tasks", session),
+              ]);
+              if (!missionResponse?.ok || !taskResponse?.ok) {
+                response = json({ error: "Could not read current Mission Control status", code: "CORE_STATUS_UNAVAILABLE" }, 503);
+              } else {
+                const missionData = await missionResponse.json().catch(() => ({}));
+                const taskData = await taskResponse.json().catch(() => ({}));
+                const tasks = Array.isArray(taskData.tasks) ? taskData.tasks : [];
+                const missions = Array.isArray(missionData.missions) ? missionData.missions : [];
+                const counts = {
+                  missions: missions.length,
+                  tasks: tasks.length,
+                  pendingApproval: tasks.filter((task) => task.status === "pending_approval").length,
+                  queued: tasks.filter((task) => task.status === "queued").length,
+                  completed: tasks.filter((task) => task.status === "completed").length,
+                  failed: tasks.filter((task) => task.status === "failed").length,
+                };
+                const reply = body.language === "hi-IN"
+                  ? "System status: " + counts.missions + " missions, " + counts.tasks + " tasks. Approval बाकी: " + counts.pendingApproval + ", queue में: " + counts.queued + ", complete: " + counts.completed + ", failed: " + counts.failed + ". कोई external action नहीं किया गया।"
+                  : "System status: " + counts.missions + " missions, " + counts.tasks + " tasks. Awaiting approval: " + counts.pendingApproval + ", queued: " + counts.queued + ", completed: " + counts.completed + ", failed: " + counts.failed + ". No external actions were performed.";
+                response = json({ ok: true, reply, model: "core-command-router", core: { intent: "system_status", counts, requiresTaskApproval: false, externalActionsPerformed: false } });
+              }
+            } else if (bossCommand.intent === "create_mission") {
               const missionRequest = new Request(new URL("/missions", request.url), {
                 method: "POST",
                 headers: { "content-type": "application/json", "origin": request.headers.get("origin") || new URL(request.url).origin },
