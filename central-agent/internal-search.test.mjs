@@ -73,14 +73,16 @@ test("internal Tavily search fails closed when its private provider key is missi
   assert.equal((await response.json()).error, "Search provider is not configured.");
 });
 
-test("health reports gateway search readiness without exposing secrets", async () => {
+test("health reports gateway search and durable queue readiness without exposing secrets", async () => {
   const response = await worker.fetch(new Request("https://agent.example/health"), {
     SEARCH_BRIDGE_TOKEN: "gateway-test-token",
     SEARCH_API_KEY: "private-tavily-key",
-    AI: {}
+    AI: {},
+    DB: { prepare: () => ({}), batch: async () => [] }
   });
   const body = await response.json();
   assert.equal(body.capabilities.gatewaySearchConfigured, true);
+  assert.equal(body.capabilities.durableTaskQueue, true);
   assert.equal(body.capabilities.tavilySearchConfigured, true);
   assert.equal(JSON.stringify(body).includes("gateway-test-token"), false);
   assert.equal(JSON.stringify(body).includes("private-tavily-key"), false);
