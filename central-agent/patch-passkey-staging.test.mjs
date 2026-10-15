@@ -51,6 +51,7 @@ test("patch routes PWA search through the protected central Tavily gateway", () 
   assert.match(result, /Array\.isArray\(payload\?\.sources\)/);
   assert.match(result, /AbortSignal\.timeout\(15000\)/);
   assert.match(result, /CENTRAL_AGENT_CHAT_ENDPOINT/);
+  assert.ok(result.includes('var CENTRAL_AGENT_CHAT_ENDPOINT = "https://shrill-silence-164f.lostgodsgods.workers.dev/chat";'));
   assert.match(result, /fetch\(CENTRAL_AGENT_CHAT_ENDPOINT/);
   assert.match(result, /CHAT_GATEWAY_NETWORK_ERROR/);
   assert.doesNotMatch(result, /AI response service is not connected in this staging build yet/);
