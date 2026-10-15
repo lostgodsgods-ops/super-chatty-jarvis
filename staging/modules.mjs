@@ -1,7 +1,7 @@
 const OWNER_ID = 1;
 const TASK_TYPES = new Set(["read_only_research", "code_review"]);
 const MISSION_AGENT_COUNT = 3;
-const MAX_MISSION_GOAL = 12_000;
+const MAX_MISSION_GOAL = 6_000;
 const AGENT_LIBRARY = [
   { role: "pathfinder", name: "Pathfinder Planner", taskType: "read_only_research", capability: "Breaks the goal into a plan, assumptions, dependencies, and acceptance checks.", boundary: "Planning only; no external actions." },
   { role: "research_synthesizer", name: "Research Synthesizer", taskType: "read_only_research", capability: "Summarizes supplied context and known concepts, flags what needs live source verification.", boundary: "No live browsing or source verification in this release." },
@@ -59,6 +59,7 @@ async function listTasks(env) {
     return {
       id: row.id, taskType: row.task_type, status: row.status,
       missionId: typeof payload.missionId === "string" ? payload.missionId : null,
+      missionGoal: typeof payload.missionGoal === "string" ? payload.missionGoal : null,
       agentRole: typeof payload.agentRole === "string" ? payload.agentRole : null,
       createdAt: row.created_at, updatedAt: row.updated_at,
     };
@@ -76,7 +77,7 @@ async function createMission(request, env, session) {
   if (body?.agentCount !== undefined && body.agentCount !== MISSION_AGENT_COUNT) {
     return json({ error: "This staging release supports exactly three bounded specialist roles; unbounded swarms are not supported" }, 400);
   }
-  const context = typeof body.context === "string" ? body.context.slice(0, MAX_TASK_PAYLOAD) : "";
+  const context = typeof body.context === "string" ? body.context.slice(0, 5_000) : "";
   const missionId = newId();
   const now = nowIso();
   const tasks = AGENT_LIBRARY.map((agent) => {
@@ -107,7 +108,7 @@ async function listMissions(env, session) {
   const groups = new Map();
   for (const task of tasks) {
     if (!task.missionId) continue;
-    if (!groups.has(task.missionId)) groups.set(task.missionId, { id: task.missionId, tasks: [], createdAt: task.createdAt });
+    if (!groups.has(task.missionId)) groups.set(task.missionId, { id: task.missionId, goal: task.missionGoal, tasks: [], createdAt: task.createdAt });
     groups.get(task.missionId).tasks.push(task);
   }
   return json({ missions: [...groups.values()].map((mission) => ({
