@@ -79,6 +79,28 @@ jobs:
           fi
           node -e 'const fs=require("fs"); const x=JSON.parse(fs.readFileSync(process.argv[1],"utf8")); if(x.ok!==true||x.provider!=="tavily"||!Array.isArray(x.results)||x.results.length<1) throw Error("Expected ok=true, provider=tavily, and at least one result"); const urls=x.results.map(r=>r.url); if(urls.some(u=>typeof u!=="string"||!/^https?:\/\//i.test(u))) throw Error("One or more result URLs are invalid"); console.log(JSON.stringify({ok:x.ok,provider:x.provider,resultCount:x.results.length,sourceUrls:urls},null,2));' "$tmp/search.json"
 
+      - name: Verify Talk to Chatty PWA and live search proxy
+        shell: bash
+        env:
+          PASSKEY_WORKER_URL: https://super-chatty-passkey-staging.lostgodsgods.workers.dev
+          AGENT_GATEWAY_TOKEN: \${{ secrets.AGENT_GATEWAY_TOKEN }}
+        run: |
+          set -euo pipefail
+          test -n "$AGENT_GATEWAY_TOKEN" || { echo "::error::Missing AGENT_GATEWAY_TOKEN"; exit 1; }
+          tmp="$(mktemp -d)"
+          trap 'rm -rf "$tmp"' EXIT
+          health_code="$(curl --silent --show-error --max-time 15 --output "$tmp/pwa-health.json" --write-out '%{http_code}' "$PASSKEY_WORKER_URL/health")"
+          test "$health_code" = "200" || { echo "::error::Talk to Chatty PWA health failed with HTTP $health_code"; exit 1; }
+          node -e 'const fs=require("node:fs"); const x=JSON.parse(fs.readFileSync(process.argv[1],"utf8")); if(x.ok!==true||x.liveSearchConfigured!==true||x.searchProvider!=="tavily") throw Error("Talk to Chatty PWA search gateway is not configured"); console.log(JSON.stringify({ok:x.ok,component:x.component,liveSearchConfigured:x.liveSearchConfigured,searchProvider:x.searchProvider}));' "$tmp/pwa-health.json"
+          search_code="$(curl --silent --show-error --max-time 25 --output "$tmp/pwa-search.json" --write-out '%{http_code}' -H 'content-type: application/json' -H "authorization: Bearer $AGENT_GATEWAY_TOKEN" -X POST "$PASSKEY_WORKER_URL/internal/search-smoke" --data '{"query":"Cloudflare Workers health checks documentation"}')"
+          unset AGENT_GATEWAY_TOKEN
+          if [[ "$search_code" != "200" ]]; then
+            echo "::error::Talk to Chatty PWA live search smoke test failed with HTTP $search_code"
+            node -e 'const fs=require("node:fs"); try { const x=JSON.parse(fs.readFileSync(process.argv[1],"utf8")); console.log(JSON.stringify({error:x.error||"Live search failed",code:x.code||null,providerStatus:x.providerStatus||null})); } catch { console.log("PWA search response was not valid JSON."); }' "$tmp/pwa-search.json"
+            exit 1
+          fi
+          node -e 'const fs=require("node:fs"); const x=JSON.parse(fs.readFileSync(process.argv[1],"utf8")); if(x.ok!==true||x.core?.webSearchExecuted!==true||x.core?.searchProvider!=="tavily"||!Array.isArray(x.sources)||x.sources.length<1) throw Error("Expected PWA Tavily proxy to return at least one live source"); if(x.sources.some(s=>typeof s.url!=="string"||!/^https?:\\/\\//i.test(s.url))) throw Error("Invalid PWA source URL"); console.log(JSON.stringify({ok:x.ok,searchProvider:x.core.searchProvider,sourceCount:x.sources.length,synthesisMode:x.core.synthesisMode,sourceUrls:x.sources.map(s=>s.url)},null,2));' "$tmp/pwa-search.json"
+
       - name: Open or update incident issue on failure
         if: failure() && github.event_name != 'pull_request'
         uses: actions/github-script@v7
