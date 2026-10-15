@@ -25,7 +25,7 @@ main{max-width:560px;margin:0 auto;padding:env(safe-area-inset-top) 0 env(safe-a
 const $=id=>document.getElementById(id);
 const sayStatus=text=>{$("status").textContent=text;};
 let recognition=null, listening=false;
-const HISTORY_DB_NAME="scj-chat-history-v1",HISTORY_STORE="messages",HISTORY_LIMIT=200,HISTORY_FALLBACK_KEY="scj-chat-history-v1";
+const HISTORY_DB_NAME="scj-chat-history-v1",HISTORY_STORE="messages",HISTORY_LIMIT=200;
 let historyDbPromise=null;
 function openHistoryDb(){
  if(!("indexedDB" in window))return Promise.reject(new Error("IndexedDB unavailable"));
@@ -39,12 +39,9 @@ function openHistoryDb(){
  });
  return historyDbPromise;
 }
-function readFallbackHistory(){
- try{const value=JSON.parse(localStorage.getItem(HISTORY_FALLBACK_KEY)||"[]");return Array.isArray(value)?value.filter(x=>x&&typeof x.content==="string"&&["user","assistant"].includes(x.role)).slice(-HISTORY_LIMIT):[];}catch{return [];}
-}
 async function readConversationHistory(){
  try{const db=await openHistoryDb();const rows=await new Promise((resolve,reject)=>{const tx=db.transaction(HISTORY_STORE,"readonly"),request=tx.objectStore(HISTORY_STORE).getAll();request.onsuccess=()=>resolve(request.result||[]);request.onerror=()=>reject(request.error||new Error("Could not read local history"));});return rows.sort((a,b)=>String(a.createdAt).localeCompare(String(b.createdAt))).slice(-HISTORY_LIMIT);}
- catch{return readFallbackHistory();}
+ catch{return [];}
 }
 function renderConversationHistory(rows){
  const list=$("historyList");list.replaceChildren();
@@ -66,15 +63,11 @@ async function persistConversationMessage(role,content){
   const rows=await new Promise((resolve,reject)=>{const tx=db.transaction(HISTORY_STORE,"readonly"),request=tx.objectStore(HISTORY_STORE).getAll();request.onsuccess=()=>resolve(request.result||[]);request.onerror=()=>reject(request.error||new Error("Could not count local history"));});
   rows.sort((a,b)=>String(a.createdAt).localeCompare(String(b.createdAt)));
   if(rows.length>HISTORY_LIMIT){const old=rows.slice(0,rows.length-HISTORY_LIMIT);await new Promise((resolve,reject)=>{const tx=db.transaction(HISTORY_STORE,"readwrite"),store=tx.objectStore(HISTORY_STORE);for(const entry of old)store.delete(entry.id);tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error||new Error("Could not trim local history"));});}
- }catch{
-  const rows=readFallbackHistory();rows.push(row);
-  try{localStorage.setItem(HISTORY_FALLBACK_KEY,JSON.stringify(rows.slice(-HISTORY_LIMIT)));}catch{$("historyStatus").textContent="Local history storage is unavailable on this device.";}
- }
+ }catch{$("historyStatus").textContent="IndexedDB is unavailable; local chat history could not be saved on this device.";return;}
  await restoreConversationHistory();
 }
 async function clearConversationHistory(){
  try{const db=await openHistoryDb();await new Promise((resolve,reject)=>{const tx=db.transaction(HISTORY_STORE,"readwrite");tx.objectStore(HISTORY_STORE).clear();tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error||new Error("Could not clear local history"));});}catch{}
- try{localStorage.removeItem(HISTORY_FALLBACK_KEY);}catch{}
  await restoreConversationHistory();
 }
 $("clearHistory").addEventListener("click",()=>{void clearConversationHistory();});
