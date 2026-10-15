@@ -4,7 +4,7 @@ import { webcrypto } from "node:crypto";
 
 // Cloudflare Workers provide Web Crypto globally; make the same API explicit in Node tests.
 Object.defineProperty(globalThis, "crypto", { value: webcrypto, configurable: true, writable: true });
-import worker, { parseSetupToken } from "./worker.mjs";
+import worker, { parseSetupToken, PASSWORD_ITERATIONS } from "./worker.mjs";
 
 class FakeKV {
   constructor() { this.values = new Map(); }
@@ -231,4 +231,9 @@ test("owner login page does not persist passwords or session tokens in browser s
   const html = await response.text();
   assert.doesNotMatch(html, /localStorage|sessionStorage/);
   assert.match(html, /let ownerSessionToken=""/);
+});
+
+test("PBKDF2 iteration count stays within the Cloudflare Workers Web Crypto limit", () => {
+  assert.ok(PASSWORD_ITERATIONS <= 100000, "Cloudflare Workers rejects PBKDF2 iterations above 100000");
+  assert.ok(PASSWORD_ITERATIONS >= 100000, "Use the highest iteration count supported by Cloudflare Workers");
 });
