@@ -77,7 +77,7 @@ test("live search uses the fixed provider endpoint, bounds results, and reports 
     assert.equal(body.core.intent, "web_search");
     assert.equal(body.core.webSearchExecuted, true);
     assert.equal(body.sources.length, 2);
-    assert.ok(body.reply.includes("Cloudflare Workers AI"));
+    assert.equal(body.sources[0].title, "Cloudflare Workers AI");
     assert.match(requestedUrl, /^https:\/\/api\.search\.brave\.com\/res\/v1\/web\/search\?/);
     assert.equal(requestedHeaders.get("x-subscription-token"), "test-search-key");
     assert.equal(new URL(requestedUrl).searchParams.get("q"), "Cloudflare Workers AI");
