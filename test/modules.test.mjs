@@ -299,3 +299,23 @@ test("autonomous executor runs only an approved queued allowlisted task and reco
   assert.match(batches[1].sql, /status = 'completed'/);
   assert.match(batches[2].sql, /INSERT INTO owner_audit_log/);
 });
+
+
+test("agent result submission cannot bypass claiming by completing a merely queued task", async () => {
+  let batchTouched = false;
+  const env = {
+    AGENT_GATEWAY_TOKEN: "correct-token",
+    DB: {
+      prepare(sql) { return { sql, bind(...args) { return {
+        sql, args,
+        async first() { return { id: args[0], task_type: "read_only_research", status: "queued" }; },
+      }; } }; },
+      async batch() { batchTouched = true; return []; },
+    },
+  };
+  const response = await handleModuleRoute(req("/results", "POST", {
+    taskId: "123e4567-e89b-12d3-a456-426614174000", result: { summary: "unauthorized bypass" },
+  }, { "x-agent-gateway-token": "correct-token" }), env, "/results", null);
+  assert.equal(response.status, 409);
+  assert.equal(batchTouched, false);
+});
