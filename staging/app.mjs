@@ -6,7 +6,7 @@ export const APP_HTML = String.raw`<!doctype html>
 <style>
 :root{color-scheme:dark;--bg:#07111f;--panel:#0d1b2d;--line:#24506c;--text:#eef7ff;--muted:#a8bfd4;--cyan:#35d8ff;--blue:#245bd5;--green:#50e3b2}
 *{box-sizing:border-box}body{margin:0;background:radial-gradient(ellipse at 50% 0%,#102b4c,transparent 45%),var(--bg);color:var(--text);font:16px/1.5 system-ui,sans-serif;padding:16px}
-main{max-width:560px;margin:0 auto;padding:env(safe-area-inset-top) 0 env(safe-area-inset-bottom)}header{display:flex;justify-content:space-between;align-items:center;gap:12px;margin:10px 0 22px}.brand{font-weight:800}.brand span{color:var(--cyan)}a{color:var(--cyan)}.panel{background:#0d1b2d;border:1px solid var(--line);border-radius:18px;padding:18px;margin-bottom:14px}h1{font-size:1.45rem;margin:0 0 6px}.muted,small{color:var(--muted)}label{display:block;font-size:.9rem;color:var(--muted);margin:12px 0 6px}select,textarea,input{width:100%;padding:12px;border:1px solid var(--line);border-radius:10px;background:#07111f;color:var(--text);font:inherit}textarea{min-height:86px;resize:vertical}button{border:1px solid var(--line);border-radius:12px;padding:12px;background:#10243b;color:var(--text);font:inherit;font-weight:700}button:disabled{opacity:.45}.micwrap{display:grid;place-items:center;padding:18px 0 8px}.mic{width:104px;height:104px;border-radius:50%;font-size:2.2rem;background:linear-gradient(145deg,#087eb7,#235bd5);box-shadow:0 0 36px #22caff38;border:2px solid #63dfff}.mic[aria-pressed="true"]{background:#a3334b;box-shadow:0 0 0 8px #a3334b22}.actions{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px}.history-head{display:flex;justify-content:space-between;align-items:center;gap:12px}.history-head h2{margin:0}.history-head button{font-size:.82rem;padding:8px 10px}#historyList{padding-left:24px;display:grid;gap:10px}#historyList li{overflow-wrap:anywhere;border-bottom:1px solid var(--line);padding:0 0 10px}#historyList strong{color:var(--cyan);display:block;font-size:.85rem}#historyList p{margin:4px 0 0;white-space:pre-wrap}.primary{background:linear-gradient(120deg,#087eb7,#235bd5)}#status{padding:12px;border:1px solid var(--line);border-radius:10px;color:var(--cyan);white-space:pre-wrap;overflow-wrap:anywhere}#reply{white-space:pre-wrap;min-height:36px}.tag{display:inline-block;padding:3px 8px;border-radius:99px;background:#102b3e;color:var(--green);font-size:.78rem}@media(min-width:480px){body{padding:24px}}
+main{max-width:560px;margin:0 auto;padding:env(safe-area-inset-top) 0 env(safe-area-inset-bottom)}header{display:flex;justify-content:space-between;align-items:center;gap:12px;margin:10px 0 22px}.brand{font-weight:800}.brand span{color:var(--cyan)}a{color:var(--cyan)}.panel{background:#0d1b2d;border:1px solid var(--line);border-radius:18px;padding:18px;margin-bottom:14px}h1{font-size:1.45rem;margin:0 0 6px}.muted,small{color:var(--muted)}label{display:block;font-size:.9rem;color:var(--muted);margin:12px 0 6px}select,textarea,input{width:100%;padding:12px;border:1px solid var(--line);border-radius:10px;background:#07111f;color:var(--text);font:inherit}textarea{min-height:86px;resize:vertical}button{border:1px solid var(--line);border-radius:12px;padding:12px;background:#10243b;color:var(--text);font:inherit;font-weight:700}button:disabled{opacity:.45}.micwrap{display:grid;place-items:center;padding:18px 0 8px}.mic{width:104px;height:104px;border-radius:50%;font-size:2.2rem;background:linear-gradient(145deg,#087eb7,#235bd5);box-shadow:0 0 36px #22caff38;border:2px solid #63dfff}.mic[aria-pressed="true"]{background:#a3334b;box-shadow:0 0 0 8px #a3334b22}.actions{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px}.mission-box{border:1px solid #24506c;border-radius:14px;padding:14px;margin:12px 0;background:#0a1727}.mission-box h3{margin-top:0}.mission-box textarea{min-height:90px}.mission-box li{margin:6px 0}.history-head{display:flex;justify-content:space-between;align-items:center;gap:12px}.history-head h2{margin:0}.history-head button{font-size:.82rem;padding:8px 10px}#historyList{padding-left:24px;display:grid;gap:10px}#historyList li{overflow-wrap:anywhere;border-bottom:1px solid var(--line);padding:0 0 10px}#historyList strong{color:var(--cyan);display:block;font-size:.85rem}#historyList p{margin:4px 0 0;white-space:pre-wrap}.primary{background:linear-gradient(120deg,#087eb7,#235bd5)}#status{padding:12px;border:1px solid var(--line);border-radius:10px;color:var(--cyan);white-space:pre-wrap;overflow-wrap:anywhere}#reply{white-space:pre-wrap;min-height:36px}.tag{display:inline-block;padding:3px 8px;border-radius:99px;background:#102b3e;color:var(--green);font-size:.78rem}@media(min-width:480px){body{padding:24px}}
 </style></head>
 <body><main>
 <header><div class="brand">✦ Super <span>Chatty Jarvis</span></div><a href="/owner">Owner security</a></header>
@@ -19,7 +19,7 @@ main{max-width:560px;margin:0 auto;padding:env(safe-area-inset-top) 0 env(safe-a
 </section>
 <section class="panel"><h2>Chatty response</h2><div id="reply" aria-live="polite">Voice input and spoken output are available in supported browsers. AI response service is not connected in this staging build yet.</div><div id="status" role="status" aria-live="polite">Checking Owner session…</div></section>
 <section class="panel" id="historyPanel" hidden><div class="history-head"><h2>Conversation history</h2><button id="clearHistory" type="button">Clear history</button></div><p class="muted"><small>Saved on this device only. Clearing browser/app data may remove this history.</small></p><ol id="historyList" aria-live="polite"></ol><p id="historyStatus" class="muted" role="status">Loading local history…</p></section>
-<section class="panel" id="taskPanel" hidden><h2>Owner task queue</h2><p class="muted"><small>Tasks need your explicit approval before they can run. The built-in executor uses Workers AI for read-only research summaries and code reviews; it does not run code or change external systems.</small></p><label for="taskType">Task type</label><select id="taskType"><option value="read_only_research">Read-only research summary</option><option value="code_review">Read-only code review</option></select><label for="taskPrompt">Task details</label><textarea id="taskPrompt" placeholder="Write the question or paste code to review…"></textarea><div class="actions"><button id="createTask" class="primary" type="button">Create task</button><button id="refreshTasks" type="button">Refresh queue</button></div><div class="actions"><button id="runNextTask" type="button">Run next approved task</button></div><ol id="taskList" aria-live="polite"></ol><p id="taskStatus" class="muted" role="status">Loading task queue…</p><div id="taskResult" aria-live="polite"></div></section>
+<section class="panel" id="taskPanel" hidden><h2>Jarvis Mission Control</h2><p class="muted"><small>Super Chatty can plan and coordinate up to three specialized read-only agents. Each task needs your approval before execution. This staging release has no unrestricted internet access and cannot autonomously change external systems.</small></p><div class="mission-box"><h3>Bounded agent swarm</h3><label for="missionGoal">Mission goal</label><textarea id="missionGoal" placeholder="Describe the goal for Jarvis to plan…"></textarea><label for="missionContext">Context or code (optional)</label><textarea id="missionContext" placeholder="Paste relevant context or code for the agents…"></textarea><button id="createMission" class="primary" type="button">Plan mission · 3 specialist agents</button><p id="missionStatus" class="muted" role="status">Mission planning requires Owner approval for each generated task.</p><ul id="agentLibrary"><li>Loading specialist agents…</li></ul><ol id="missionList" aria-live="polite"></ol></div><h3>Owner task queue</h3><p class="muted"><small>Tasks are stored in D1. Workers AI can prepare research summaries and code reviews, but does not execute supplied code or change repositories.</small></p><label for="taskType">Task type</label><select id="taskType"><option value="read_only_research">Read-only research summary</option><option value="code_review">Read-only code review</option></select><label for="taskPrompt">Task details</label><textarea id="taskPrompt" placeholder="Write the question or paste code to review…"></textarea><div class="actions"><button id="createTask" class="primary" type="button">Create task</button><button id="refreshTasks" type="button">Refresh queue</button></div><div class="actions"><button id="runNextTask" type="button">Run next approved task</button></div><ol id="taskList" aria-live="polite"></ol><p id="taskStatus" class="muted" role="status">Loading task queue…</p><div id="taskResult" aria-live="polite"></div></section>
 <p class="muted"><small>Microphone audio is handled by the browser's speech recognition service. This page does not store session tokens in browser storage. Never share setup tokens or passwords in chat.</small></p>
 </main>
 <script>
@@ -72,6 +72,47 @@ async function clearConversationHistory(){
  await restoreConversationHistory();
 }
 $("clearHistory").addEventListener("click",()=>{void clearConversationHistory();});
+async function loadAgentLibrary(){
+ try{
+  const response=await fetch("/agents",{cache:"no-store",credentials:"same-origin"});
+  const data=await response.json().catch(()=>({}));
+  if(!response.ok)throw new Error(data.error||"Agent catalog unavailable");
+  const list=$("agentLibrary");list.replaceChildren();
+  for(const agent of data.agents||[]){
+   const item=document.createElement("li"),name=document.createElement("strong"),detail=document.createElement("span"),boundary=document.createElement("small");
+   name.textContent=agent.name+" — ";detail.textContent=agent.capability+" ";boundary.textContent="Boundary: "+agent.boundary;
+   item.append(name,detail,boundary);list.append(item);
+  }
+ }catch(error){$("agentLibrary").textContent=error.message||"Agent catalog unavailable.";}
+}
+async function refreshMissions(){
+ try{
+  const response=await fetch("/missions",{cache:"no-store",credentials:"same-origin"});
+  const data=await response.json().catch(()=>({}));
+  if(!response.ok)throw new Error(data.error||"Could not load missions");
+  const list=$("missionList");list.replaceChildren();
+  for(const mission of data.missions||[]){
+   const item=document.createElement("li");
+   const text=document.createElement("span");
+   text.textContent="Mission "+mission.id+" · "+mission.status+" · "+mission.agentCount+" agents";
+   item.append(text);list.append(item);
+  }
+ }catch(error){$("missionStatus").textContent=error.message||"Mission history unavailable.";}
+}
+$("createMission").addEventListener("click",async()=>{
+ const goal=$("missionGoal").value.trim();
+ if(!goal){$("missionStatus").textContent="Enter a mission goal first.";return;}
+ $("createMission").disabled=true;$("missionStatus").textContent="Preparing a three-role mission plan…";
+ try{
+  const response=await fetch("/missions",{method:"POST",credentials:"same-origin",headers:{"content-type":"application/json"},body:JSON.stringify({goal,context:$("missionContext").value.trim()})});
+  const data=await response.json().catch(()=>({}));
+  if(!response.ok)throw new Error(data.error||"Mission creation failed");
+  $("missionGoal").value="";$("missionContext").value="";
+  $("missionStatus").textContent="Mission created. Review and approve each of the three tasks below before running them.";
+  await refreshTasks();await refreshMissions();
+ }catch(error){$("missionStatus").textContent=error.message||"Mission creation failed.";}
+ finally{$("createMission").disabled=false;}
+});
 async function refreshTasks(){
  $("taskStatus").textContent="Loading task queue…";
  try{
@@ -85,7 +126,7 @@ function renderTaskList(tasks){
  const list=$("taskList");list.replaceChildren();
  for(const task of tasks){
   const item=document.createElement("li"),title=document.createElement("strong"),meta=document.createElement("p");
-  title.textContent=task.taskType+" · "+task.status;
+  title.textContent=(task.agentRole?task.agentRole+" · ":"")+task.taskType+" · "+task.status;
   meta.textContent="Task "+task.id+" · Updated "+(task.updatedAt||task.createdAt||"unknown");
   item.append(title,meta);
   if(task.status==="pending_approval"){
@@ -152,7 +193,7 @@ $("runNextTask").addEventListener("click",async()=>{
 });
 
 
-async function checkSession(){try{const r=await fetch("/auth/status",{cache:"no-store",credentials:"same-origin"});if(!r.ok){location.replace("/owner");return false;}const data=await r.json();if(!data.authenticated){location.replace("/owner");return false;}$("historyPanel").hidden=false;$("taskPanel").hidden=false;await restoreConversationHistory();await refreshTasks();sayStatus("Owner session verified.");return true;}catch(e){sayStatus("Session check failed. Reopen Owner security and sign in.");return false;}}
+async function checkSession(){try{const r=await fetch("/auth/status",{cache:"no-store",credentials:"same-origin"});if(!r.ok){location.replace("/owner");return false;}const data=await r.json();if(!data.authenticated){location.replace("/owner");return false;}$("historyPanel").hidden=false;$("taskPanel").hidden=false;await restoreConversationHistory();await loadAgentLibrary();await refreshTasks();await refreshMissions();sayStatus("Owner session verified.");return true;}catch(e){sayStatus("Session check failed. Reopen Owner security and sign in.");return false;}}
 function makeRecognition(){const C=window.SpeechRecognition||window.webkitSpeechRecognition;if(!C){sayStatus("Voice input is not supported in this browser. Try a current Chrome browser or type your message.");return null;}const r=new C();r.lang=$("language").value;r.interimResults=true;r.continuous=false;r.onstart=()=>{listening=true;$("mic").setAttribute("aria-pressed","true");$("micHint").textContent="Listening… tap again to stop";sayStatus("Listening. Speak now.");};r.onresult=e=>{let text="";for(let i=e.resultIndex;i<e.results.length;i++)text+=e.results[i][0].transcript;$("message").value=text;};r.onerror=e=>sayStatus("Microphone status: "+e.error+". Check browser microphone permission.");r.onend=()=>{listening=false;$("mic").setAttribute("aria-pressed","false");$("micHint").textContent="Tap the microphone and speak";};return r;}
 $("mic").addEventListener("click",()=>{if(listening&&recognition){recognition.stop();return;}recognition=makeRecognition();if(!recognition)return;recognition.lang=$("language").value;try{recognition.start();}catch(e){sayStatus("Could not start microphone. Check permission and try again.");}});
 $("language").addEventListener("change",()=>{if(recognition&&!listening)recognition.lang=$("language").value;});
