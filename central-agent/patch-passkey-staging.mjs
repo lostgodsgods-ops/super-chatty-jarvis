@@ -4,7 +4,7 @@ const API = "https://api.cloudflare.com/client/v4";
 const WORKER_NAME = "super-chatty-passkey-staging";
 
 const LIVE_SEARCH_FUNCTION = `async function runLiveSearch(query, env, language) {
-  const gatewayToken = typeof env.AGENT_GATEWAY_TOKEN === "string" ? env.AGENT_GATEWAY_TOKEN : "";
+  const gatewayToken = typeof env.AGENT_GATEWAY_TOKEN === "string" ? env.AGENT_GATEWAY_TOKEN.trim() : "";
   if (!gatewayToken) {
     return json2({
       error: "Live search gateway is not configured for this staging deployment.",
@@ -99,9 +99,9 @@ const LIVE_SEARCH_FUNCTION = `async function runLiveSearch(query, env, language)
 const HEALTH_ROUTE_OLD = 'if (request.method === "GET" && path === "/health") return json2({ ok: true, component: "passkey-auth-staging", production: false }, 200, headers);';
 const HEALTH_AND_SMOKE_ROUTES = `if (request.method === "GET" && path === "/health") return json2({ ok: true, component: "passkey-auth-staging", production: false, liveSearchConfigured: Boolean(env.AGENT_GATEWAY_TOKEN), searchProvider: "tavily" }, 200, headers);
     if (request.method === "POST" && path === "/internal/search-smoke") {
-      const expected = typeof env.AGENT_GATEWAY_TOKEN === "string" ? env.AGENT_GATEWAY_TOKEN : "";
+      const expected = typeof env.AGENT_GATEWAY_TOKEN === "string" ? env.AGENT_GATEWAY_TOKEN.trim() : "";
       const header = request.headers.get("authorization") || "";
-      const supplied = header.startsWith("Bearer ") ? header.slice(7) : "";
+      const supplied = header.startsWith("Bearer ") ? header.slice(7).trim() : "";
       let mismatch = supplied.length ^ expected.length;
       const maxLength = Math.max(supplied.length, expected.length);
       for (let i = 0; i < maxLength; i++) mismatch |= (supplied.charCodeAt(i) || 0) ^ (expected.charCodeAt(i) || 0);
