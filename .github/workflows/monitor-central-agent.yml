@@ -42,7 +42,54 @@ jobs:
             cat "$body"
             exit 1
           fi
-          node -e 'const fs=require("fs"); const x=JSON.parse(fs.readFileSync(process.argv[1],"utf8")); if(x.ok!==true) throw Error("health ok flag is not true"); if(x.capabilities?.tavilySearchConfigured!==true) throw Error("tavilySearchConfigured is not true"); if(x.capabilities?.ownerAuthentication!==true) throw Error("ownerAuthentication is not configured"); console.log(JSON.stringify({ok:x.ok,service:x.service,version:x.version, tavilySearchConfigured:x.capabilities.tavilySearchConfigured,ownerAuthentication:x.capabilities.ownerAuthentication},null,2));' "$body"
+          node -e 'const fs=require("fs"); const x=JSON.parse(fs.readFileSync(process.argv[1],"utf8")); if(x.ok!==true) throw Error("health ok flag is not true"); if(x.capabilities?.tavilySearchConfigured!==true) throw Error("tavilySearchConfigured is not true"); if(x.capabilities?.ownerAuthentication!==true) throw Error("ownerAuthentication is not configured"); if(x.capabilities?.durableTaskQueue!==true) throw Error("durableTaskQueue is not configured"); console.log(JSON.stringify({ok:x.ok,service:x.service,version:x.version,tavilySearchConfigured:x.capabilities.tavilySearchConfigured,ownerAuthentication:x.capabilities.ownerAuthentication,durableTaskQueue:x.capabilities.durableTaskQueue},null,2));' "$body"
+
+      - name: Verify durable queue Cron schedule
+        shell: bash
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          set -euo pipefail
+          test -n "$CLOUDFLARE_API_TOKEN" || { echo "::error::Missing CLOUDFLARE_API_TOKEN"; exit 1; }
+          test -n "$CLOUDFLARE_ACCOUNT_ID" || { echo "::error::Missing CLOUDFLARE_ACCOUNT_ID"; exit 1; }
+          tmp="$(mktemp)"
+          trap 'rm -f "$tmp"; unset CLOUDFLARE_API_TOKEN' EXIT
+          code="$(curl --silent --show-error --max-time 15 --output "$tmp" --write-out '%{http_code}' -H "authorization: Bearer $CLOUDFLARE_API_TOKEN" "https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/workers/scripts/shrill-silence-164f/schedules")"
+          test "$code" = "200" || { echo "::error::Unable to read Central Agent Cron schedule (HTTP $code)"; exit 1; }
+          node -e 'const fs=require("fs"); const x=JSON.parse(fs.readFileSync(process.argv[1],"utf8")); if(x.success!==true||!Array.isArray(x.result?.schedules)||!x.result.schedules.some(s=>s.cron==="*/15 * * * *")) throw Error("Expected configured Cron schedule */15 * * * *"); console.log(JSON.stringify({ok:true,expectedCron:"*/15 * * * *",configuredCrons:x.result.schedules.map(s=>s.cron)}));' "$tmp"
+
+      - name: Verify owner-scoped durable queue endpoints without creating tasks
+        shell: bash
+        env:
+          CENTRAL_AGENT_URL: https://shrill-silence-164f.lostgodsgods.workers.dev
+          OWNER_PASSWORD: ${{ secrets.CENTRAL_AGENT_OWNER_PASSWORD }}
+        run: |
+          set -euo pipefail
+          test -n "$OWNER_PASSWORD" || { echo "::error::Missing CENTRAL_AGENT_OWNER_PASSWORD"; exit 1; }
+          tmp="$(mktemp -d)"
+          trap 'rm -rf "$tmp"; unset OWNER_PASSWORD' EXIT
+          login_code="$(curl --silent --show-error --max-time 15 --output "$tmp/login.json" --write-out '%{http_code}' -H 'content-type: application/json' -X POST "$CENTRAL_AGENT_URL/auth/login" --data "$(node -e 'process.stdout.write(JSON.stringify({password:process.env.OWNER_PASSWORD}))')")"
+          test "$login_code" = "200" || { echo "::error::Owner login failed during queue read-only check (HTTP $login_code)"; exit 1; }
+          token="$(node -e 'const x=require(process.argv[1]); if(x.ok!==true||typeof x.token!=="string"||!x.token) process.exit(1); process.stdout.write(x.token)' "$tmp/login.json")"
+          tasks_code="$(curl --silent --show-error --max-time 15 --output "$tmp/tasks.json" --write-out '%{http_code}' -H "authorization: Bearer $token" "$CENTRAL_AGENT_URL/tasks?limit=1")"
+          test "$tasks_code" = "200" || { echo "::error::Owner queue listing failed (HTTP $tasks_code)"; exit 1; }
+          results_code="$(curl --silent --show-error --max-time 15 --output "$tmp/results.json" --write-out '%{http_code}' -H "authorization: Bearer $token" "$CENTRAL_AGENT_URL/results?limit=1")"
+          unset token OWNER_PASSWORD
+          test "$results_code" = "200" || { echo "::error::Owner result listing failed (HTTP $results_code)"; exit 1; }
+          node -e 'const fs=require("fs"); const t=JSON.parse(fs.readFileSync(process.argv[1],"utf8")); const r=JSON.parse(fs.readFileSync(process.argv[2],"utf8")); if(t.ok!==true||!Array.isArray(t.tasks)||r.ok!==true||!Array.isArray(r.results)) throw Error("Queue/result response shape is invalid"); console.log(JSON.stringify({ok:true,queueEndpoint:"PASS",resultsEndpoint:"PASS",taskCountVisible:t.tasks.length,resultCountVisible:r.results.length,createdTask:false}));' "$tmp/tasks.json" "$tmp/results.json"
+
+      - name: Verify unauthenticated task submission is denied
+        shell: bash
+        env:
+          CENTRAL_AGENT_URL: https://shrill-silence-164f.lostgodsgods.workers.dev
+        run: |
+          set -euo pipefail
+          tmp="$(mktemp)"
+          trap 'rm -f "$tmp"' EXIT
+          code="$(curl --silent --show-error --max-time 15 --output "$tmp" --write-out '%{http_code}' -H 'content-type: application/json' -X POST "$CENTRAL_AGENT_URL/tasks" --data '{"query":"unauthorized monitor probe"}')"
+          test "$code" = "401" || { echo "::error::Unauthenticated task submission was not denied with HTTP 401 (got $code)"; exit 1; }
+          node -e 'const fs=require("fs"); const x=JSON.parse(fs.readFileSync(process.argv[1],"utf8")); if(x.error!=="Unauthorized. Sign in with your Owner password.") throw Error("Unexpected unauthenticated task response"); console.log(JSON.stringify({ok:true,unauthenticatedTaskSubmission:"DENIED",taskCreated:false}));' "$tmp"
 
       - name: Verify owner-authenticated Tavily live search
         shell: bash
