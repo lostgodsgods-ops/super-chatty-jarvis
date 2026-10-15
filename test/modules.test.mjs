@@ -292,7 +292,8 @@ test("autonomous executor runs only an approved queued allowlisted task and reco
   assert.equal(body.status, "completed");
   assert.match(body.result.summary, /bounded AI executor/);
   assert.equal(aiInput.model, "@cf/meta/llama-3.1-8b-instruct");
-  assert.match(aiInput.input.messages[0].content, /read_only_research/);
+  assert.match(aiInput.input.messages[0].content, /read-only research-style summary/);
+  assert.match(aiInput.input.messages[1].content, /read_only_research/);
   assert.match(aiInput.input.messages[1].content, /Summarize public API documentation/);
   assert.equal(batches.length, 3);
   assert.match(batches[0].sql, /INSERT INTO owner_task_results/);
