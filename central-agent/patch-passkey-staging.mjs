@@ -46,7 +46,7 @@ const LIVE_SEARCH_FUNCTION = `async function runLiveSearch(query, env, language)
 
   let response;
   const searchEndpoints = [CENTRAL_AGENT_SEARCH_ENDPOINT];
-  if (CENTRAL_AGENT_SEARCH_ENDPOINT.endsWith("/search")) {
+  if (CENTRAL_AGENT_SEARCH_ENDPOINT.endsWith("/search") && !CENTRAL_AGENT_SEARCH_ENDPOINT.endsWith("/internal/search")) {
     searchEndpoints.push(CENTRAL_AGENT_SEARCH_ENDPOINT.replace(/\\/search$/, "/internal/search"));
   }
   try {
@@ -271,8 +271,8 @@ export function patchWorkerBundle(source) {
 
   let patched = source;
   const braveConstant = 'var BRAVE_SEARCH_ENDPOINT = "https://api.search.brave.com/res/v1/web/search";';
-  const gatewayConstant = 'var CENTRAL_AGENT_SEARCH_ENDPOINT = "https://shrill-silence-164f.lostgodsgods.workers.dev/search";';
-  const legacyGatewayConstant = 'var CENTRAL_AGENT_SEARCH_ENDPOINT = "https://shrill-silence-164f.lostgodsgods.workers.dev/internal/search";';
+  const gatewayConstant = 'var CENTRAL_AGENT_SEARCH_ENDPOINT = "https://shrill-silence-164f.lostgodsgods.workers.dev/internal/search";';
+  const legacyGatewayConstant = 'var CENTRAL_AGENT_SEARCH_ENDPOINT = "https://shrill-silence-164f.lostgodsgods.workers.dev/search";';
   if (patched.includes(braveConstant)) patched = patched.replace(braveConstant, gatewayConstant);
   else if (patched.includes(legacyGatewayConstant)) patched = patched.replace(legacyGatewayConstant, gatewayConstant);
   else if (!patched.includes(gatewayConstant)) throw new Error("Could not find the expected search provider constant; refusing to deploy.");
