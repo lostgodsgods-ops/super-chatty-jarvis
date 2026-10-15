@@ -36,7 +36,6 @@ class FakeDB {
           if (!db.row) return { meta: { changes: 0 } };
           db.row.salt = this.params[0];
           db.row.password_hash = this.params[1];
-          db.row.updated_at = this.params[2];
           return { meta: { changes: 1 } };
         }
         return { meta: { changes: 0 } };
