@@ -8,6 +8,14 @@ var MAX_SEARCH_RESULTS = 5;
 var initialReply = "AI response service is not connected in this staging build yet.";
 var serviceWorkerSource = 'const CACHE="scj-pwa-v2";';
 const serviceResultRoute = request.method === "POST" && ["/results", "/tasks/claim"].includes(path);
+
+var oldChatGuardFixture = 'else if (env.CHAT_API_ENABLED === "false" || !env.AI || typeof env.AI.run !== "function") {';
+async function sendCurrentMessage() {
+  if(!$("historyPanel").hidden)await persistConversationMessage("user",message);
+  const r=await fetch("/api/chat",{method:"POST",credentials:"same-origin",headers:{"content-type":"application/json"},body:JSON.stringify({message,language:$("language").value})});
+  return r;
+}
+
 async function runLiveSearch(query, env, language) {
   return json2({ ok: false });
 }
@@ -47,6 +55,10 @@ test("patch routes PWA search through the protected central Tavily gateway", () 
   assert.match(result, /CHAT_GATEWAY_NETWORK_ERROR/);
   assert.doesNotMatch(result, /AI response service is not connected in this staging build yet/);
   assert.match(result, /scj-pwa-v3/);
+  assert.match(result, /CHAT_API_ENABLED === "false" \\|\\| !env\\.SEARCH_BRIDGE_TOKEN/);
+  assert.match(result, /Chatty is processing your message/);
+  assert.match(result, /AbortSignal\\.timeout\\(18000\\)/);
+  assert.doesNotMatch(result, /await persistConversationMessage\\("user",message\\)/);
 });
 
 test("PWA delegates synthesis to central gateway and validates successful search", () => {
