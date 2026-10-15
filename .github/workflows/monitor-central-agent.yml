@@ -79,17 +79,33 @@ jobs:
           fi
           node -e 'const fs=require("fs"); const x=JSON.parse(fs.readFileSync(process.argv[1],"utf8")); if(x.ok!==true||x.provider!=="tavily"||!Array.isArray(x.results)||x.results.length<1) throw Error("Expected ok=true, provider=tavily, and at least one result"); const urls=x.results.map(r=>r.url); if(urls.some(u=>typeof u!=="string"||!/^https?:\/\//i.test(u))) throw Error("One or more result URLs are invalid"); console.log(JSON.stringify({ok:x.ok,provider:x.provider,resultCount:x.results.length,sourceUrls:urls},null,2));' "$tmp/search.json"
 
-      - name: Verify Talk to Chatty PWA search gateway configuration
+      - name: Verify Talk to Chatty PWA chat and Tavily proxy end-to-end
         shell: bash
         env:
           PASSKEY_WORKER_URL: https://super-chatty-passkey-staging.lostgodsgods.workers.dev
+          AGENT_GATEWAY_TOKEN: \${{ secrets.AGENT_GATEWAY_TOKEN }}
         run: |
           set -euo pipefail
-          tmp="$(mktemp)"
-          trap 'rm -f "$tmp"' EXIT
-          code="$(curl --silent --show-error --max-time 15 --output "$tmp" --write-out '%{http_code}' "$PASSKEY_WORKER_URL/health")"
-          test "$code" = "200" || { echo "::error::Talk to Chatty PWA health failed with HTTP $code"; exit 1; }
-          node -e 'const fs=require("node:fs"); const x=JSON.parse(fs.readFileSync(process.argv[1],"utf8")); if(x.ok!==true||x.liveSearchConfigured!==true||x.searchProvider!=="tavily") throw Error("Talk to Chatty PWA search gateway is not configured"); console.log(JSON.stringify({ok:x.ok,component:x.component,liveSearchConfigured:x.liveSearchConfigured,searchProvider:x.searchProvider}));' "$tmp"
+          test -n "$AGENT_GATEWAY_TOKEN" || { echo "::error::Missing AGENT_GATEWAY_TOKEN"; exit 1; }
+          tmp="$(mktemp -d)"
+          trap 'rm -rf "$tmp"; unset AGENT_GATEWAY_TOKEN' EXIT
+          health_code="$(curl --silent --show-error --max-time 15 --output "$tmp/health.json" --write-out '%{http_code}' "$PASSKEY_WORKER_URL/health")"
+          test "$health_code" = "200" || { echo "::error::Talk to Chatty PWA health failed with HTTP $health_code"; exit 1; }
+          node -e 'const fs=require("node:fs"); const x=JSON.parse(fs.readFileSync(process.argv[1],"utf8")); if(x.ok!==true||x.liveSearchConfigured!==true||x.searchProvider!=="tavily") throw Error("PWA live search gateway is not configured"); console.log(JSON.stringify({ok:x.ok,liveSearchConfigured:x.liveSearchConfigured,searchProvider:x.searchProvider}));' "$tmp/health.json"
+          chat_code="$(curl --silent --show-error --max-time 20 --output "$tmp/chat.json" --write-out '%{http_code}' -H 'content-type: application/json' -H "authorization: Bearer $AGENT_GATEWAY_TOKEN" -X POST "$PASSKEY_WORKER_URL/internal/chat-smoke" --data '{"message":"Reply with a short greeting for the Super Chatty Jarvis staging connectivity test.","language":"en-IN"}')"
+          if [[ "$chat_code" != "200" ]]; then
+            echo "::error::Talk to Chatty PWA AI chat proxy failed with HTTP $chat_code"
+            node -e 'const fs=require("node:fs"); try {const x=JSON.parse(fs.readFileSync(process.argv[1],"utf8")); console.log(JSON.stringify({error:x.error||"Chat proxy failed",code:x.code||null}));} catch {console.log("Chat response was not valid JSON.");}' "$tmp/chat.json"
+            exit 1
+          fi
+          node -e 'const fs=require("node:fs"); const x=JSON.parse(fs.readFileSync(process.argv[1],"utf8")); if(x.ok!==true||typeof x.reply!=="string"||!x.reply.trim()||x.core?.intent!=="chat"||x.core?.externalActionsPerformed!==false) throw Error("Expected a real AI chat reply with no external actions"); console.log(JSON.stringify({ok:x.ok,provider:x.provider,model:x.model,replyLength:x.reply.length,intent:x.core.intent,externalActionsPerformed:x.core.externalActionsPerformed}));' "$tmp/chat.json"
+          search_code="$(curl --silent --show-error --max-time 25 --output "$tmp/search.json" --write-out '%{http_code}' -H 'content-type: application/json' -H "authorization: Bearer $AGENT_GATEWAY_TOKEN" -X POST "$PASSKEY_WORKER_URL/internal/search-smoke" --data '{"query":"Cloudflare Workers health checks documentation"}')"
+          if [[ "$search_code" != "200" ]]; then
+            echo "::error::Talk to Chatty PWA Tavily proxy failed with HTTP $search_code"
+            node -e 'const fs=require("node:fs"); try {const x=JSON.parse(fs.readFileSync(process.argv[1],"utf8")); console.log(JSON.stringify({error:x.error||"Search proxy failed",code:x.code||null,providerStatus:x.providerStatus||null}));} catch {console.log("Search response was not valid JSON.");}' "$tmp/search.json"
+            exit 1
+          fi
+          node -e 'const fs=require("node:fs"); const x=JSON.parse(fs.readFileSync(process.argv[1],"utf8")); if(x.ok!==true||x.core?.webSearchExecuted!==true||x.core?.searchProvider!=="tavily"||!Array.isArray(x.sources)||x.sources.length<1) throw Error("Expected a live Tavily result with at least one source"); if(x.sources.some(s=>typeof s.url!=="string"||!/^https?:\/\//i.test(s.url))) throw Error("Invalid source URL"); console.log(JSON.stringify({ok:x.ok,searchProvider:x.core.searchProvider,sourceCount:x.sources.length,sourceUrls:x.sources.map(s=>s.url)},null,2));' "$tmp/search.json"
 
       - name: Open or update incident issue on failure
         if: failure() && github.event_name != 'pull_request'
