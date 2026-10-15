@@ -157,7 +157,14 @@ export default {
           : typeof result?.choices?.[0]?.message?.content === "string" ? result.choices[0].message.content.trim()
           : "";
         if (!answer) return json({ error: "AI provider returned no reply.", code: "AI_PROVIDER_EMPTY_RESPONSE" }, 502, cors);
-        return json({ ok: true, answer, provider: "workers-ai", model }, 200, cors);
+        return json({
+          ok: true,
+          answer,
+          reply: answer,
+          provider: "workers-ai",
+          model,
+          core: { intent: "chat", requiresTaskApproval: false, externalActionsPerformed: false }
+        }, 200, cors);
       } catch (error) {
         console.warn("central_chat_provider_error", { errorName: typeof error?.name === "string" ? error.name : "Error" });
         return json({ error: "AI request failed. Check provider quota, network access, and model availability.", code: "AI_PROVIDER_UNAVAILABLE" }, 502, cors);
