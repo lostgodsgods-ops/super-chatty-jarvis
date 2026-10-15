@@ -262,6 +262,6 @@ test("Owner task console creates, approves, runs, and refreshes bounded tasks", 
   assert.match(APP_HTML, /id="refreshTasks"/);
   assert.match(APP_HTML, /id="runNextTask"/);
   assert.match(APP_HTML, /\/tasks\/run-next/);
-  assert.match(APP_HTML, /\/tasks\/\$\{encodeURIComponent\(task\.id\)\}\/approve/);
+  assert.match(APP_HTML, /\/tasks\/"\+encodeURIComponent\(task\.id\)\+"\/approve/);
   assert.match(APP_HTML, /renderTaskList/);
 });
