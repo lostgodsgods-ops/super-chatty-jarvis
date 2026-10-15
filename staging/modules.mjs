@@ -25,6 +25,27 @@ function extractPlannerText(output) {
   return "";
 }
 
+export function parseBossCommand(rawMessage) {
+  if (typeof rawMessage !== "string") return { intent: "chat", goal: "", requiresTaskApproval: true };
+  const message = rawMessage.trim();
+  if (!message || message.length > MAX_MISSION_GOAL) return { intent: "chat", goal: "", requiresTaskApproval: true };
+  const patterns = [
+    /\b(?:create|start|make)\s+(?:a\s+)?mission\b/i,
+    /\bplan\s+(?:a\s+)?mission\b/i,
+    /\bmission\s+(?:banao|bana\s+do|create)\b/i,
+    /मिशन\s*(?:बनाओ|बना\s+दो|बनाना)/
+  ];
+  for (const pattern of patterns) {
+    const match = pattern.exec(message);
+    if (!match) continue;
+    const goal = message.slice(match.index + match[0].length)
+      .replace(/^\s*(?:to|for|that|ki|कि|के\s+लिए|:|-|,)+\s*/i, "")
+      .trim();
+    if (!goal || goal.length > MAX_MISSION_GOAL) return { intent: "chat", goal: "", requiresTaskApproval: true };
+    return { intent: "create_mission", goal, requiresTaskApproval: true };
+  }
+  return { intent: "chat", goal: "", requiresTaskApproval: true };
+}
 export function normalizeMissionPlan(rawText, goal, context = "") {
   let parsed = null;
   if (typeof rawText === "string") {
