@@ -211,6 +211,7 @@ test("owner can change password with the current password and old password stops
   assert.equal(changed.status, 200);
   assert.equal((await changed.json()).ok, true);
   assert.equal((await call(e, "/auth/login", { password: "a-long-memorable-password" })).status, 401);
+  assert.equal((await call(e, "/policy", undefined, token)).status, 401, "password change revokes the prior session");
   assert.equal((await call(e, "/auth/login", { password: "another-long-memorable-password" })).status, 200);
 });
 
@@ -223,4 +224,12 @@ test("password change rejects weak or incorrect current passwords", async () => 
   assert.equal((await call(e, "/auth/change-password", {
     currentPassword: "a-long-memorable-password", newPassword: "short"
   }, token)).status, 400);
+});
+
+
+test("owner login page does not persist passwords or session tokens in browser storage", async () => {
+  const response = await call(env(), "/owner");
+  const html = await response.text();
+  assert.doesNotMatch(html, /localStorage|sessionStorage/);
+  assert.match(html, /let ownerSessionToken=""/);
 });
