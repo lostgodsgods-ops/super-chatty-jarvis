@@ -7,7 +7,7 @@ import { join } from "node:path";
 const API = "https://api.cloudflare.com/client/v4";
 const WORKER_NAME = "super-chatty-passkey-staging";
 
-const CENTRAL_AGENT_CHAT_ENDPOINT = "https://shrill-silence-164f.lostgodsgods.workers.dev/internal/chat";
+const CENTRAL_AGENT_CHAT_ENDPOINT = "https://shrill-silence-164f.lostgodsgods.workers.dev/chat";
 const CHAT_PROXY_BODY = `const gatewayToken = typeof env.SEARCH_BRIDGE_TOKEN === "string" ? env.SEARCH_BRIDGE_TOKEN.trim() : "";
               if (!gatewayToken) {
                 response = json2({ error: "AI response gateway is not configured.", code: "CHAT_GATEWAY_NOT_CONFIGURED" }, 503);
@@ -22,10 +22,10 @@ const CHAT_PROXY_BODY = `const gatewayToken = typeof env.SEARCH_BRIDGE_TOKEN ===
                   const payload = await upstream.json().catch(() => ({}));
                   if (!upstream.ok) {
                     response = json2({ error: payload.error || "AI response gateway returned HTTP " + upstream.status, code: payload.code || "CHAT_GATEWAY_HTTP_ERROR" }, upstream.status >= 400 ? upstream.status : 502);
-                  } else if (payload.ok !== true || typeof payload.reply !== "string" || !payload.reply.trim()) {
+                  } else if (payload.ok !== true || !(typeof payload.reply === "string" || typeof payload.answer === "string") || !(typeof payload.reply === "string" ? payload.reply : payload.answer).trim()) {
                     response = json2({ error: "AI response gateway returned an incomplete response.", code: "CHAT_GATEWAY_INCOMPLETE" }, 502);
                   } else {
-                    response = json2({ ok: true, reply: payload.reply, model: payload.model || "central-agent-workers-ai", core: { ...(payload.core || {}), intent: "chat", requiresTaskApproval: false, externalActionsPerformed: false } });
+                    response = json2({ ok: true, reply: typeof payload.reply === "string" ? payload.reply : payload.answer, model: payload.model || "central-agent-workers-ai", core: { ...(payload.core || {}), intent: "chat", requiresTaskApproval: false, externalActionsPerformed: false } });
                   }
                 } catch (error) {
                   console.warn("SCJ_CHAT_GATEWAY_ERROR", { errorName: typeof error?.name === "string" ? error.name : "Error" });
@@ -158,10 +158,10 @@ const CHAT_SMOKE_ROUTE = `if (request.method === "POST" && path === "/internal/c
           signal: AbortSignal.timeout(12000)
         });
         const payload = await response.json().catch(() => ({}));
-        if (!response.ok || payload?.ok !== true || typeof payload?.reply !== "string" || !payload.reply.trim()) {
+        if (!response.ok || payload?.ok !== true || !(typeof payload?.reply === "string" || typeof payload?.answer === "string") || !(typeof payload?.reply === "string" ? payload.reply : payload.answer).trim()) {
           return json2({ error: payload.error || "AI response smoke test failed", code: payload.code || "CHAT_GATEWAY_INCOMPLETE" }, response.ok ? 502 : response.status, headers);
         }
-        return json2({ ok: true, provider: payload.provider || "workers-ai", reply: payload.reply, model: payload.model || "central-agent-workers-ai", core: { ...(payload.core || {}), intent: "chat", externalActionsPerformed: false } }, 200, headers);
+        return json2({ ok: true, provider: payload.provider || "workers-ai", reply: typeof payload.reply === "string" ? payload.reply : payload.answer, model: payload.model || "central-agent-workers-ai", core: { ...(payload.core || {}), intent: "chat", externalActionsPerformed: false } }, 200, headers);
       } catch (error) {
         console.warn("SCJ_CHAT_SMOKE_ERROR", { errorName: typeof error?.name === "string" ? error.name : "Error" });
         return json2({ error: "AI response smoke test could not reach the gateway", code: "CHAT_GATEWAY_NETWORK_ERROR" }, 502, headers);
@@ -267,7 +267,7 @@ export function patchWorkerBundle(source) {
   const gatewayConstant = 'var CENTRAL_AGENT_SEARCH_ENDPOINT = "https://shrill-silence-164f.lostgodsgods.workers.dev/internal/search";';
   if (patched.includes(braveConstant)) patched = patched.replace(braveConstant, gatewayConstant);
   else if (!patched.includes(gatewayConstant)) throw new Error("Could not find the expected search provider constant; refusing to deploy.");
-  const chatGatewayConstant = 'var CENTRAL_AGENT_CHAT_ENDPOINT = "https://shrill-silence-164f.lostgodsgods.workers.dev/internal/chat";';
+  const chatGatewayConstant = 'var CENTRAL_AGENT_CHAT_ENDPOINT = "https://shrill-silence-164f.lostgodsgods.workers.dev/chat";';
   if (!patched.includes(chatGatewayConstant)) patched = patched.replace(gatewayConstant, gatewayConstant + "\n" + chatGatewayConstant);
 
   const functionStart = patched.indexOf('async function runLiveSearch(query, env, language) {');
