@@ -41,7 +41,13 @@ Required GitHub Actions secrets:
 - A Cloudflare Cron trigger runs every 15 minutes and processes at most three explicitly approved queued searches per tick. It cannot create tasks, widen scopes, call arbitrary URLs, or perform other external side effects. This is bounded scheduled retrieval, not model retraining or an unlimited global crawler.
 - Task records and audit events are stored in the existing D1 database. Tables are provisioned lazily by the queue module. A task is accepted only if the task and approval audit can be written in a D1 batch.
 
-## Controlled knowledge queue\n\n- The queue stores fetched source metadata/content as a durable per-task result. It does not modify model weights or claim to synchronize all global knowledge.\n- Owner approval is per exact query, action, and one-time nonce. The scheduler only consumes rows already stored with `owner_approved = 1`.\n- `SEARCH_API_KEY` must be configured as a Worker secret. If D1 or the key is unavailable, task creation/execution fails closed.\n\n## Security status and limitations
+## Controlled knowledge queue
+
+- The queue stores fetched source metadata/content as a durable per-task result. It does not modify model weights or claim to synchronize all global knowledge.
+- Owner approval is per exact query, action, and one-time nonce. The scheduler only consumes rows already stored with `owner_approved = 1`.
+- `SEARCH_API_KEY` must be configured as a Worker secret. If D1 or the key is unavailable, task creation/execution fails closed.
+
+## Security status and limitations
 
 - Tavily search runs server-side; the API key is a Cloudflare Worker secret and is never returned to clients.
 - No Gemini API key or Gemini provider is used.
