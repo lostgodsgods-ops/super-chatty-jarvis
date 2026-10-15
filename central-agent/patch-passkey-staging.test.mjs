@@ -5,6 +5,8 @@ import { patchWorkerBundle } from "./patch-passkey-staging.mjs";
 const fixture = `
 var BRAVE_SEARCH_ENDPOINT = "https://api.search.brave.com/res/v1/web/search";
 var MAX_SEARCH_RESULTS = 5;
+var initialReply = "AI response service is not connected in this staging build yet.";
+var serviceWorkerSource = 'const CACHE="scj-pwa-v2";';
 async function runLiveSearch(query, env, language) {
   return json2({ ok: false });
 }
