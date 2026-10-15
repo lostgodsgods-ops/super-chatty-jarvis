@@ -262,7 +262,8 @@ $("send").addEventListener("click",async()=>{
   const data=await r.json().catch(()=>({error:"Invalid server response"}));
   if(r.status===503){$("reply").textContent="Chat backend is not configured in staging yet or is temporarily unavailable.";sayStatus(data.error||"AI provider unavailable.");return;}
   if(!r.ok){sayStatus(data.error||"Chat request failed.");return;}
-  $("reply").textContent=data.reply||"No response returned.";sayStatus("Response received.");
+  $("reply").textContent=data.reply||"No response returned.";sayStatus(data.core?.intent==="create_mission"?"Mission created · review the tasks and approve each one in Mission Control.":"Response received.");
+  if(data.core?.intent==="create_mission"){await refreshTasks();await refreshMissions();}
   if(data.reply){if(!$("historyPanel").hidden)await persistConversationMessage("assistant",data.reply);void speakText(data.reply);}
  }catch(e){sayStatus("Chat request failed. Check connection and try again.");}
  finally{$("send").disabled=false;}
