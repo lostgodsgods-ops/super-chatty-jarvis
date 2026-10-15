@@ -300,7 +300,10 @@ export function patchWorkerBundle(source) {
     const localChatEnd = patched.indexOf(localChatEndMarker, localChatStart);
     if (localChatEnd < 0) throw new Error("Could not locate the end of the PWA chat handler; refusing to deploy.");
     patched = patched.slice(0, localChatStart) + CHAT_PROXY_BODY + patched.slice(localChatEnd);
-  } else if (!patched.slice(chatRouteStart).includes("fetch(CENTRAL_AGENT_CHAT_ENDPOINT")) {
+  } else if (
+    !patched.slice(chatRouteStart).includes("fetch(CENTRAL_AGENT_CHAT_ENDPOINT") &&
+    !patched.slice(chatRouteStart).includes("fetchCentralAgent(env, CENTRAL_AGENT_CHAT_ENDPOINT")
+  ) {
     throw new Error("PWA chat handler is neither patchable nor already connected to the central AI gateway.");
   }
 
@@ -342,7 +345,13 @@ export function patchWorkerBundle(source) {
   patched = patched.replace('if(!r.ok){sayStatus(data.error||"Chat request failed.");return;}', 'if(!r.ok){$(\"reply\").textContent=data.error||\"Chat request failed.\";sayStatus(data.error||\"Chat request failed.\");return;}');
   patched = patched.replace('}catch(e){sayStatus("Chat request failed. Check connection and try again.");}', '}catch(e){$(\"reply\").textContent=\"Chat request failed. Check connection and try again.\";sayStatus(\"Chat request failed. Check connection and try again.\");}');
 
-  if (!patched.includes('payload?.sources') || !patched.includes('searchProvider: "tavily"') || !patched.includes("CENTRAL_AGENT_SEARCH_ENDPOINT") || !patched.includes("CENTRAL_AGENT_CHAT_ENDPOINT") || !patched.includes("fetch(CENTRAL_AGENT_CHAT_ENDPOINT")) {
+  if (
+    !patched.includes('payload?.sources') ||
+    !patched.includes('searchProvider: "tavily"') ||
+    !patched.includes("CENTRAL_AGENT_SEARCH_ENDPOINT") ||
+    !patched.includes("CENTRAL_AGENT_CHAT_ENDPOINT") ||
+    (!patched.includes("fetch(CENTRAL_AGENT_CHAT_ENDPOINT") && !patched.includes("fetchCentralAgent(env, CENTRAL_AGENT_CHAT_ENDPOINT"))
+  ) {
     throw new Error("Patched search validation failed; refusing to deploy.");
   }
   return patched;
