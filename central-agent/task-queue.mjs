@@ -5,7 +5,7 @@ const MAX_TASKS_PER_TICK = 3;
 
 export function normalizeKnowledgeQuery(value) {
   if (typeof value !== "string") return "";
-  const query = value.replace(/[\\u0000-\\u001f\\u007f]/g, " ").replace(/\\s+/g, " ").trim();
+  const query = value.replace(/[\u0000-\u001f\u007f]/g, " ").replace(/\s+/g, " ").trim();
   return query.length > 0 && query.length <= MAX_QUERY_LENGTH ? query : "";
 }
 
@@ -138,7 +138,7 @@ export async function processApprovedKnowledgeTasks(env, limit = MAX_TASKS_PER_T
       const payload = await response.json();
       const sources = Array.isArray(payload?.results) ? payload.results.slice(0, MAX_RESULTS).map(item => ({
         title: typeof item?.title === "string" ? item.title.slice(0, 300) : "",
-        url: typeof item?.url === "string" && /^https?:\\/\\//i.test(item.url) ? item.url : "",
+        url: typeof item?.url === "string" && /^https?:\/\//i.test(item.url) ? item.url : "",
         content: typeof item?.content === "string" ? item.content.slice(0, 2000) : "",
         publishedDate: typeof item?.published_date === "string" ? item.published_date.slice(0, 80) : null
       })).filter(item => item.url) : [];
