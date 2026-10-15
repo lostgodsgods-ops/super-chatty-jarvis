@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { patchWorkerBundle } from "./patch-passkey-staging.mjs";
+import { extractWorkerSource, patchWorkerBundle } from "./patch-passkey-staging.mjs";
 
 const fixture = `
 var BRAVE_SEARCH_ENDPOINT = "https://api.search.brave.com/res/v1/web/search";
@@ -75,4 +75,23 @@ test("patch is idempotent and refuses an unknown deployed bundle", () => {
   const twice = patchWorkerBundle(once);
   assert.equal(twice, once);
   assert.throws(() => patchWorkerBundle("unrecognized worker bundle"), /refusing to deploy/i);
+});
+
+
+test("extracts the JavaScript module from Cloudflare's multipart Worker response", () => {
+  const raw = [
+    "--worker-boundary",
+    'Content-Disposition: form-data; name="metadata"',
+    "Content-Type: application/json",
+    "",
+    "{}",
+    "--worker-boundary",
+    'Content-Disposition: form-data; name="worker.js"; filename="worker.js"',
+    "Content-Type: application/javascript+module",
+    "",
+    "export default { fetch() { return new Response('ok'); } };",
+    "--worker-boundary--",
+    ""
+  ].join("\r\n");
+  assert.equal(extractWorkerSource(raw), "export default { fetch() { return new Response('ok'); } };");
 });
