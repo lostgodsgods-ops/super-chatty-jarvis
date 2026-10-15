@@ -1,3 +1,4 @@
+// Mission orchestration is intentionally Owner-gated and limited to the three declared specialist roles.
 const OWNER_ID = 1;
 const TASK_TYPES = new Set(["read_only_research", "code_review"]);
 const MISSION_AGENT_COUNT = 3;
