@@ -4,6 +4,7 @@
  * No Gemini integration. Secrets are read only from Worker bindings.
  */
 import { describePolicy } from "./policy.mjs";
+import { enqueueKnowledgeTask, listKnowledgeTasks, getKnowledgeResults, processApprovedKnowledgeTasks } from "./task-queue.mjs";
 
 const VERSION = "1.3.0";
 const DEFAULT_WORKERS_AI_MODEL = "@cf/meta/llama-3.1-8b-instruct-fast";
@@ -510,14 +511,30 @@ export default {
     }
 
     if (url.pathname === "/tasks" && request.method === "POST") {
-      return json({
-        error: "Task persistence and approval-token consumption are not implemented; no task was queued.",
-        requiredBeforeEnablement: ["durable queue binding", "single-use action-scoped owner approval", "audit log", "executor allowlist", "tests"]
-      }, 503, cors);
+      let body;
+      try { body = await request.json(); } catch { return json({ error: "Expected JSON body." }, 400, cors); }
+      const result = await enqueueKnowledgeTask(env, body?.query, body?.ownerApproval);
+      return json(result.ok ? result : { error: result.error }, result.status, cors);
+    }
+
+    if (url.pathname === "/tasks" && request.method === "GET") {
+      try {
+        const tasks = await listKnowledgeTasks(env.DB, Number(url.searchParams.get("limit")) || 20);
+        return json({ ok: true, tasks }, 200, cors);
+      } catch {
+        return json({ error: "Durable task queue is unavailable." }, 503, cors);
+      }
     }
 
     if (url.pathname === "/results" && request.method === "GET") {
-      return json({ error: "Task results are unavailable because the durable task queue is not configured." }, 503, cors);
+      try {
+        const id = url.searchParams.get("id") || "";
+        const results = await getKnowledgeResults(env.DB, id, Number(url.searchParams.get("limit")) || 20);
+        if (id && !results) return json({ error: "Task result not found." }, 404, cors);
+        return json({ ok: true, results }, 200, cors);
+      } catch {
+        return json({ error: "Durable task results are unavailable." }, 503, cors);
+      }
     }
 
     if (url.pathname === "/auth/logout" && request.method === "POST") {
@@ -528,5 +545,11 @@ export default {
     }
 
     return json({ error: "Not found" }, 404, cors);
+  },
+
+  async scheduled(controller, env, ctx) {
+    const work = processApprovedKnowledgeTasks(env, 3);
+    if (ctx && typeof ctx.waitUntil === "function") ctx.waitUntil(work);
+    else await work;
   }
 };
