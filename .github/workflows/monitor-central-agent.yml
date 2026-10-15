@@ -21,7 +21,7 @@ jobs:
         id: health
         shell: bash
         env:
-          CENTRAL_AGENT_URL: https://shrill-silence-164f.workers.dev
+          CENTRAL_AGENT_URL: https://shrill-silence-164f.lostgodsgods.workers.dev
         run: |
           set -euo pipefail
           body="$(mktemp)"
@@ -38,7 +38,7 @@ jobs:
       - name: Verify owner-authenticated Tavily live search
         shell: bash
         env:
-          CENTRAL_AGENT_URL: https://shrill-silence-164f.workers.dev
+          CENTRAL_AGENT_URL: https://shrill-silence-164f.lostgodsgods.workers.dev
           OWNER_PASSWORD: ${{ secrets.CENTRAL_AGENT_OWNER_PASSWORD }}
         run: |
           set -euo pipefail
