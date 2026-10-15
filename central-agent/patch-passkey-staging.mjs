@@ -99,13 +99,17 @@ const LIVE_SEARCH_FUNCTION = `async function runLiveSearch(query, env, language)
 const HEALTH_ROUTE_OLD = 'if (request.method === "GET" && path === "/health") return json2({ ok: true, component: "passkey-auth-staging", production: false }, 200, headers);';
 const HEALTH_AND_SMOKE_ROUTES = `if (request.method === "GET" && path === "/health") return json2({ ok: true, component: "passkey-auth-staging", production: false, liveSearchConfigured: Boolean(env.SEARCH_BRIDGE_TOKEN), searchProvider: "tavily" }, 200, headers);
     if (request.method === "POST" && path === "/internal/search-smoke") {
-      const expected = typeof env.SEARCH_BRIDGE_TOKEN === "string" ? env.SEARCH_BRIDGE_TOKEN.trim() : "";
+      const expectedTokens = [env.SEARCH_BRIDGE_TOKEN, env.AGENT_GATEWAY_TOKEN].filter((value) => typeof value === "string" && value.trim()).map((value) => value.trim());
       const header = request.headers.get("authorization") || "";
       const supplied = header.startsWith("Bearer ") ? header.slice(7).trim() : "";
-      let mismatch = supplied.length ^ expected.length;
-      const maxLength = Math.max(supplied.length, expected.length);
-      for (let i = 0; i < maxLength; i++) mismatch |= (supplied.charCodeAt(i) || 0) ^ (expected.charCodeAt(i) || 0);
-      if (!expected || mismatch !== 0) return json2({ error: "Unauthorized" }, 401, headers);
+      let authenticated = false;
+      for (const expected of expectedTokens) {
+        let mismatch = supplied.length ^ expected.length;
+        const maxLength = Math.max(supplied.length, expected.length);
+        for (let i = 0; i < maxLength; i++) mismatch |= (supplied.charCodeAt(i) || 0) ^ (expected.charCodeAt(i) || 0);
+        if (mismatch === 0 && expected) authenticated = true;
+      }
+      if (!authenticated) return json2({ error: "Unauthorized" }, 401, headers);
       const limiter = env.AUTH_RATE_LIMITER;
       if (!limiter || typeof limiter.limit !== "function") return json2({ error: "Search smoke-test rate limiting unavailable" }, 503, headers);
       const ip = request.headers.get("CF-Connecting-IP") || "unknown";
