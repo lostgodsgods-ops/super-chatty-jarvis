@@ -6,7 +6,7 @@ Central Agent v1.3.0 adds an owner-defined password flow. It does not connect to
 
 - Open `/owner#setup=<one-time-token>` using the private setup link.
 - Choose and confirm a password of 12–256 characters.
-- The Worker derives a salted PBKDF2-HMAC-SHA-256 hash (210,000 iterations). The raw password is not stored.
+- The Worker derives a salted PBKDF2-HMAC-SHA-256 hash (100,000 iterations, the maximum supported by Cloudflare Workers Web Crypto). The raw password is not stored.
 - Sign-in returns a random session token held in the owner page's JavaScript memory only; it is not written to `localStorage` or `sessionStorage`. Sessions expire after one hour.
 - The credential row is protected by a D1 primary key so first-time setup can succeed only once.
 - Keep `OWNER_SETUP_TOKEN` as a GitHub Actions secret. The deployment workflow installs it as a Cloudflare Worker secret when deploying. Never put it in source code, a public issue, or a normal chat message.
