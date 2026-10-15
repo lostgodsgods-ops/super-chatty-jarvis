@@ -85,3 +85,36 @@ test("health reports gateway search readiness without exposing secrets", async (
   assert.equal(JSON.stringify(body).includes("gateway-test-token"), false);
   assert.equal(JSON.stringify(body).includes("private-tavily-key"), false);
 });
+
+
+test("internal chat rejects an incorrect gateway token", async () => {
+  const response = await worker.fetch(new Request("https://agent.example/internal/chat", {
+    method: "POST",
+    headers: { "content-type": "application/json", authorization: "Bearer wrong-token" },
+    body: JSON.stringify({ message: "Hello Chatty", language: "en-IN" })
+  }), { SEARCH_BRIDGE_TOKEN: "correct-token", AI: { run: async () => ({ response: "should not run" }) } });
+  assert.equal(response.status, 401);
+  assert.deepEqual(await response.json(), { error: "Unauthorized" });
+});
+
+test("internal chat uses the protected AI binding and returns a bounded reply", async () => {
+  const response = await worker.fetch(new Request("https://agent.example/internal/chat", {
+    method: "POST",
+    headers: { "content-type": "application/json", authorization: "Bearer correct-token" },
+    body: JSON.stringify({ message: "Hello Chatty", language: "en-IN" })
+  }), {
+    SEARCH_BRIDGE_TOKEN: "correct-token",
+    AI: { run: async (model, input) => {
+      assert.equal(model, "@cf/meta/llama-3.1-8b-instruct");
+      assert.equal(input.max_tokens, 450);
+      return { response: "Hello! I am ready to help." };
+    } }
+  });
+  const body = await response.json();
+  assert.equal(response.status, 200);
+  assert.equal(body.ok, true);
+  assert.equal(body.provider, "workers-ai");
+  assert.equal(body.reply, "Hello! I am ready to help.");
+  assert.equal(body.core.intent, "chat");
+  assert.equal(body.core.externalActionsPerformed, false);
+});
