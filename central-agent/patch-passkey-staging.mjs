@@ -3,7 +3,7 @@ import { pathToFileURL } from "node:url";
 const API = "https://api.cloudflare.com/client/v4";
 const WORKER_NAME = "super-chatty-passkey-staging";
 
-const LIVE_SEARCH_FUNCTION = \`async function runLiveSearch(query, env, language) {
+const LIVE_SEARCH_FUNCTION = `async function runLiveSearch(query, env, language) {
   const gatewayToken = typeof env.AGENT_GATEWAY_TOKEN === "string" ? env.AGENT_GATEWAY_TOKEN : "";
   if (!gatewayToken) {
     return json2({
@@ -94,7 +94,7 @@ const LIVE_SEARCH_FUNCTION = \`async function runLiveSearch(query, env, language
       externalActionsPerformed: false
     }
   });
-}\`
+}`;
 
 const HEALTH_ROUTE_OLD = 'if (request.method === "GET" && path === "/health") return json2({ ok: true, component: "passkey-auth-staging", production: false }, 200, headers);';
 const HEALTH_AND_SMOKE_ROUTES = `if (request.method === "GET" && path === "/health") return json2({ ok: true, component: "passkey-auth-staging", production: false, liveSearchConfigured: Boolean(env.AGENT_GATEWAY_TOKEN), searchProvider: "tavily" }, 200, headers);
