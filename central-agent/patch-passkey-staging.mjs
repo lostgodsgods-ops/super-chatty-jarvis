@@ -4,7 +4,7 @@ const API = "https://api.cloudflare.com/client/v4";
 const WORKER_NAME = "super-chatty-passkey-staging";
 
 const LIVE_SEARCH_FUNCTION = `async function runLiveSearch(query, env, language) {
-  const gatewayToken = typeof env.AGENT_GATEWAY_TOKEN === "string" ? env.AGENT_GATEWAY_TOKEN.trim() : "";
+  const gatewayToken = typeof env.SEARCH_BRIDGE_TOKEN === "string" ? env.SEARCH_BRIDGE_TOKEN.trim() : "";
   if (!gatewayToken) {
     return json2({
       error: "Live search gateway is not configured for this staging deployment.",
@@ -97,9 +97,9 @@ const LIVE_SEARCH_FUNCTION = `async function runLiveSearch(query, env, language)
 }`;
 
 const HEALTH_ROUTE_OLD = 'if (request.method === "GET" && path === "/health") return json2({ ok: true, component: "passkey-auth-staging", production: false }, 200, headers);';
-const HEALTH_AND_SMOKE_ROUTES = `if (request.method === "GET" && path === "/health") return json2({ ok: true, component: "passkey-auth-staging", production: false, liveSearchConfigured: Boolean(env.AGENT_GATEWAY_TOKEN), searchProvider: "tavily" }, 200, headers);
+const HEALTH_AND_SMOKE_ROUTES = `if (request.method === "GET" && path === "/health") return json2({ ok: true, component: "passkey-auth-staging", production: false, liveSearchConfigured: Boolean(env.SEARCH_BRIDGE_TOKEN), searchProvider: "tavily" }, 200, headers);
     if (request.method === "POST" && path === "/internal/search-smoke") {
-      const expected = typeof env.AGENT_GATEWAY_TOKEN === "string" ? env.AGENT_GATEWAY_TOKEN.trim() : "";
+      const expected = typeof env.SEARCH_BRIDGE_TOKEN === "string" ? env.SEARCH_BRIDGE_TOKEN.trim() : "";
       const header = request.headers.get("authorization") || "";
       const supplied = header.startsWith("Bearer ") ? header.slice(7).trim() : "";
       let mismatch = supplied.length ^ expected.length;
@@ -136,7 +136,7 @@ export function patchWorkerBundle(source) {
 
   if (patched.includes(HEALTH_ROUTE_OLD)) {
     patched = patched.replace(HEALTH_ROUTE_OLD, HEALTH_AND_SMOKE_ROUTES);
-  } else if (!patched.includes('liveSearchConfigured: Boolean(env.AGENT_GATEWAY_TOKEN)') || !patched.includes('path === "/internal/search-smoke"')) {
+  } else if (!patched.includes('liveSearchConfigured: Boolean(env.SEARCH_BRIDGE_TOKEN)') || !patched.includes('path === "/internal/search-smoke"')) {
     throw new Error("Could not locate the expected health route; refusing to deploy.");
   }
 
@@ -175,11 +175,11 @@ async function main() {
   if (!scriptResponse.ok) throw new Error("Unable to download the current staging Worker (HTTP " + scriptResponse.status + ").");
   const original = await scriptResponse.text();
   const settings = settingsPayload.result || {};
-  if (!Array.isArray(settings.bindings) || !settings.bindings.some((binding) => binding.name === "AGENT_GATEWAY_TOKEN" && binding.type === "secret_text")) {
-    throw new Error("AGENT_GATEWAY_TOKEN is not bound to the staging Worker before patch deployment.");
+  if (!Array.isArray(settings.bindings) || !settings.bindings.some((binding) => binding.name === "SEARCH_BRIDGE_TOKEN" && binding.type === "secret_text")) {
+    throw new Error("SEARCH_BRIDGE_TOKEN is not bound to the staging Worker before patch deployment.");
   }
-  if (!settings.bindings.some((binding) => binding.name === "AGENT_GATEWAY_TOKEN" && binding.type === "secret_text")) {
-    throw new Error("AGENT_GATEWAY_TOKEN is not bound to the staging Worker; refusing to add the protected smoke-test route.");
+  if (!settings.bindings.some((binding) => binding.name === "SEARCH_BRIDGE_TOKEN" && binding.type === "secret_text")) {
+    throw new Error("SEARCH_BRIDGE_TOKEN is not bound to the staging Worker; refusing to add the protected smoke-test route.");
   }
 
   const patched = patchWorkerBundle(original);
@@ -215,7 +215,7 @@ async function main() {
 
   const verify = await cloudflareRequest(base + "/settings");
   const bindings = verify.result?.bindings || [];
-  for (const name of ["AGENT_GATEWAY_TOKEN", "AI", "DB", "SESSIONS"]) {
+  for (const name of ["SEARCH_BRIDGE_TOKEN", "AI", "DB", "SESSIONS"]) {
     if (!bindings.some((binding) => binding.name === name)) throw new Error("Post-deploy binding verification failed for " + name + ".");
   }
   console.log(JSON.stringify({
@@ -223,7 +223,7 @@ async function main() {
     worker: WORKER_NAME,
     provider: "tavily",
     deployed: true,
-    gatewayTokenBinding: bindings.some((binding) => binding.name === "AGENT_GATEWAY_TOKEN" && binding.type === "secret_text"),
+    searchBridgeTokenBinding: bindings.some((binding) => binding.name === "SEARCH_BRIDGE_TOKEN" && binding.type === "secret_text"),
     smokeRoute: "token-protected and rate-limited",
     aiBinding: bindings.some((binding) => binding.name === "AI" && binding.type === "ai"),
     preservedAuthBindings: ["DB", "SESSIONS"].every((name) => bindings.some((binding) => binding.name === name))
