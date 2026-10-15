@@ -29,7 +29,7 @@ jobs:
           node-version: "20"
 
       - name: Run policy and owner-auth tests
-        run: node --test central-agent/policy.test.mjs central-agent/owner-auth.test.mjs central-agent/bootstrap-owner.test.mjs
+        run: node --test central-agent/policy.test.mjs central-agent/owner-auth.test.mjs central-agent/bootstrap-owner.test.mjs central-agent/patch-passkey-staging.test.mjs
 
       - name: Validate required secrets
         shell: bash
@@ -81,6 +81,47 @@ jobs:
           NODE
           npx --yes wrangler@4 secret bulk "$secrets_file" --config central-agent/wrangler.jsonc
           sleep 5
+
+      - name: Configure Tavily secret for Talk to Chatty PWA
+        shell: bash
+        env:
+          CLOUDFLARE_API_TOKEN: \${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: \${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          SEARCH_API_KEY: \${{ secrets.SEARCH_API_KEY }}
+        run: |
+          set -euo pipefail
+          test -n "$SEARCH_API_KEY" || { echo "::error::Missing SEARCH_API_KEY"; exit 1; }
+          printf '%s' "$SEARCH_API_KEY" | npx --yes wrangler@4 secret put SEARCH_API_KEY --name super-chatty-passkey-staging
+          sleep 5
+
+      - name: Patch and deploy Talk to Chatty Tavily runtime
+        shell: bash
+        env:
+          CLOUDFLARE_API_TOKEN: \${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: \${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: node central-agent/patch-passkey-staging.mjs
+
+      - name: Verify Talk to Chatty runtime and live Tavily search
+        shell: bash
+        env:
+          PASSKEY_WORKER_URL: https://super-chatty-passkey-staging.lostgodsgods.workers.dev
+          AGENT_GATEWAY_TOKEN: \${{ secrets.AGENT_GATEWAY_TOKEN }}
+        run: |
+          set -euo pipefail
+          test -n "$AGENT_GATEWAY_TOKEN" || { echo "::error::Missing AGENT_GATEWAY_TOKEN for protected search smoke test"; exit 1; }
+          tmp="$(mktemp -d)"
+          trap 'rm -rf "$tmp"' EXIT
+          health_code="$(curl --silent --show-error --max-time 15 --output "$tmp/health.json" --write-out '%{http_code}' "$PASSKEY_WORKER_URL/health")"
+          test "$health_code" = "200" || { echo "::error::Talk to Chatty health failed with HTTP $health_code"; exit 1; }
+          node -e 'const x=require(process.argv[1]); if(x.ok!==true||x.liveSearchConfigured!==true||x.searchProvider!=="tavily") throw Error("Talk to Chatty health/search binding check failed"); console.log(JSON.stringify({ok:x.ok,component:x.component,liveSearchConfigured:x.liveSearchConfigured,searchProvider:x.searchProvider}));' "$tmp/health.json"
+          search_code="$(curl --silent --show-error --max-time 25 --output "$tmp/search.json" --write-out '%{http_code}' -H 'content-type: application/json' -H "authorization: Bearer $AGENT_GATEWAY_TOKEN" -X POST "$PASSKEY_WORKER_URL/internal/search-smoke" --data '{"query":"Cloudflare Workers health checks documentation"}')"
+          unset AGENT_GATEWAY_TOKEN
+          if [[ "$search_code" != "200" ]]; then
+            echo "::error::Talk to Chatty Tavily smoke test failed with HTTP $search_code"
+            node -e 'const x=require(process.argv[1]); console.log(JSON.stringify({error:x.error||"Live search failed",code:x.code||null,providerStatus:x.providerStatus||null}));' "$tmp/search.json"
+            exit 1
+          fi
+          node -e 'const x=require(process.argv[1]); if(x.ok!==true||x.core?.webSearchExecuted!==true||x.core?.searchProvider!=="tavily"||!Array.isArray(x.sources)||x.sources.length<1) throw Error("Expected a successful Tavily live search with at least one source"); if(x.sources.some(s=>typeof s.url!=="string"||!/^https?:\\/\\//i.test(s.url))) throw Error("Invalid source URL"); console.log(JSON.stringify({ok:x.ok,searchProvider:x.core.searchProvider,webSearchExecuted:x.core.webSearchExecuted,sourceCount:x.sources.length,synthesisMode:x.core.synthesisMode,sourceUrls:x.sources.map(s=>s.url)},null,2));' "$tmp/search.json"
 
       - name: Initialize owner password when needed
         shell: bash
