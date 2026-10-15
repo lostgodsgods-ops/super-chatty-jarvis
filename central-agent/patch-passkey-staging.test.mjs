@@ -37,6 +37,7 @@ test("health reports only whether Tavily is configured and adds a protected smok
   assert.match(result, /searchProvider: "tavily"/);
   assert.match(result, /path === "\/internal\/search-smoke"/);
   assert.match(result, /env\.SEARCH_BRIDGE_TOKEN/);
+  assert.match(result, /env\.AGENT_GATEWAY_TOKEN/);
   assert.match(result, /env\.AUTH_RATE_LIMITER/);
   assert.doesNotMatch(result, /SEARCH_API_KEY[^\n]{0,80}console\.log/);
 });
