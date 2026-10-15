@@ -38,7 +38,7 @@ test("internal Tavily search uses the server-side key, returns real source shape
       AI: {
         run: async (model, input) => {
           aiCalls++;
-          assert.equal(model, "@cf/meta/llama-3.1-8b-instruct");
+          assert.equal(model, "@cf/meta/llama-3.1-8b-instruct-fast");
           assert.equal(input.max_tokens, 450);
           return { response: "Cloudflare Workers are documented by Cloudflare." };
         }
@@ -105,7 +105,7 @@ test("internal chat uses the protected AI binding and returns a bounded reply", 
   }), {
     SEARCH_BRIDGE_TOKEN: "correct-token",
     AI: { run: async (model, input) => {
-      assert.equal(model, "@cf/meta/llama-3.1-8b-instruct");
+      assert.equal(model, "@cf/meta/llama-3.1-8b-instruct-fast");
       assert.equal(input.max_tokens, 450);
       return { response: "Hello! I am ready to help." };
     } }
@@ -138,7 +138,7 @@ test("central chat endpoint returns a bounded Workers AI answer for the protecte
   }), {
     SEARCH_BRIDGE_TOKEN: "correct-token",
     AI: { run: async (model, input) => {
-      assert.equal(model, "@cf/meta/llama-3.1-8b-instruct");
+      assert.equal(model, "@cf/meta/llama-3.1-8b-instruct-fast");
       assert.equal(input.max_tokens, 450);
       assert.match(input.messages[0].content, /en-IN/);
       return { response: "Hello! Super Chatty is connected." };
