@@ -10,6 +10,7 @@ on:
     branches:
       - "feat/tavily-central-agent-search"
       - "feat/owner-approved-durable-knowledge-queue"
+      - "feat/agentic-architecture-foundation"
     paths:
       - "central-agent/**"
       - ".github/workflows/deploy-central-agent.yml"
@@ -30,5 +31,5 @@ jobs:
         with:
           node-version: "20"
 
-      - name: Test policy, owner authentication, and Tavily search
-        run: node --test central-agent/policy.test.mjs central-agent/owner-auth.test.mjs central-agent/task-queue.test.mjs
+      - name: Test policy, owner authentication, queue, provider routing and integrations
+        run: node --test central-agent/policy.test.mjs central-agent/owner-auth.test.mjs central-agent/task-queue.test.mjs central-agent/architecture/architecture.test.mjs
