@@ -55,10 +55,10 @@ test("patch routes PWA search through the protected central Tavily gateway", () 
   assert.match(result, /CHAT_GATEWAY_NETWORK_ERROR/);
   assert.doesNotMatch(result, /AI response service is not connected in this staging build yet/);
   assert.match(result, /scj-pwa-v3/);
-  assert.match(result, /CHAT_API_ENABLED === "false" \\|\\| !env\\.SEARCH_BRIDGE_TOKEN/);
+  assert.match(result, /CHAT_API_ENABLED === "false" \|\| !env\.SEARCH_BRIDGE_TOKEN/);
   assert.match(result, /Chatty is processing your message/);
-  assert.match(result, /AbortSignal\\.timeout\\(18000\\)/);
-  assert.doesNotMatch(result, /await persistConversationMessage\\("user",message\\)/);
+  assert.match(result, /AbortSignal\.timeout\(18000\)/);
+  assert.doesNotMatch(result, /await persistConversationMessage\("user",message\)/);
 });
 
 test("PWA delegates synthesis to central gateway and validates successful search", () => {
