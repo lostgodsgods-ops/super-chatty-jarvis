@@ -277,16 +277,16 @@ export function patchWorkerBundle(source) {
   patched = patched.slice(0, functionStart) + LIVE_SEARCH_FUNCTION + patched.slice(functionEnd + 2);
 
 
-  if (!patched.includes('path === "/internal/chat-smoke"')) {
-    const searchSmokeEnd = 'return await runLiveSearch(query, env, "en-IN");\n    }';
-    if (!patched.includes(searchSmokeEnd)) throw new Error("Could not insert the protected AI chat smoke route.");
-    patched = patched.replace(searchSmokeEnd, searchSmokeEnd + "\n    " + CHAT_SMOKE_ROUTE);
-  }
-
   if (patched.includes(HEALTH_ROUTE_OLD)) {
     patched = patched.replace(HEALTH_ROUTE_OLD, HEALTH_AND_SMOKE_ROUTES);
   } else if (!patched.includes('liveSearchConfigured: Boolean(env.SEARCH_BRIDGE_TOKEN)') || !patched.includes('path === "/internal/search-smoke"')) {
     throw new Error("Could not locate the expected health route; refusing to deploy.");
+  }
+
+  if (!patched.includes('path === "/internal/chat-smoke"')) {
+    const searchSmokeEnd = 'return await runLiveSearch(query, env, "en-IN");\n    }';
+    if (!patched.includes(searchSmokeEnd)) throw new Error("Could not insert the protected AI chat smoke route.");
+    patched = patched.replace(searchSmokeEnd, searchSmokeEnd + "\n    " + CHAT_SMOKE_ROUTE);
   }
 
 
