@@ -47,7 +47,7 @@ const LIVE_SEARCH_FUNCTION = `async function runLiveSearch(query, env, language)
   let response;
   const searchEndpoints = [CENTRAL_AGENT_SEARCH_ENDPOINT];
   if (CENTRAL_AGENT_SEARCH_ENDPOINT.endsWith("/search")) {
-    searchEndpoints.push(CENTRAL_AGENT_SEARCH_ENDPOINT.replace(/\/search$/, "/internal/search"));
+    searchEndpoints.push(CENTRAL_AGENT_SEARCH_ENDPOINT.replace(/\\/search$/, "/internal/search"));
   }
   try {
     for (const endpoint of searchEndpoints) {
