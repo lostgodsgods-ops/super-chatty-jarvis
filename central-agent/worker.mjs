@@ -138,6 +138,7 @@ export default {
         version: VERSION,
         capabilities: {
           workersAIConfigured: Boolean(env.AI),
+          tavilySearchConfigured: Boolean(env.SEARCH_API_KEY),
           passwordAuthentication: Boolean(env.DB && env.SESSIONS),
           ownerAuthentication: passwordConfigured,
           policyEndpoint: true,
@@ -204,6 +205,48 @@ export default {
 
     if (!env.DB || !env.SESSIONS) return json({ error: "Owner authentication storage is not configured." }, 503, cors);
     if (!(await authorized(request, env))) return json({ error: "Unauthorized. Sign in with your Owner password." }, 401, cors);
+
+    if (url.pathname === "/search" && request.method === "POST") {
+      if (!env.SEARCH_API_KEY) return json({ error: "Search is not configured." }, 503, cors);
+      let body;
+      try { body = await request.json(); } catch { return json({ error: "Expected JSON body." }, 400, cors); }
+      const query = typeof body.query === "string" ? body.query.trim() : "";
+      if (!query || query.length > 400) return json({ error: "query must contain 1–400 characters." }, 400, cors);
+      const searchDepth = body.searchDepth === "advanced" ? "advanced" : "basic";
+      try {
+        const response = await fetch("https://api.tavily.com/search", {
+          method: "POST",
+          headers: {
+            "authorization": "Bearer " + env.SEARCH_API_KEY,
+            "content-type": "application/json",
+            "accept": "application/json"
+          },
+          body: JSON.stringify({
+            query,
+            search_depth: searchDepth,
+            max_results: 5,
+            include_answer: false,
+            include_raw_content: false
+          }),
+          signal: AbortSignal.timeout(10000)
+        });
+        if (!response.ok) {
+          // Never forward provider response bodies, which may contain diagnostic details.
+          return json({ error: "Search provider request failed." }, 502, cors);
+        }
+        const payload = await response.json();
+        const results = Array.isArray(payload?.results) ? payload.results.slice(0, 5).map(item => ({
+          title: typeof item?.title === "string" ? item.title.slice(0, 300) : "",
+          url: typeof item?.url === "string" && /^https?:\/\//i.test(item.url) ? item.url : "",
+          content: typeof item?.content === "string" ? item.content.slice(0, 2000) : "",
+          score: Number.isFinite(item?.score) ? item.score : null,
+          publishedDate: typeof item?.published_date === "string" ? item.published_date : null
+        })).filter(item => item.url) : [];
+        return json({ ok: true, provider: "tavily", query, results }, 200, cors);
+      } catch {
+        return json({ error: "Search provider is temporarily unavailable." }, 502, cors);
+      }
+    }
 
     if (url.pathname === "/policy" && request.method === "GET") {
       return json({ policy: describePolicy() }, 200, cors);

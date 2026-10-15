@@ -37,11 +37,13 @@ jobs:
           CF_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CF_ACCOUNT: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           SETUP_TOKEN: ${{ secrets.OWNER_SETUP_TOKEN }}
+          SEARCH_KEY: ${{ secrets.SEARCH_API_KEY }}
         run: |
           set -euo pipefail
           test -n "$CF_TOKEN" || { echo "Missing CLOUDFLARE_API_TOKEN"; exit 1; }
           test -n "$CF_ACCOUNT" || { echo "Missing CLOUDFLARE_ACCOUNT_ID"; exit 1; }
           test -n "$SETUP_TOKEN" || { echo "Missing OWNER_SETUP_TOKEN"; exit 1; }
+          test -n "$SEARCH_KEY" || { echo "Missing SEARCH_API_KEY"; exit 1; }
           echo "Required secret values are present (values not displayed)."
 
       - name: Configure Worker one-time setup secret
@@ -53,6 +55,16 @@ jobs:
         run: |
           set -euo pipefail
           printf '%s' "$OWNER_SETUP_TOKEN" | npx --yes wrangler@4 secret put OWNER_SETUP_TOKEN --config central-agent/wrangler.jsonc
+
+      - name: Configure Tavily Search API secret
+        shell: bash
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          SEARCH_API_KEY: ${{ secrets.SEARCH_API_KEY }}
+        run: |
+          set -euo pipefail
+          printf '%s' "$SEARCH_API_KEY" | npx --yes wrangler@4 secret put SEARCH_API_KEY --config central-agent/wrangler.jsonc
 
       - name: Deploy isolated Central Agent
         shell: bash

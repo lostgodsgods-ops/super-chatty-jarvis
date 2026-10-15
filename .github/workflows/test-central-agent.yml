@@ -1,0 +1,33 @@
+name: Test Central Agent
+
+on:
+  pull_request:
+    paths:
+      - "central-agent/**"
+      - ".github/workflows/deploy-central-agent.yml"
+      - ".github/workflows/test-central-agent.yml"
+  push:
+    branches:
+      - "feat/tavily-central-agent-search"
+    paths:
+      - "central-agent/**"
+      - ".github/workflows/deploy-central-agent.yml"
+      - ".github/workflows/test-central-agent.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Test policy, owner authentication, and Tavily search
+        run: node --test central-agent/policy.test.mjs central-agent/owner-auth.test.mjs

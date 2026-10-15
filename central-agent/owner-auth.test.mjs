@@ -100,3 +100,82 @@ test("owner page provides a manual setup-token field when the fragment is missin
   assert.match(html, /id="setupTokenInput"/);
   assert.match(html, /new URLSearchParams\(location\.hash\.slice\(1\)\)/);
 });
+
+
+async function ownerToken(e) {
+  await call(e, "/auth/setup", { setupToken: "test-bootstrap-code", password: "a-long-memorable-password" });
+  const response = await call(e, "/auth/login", { password: "a-long-memorable-password" });
+  return (await response.json()).token;
+}
+
+test("Tavily search requires an authenticated owner session", async () => {
+  const e = env();
+  e.SEARCH_API_KEY = "test-tavily-key";
+  const response = await call(e, "/search", { query: "Cloudflare Workers" });
+  assert.equal(response.status, 401);
+});
+
+test("Tavily search fails closed when the API key is not configured", async () => {
+  const e = env();
+  const token = await ownerToken(e);
+  const response = await call(e, "/search", { query: "Cloudflare Workers" }, token);
+  assert.equal(response.status, 503);
+  assert.equal((await response.json()).error, "Search is not configured.");
+});
+
+test("Tavily search validates query and sends bounded requests with source URLs", async () => {
+  const e = env();
+  e.SEARCH_API_KEY = "test-tavily-key";
+  const token = await ownerToken(e);
+  const originalFetch = globalThis.fetch;
+  let requestedUrl = "";
+  let requestOptions;
+  globalThis.fetch = async (url, options) => {
+    requestedUrl = String(url);
+    requestOptions = options;
+    return new Response(JSON.stringify({ results: [
+      { title: "Cloudflare docs", url: "https://developers.cloudflare.com/workers/", content: "Workers documentation", score: 0.98 },
+      { title: "Invalid result", url: "javascript:alert(1)", content: "discard me" }
+    ] }), { status: 200, headers: { "content-type": "application/json" } });
+  };
+  try {
+    const bad = await call(e, "/search", { query: " " }, token);
+    assert.equal(bad.status, 400);
+    const tooLong = await call(e, "/search", { query: "x".repeat(401) }, token);
+    assert.equal(tooLong.status, 400);
+    const response = await call(e, "/search", { query: "Cloudflare Workers", searchDepth: "advanced" }, token);
+    assert.equal(response.status, 200);
+    assert.equal(requestedUrl, "https://api.tavily.com/search");
+    assert.equal(requestOptions.method, "POST");
+    assert.equal(requestOptions.headers.authorization, "Bearer test-tavily-key");
+    const sent = JSON.parse(requestOptions.body);
+    assert.equal(sent.query, "Cloudflare Workers");
+    assert.equal(sent.search_depth, "advanced");
+    assert.equal(sent.max_results, 5);
+    assert.equal(sent.include_raw_content, false);
+    const payload = await response.json();
+    assert.equal(payload.provider, "tavily");
+    assert.equal(payload.results.length, 1);
+    assert.equal(payload.results[0].url, "https://developers.cloudflare.com/workers/");
+    assert.equal(JSON.stringify(payload).includes("test-tavily-key"), false);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test("Tavily provider errors return a generic error without leaking response body", async () => {
+  const e = env();
+  e.SEARCH_API_KEY = "test-tavily-key";
+  const token = await ownerToken(e);
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async () => new Response("private provider diagnostic", { status: 401 });
+  try {
+    const response = await call(e, "/search", { query: "test" }, token);
+    assert.equal(response.status, 502);
+    const body = await response.text();
+    assert.equal(body.includes("private provider diagnostic"), false);
+    assert.equal(body.includes("test-tavily-key"), false);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
