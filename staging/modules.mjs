@@ -33,7 +33,7 @@ export function parseBossCommand(rawMessage) {
   if (/^(?:jarvis[,\s]*)?(?:show|check|get|what(?:\s+is|\x27s)?)\s+(?:the\s+)?(?:system\s+)?status\b/i.test(normalized) || /^(?:chatty[,\s]*)?(?:status|स्थिति)\s*(?:dikhao|batao|दिखाओ|बताओ)?$/i.test(normalized)) {
     return { intent: "system_status", goal: "", requiresTaskApproval: false };
   }
-  if (/^(?:jarvis[,\s]*)?(?:help|commands|what\s+can\s+you\s+do)\b/i.test(normalized) || /^(?:chatty[,\s]*)?(?:मदद|कमांड्स|क्या\s+कर\s+सकते\s+हो)/i.test(normalized)) {
+  if (/^(?:jarvis[,\s]*)?(?:help|commands|what\s+can\s+you\s+do)\b/i.test(normalized) || /^(?:chatty[,\s]*)?(?:मदद|कमांड्स|क्या\s+कर\s+सकते\s+हो|kya\s+kar\s+sakte\s+ho)/i.test(normalized)) {
     return { intent: "help", goal: "", requiresTaskApproval: false };
   }
     const patterns = [
