@@ -166,7 +166,7 @@ const CHAT_SMOKE_ROUTE = `if (request.method === "POST" && path === "/internal/c
         console.warn("SCJ_CHAT_SMOKE_ERROR", { errorName: typeof error?.name === "string" ? error.name : "Error" });
         return json2({ error: "AI response smoke test could not reach the gateway", code: "CHAT_GATEWAY_NETWORK_ERROR" }, 502, headers);
       }
-    }\`;
+    }`;
 const HEALTH_ROUTE_OLD = 'if (request.method === "GET" && path === "/health") return json2({ ok: true, component: "passkey-auth-staging", production: false }, 200, headers);';
 const HEALTH_AND_SMOKE_ROUTES = `if (request.method === "GET" && path === "/health") return json2({ ok: true, component: "passkey-auth-staging", production: false, liveSearchConfigured: Boolean(env.SEARCH_BRIDGE_TOKEN), searchProvider: "tavily" }, 200, headers);
     if (request.method === "POST" && path === "/internal/search-smoke") {
