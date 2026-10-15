@@ -165,7 +165,8 @@ async function createMission(request, env, session) {
   return json({
     mission: { id: missionId, goal, status: "awaiting_task_approval", agentCount: MISSION_AGENT_COUNT, createdAt: now },
     tasks: tasks.map(({ id, taskType, agentRole, status, createdAt, updatedAt }) => ({ id, taskType, agentRole, missionId, status, createdAt, updatedAt })),
-    safety: { requiresApprovalPerTask: true, maxAgents: MISSION_AGENT_COUNT, externalActionsEnabled: false },\n    plannerMode: plan.plannerMode,
+    safety: { requiresApprovalPerTask: true, maxAgents: MISSION_AGENT_COUNT, externalActionsEnabled: false },
+    plannerMode: plan.plannerMode,
   }, 201);
 }
 
