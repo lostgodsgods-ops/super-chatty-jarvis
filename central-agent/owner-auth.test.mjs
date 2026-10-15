@@ -179,3 +179,38 @@ test("Tavily provider errors return a generic error without leaking response bod
     globalThis.fetch = originalFetch;
   }
 });
+
+
+test("owner session endpoint reports only the current bearer session", async () => {
+  const e = env();
+  const token = await ownerToken(e);
+  const session = await call(e, "/auth/session", undefined, token);
+  assert.equal(session.status, 200);
+  assert.deepEqual(await session.json(), { ok: true, authenticated: true, expiresIn: 3600 });
+  const denied = await call(e, "/auth/session");
+  assert.equal(denied.status, 401);
+});
+
+test("owner can change password with the current password and old password stops working", async () => {
+  const e = env();
+  const token = await ownerToken(e);
+  const changed = await call(e, "/auth/change-password", {
+    currentPassword: "a-long-memorable-password",
+    newPassword: "another-long-memorable-password"
+  }, token);
+  assert.equal(changed.status, 200);
+  assert.equal((await changed.json()).ok, true);
+  assert.equal((await call(e, "/auth/login", { password: "a-long-memorable-password" })).status, 401);
+  assert.equal((await call(e, "/auth/login", { password: "another-long-memorable-password" })).status, 200);
+});
+
+test("password change rejects weak or incorrect current passwords", async () => {
+  const e = env();
+  const token = await ownerToken(e);
+  assert.equal((await call(e, "/auth/change-password", {
+    currentPassword: "wrong-password", newPassword: "another-long-memorable-password"
+  }, token)).status, 401);
+  assert.equal((await call(e, "/auth/change-password", {
+    currentPassword: "a-long-memorable-password", newPassword: "short"
+  }, token)).status, 400);
+});
