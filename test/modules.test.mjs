@@ -320,3 +320,53 @@ test("agent result submission cannot bypass claiming by completing a merely queu
   assert.equal(response.status, 409);
   assert.equal(batchTouched, false);
 });
+
+
+test("Owner run-next route is explicit and POST-only", () => {
+  assert.equal(isModuleRoute("POST", "/tasks/run-next"), true);
+  assert.equal(isModuleRoute("GET", "/tasks/run-next"), false);
+});
+
+test("Owner run-next requires a verified Owner session before touching database", async () => {
+  let touched = false;
+  const response = await handleModuleRoute(req("/tasks/run-next", "POST", {}), {
+    DB: { prepare() { touched = true; throw new Error("database must not be touched"); } },
+  }, "/tasks/run-next", null);
+  assert.equal(response.status, 401);
+  assert.equal(touched, false);
+});
+
+test("Owner can execute one previously approved queued task and persist its result", async () => {
+  const batches = [];
+  let aiTouched = false;
+  const queuedTask = {
+    id: "123e4567-e89b-12d3-a456-426614174000",
+    task_type: "code_review",
+    payload_json: JSON.stringify({ material: "const value = 1;" }),
+    created_at: "2026-10-15T10:00:00.000Z",
+    updated_at: "2026-10-15T10:00:00.000Z",
+  };
+  const env = {
+    CHAT_MODEL: "@cf/meta/llama-3.1-8b-instruct",
+    AI: { async run() { aiTouched = true; return { response: "Read-only review complete." }; } },
+    DB: {
+      prepare(sql) { return { sql, bind(...args) { return {
+        sql, args,
+        async first() {
+          if (sql.includes("UPDATE owner_tasks") && sql.includes("RETURNING id, task_type")) return queuedTask;
+          throw new Error("Unexpected first query: " + sql);
+        },
+        async run() { return { success: true }; },
+      }; } }; },
+      async batch(statements) { batches.push(...statements); return []; },
+    },
+  };
+  const response = await handleModuleRoute(req("/tasks/run-next", "POST", {}), env, "/tasks/run-next", owner);
+  assert.equal(response.status, 200);
+  const body = await response.json();
+  assert.equal(body.taskId, queuedTask.id);
+  assert.equal(body.status, "completed");
+  assert.match(body.result.summary, /Read-only review complete/);
+  assert.equal(aiTouched, true);
+  assert.equal(batches.length, 3);
+});
