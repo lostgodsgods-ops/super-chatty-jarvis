@@ -10,6 +10,16 @@ async function runLiveSearch(query, env, language) {
 }
 __name(runLiveSearch, "runLiveSearch");
 if (request.method === "GET" && path === "/health") return json2({ ok: true, component: "passkey-auth-staging", production: false }, 200, headers);
+else if (request.method === "POST" && path === "/api/chat") {
+        const session = await getOwnerSession(request, env);
+        if (!session) response = json2({ error: "Owner authentication required" }, 401);
+        else {
+          const defaultModel = "@cf/meta/llama-3.1-8b-instruct";
+          response = json2({ ok: true, reply: "local chat" });
+        }
+      } else {
+        response = json2({ error: "Not found" }, 404);
+      }
 `;
 
 test("patch routes PWA search through the protected central Tavily gateway", () => {
@@ -19,6 +29,11 @@ test("patch routes PWA search through the protected central Tavily gateway", () 
   assert.match(result, /authorization: "Bearer " \+ gatewayToken/);
   assert.match(result, /Array\.isArray\(payload\?\.sources\)/);
   assert.match(result, /AbortSignal\.timeout\(15000\)/);
+  assert.match(result, /CENTRAL_AGENT_CHAT_ENDPOINT/);
+  assert.match(result, /fetch\\(CENTRAL_AGENT_CHAT_ENDPOINT/);
+  assert.match(result, /CHAT_GATEWAY_NETWORK_ERROR/);
+  assert.doesNotMatch(result, /AI response service is not connected in this staging build yet/);
+  assert.match(result, /scj-pwa-v3/);
 });
 
 test("PWA delegates synthesis to central gateway and validates successful search", () => {
