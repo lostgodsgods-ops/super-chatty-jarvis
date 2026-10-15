@@ -127,7 +127,7 @@ const LIVE_SEARCH_FUNCTION = `async function runLiveSearch(query, env, language)
   });
 }`;
 
-const CHAT_SMOKE_ROUTE = \`if (request.method === "POST" && path === "/internal/chat-smoke") {
+const CHAT_SMOKE_ROUTE = `if (request.method === "POST" && path === "/internal/chat-smoke") {
       const expectedTokens = [env.SEARCH_BRIDGE_TOKEN, env.AGENT_GATEWAY_TOKEN].filter((value) => typeof value === "string" && value.trim()).map((value) => value.trim());
       const header = request.headers.get("authorization") || "";
       const supplied = header.startsWith("Bearer ") ? header.slice(7).trim() : "";
