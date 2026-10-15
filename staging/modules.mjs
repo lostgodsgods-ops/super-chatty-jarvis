@@ -21,7 +21,7 @@ export function isModuleRoute(method, path) {
   if (path === "/tasks" && ["GET", "POST"].includes(method)) return true;
   if (path === "/agents" && method === "GET") return true;
   if (path === "/missions" && ["GET", "POST"].includes(method)) return true;
-  if (/^\\/missions\\/[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}\\/synthesize$/i.test(path) && method === "POST") return true;
+  if (/^\/missions\/[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}\/synthesize$/i.test(path) && method === "POST") return true;
   if (path === "/results" && ["GET", "POST"].includes(method)) return true;
   if (path === "/tasks/claim" && method === "POST") return true;
   if (path === "/tasks/execute" && method === "POST") return true;
@@ -105,7 +105,7 @@ async function createMission(request, env, session) {
 
 async function synthesizeMission(request, env, path, session) {
   if (!requireOwner(session)) return json({ error: "Owner authentication required" }, 401);
-  const missionId = path.match(/^\\/missions\\/([0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{12})\\/synthesize$/i)?.[1];
+  const missionId = path.match(/^\/missions\/([0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{12})\/synthesize$/i)?.[1];
   if (!missionId) return json({ error: "Invalid mission id" }, 400);
   if (!env.AI || typeof env.AI.run !== "function") return json({ error: "Workers AI execution binding is unavailable" }, 503);
   const existing = await env.DB.prepare("SELECT result_json, created_at FROM owner_mission_results WHERE mission_id = ? AND owner_id = ?").bind(missionId, OWNER_ID).first();
@@ -415,7 +415,7 @@ export async function handleModuleRoute(request, env, path, session) {
   }
   if (path === "/missions" && request.method === "GET") return listMissions(env, session);
   if (path === "/missions" && request.method === "POST") return createMission(request, env, session);
-  if (/^\\/missions\\/[a-f0-9-]+\\/synthesize$/i.test(path) && request.method === "POST") return synthesizeMission(request, env, path, session);
+  if (/^\/missions\/[a-f0-9-]+\/synthesize$/i.test(path) && request.method === "POST") return synthesizeMission(request, env, path, session);
   if (path === "/tasks" && request.method === "GET") {
     if (!requireOwner(session)) return json({ error: "Owner authentication required" }, 401);
     return json({ tasks: await listTasks(env) });
