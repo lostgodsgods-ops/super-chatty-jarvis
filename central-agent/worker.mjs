@@ -473,7 +473,7 @@ export default {
       }, 200, cors);
     }
 
-    if (url.pathname === "/chat" && request.method === "POST") {
+    if ((url.pathname === "/chat" || url.pathname === "/internal/chat") && request.method === "POST") {
       const expected = typeof env.SEARCH_BRIDGE_TOKEN === "string" ? env.SEARCH_BRIDGE_TOKEN.trim() : "";
       const authorization = request.headers.get("authorization") || "";
       const supplied = authorization.startsWith("Bearer ") ? authorization.slice(7).trim() : "";
