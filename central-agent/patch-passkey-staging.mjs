@@ -265,7 +265,9 @@ export function patchWorkerBundle(source) {
   let patched = source;
   const braveConstant = 'var BRAVE_SEARCH_ENDPOINT = "https://api.search.brave.com/res/v1/web/search";';
   const gatewayConstant = 'var CENTRAL_AGENT_SEARCH_ENDPOINT = "https://shrill-silence-164f.lostgodsgods.workers.dev/search";';
+  const legacyGatewayConstant = 'var CENTRAL_AGENT_SEARCH_ENDPOINT = "https://shrill-silence-164f.lostgodsgods.workers.dev/internal/search";';
   if (patched.includes(braveConstant)) patched = patched.replace(braveConstant, gatewayConstant);
+  else if (patched.includes(legacyGatewayConstant)) patched = patched.replace(legacyGatewayConstant, gatewayConstant);
   else if (!patched.includes(gatewayConstant)) throw new Error("Could not find the expected search provider constant; refusing to deploy.");
   const oldChatGatewayConstant = 'var CENTRAL_AGENT_CHAT_ENDPOINT = "https://shrill-silence-164f.lostgodsgods.workers.dev/internal/chat";';
   const chatGatewayConstant = 'var CENTRAL_AGENT_CHAT_ENDPOINT = "https://shrill-silence-164f.lostgodsgods.workers.dev/chat";';
