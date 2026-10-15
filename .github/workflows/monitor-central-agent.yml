@@ -144,6 +144,20 @@ jobs:
           fi
           node -e 'const fs=require("fs"); const x=JSON.parse(fs.readFileSync(process.argv[1],"utf8")); if(x.ok!==true||x.core?.webSearchExecuted!==true||x.core?.searchProvider!=="tavily"||!Array.isArray(x.sources)||x.sources.length<1) throw Error("Expected the protected bridge route to return live Tavily sources"); console.log(JSON.stringify({ok:x.ok,provider:x.provider,sourceCount:x.sources.length,searchProvider:x.core.searchProvider}));' "$tmp"
 
+      - name: Verify current-information chat uses Tavily before model synthesis
+        shell: bash
+        env:
+          CENTRAL_AGENT_URL: https://shrill-silence-164f.lostgodsgods.workers.dev
+          AGENT_GATEWAY_TOKEN: ${{ secrets.AGENT_GATEWAY_TOKEN }}
+        run: |
+          set -euo pipefail
+          test -n "$AGENT_GATEWAY_TOKEN" || { echo "::error::Missing AGENT_GATEWAY_TOKEN"; exit 1; }
+          tmp="$(mktemp)"
+          trap 'rm -f "$tmp"; unset AGENT_GATEWAY_TOKEN' EXIT
+          code="$(curl --silent --show-error --max-time 30 --output "$tmp" --write-out '%{http_code}' -H 'content-type: application/json' -H "authorization: Bearer $AGENT_GATEWAY_TOKEN" -X POST "$CENTRAL_AGENT_URL/chat" --data '{"message":"What is the latest 2026 Cloudflare Workers update?","language":"en-IN"}')"
+          test "$code" = "200" || { echo "::error::Current-information /chat failed with HTTP $code"; cat "$tmp"; exit 1; }
+          node -e 'const fs=require("fs"); const x=JSON.parse(fs.readFileSync(process.argv[1],"utf8")); if(x.ok!==true||x.core?.intent!=="current_information"||x.core?.webSearchExecuted!==true||x.core?.searchProvider!=="tavily"||!Array.isArray(x.sources)||x.sources.length<1) throw Error("Current-information chat did not prove Tavily-first synthesis"); if(x.sources.some(s=>typeof s.url!=="string"||!/^https?:\\/\\//i.test(s.url))) throw Error("Invalid source URL"); console.log(JSON.stringify({ok:true,intent:x.core.intent,webSearchExecuted:x.core.webSearchExecuted,searchProvider:x.core.searchProvider,sourceCount:x.sources.length,externalActionsPerformed:x.core.externalActionsPerformed}));' "$tmp"
+
       - name: Probe Central Agent chat route dispatch without credentials
         shell: bash
         env:
