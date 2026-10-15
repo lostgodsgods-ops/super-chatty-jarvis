@@ -7,9 +7,10 @@ Central Agent v1.3.0 adds an owner-defined password flow. It does not connect to
 - Open `/owner#setup=<one-time-token>` using the private setup link.
 - Choose and confirm a password of 12–256 characters.
 - The Worker derives a salted PBKDF2-HMAC-SHA-256 hash (210,000 iterations). The raw password is not stored.
-- Sign-in returns a random session token stored in browser `sessionStorage`; sessions expire after one hour.
+- Sign-in returns a random session token held in the owner page's JavaScript memory only; it is not written to `localStorage` or `sessionStorage`. Sessions expire after one hour.
 - The credential row is protected by a D1 primary key so first-time setup can succeed only once.
-- Keep `OWNER_SETUP_TOKEN` as a Cloudflare Worker secret. Never put it in source code, a public issue, or a normal chat message. After the owner password is set, remove the setup secret from Worker settings.
+- Keep `OWNER_SETUP_TOKEN` as a GitHub Actions secret. The deployment workflow installs it as a Cloudflare Worker secret when deploying. Never put it in source code, a public issue, or a normal chat message.
+- For automated first-time bootstrap, optionally add `CENTRAL_AGENT_OWNER_PASSWORD` as a GitHub Actions secret. The deployment workflow checks `/auth/status` first and only submits this password if setup is still required. After `/auth/status` reports setup complete and the owner login is verified, remove `CENTRAL_AGENT_OWNER_PASSWORD` from GitHub Actions secrets; it is not needed for later deployments.
 - Password login and setup require HTTPS. The owner setup page uses a fragment token so the token is not sent in the initial HTTP request or referrer.
 
 ## Required bindings and variables
@@ -20,8 +21,9 @@ Central Agent v1.3.0 adds an owner-defined password flow. It does not connect to
 - `ALLOWED_ORIGINS` limits browser cross-origin access.
 - Secret `SEARCH_API_KEY` configures the owner-authenticated `POST /search` endpoint through Tavily Search API. It is installed by the Central Agent deployment workflow and never stored in source code.
 
-Required secret for first-time setup:
-- `OWNER_SETUP_TOKEN` — one-time bootstrap secret. Do not use your actual owner password as this token.
+Required GitHub Actions secrets:
+- `OWNER_SETUP_TOKEN` — bootstrap token used by the setup endpoint. Do not use your actual owner password as this token.
+- `CENTRAL_AGENT_OWNER_PASSWORD` — optional temporary secret for automated first-time bootstrap only; remove it after successful setup and login verification.
 
 ## Endpoints
 
@@ -40,6 +42,6 @@ Required secret for first-time setup:
 - Tavily search runs server-side; the API key is a Cloudflare Worker secret and is never returned to clients.
 - No Gemini API key or Gemini provider is used.
 - Unknown actions fail closed; no child agents or external tools execute.
-- This is password authentication, not account recovery. If you forget the password, a separately reviewed owner recovery procedure is required.
+- This is password authentication, not account recovery. WebAuthn/passkey or device biometric registration and signature verification are not implemented. If you forget the password, a separately reviewed owner recovery procedure is required.
 - Add rate limiting / abuse monitoring before treating this as a production internet-facing login.
 - Run `npm test` from the repository root. The owner auth tests use Node's built-in test runner.
