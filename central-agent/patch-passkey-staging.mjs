@@ -45,12 +45,14 @@ const LIVE_SEARCH_FUNCTION = `async function runLiveSearch(query, env, language)
   }
 
   let response;
-  const searchEndpoints = [CENTRAL_AGENT_SEARCH_ENDPOINT];
-  if (CENTRAL_AGENT_SEARCH_ENDPOINT.endsWith("/search") && !CENTRAL_AGENT_SEARCH_ENDPOINT.endsWith("/internal/search")) {
-    searchEndpoints.push(CENTRAL_AGENT_SEARCH_ENDPOINT.replace(/\\/search$/, "/internal/search"));
-  }
+  let attemptedEndpoint = CENTRAL_AGENT_SEARCH_ENDPOINT;
+  const fallbackSearchEndpoint = CENTRAL_AGENT_SEARCH_ENDPOINT.endsWith("/internal/search")
+    ? CENTRAL_AGENT_SEARCH_ENDPOINT.replace(/\\/internal\\/search$/, "/search")
+    : CENTRAL_AGENT_SEARCH_ENDPOINT.replace(/\\/search$/, "/internal/search");
+  const searchEndpoints = [CENTRAL_AGENT_SEARCH_ENDPOINT, fallbackSearchEndpoint];
   try {
     for (const endpoint of searchEndpoints) {
+      attemptedEndpoint = endpoint;
       response = await fetch(endpoint, {
         method: "POST",
         headers: {
@@ -75,11 +77,12 @@ const LIVE_SEARCH_FUNCTION = `async function runLiveSearch(query, env, language)
   }
 
   if (!response.ok) {
-    console.warn("SCJ_SEARCH_GATEWAY_HTTP_ERROR", { status: response.status });
+    console.warn("SCJ_SEARCH_GATEWAY_HTTP_ERROR", { status: response.status, path: new URL(attemptedEndpoint).pathname });
     return json2({
       error: "Live search service returned HTTP " + response.status + ".",
       code: "SEARCH_GATEWAY_HTTP_ERROR",
       providerStatus: response.status,
+      upstreamPath: new URL(attemptedEndpoint).pathname,
       core: { intent: "web_search", webSearchExecuted: false, searchProvider: "tavily" }
     }, 502);
   }
