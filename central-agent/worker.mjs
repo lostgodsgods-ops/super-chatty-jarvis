@@ -197,12 +197,15 @@ export default {
       }, 200, cors);
     }
 
-    if ((url.pathname === "/internal/search" || url.pathname === "/search") && request.method === "POST") {
+    const searchAuthHeader = request.headers.get("authorization") || "";
+    const searchExpectedToken = typeof env.SEARCH_BRIDGE_TOKEN === "string" ? env.SEARCH_BRIDGE_TOKEN.trim() : "";
+    const searchSuppliedToken = searchAuthHeader.startsWith("Bearer ") ? searchAuthHeader.slice(7).trim() : "";
+    const isBridgeSearchRequest = url.pathname === "/search" && equalSecret(searchSuppliedToken, searchExpectedToken);
+    if ((url.pathname === "/internal/search" || isBridgeSearchRequest) && request.method === "POST") {
       const expected = typeof env.SEARCH_BRIDGE_TOKEN === "string" ? env.SEARCH_BRIDGE_TOKEN.trim() : "";
       const authorization = request.headers.get("authorization") || "";
       const supplied = authorization.startsWith("Bearer ") ? authorization.slice(7).trim() : "";
-      const ownerAuthorized = url.pathname === "/search" && await authorized(request, env);
-      if (!ownerAuthorized && (!expected || !equalSecret(supplied, expected))) return json({ error: "Unauthorized" }, 401, cors);
+      if (!expected || !equalSecret(supplied, expected)) return json({ error: "Unauthorized" }, 401, cors);
       if (!env.SEARCH_API_KEY) return json({ error: "Search provider is not configured." }, 503, cors);
 
       let body;
