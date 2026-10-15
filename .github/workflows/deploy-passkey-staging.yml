@@ -72,6 +72,18 @@ jobs:
           else
             echo "No repository token supplied; preserving any existing private Worker binding."
           fi
+      - name: Configure optional public web-search provider
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          SEARCH_API_KEY: ${{ secrets.SEARCH_API_KEY }}
+        run: |
+          if [ -n "$SEARCH_API_KEY" ]; then
+            printf '%s' "$SEARCH_API_KEY" | npx wrangler secret put SEARCH_API_KEY --config staging/wrangler.jsonc
+            echo "Configured private SEARCH_API_KEY secret."
+          else
+            echo "SEARCH_API_KEY not supplied; live web search remains disabled fail-closed."
+          fi
       - name: Smoke-test deployed staging routes without enrolling a credential
         env:
           STAGING_BASE_URL: https://super-chatty-passkey-staging.lostgodsgods.workers.dev
