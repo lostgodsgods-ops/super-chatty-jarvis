@@ -302,6 +302,27 @@ export function patchWorkerBundle(source) {
     throw new Error("PWA chat handler is neither patchable nor already connected to the central AI gateway.");
   }
 
+
+  const oldChatGuard = 'else if (env.CHAT_API_ENABLED === "false" || !env.AI || typeof env.AI.run !== "function") {';
+  const newChatGuard = 'else if (env.CHAT_API_ENABLED === "false" || !env.SEARCH_BRIDGE_TOKEN) {';
+  if (patched.includes(oldChatGuard)) patched = patched.replace(oldChatGuard, newChatGuard);
+  else if (!patched.includes(newChatGuard)) throw new Error("Could not route staging chat through the central gateway.");
+
+  const oldHistoryWait = 'if(!$("historyPanel").hidden)await persistConversationMessage("user",message);';
+  const newHistoryWait = 'if(!$("historyPanel").hidden)void persistConversationMessage("user",message);';
+  if (patched.includes(oldHistoryWait)) patched = patched.replace(oldHistoryWait, newHistoryWait);
+  else if (!patched.includes(newHistoryWait)) throw new Error("Could not optimize local history persistence.");
+
+  const chatFetchStart = '  const r=await fetch("/api/chat"';
+  if (!patched.includes('sayStatus("Chatty is processing your message...")')) {
+    if (!patched.includes(chatFetchStart)) throw new Error("Could not locate the PWA chat request for latency optimization.");
+    patched = patched.replace(chatFetchStart, '  $("reply").textContent="Thinking...";sayStatus("Chatty is processing your message...");\n' + chatFetchStart);
+  }
+  const oldChatFetchBody = 'body:JSON.stringify({message,language:$("language").value})});';
+  const newChatFetchBody = 'body:JSON.stringify({message,language:$("language").value}),signal:AbortSignal.timeout(18000)});';
+  if (patched.includes(oldChatFetchBody)) patched = patched.replace(oldChatFetchBody, newChatFetchBody);
+  else if (!patched.includes('signal:AbortSignal.timeout(18000)')) throw new Error("Could not add a bounded timeout to the PWA chat request.");
+
   patched = patched.replaceAll("AI response service is not connected in this staging build yet.", "Ready. Send a message to Chatty.");
   const originGuardNew = 'const serviceResultRoute = request.method === "POST" && ["/results", "/tasks/claim", "/internal/search-smoke", "/internal/chat-smoke"].includes(path);';
   if (!patched.includes(originGuardNew)) {
