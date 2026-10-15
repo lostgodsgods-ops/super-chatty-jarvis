@@ -5,6 +5,8 @@
  */
 import { describePolicy } from "./policy.mjs";
 import { enqueueKnowledgeTask, listKnowledgeTasks, getKnowledgeResults, processApprovedKnowledgeTasks } from "./task-queue.mjs";
+import { listProviderCapabilities } from "./architecture/provider-router.mjs";
+import { listMcpCapabilities, listVectorCapabilities } from "./architecture/integration-registry.mjs";
 
 const VERSION = "1.3.0";
 const DEFAULT_WORKERS_AI_MODEL = "@cf/meta/llama-3.1-8b-instruct-fast";
@@ -506,6 +508,43 @@ export default {
 
     if (url.pathname === "/policy" && request.method === "GET") {
       return json({ policy: describePolicy() }, 200, cors);
+    }
+
+    if (url.pathname === "/architecture/status" && request.method === "GET") {
+      return json({
+        ok: true,
+        service: "super-chatty-central-agent",
+        layers: [
+          { id: "classical-policy", status: "implemented" },
+          { id: "retrieval-memory", status: "partial", activeProvider: "tavily", durableStore: "D1" },
+          { id: "model-inference", status: env.AI ? "configured" : "not_configured" },
+          { id: "model-adapters", status: "registry_available" },
+          { id: "bounded-orchestration", status: "partial", cron: "*/15 * * * *", maxTasksPerTick: 3 },
+          { id: "mcp-tools", status: "registry_only" },
+          { id: "agentic-audit-evaluation", status: "partial", ownerApprovalRequired: true }
+        ],
+        providers: listProviderCapabilities(env),
+        policy: describePolicy(),
+        note: "Status reports implementation/configuration, not AGI readiness. Unimplemented providers fail closed."
+      }, 200, cors);
+    }
+
+    if (url.pathname === "/mcp/status" && request.method === "GET") {
+      return json({
+        ok: true,
+        integrations: listMcpCapabilities(env),
+        executionEnabled: false,
+        note: "MCP transport and tool allowlists are not yet implemented; no outbound connection was attempted."
+      }, 200, cors);
+    }
+
+    if (url.pathname === "/vectors/status" && request.method === "GET") {
+      return json({
+        ok: true,
+        integrations: listVectorCapabilities(env),
+        queryEnabled: false,
+        note: "Vector adapters are not yet implemented. KV/D1 are not being represented as vector databases."
+      }, 200, cors);
     }
 
     if (url.pathname === "/agents" && request.method === "GET") {
