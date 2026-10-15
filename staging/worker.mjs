@@ -1,5 +1,5 @@
 import { APP_HTML } from "./app.mjs";
-import { handleModuleRoute, isModuleRoute } from "./modules.mjs";
+import { handleModuleRoute, isModuleRoute, parseBossCommand } from "./modules.mjs";
 import {
   generateRegistrationOptions,
   verifyRegistrationResponse,
@@ -350,6 +350,36 @@ export default {
           else if (env.CHAT_API_ENABLED === "false" || !env.AI || typeof env.AI.run !== "function") {
             response = json({ error: "Chat provider is not configured in staging", code: "CHAT_PROVIDER_NOT_CONFIGURED" }, 503);
           } else {
+            const bossCommand = parseBossCommand(body.message);
+            if (bossCommand.intent === "create_mission") {
+              const missionRequest = new Request(new URL("/missions", request.url), {
+                method: "POST",
+                headers: { "content-type": "application/json", "origin": request.headers.get("origin") || new URL(request.url).origin },
+                body: JSON.stringify({ goal: bossCommand.goal }),
+              });
+              const missionResponse = await handleModuleRoute(missionRequest, env, "/missions", session);
+              const missionData = await missionResponse.json().catch(() => ({}));
+              if (!missionResponse.ok) {
+                response = json({ error: missionData.error || "Could not create mission", code: "MISSION_CREATE_FAILED" }, missionResponse.status);
+              } else {
+                const reply = body.language === "hi-IN"
+                  ? "Mission बन गया है। तीन specialist tasks तैयार हैं। हर task को run करने से पहले Mission Control में अलग-अलग approve करना होगा। अभी कोई task execute नहीं हुआ है।"
+                  : "Mission created. Three specialist tasks are ready. Approve each task separately in Mission Control before running it. No task has been executed yet.";
+                response = json({
+                  ok: true,
+                  reply,
+                  model: "core-command-router",
+                  core: {
+                    intent: "create_mission",
+                    missionId: missionData.mission?.id || null,
+                    plannerMode: missionData.plannerMode || "bounded-fallback",
+                    requiresTaskApproval: true,
+                    taskCount: Array.isArray(missionData.tasks) ? missionData.tasks.length : 0,
+                    externalActionsPerformed: false,
+                  },
+                });
+              }
+            } else {
             const defaultModel = "@cf/meta/llama-3.1-8b-instruct";
             const fallbackModels = [
               defaultModel,
@@ -360,7 +390,7 @@ export default {
               ? env.CHAT_MODEL.trim()
               : defaultModel;
             const models = [...new Set([configuredModel, ...fallbackModels])];
-            const systemPrompt = "You are Super Chatty Jarvis, an owner-controlled AI assistant. Reply in the user's selected language (" + body.language + "). Be helpful, concise, and honest. You can answer questions, help plan goals, create approved task plans, and coordinate up to three built-in specialist roles (pathfinder planner, research synthesizer, read-only code reviewer) through the mission console. Task execution is bounded to Workers AI summaries of supplied context; live web browsing, arbitrary code execution, unrestricted internet access, automatic agent recruitment beyond the three-role library, and external account changes are not enabled unless a separately verified tool is actually connected. Never claim you performed external actions or accessed accounts unless the system actually did so. Never bypass Owner authentication, security controls, approvals, or technical access restrictions. Ask for explicit Owner approval before sensitive actions and clearly state which capabilities are available versus planned.";
+            const systemPrompt = "You are Super Chatty Jarvis Core, an owner-controlled assistant with an OS-like command interface. Reply in the selected language (" + body.language + "). Understand natural Hindi, Hinglish, and English commands as the Owner speaks; act on clear bounded intents, ask one short clarification when a command is ambiguous, and explain what action was taken or what approval is still needed. Be helpful, concise, and honest. You can answer questions, help plan goals, create bounded task plans, and coordinate up to three built-in specialist roles (pathfinder planner, research synthesizer, read-only code reviewer) through the existing mission console. Task execution is bounded to Workers AI summaries of supplied context; live web browsing, arbitrary code execution, unrestricted internet access, automatic agent recruitment beyond the three-role library, and external account changes are not enabled unless a separately verified tool is actually connected. Never claim you performed external actions or accessed accounts unless the system actually did so. Never bypass Owner authentication, security controls, approvals, or technical access restrictions. Ask for explicit Owner approval before sensitive actions and clearly state which capabilities are available versus planned.";
             const input = {
               messages: [
                 { role: "system", content: systemPrompt },
@@ -430,6 +460,7 @@ export default {
                     : "AI provider temporarily unavailable",
                   code: lastFailure,
                 }, 502);
+            }
           }
         }
       }
