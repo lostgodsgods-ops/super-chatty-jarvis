@@ -151,3 +151,19 @@ test("central chat endpoint returns a bounded Workers AI answer for the protecte
   assert.equal(body.answer, "Hello! Super Chatty is connected.");
   assert.equal(JSON.stringify(body).includes("correct-token"), false);
 });
+
+
+test("legacy /internal/chat route aliases the protected central /chat handler", async () => {
+  const response = await worker.fetch(new Request("https://agent.example/internal/chat", {
+    method: "POST",
+    headers: { "content-type": "application/json", authorization: "Bearer correct-token" },
+    body: JSON.stringify({ message: "Hello Chatty", language: "en-IN" })
+  }), {
+    SEARCH_BRIDGE_TOKEN: "correct-token",
+    AI: { run: async () => ({ response: "Legacy route is connected." }) }
+  });
+  const body = await response.json();
+  assert.equal(response.status, 200, JSON.stringify(body));
+  assert.equal(body.ok, true);
+  assert.equal(body.answer, "Legacy route is connected.");
+});
