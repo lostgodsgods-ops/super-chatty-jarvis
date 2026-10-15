@@ -32,9 +32,9 @@ export async function runOwnerBootstrap({
       clearTimeout(timeout);
     }
   };
-  const pause = async attempt => {
+  const pause = async (attempt, reason = "Transient Worker response") => {
     const delay = Math.min(baseDelayMs * attempt, maxDelayMs);
-    log(`Transient Worker response; retrying in ${delay}ms (attempt ${attempt + 1}/${maxAttempts}).`);
+    log(`${reason}; retrying in ${delay}ms (attempt ${attempt + 1}/${maxAttempts}).`);
     await sleep(delay);
   };
 
@@ -45,7 +45,7 @@ export async function runOwnerBootstrap({
       response = await request(endpoint("/auth/status"), { cache: "no-store" });
     } catch {
       if (attempt === maxAttempts) return fail("Owner setup status check failed after retrying transient network errors.");
-      await pause(attempt);
+      await pause(attempt, "Transient network error checking /auth/status");
       continue;
     }
     if (response.ok) {
@@ -67,7 +67,7 @@ export async function runOwnerBootstrap({
     if (attempt === maxAttempts) {
       return fail(`Owner setup status check remained unavailable after ${maxAttempts} attempts (HTTP ${response.status}).`);
     }
-    await pause(attempt);
+    await pause(attempt, `/auth/status returned HTTP ${response.status}`);
   }
 
   if (!setupRequired) return fail("Owner setup state could not be determined.");
@@ -82,7 +82,7 @@ export async function runOwnerBootstrap({
       });
     } catch {
       if (attempt === maxAttempts) return fail("Owner bootstrap failed after retrying transient network errors.");
-      await pause(attempt);
+      await pause(attempt, "Transient network error posting /auth/setup");
       continue;
     }
 
@@ -101,13 +101,22 @@ export async function runOwnerBootstrap({
       } catch {}
       return fail("Owner bootstrap returned HTTP 409 but setup status could not verify the configured password.");
     }
+    if (response.status === 503) {
+      const payload = await response.clone().json().catch(() => null);
+      if (payload?.error === "Unable to save owner password securely.") {
+        return fail("Worker reached the owner setup handler but failed to save credentials (HTTP 503). Check the Cloudflare Worker log entry owner_setup_failed; repeating the same request cannot repair a persistent D1/runtime error.");
+      }
+      if (typeof payload?.error === "string" && payload.error.includes("Owner setup is not configured")) {
+        return fail("Worker reports owner setup configuration missing (HTTP 503). Verify the runtime OWNER_SETUP_TOKEN and D1 bindings.");
+      }
+    }
     if (!RETRYABLE.has(response.status)) {
       return fail(`Owner bootstrap failed with HTTP ${response.status}; response body withheld.`);
     }
     if (attempt === maxAttempts) {
       return fail(`Owner bootstrap remained unavailable after ${maxAttempts} attempts (HTTP ${response.status}); response body withheld.`);
     }
-    await pause(attempt);
+    await pause(attempt, `/auth/setup returned HTTP ${response.status}`);
   }
   return fail("Owner bootstrap ended without a verified result.");
 }
