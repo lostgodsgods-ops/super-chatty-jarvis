@@ -92,7 +92,7 @@ jobs:
           trap 'rm -f "$tmp"' EXIT
           code="$(curl --silent --show-error --max-time 15 --output "$tmp" --write-out '%{http_code}' "$CENTRAL_AGENT_URL/health")"
           test "$code" = "200" || { echo "::error::Central Agent health failed with HTTP $code"; exit 1; }
-          node -e 'const x=require(process.argv[1]); if(x.ok!==true||x.capabilities?.tavilySearchConfigured!==true||x.capabilities?.gatewaySearchConfigured!==true) throw Error("Central Tavily gateway is not configured"); console.log(JSON.stringify({ok:x.ok,tavilySearchConfigured:x.capabilities.tavilySearchConfigured,gatewaySearchConfigured:x.capabilities.gatewaySearchConfigured}));' "$tmp"
+          node -e 'const fs=require("node:fs"); const x=JSON.parse(fs.readFileSync(process.argv[1],"utf8")); if(x.ok!==true||x.capabilities?.tavilySearchConfigured!==true||x.capabilities?.gatewaySearchConfigured!==true) throw Error("Central Tavily gateway is not configured"); console.log(JSON.stringify({ok:x.ok,tavilySearchConfigured:x.capabilities.tavilySearchConfigured,gatewaySearchConfigured:x.capabilities.gatewaySearchConfigured}));' "$tmp"
 
       - name: Initialize owner password when needed
         shell: bash
