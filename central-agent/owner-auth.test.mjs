@@ -11,6 +11,9 @@ class FakeKV {
   async get(key) { return this.values.get(key) ?? null; }
   async put(key, value) { this.values.set(key, value); }
   async delete(key) { this.values.delete(key); }
+  async list({ prefix = "" } = {}) {
+    return { keys: [...this.values.keys()].filter(name => name.startsWith(prefix)).map(name => ({ name })) };
+  }
 }
 class FakeDB {
   constructor() { this.row = null; }
@@ -27,6 +30,13 @@ class FakeDB {
         if (sql.includes("INSERT INTO owner_credentials")) {
           if (db.row) return { meta: { changes: 0 } };
           db.row = { id: 1, salt: this.params[0], password_hash: this.params[1], created_at: this.params[2] };
+          return { meta: { changes: 1 } };
+        }
+        if (sql.includes("UPDATE owner_credentials")) {
+          if (!db.row) return { meta: { changes: 0 } };
+          db.row.salt = this.params[0];
+          db.row.password_hash = this.params[1];
+          db.row.updated_at = this.params[2];
           return { meta: { changes: 1 } };
         }
         return { meta: { changes: 0 } };
