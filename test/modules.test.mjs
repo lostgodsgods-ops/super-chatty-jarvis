@@ -417,3 +417,67 @@ test("mission creation rejects oversized goals and never creates an unbounded sw
   assert.equal(badCount.status, 400);
   assert.equal(touched, false);
 });
+
+
+test("mission synthesis route is explicit and POST-only", () => {
+  assert.equal(isModuleRoute("POST", "/missions/123e4567-e89b-12d3-a456-426614174000/synthesize"), true);
+  assert.equal(isModuleRoute("GET", "/missions/123e4567-e89b-12d3-a456-426614174000/synthesize"), false);
+});
+
+test("mission synthesis requires Owner authentication before database access", async () => {
+  let touched = false;
+  const response = await handleModuleRoute(req("/missions/123e4567-e89b-12d3-a456-426614174000/synthesize", "POST", {}), {
+    DB: { prepare() { touched = true; throw new Error("database must not be touched"); } },
+  }, "/missions/123e4567-e89b-12d3-a456-426614174000/synthesize", null);
+  assert.equal(response.status, 401);
+  assert.equal(touched, false);
+});
+
+test("mission synthesis waits for all three specialist results before calling AI", async () => {
+  let aiTouched = false;
+  const env = {
+    AI: { async run() { aiTouched = true; return { response: "combined" }; } },
+    DB: { prepare(sql) { return { sql, bind() { return {
+      async first() { return null; },
+      async all() { return { results: [{ id: "task-a", task_type: "read_only_research", payload_json: JSON.stringify({ agentRole: "pathfinder" }), result_json: JSON.stringify({ summary: "plan" }) }] }; },
+    }; } }; } },
+  };
+  const path = "/missions/123e4567-e89b-12d3-a456-426614174000/synthesize";
+  const response = await handleModuleRoute(req(path, "POST", {}), env, path, owner);
+  assert.equal(response.status, 409);
+  assert.equal(aiTouched, false);
+});
+
+test("mission synthesis combines and persists the completed specialist results", async () => {
+  const batches = [];
+  let aiInput;
+  const id = "123e4567-e89b-12d3-a456-426614174000";
+  const rows = [
+    { id: "task-a", task_type: "read_only_research", payload_json: JSON.stringify({ missionId: id, agentRole: "pathfinder" }), result_json: JSON.stringify({ summary: "plan" }) },
+    { id: "task-b", task_type: "read_only_research", payload_json: JSON.stringify({ missionId: id, agentRole: "research_synthesizer" }), result_json: JSON.stringify({ summary: "research" }) },
+    { id: "task-c", task_type: "code_review", payload_json: JSON.stringify({ missionId: id, agentRole: "code_reviewer" }), result_json: JSON.stringify({ summary: "review" }) },
+  ];
+  const env = {
+    CHAT_MODEL: "@cf/meta/llama-3.1-8b-instruct",
+    AI: { async run(model, input) { aiInput = input; return { response: "Unified mission summary." }; } },
+    DB: {
+      prepare(sql) { return { sql, bind(...args) { return {
+        sql, args,
+        async first() { return null; },
+        async all() { return { results: rows }; },
+      }; } }; },
+      async batch(statements) { batches.push(statements); return []; },
+    },
+  };
+  const path = "/missions/"+id+"/synthesize";
+  const response = await handleModuleRoute(req(path, "POST", {}), env, path, owner);
+  assert.equal(response.status, 200);
+  const body = await response.json();
+  assert.equal(body.result.summary, "Unified mission summary.");
+  assert.equal(body.result.agentCount, 3);
+  assert.match(aiInput.messages[1].content, /pathfinder/);
+  assert.equal(batches.length, 1);
+  assert.equal(batches[0].length, 2);
+  assert.ok(batches[0][0].sql.includes("owner_mission_results"));
+  assert.ok(batches[0][1].sql.includes("owner_audit_log"));
+});
