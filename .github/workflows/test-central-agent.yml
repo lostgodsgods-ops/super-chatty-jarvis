@@ -9,6 +9,7 @@ on:
   push:
     branches:
       - "feat/tavily-central-agent-search"
+      - "feat/owner-approved-durable-knowledge-queue"
     paths:
       - "central-agent/**"
       - ".github/workflows/deploy-central-agent.yml"
@@ -30,4 +31,4 @@ jobs:
           node-version: "20"
 
       - name: Test policy, owner authentication, and Tavily search
-        run: node --test central-agent/policy.test.mjs central-agent/owner-auth.test.mjs
+        run: node --test central-agent/policy.test.mjs central-agent/owner-auth.test.mjs central-agent/task-queue.test.mjs
