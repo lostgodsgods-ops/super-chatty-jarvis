@@ -17,31 +17,58 @@ jobs:
   health-check:
     runs-on: ubuntu-latest
     steps:
-      - name: Check configured Central Agent health endpoint
+      - name: Check staging Central Agent health and Tavily configuration
         id: health
         shell: bash
         env:
-          CENTRAL_AGENT_URL: ${{ vars.CENTRAL_AGENT_URL || 'https://super-chatty-central-agent-v1.lostgodsgods.workers.dev' }}
+          CENTRAL_AGENT_URL: https://shrill-silence-164f.workers.dev
         run: |
           set -euo pipefail
-          if [[ -z "${CENTRAL_AGENT_URL:-}" ]]; then
-            echo "::error::Central Agent URL is missing; set repository variable CENTRAL_AGENT_URL or restore the verified default Worker URL."
-            exit 2
-          fi
-          case "$CENTRAL_AGENT_URL" in
-            https://*) ;;
-            *) echo "::error::CENTRAL_AGENT_URL must use HTTPS."; exit 2 ;;
-          esac
           body="$(mktemp)"
+          trap 'rm -f "$body"' EXIT
           code="$(curl --silent --show-error --max-time 15 --output "$body" --write-out '%{http_code}' "$CENTRAL_AGENT_URL/health" || true)"
           echo "http_code=$code" >> "$GITHUB_OUTPUT"
           if [[ "$code" != "200" ]]; then
-            echo "::error::Central Agent health check failed with HTTP $code."
+            echo "::error::Staging Central Agent health check failed with HTTP $code."
             cat "$body"
             exit 1
           fi
-          cat "$body"
-          node -e 'const fs=require("fs"); const x=JSON.parse(fs.readFileSync(process.argv[1],"utf8")); if(x.ok!==true) process.exit(1)' "$body"
+          node -e 'const fs=require("fs"); const x=JSON.parse(fs.readFileSync(process.argv[1],"utf8")); if(x.ok!==true) throw Error("health ok flag is not true"); if(x.capabilities?.tavilySearchConfigured!==true) throw Error("tavilySearchConfigured is not true"); if(x.capabilities?.ownerAuthentication!==true) throw Error("ownerAuthentication is not configured"); console.log(JSON.stringify({ok:x.ok,service:x.service,version:x.version, tavilySearchConfigured:x.capabilities.tavilySearchConfigured,ownerAuthentication:x.capabilities.ownerAuthentication},null,2));' "$body"
+
+      - name: Verify owner-authenticated Tavily live search
+        shell: bash
+        env:
+          CENTRAL_AGENT_URL: https://shrill-silence-164f.workers.dev
+          OWNER_PASSWORD: ${{ secrets.CENTRAL_AGENT_OWNER_PASSWORD }}
+        run: |
+          set -euo pipefail
+          if [[ -z "${OWNER_PASSWORD:-}" ]]; then
+            echo "::error::Missing repository secret CENTRAL_AGENT_OWNER_PASSWORD. Add the existing Owner password as a GitHub Actions secret; never put it in source code or chat."
+            exit 2
+          fi
+          tmp="$(mktemp -d)"
+          trap 'rm -rf "$tmp"' EXIT
+          login_code="$(curl --silent --show-error --max-time 15 --output "$tmp/login.json" --write-out '%{http_code}' \
+            -H 'content-type: application/json' \
+            -X POST "$CENTRAL_AGENT_URL/auth/login" \
+            --data "$(node -e 'process.stdout.write(JSON.stringify({password:process.env.OWNER_PASSWORD}))')")"
+          if [[ "$login_code" != "200" ]]; then
+            echo "::error::Owner login failed with HTTP $login_code."
+            exit 1
+          fi
+          token="$(node -e 'const x=require(process.argv[1]); if(x.ok!==true||typeof x.token!=="string"||!x.token) process.exit(1); process.stdout.write(x.token)' "$tmp/login.json")"
+          search_code="$(curl --silent --show-error --max-time 20 --output "$tmp/search.json" --write-out '%{http_code}' \
+            -H 'content-type: application/json' \
+            -H "authorization: Bearer $token" \
+            -X POST "$CENTRAL_AGENT_URL/search" \
+            --data '{"query":"Cloudflare Workers documentation health checks","searchDepth":"basic"}')"
+          unset token OWNER_PASSWORD
+          if [[ "$search_code" != "200" ]]; then
+            echo "::error::Owner-authenticated /search failed with HTTP $search_code."
+            node -e 'const fs=require("fs"); try { const x=JSON.parse(fs.readFileSync(process.argv[1],"utf8")); console.log(JSON.stringify({error:x.error||"Search request failed"})); } catch { console.log("Search response was not valid JSON."); }' "$tmp/search.json"
+            exit 1
+          fi
+          node -e 'const fs=require("fs"); const x=JSON.parse(fs.readFileSync(process.argv[1],"utf8")); if(x.ok!==true||x.provider!=="tavily"||!Array.isArray(x.results)||x.results.length<1) throw Error("Expected ok=true, provider=tavily, and at least one result"); const urls=x.results.map(r=>r.url); if(urls.some(u=>typeof u!=="string"||!/^https?:\/\//i.test(u))) throw Error("One or more result URLs are invalid"); console.log(JSON.stringify({ok:x.ok,provider:x.provider,resultCount:x.results.length,sourceUrls:urls},null,2));' "$tmp/search.json"
 
       - name: Open or update incident issue on failure
         if: failure() && github.event_name != 'pull_request'
