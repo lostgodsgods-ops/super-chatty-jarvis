@@ -7,7 +7,7 @@ test("internal Tavily search rejects missing or incorrect gateway tokens", async
     method: "POST",
     headers: { "content-type": "application/json", authorization: "Bearer wrong-token" },
     body: JSON.stringify({ query: "Cloudflare Workers" })
-  }), { AGENT_GATEWAY_TOKEN: "correct-token", SEARCH_API_KEY: "test-tavily-key" });
+  }), { SEARCH_BRIDGE_TOKEN: "correct-token", SEARCH_API_KEY: "test-tavily-key" });
   assert.equal(response.status, 401);
   assert.deepEqual(await response.json(), { error: "Unauthorized" });
 });
@@ -33,7 +33,7 @@ test("internal Tavily search uses the server-side key, returns real source shape
       headers: { "content-type": "application/json", authorization: "Bearer correct-token" },
       body: JSON.stringify({ query: "Cloudflare Workers documentation", language: "en-IN" })
     }), {
-      AGENT_GATEWAY_TOKEN: "correct-token",
+      SEARCH_BRIDGE_TOKEN: "correct-token",
       SEARCH_API_KEY: "test-tavily-key",
       AI: {
         run: async (model, input) => {
@@ -68,14 +68,14 @@ test("internal Tavily search fails closed when its private provider key is missi
     method: "POST",
     headers: { "content-type": "application/json", authorization: "Bearer correct-token" },
     body: JSON.stringify({ query: "Cloudflare Workers" })
-  }), { AGENT_GATEWAY_TOKEN: "correct-token" });
+  }), { SEARCH_BRIDGE_TOKEN: "correct-token" });
   assert.equal(response.status, 503);
   assert.equal((await response.json()).error, "Search provider is not configured.");
 });
 
 test("health reports gateway search readiness without exposing secrets", async () => {
   const response = await worker.fetch(new Request("https://agent.example/health"), {
-    AGENT_GATEWAY_TOKEN: "gateway-test-token",
+    SEARCH_BRIDGE_TOKEN: "gateway-test-token",
     SEARCH_API_KEY: "private-tavily-key",
     AI: {}
   });
