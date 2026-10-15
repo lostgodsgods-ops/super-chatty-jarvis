@@ -53,7 +53,7 @@ const LIVE_SEARCH_FUNCTION = `async function runLiveSearch(query, env, language)
   try {
     for (const endpoint of searchEndpoints) {
       attemptedEndpoint = endpoint;
-      response = await fetch(endpoint, {
+      response = await fetchCentralAgent(env, endpoint, {
         method: "POST",
         headers: {
           authorization: "Bearer " + gatewayToken,
