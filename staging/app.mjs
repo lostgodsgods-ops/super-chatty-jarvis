@@ -19,7 +19,7 @@ main{max-width:560px;margin:0 auto;padding:env(safe-area-inset-top) 0 env(safe-a
 </section>
 <section class="panel"><h2>Chatty response</h2><div id="reply" aria-live="polite">Voice input and spoken output are available in supported browsers. AI response service is not connected in this staging build yet.</div><div id="status" role="status" aria-live="polite">Checking Owner session…</div></section>
 <section class="panel" id="historyPanel" hidden><div class="history-head"><h2>Conversation history</h2><button id="clearHistory" type="button">Clear history</button></div><p class="muted"><small>Saved on this device only. Clearing browser/app data may remove this history.</small></p><ol id="historyList" aria-live="polite"></ol><p id="historyStatus" class="muted" role="status">Loading local history…</p></section>
-<p class="muted"><small>Microphone audio is handled by the browser's speech recognition service. This page does not store session tokens in localStorage. Never share setup tokens or passwords in chat.</small></p>
+<p class="muted"><small>Microphone audio is handled by the browser's speech recognition service. This page does not store session tokens in browser storage. Never share setup tokens or passwords in chat.</small></p>
 </main>
 <script>
 const $=id=>document.getElementById(id);
