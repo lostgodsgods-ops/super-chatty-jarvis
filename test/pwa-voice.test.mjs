@@ -280,3 +280,11 @@ test("Jarvis identity accurately describes the bounded agent capabilities", () =
   assert.match(APP_HTML, /up to three specialized read-only agents/);
   assert.match(APP_HTML, /no unrestricted internet access/);
 });
+
+
+test("Mission Control exposes synthesis only for completed missions and saves the summary", () => {
+  assert.match(APP_HTML, /Synthesize results/);
+  assert.match(APP_HTML, /View synthesis/);
+  assert.match(APP_HTML, /\/synthesize/);
+  assert.match(APP_HTML, /Combining the three specialist results/);
+});
