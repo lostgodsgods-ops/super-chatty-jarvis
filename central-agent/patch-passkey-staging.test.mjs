@@ -7,6 +7,7 @@ var BRAVE_SEARCH_ENDPOINT = "https://api.search.brave.com/res/v1/web/search";
 var MAX_SEARCH_RESULTS = 5;
 var initialReply = "AI response service is not connected in this staging build yet.";
 var serviceWorkerSource = 'const CACHE="scj-pwa-v2";';
+const serviceResultRoute = request.method === "POST" && ["/results", "/tasks/claim"].includes(path);
 async function runLiveSearch(query, env, language) {
   return json2({ ok: false });
 }
@@ -64,6 +65,7 @@ test("health reports only whether Tavily is configured and adds a protected smok
   assert.match(result, /searchProvider: "tavily"/);
   assert.match(result, /path === "\/internal\/search-smoke"/);
   assert.match(result, /path === "\/internal\/chat-smoke"/);
+  assert.match(result, /"\/internal\/search-smoke", "\/internal\/chat-smoke"/);
   assert.match(result, /env\.SEARCH_BRIDGE_TOKEN/);
   assert.match(result, /env\.AGENT_GATEWAY_TOKEN/);
   assert.match(result, /env\.AUTH_RATE_LIMITER/);
