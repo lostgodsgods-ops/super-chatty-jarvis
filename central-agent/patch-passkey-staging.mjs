@@ -140,7 +140,7 @@ export function patchWorkerBundle(source) {
     throw new Error("Could not locate the expected health route; refusing to deploy.");
   }
 
-  if (!patched.includes('payload?.results') || !patched.includes('searchProvider: "tavily"')) {
+  if (!patched.includes('payload?.sources') || !patched.includes('searchProvider: "tavily"') || !patched.includes("CENTRAL_AGENT_SEARCH_ENDPOINT")) {
     throw new Error("Patched search validation failed; refusing to deploy.");
   }
   return patched;
