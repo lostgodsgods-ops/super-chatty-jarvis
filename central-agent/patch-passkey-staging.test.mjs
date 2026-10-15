@@ -69,8 +69,8 @@ test("PWA delegates synthesis to central gateway and validates successful search
   const searchFunction = result.slice(start, end);
   assert.equal((searchFunction.match(/env\.AI\.run\(/g) || []).length, 0);
   assert.match(searchFunction, /CENTRAL_AGENT_SEARCH_ENDPOINT/);
-  assert.match(searchFunction, /searchEndpoints\.push/);
-  assert.match(searchFunction, /internal\\/search/);
+  assert.ok(searchFunction.includes("searchEndpoints.push"));
+  assert.ok(searchFunction.includes("/internal/search"));
   assert.match(searchFunction, /if \(response\.status !== 404\) break/);
   assert.match(searchFunction, /payload\?\.core\?\.webSearchExecuted !== true/);
 });
