@@ -236,3 +236,87 @@ test("agent results can only complete an owned queued or running task", async ()
   assert.match(batchStatements[1].sql, /status = 'completed'/);
   assert.match(batchStatements[2].sql, /INSERT INTO owner_audit_log/);
 });
+
+
+test("autonomous executor route is explicit and POST-only", () => {
+  assert.equal(isModuleRoute("POST", "/tasks/execute"), true);
+  assert.equal(isModuleRoute("GET", "/tasks/execute"), false);
+});
+
+test("autonomous executor rejects a wrong gateway token before database or AI access", async () => {
+  let dbTouched = false, aiTouched = false;
+  const response = await handleModuleRoute(req("/tasks/execute", "POST", {}, {
+    "x-agent-gateway-token": "wrong",
+  }), {
+    AGENT_GATEWAY_TOKEN: "correct-token",
+    DB: { prepare() { dbTouched = true; throw new Error("database must not be touched"); } },
+    AI: { async run() { aiTouched = true; throw new Error("AI must not be touched"); } },
+  }, "/tasks/execute", null);
+  assert.equal(response.status, 401);
+  assert.equal(dbTouched, false);
+  assert.equal(aiTouched, false);
+});
+
+test("autonomous executor runs only an approved queued allowlisted task and records result plus audit", async () => {
+  const batches = [];
+  let aiInput = null;
+  const queuedTask = {
+    id: "123e4567-e89b-12d3-a456-426614174000",
+    task_type: "read_only_research",
+    payload_json: JSON.stringify({ question: "Summarize public API documentation" }),
+    created_at: "2026-10-15T10:00:00.000Z",
+    updated_at: "2026-10-15T10:00:00.000Z",
+  };
+  const env = {
+    AGENT_GATEWAY_TOKEN: "correct-token",
+    CHAT_MODEL: "@cf/meta/llama-3.1-8b-instruct",
+    AI: { async run(model, input) { aiInput = { model, input }; return { response: "Summary from the bounded AI executor." }; } },
+    DB: {
+      prepare(sql) { return { sql, bind(...args) { return {
+        sql, args,
+        async first() {
+          if (sql.includes("UPDATE owner_tasks") && sql.includes("RETURNING id, task_type")) return queuedTask;
+          throw new Error("Unexpected first query: " + sql);
+        },
+        async run() { return { success: true }; },
+      }; } }; },
+      async batch(statements) { batches.push(...statements); return []; },
+    },
+  };
+  const response = await handleModuleRoute(req("/tasks/execute", "POST", {}, {
+    "x-agent-gateway-token": "correct-token",
+  }), env, "/tasks/execute", null);
+  assert.equal(response.status, 200);
+  const body = await response.json();
+  assert.equal(body.taskId, queuedTask.id);
+  assert.equal(body.status, "completed");
+  assert.match(body.result.summary, /bounded AI executor/);
+  assert.equal(aiInput.model, "@cf/meta/llama-3.1-8b-instruct");
+  assert.match(aiInput.input.messages[0].content, /read-only research-style summary/);
+  assert.match(aiInput.input.messages[1].content, /read_only_research/);
+  assert.match(aiInput.input.messages[1].content, /Summarize public API documentation/);
+  assert.equal(batches.length, 3);
+  assert.match(batches[0].sql, /INSERT INTO owner_task_results/);
+  assert.match(batches[1].sql, /status = 'completed'/);
+  assert.match(batches[2].sql, /INSERT INTO owner_audit_log/);
+});
+
+
+test("agent result submission cannot bypass claiming by completing a merely queued task", async () => {
+  let batchTouched = false;
+  const env = {
+    AGENT_GATEWAY_TOKEN: "correct-token",
+    DB: {
+      prepare(sql) { return { sql, bind(...args) { return {
+        sql, args,
+        async first() { return { id: args[0], task_type: "read_only_research", status: "queued" }; },
+      }; } }; },
+      async batch() { batchTouched = true; return []; },
+    },
+  };
+  const response = await handleModuleRoute(req("/results", "POST", {
+    taskId: "123e4567-e89b-12d3-a456-426614174000", result: { summary: "unauthorized bypass" },
+  }, { "x-agent-gateway-token": "correct-token" }), env, "/results", null);
+  assert.equal(response.status, 409);
+  assert.equal(batchTouched, false);
+});

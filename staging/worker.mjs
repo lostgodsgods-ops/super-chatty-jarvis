@@ -435,7 +435,7 @@ export default {
       }
       else {
         const moduleResponse = isModuleRoute(request.method, path)
-          ? await handleModuleRoute(request, env, path, request.method === "POST" && ["/results", "/tasks/claim"].includes(path) ? null : await getOwnerSession(request, env))
+          ? await handleModuleRoute(request, env, path, request.method === "POST" && ["/results", "/tasks/claim", "/tasks/execute"].includes(path) ? null : await getOwnerSession(request, env))
           : null;
         response = moduleResponse || json({ error: "Not found" }, 404);
       }
