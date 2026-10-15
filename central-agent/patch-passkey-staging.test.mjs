@@ -14,8 +14,14 @@ else if (request.method === "POST" && path === "/api/chat") {
         const session = await getOwnerSession(request, env);
         if (!session) response = json2({ error: "Owner authentication required" }, 401);
         else {
-          const defaultModel = "@cf/meta/llama-3.1-8b-instruct";
-          response = json2({ ok: true, reply: "local chat" });
+          if (bossCommand.intent === "help") {
+            response = json2({ ok: true, reply: "help" });
+          } else if (bossCommand.intent === "create_mission") {
+            response = json2({ ok: true, reply: "mission" });
+          } else {
+            const defaultModel = "@cf/meta/llama-3.1-8b-instruct";
+            response = json2({ ok: true, reply: "local chat" });
+          }
         }
       } else {
         response = json2({ error: "Not found" }, 404);
