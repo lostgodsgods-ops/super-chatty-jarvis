@@ -45,7 +45,7 @@ else if (request.method === "POST" && path === "/api/chat") {
 
 test("patch routes PWA search through the protected central Tavily gateway", () => {
   const result = patchWorkerBundle(fixture);
-  assert.match(result, /var CENTRAL_AGENT_SEARCH_ENDPOINT = "https:\/\/shrill-silence-164f\.lostgodsgods\.workers\.dev\/search"/);
+  assert.match(result, /var CENTRAL_AGENT_SEARCH_ENDPOINT = "https:\/\/shrill-silence-164f\.lostgodsgods\.workers\.dev\/internal\/search"/);
   assert.doesNotMatch(result, /api\.search\.brave\.com/);
   assert.match(result, /authorization: "Bearer " \+ gatewayToken/);
   assert.match(result, /Array\.isArray\(payload\?\.sources\)/);
@@ -69,7 +69,7 @@ test("PWA delegates synthesis to central gateway and validates successful search
   const searchFunction = result.slice(start, end);
   assert.equal((searchFunction.match(/env\.AI\.run\(/g) || []).length, 0);
   assert.match(searchFunction, /CENTRAL_AGENT_SEARCH_ENDPOINT/);
-  assert.ok(searchFunction.includes("searchEndpoints.push"));
+  assert.ok(!searchFunction.includes("searchEndpoints.push"));
   assert.ok(searchFunction.includes("/internal/search"));
   assert.match(searchFunction, /if \(response\.status !== 404\) break/);
   assert.match(searchFunction, /payload\?\.core\?\.webSearchExecuted !== true/);
@@ -90,12 +90,12 @@ test("health reports only whether Tavily is configured and adds a protected smok
 
 test("upgrades an already-patched legacy internal search endpoint", () => {
   const legacy = patchWorkerBundle(fixture).replace(
-    'var CENTRAL_AGENT_SEARCH_ENDPOINT = "https://shrill-silence-164f.lostgodsgods.workers.dev/search";',
-    'var CENTRAL_AGENT_SEARCH_ENDPOINT = "https://shrill-silence-164f.lostgodsgods.workers.dev/internal/search";'
+    'var CENTRAL_AGENT_SEARCH_ENDPOINT = "https://shrill-silence-164f.lostgodsgods.workers.dev/internal/search";',
+    'var CENTRAL_AGENT_SEARCH_ENDPOINT = "https://shrill-silence-164f.lostgodsgods.workers.dev/search";'
   );
   const upgraded = patchWorkerBundle(legacy);
-  assert.ok(upgraded.includes('var CENTRAL_AGENT_SEARCH_ENDPOINT = "https://shrill-silence-164f.lostgodsgods.workers.dev/search";'));
-  assert.ok(!upgraded.includes('var CENTRAL_AGENT_SEARCH_ENDPOINT = "https://shrill-silence-164f.lostgodsgods.workers.dev/internal/search";'));
+  assert.ok(upgraded.includes('var CENTRAL_AGENT_SEARCH_ENDPOINT = "https://shrill-silence-164f.lostgodsgods.workers.dev/internal/search";'));
+  assert.ok(!upgraded.includes('var CENTRAL_AGENT_SEARCH_ENDPOINT = "https://shrill-silence-164f.lostgodsgods.workers.dev/search";'));
 });
 
 test("patch is idempotent and refuses an unknown deployed bundle", () => {
