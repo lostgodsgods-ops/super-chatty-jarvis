@@ -1,4 +1,8 @@
 import { pathToFileURL } from "node:url";
+import { execFileSync } from "node:child_process";
+import { mkdtempSync, writeFileSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 
 const API = "https://api.cloudflare.com/client/v4";
 const WORKER_NAME = "super-chatty-passkey-staging";
@@ -148,6 +152,20 @@ const HEALTH_AND_SMOKE_ROUTES = `if (request.method === "GET" && path === "/heal
       return await runLiveSearch(query, env, "en-IN");
     }`;
 
+function validateModuleSyntax(source) {
+  const directory = mkdtempSync(join(tmpdir(), "scj-staging-worker-"));
+  const filename = join(directory, "worker.mjs");
+  try {
+    writeFileSync(filename, source, { mode: 0o600 });
+    execFileSync(process.execPath, ["--check", filename], { stdio: "pipe" });
+  } catch (error) {
+    const detail = String(error?.stderr || error?.message || "Unknown syntax error").slice(-1800);
+    throw new Error("Patched staging Worker syntax check failed: " + detail);
+  } finally {
+    rmSync(directory, { recursive: true, force: true });
+  }
+}
+
 export function patchWorkerBundle(source) {
   if (typeof source !== "string" || !source.includes('async function runLiveSearch(query, env, language) {')) {
     throw new Error("Could not find the expected live-search function; refusing to deploy.");
@@ -182,7 +200,7 @@ export function patchWorkerBundle(source) {
     const localChatEnd = patched.indexOf(localChatEndMarker, localChatStart);
     if (localChatEnd < 0) throw new Error("Could not locate the end of the PWA chat handler; refusing to deploy.");
     patched = patched.slice(0, localChatStart) + CHAT_PROXY_BODY + patched.slice(localChatEnd);
-  } else if (!patched.slice(chatRouteStart, chatRouteStart + 5000).includes("fetch(CENTRAL_AGENT_CHAT_ENDPOINT")) {
+  } else if (!patched.slice(chatRouteStart).includes("fetch(CENTRAL_AGENT_CHAT_ENDPOINT")) {
     throw new Error("PWA chat handler is neither patchable nor already connected to the central AI gateway.");
   }
 
@@ -234,6 +252,7 @@ async function main() {
   }
 
   const patched = patchWorkerBundle(original);
+  validateModuleSyntax(patched);
   const metadata = {
     main_module: "worker.js",
     compatibility_date: settings.compatibility_date,
@@ -260,8 +279,8 @@ async function main() {
   let deployPayload;
   try { deployPayload = JSON.parse(deployText); } catch { deployPayload = null; }
   if (!deployResponse.ok || deployPayload?.success === false) {
-    const codes = (deployPayload?.errors || []).map((item) => item.code).filter((value) => value !== undefined);
-    throw new Error("Staging Worker deployment failed with HTTP " + deployResponse.status + (codes.length ? " (error codes: " + codes.join(",") + ")" : "") + ".");
+    const errors = (deployPayload?.errors || []).map((item) => (item.code !== undefined ? item.code + ": " : "") + (item.message || "Cloudflare API error"));
+    throw new Error("Staging Worker deployment failed with HTTP " + deployResponse.status + (errors.length ? " — " + errors.join("; ") : ".") );
   }
 
   const verify = await cloudflareRequest(base + "/settings");
