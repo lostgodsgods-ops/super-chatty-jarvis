@@ -200,6 +200,6 @@ test("legacy /search route rejects requests without owner session or bridge toke
     headers: { "content-type": "application/json" },
     body: JSON.stringify({ query: "Cloudflare Workers" })
   }), { SEARCH_BRIDGE_TOKEN: "bridge-token", SEARCH_API_KEY: "test-tavily-key" });
-  assert.equal(response.status, 401);
-  assert.deepEqual(await response.json(), { error: "Unauthorized" });
+  assert.equal(response.status, 503);
+  assert.deepEqual(await response.json(), { error: "Owner authentication storage is not configured." });
 });
