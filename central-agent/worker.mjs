@@ -95,6 +95,7 @@ function ownerPage() {
 <section id="setup"><h2>Set your password</h2><p class="hint">Use at least 12 characters. This one-time setup page must be opened using your private setup link.</p>
 <form id="setupForm"><label for="setupTokenInput">One-time setup token</label><input id="setupTokenInput" type="password" autocomplete="off" autocapitalize="none" spellcheck="false" aria-describedby="setupTokenHelp" required><p id="setupTokenHelp" class="hint">Paste the token from Cloudflare here, or open your private setup link. The token is never displayed.</p><label for="password">Choose password</label><input id="password" type="password" minlength="12" maxlength="256" autocomplete="new-password" required><label for="confirm">Confirm password</label><input id="confirm" type="password" minlength="12" maxlength="256" autocomplete="new-password" required><button id="setupButton" type="submit">Save Password</button></form></section>
 <section id="login" class="hidden"><h2>Owner login</h2><form id="loginForm"><label for="loginPassword">Password</label><input id="loginPassword" type="password" autocomplete="current-password" required><button type="submit">Sign in</button></form></section>
+<section id="settings" class="hidden"><h2>Owner security settings</h2><p class="hint">Change your password here. Active sessions are revoked after a successful change. This page keeps the session token in memory only; it does not write the password or token to browser storage.</p><form id="changePasswordForm"><label for="currentPassword">Current password</label><input id="currentPassword" type="password" autocomplete="current-password" required><label for="newPassword">New password (12–256 characters)</label><input id="newPassword" type="password" minlength="12" maxlength="256" autocomplete="new-password" required><label for="confirmNewPassword">Confirm new password</label><input id="confirmNewPassword" type="password" minlength="12" maxlength="256" autocomplete="new-password" required><button type="submit">Update Password</button></form><button id="logoutButton" type="button">Sign out</button></section>
 <div id="status" class="status" role="status" aria-live="polite">Checking setup status…</div></main>
 <script>
 const statusBox=document.getElementById("status");
@@ -105,10 +106,13 @@ const initialSetupToken=new URLSearchParams(location.hash.slice(1)).get("setup")
 if(initialSetupToken) setupTokenInput.value=initialSetupToken;
 history.replaceState(null,"",location.pathname);
 function say(message){statusBox.textContent=message}
-async function send(path,data){const response=await fetch(path,{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify(data)});const payload=await response.json().catch(()=>({error:"Unexpected server response"}));if(!response.ok)throw new Error(payload.error||"Request failed");return payload}
+async function send(path,data,extraHeaders={}){const response=await fetch(path,{method:"POST",headers:{"content-type":"application/json",...extraHeaders},body:JSON.stringify(data)});const payload=await response.json().catch(()=>({error:"Unexpected server response"}));if(!response.ok)throw new Error(payload.error||"Request failed");return payload}
 (async()=>{try{const response=await fetch("/auth/status",{cache:"no-store"});const info=await response.json();if(!response.ok)throw new Error(info.error||"Unable to check setup");if(info.setupRequired){setupSection.classList.remove("hidden");loginSection.classList.add("hidden");if(!setupTokenInput.value){say("Paste your one-time setup token above, or open the private setup link.");}else say("Choose a password you will remember.");}else{setupSection.classList.add("hidden");loginSection.classList.remove("hidden");say("Owner password is set. Sign in to continue.");}}catch(error){say(error.message)}})();
 document.getElementById("setupForm").addEventListener("submit",async event=>{event.preventDefault();const password=document.getElementById("password").value;const confirm=document.getElementById("confirm").value;if(password!==confirm){say("Passwords do not match.");return}if(password.length<12){say("Use at least 12 characters.");return}const setupToken=setupTokenInput.value;if(!setupToken){say("Enter your one-time setup token.");return}try{await send("/auth/setup",{setupToken,password});setupTokenInput.value="";setupSection.classList.add("hidden");loginSection.classList.remove("hidden");document.getElementById("password").value="";document.getElementById("confirm").value="";say("Password saved securely. Sign in with your new password.");}catch(error){say(error.message)}});
-document.getElementById("loginForm").addEventListener("submit",async event=>{event.preventDefault();try{const result=await send("/auth/login",{password:document.getElementById("loginPassword").value});sessionStorage.setItem("superChattyOwnerSession",result.token);document.getElementById("loginPassword").value="";say("Signed in. Owner session saved for this browser tab for up to one hour. You can now use this session with protected API requests.");}catch(error){say(error.message)}});
+let ownerSessionToken="";
+document.getElementById("loginForm").addEventListener("submit",async event=>{event.preventDefault();try{const result=await send("/auth/login",{password:document.getElementById("loginPassword").value});ownerSessionToken=result.token;const response=await fetch("/auth/session",{headers:{authorization:"Bearer "+ownerSessionToken},cache:"no-store"});const session=await response.json();if(!response.ok||session.authenticated!==true)throw new Error("Session verification failed.");document.getElementById("loginPassword").value="";loginSection.classList.add("hidden");document.getElementById("settings").classList.remove("hidden");say("Signed in. Session is verified and held in page memory only.");}catch(error){ownerSessionToken="";say(error.message)}});
+document.getElementById("changePasswordForm").addEventListener("submit",async event=>{event.preventDefault();const currentPassword=document.getElementById("currentPassword").value;const newPassword=document.getElementById("newPassword").value;const confirmNewPassword=document.getElementById("confirmNewPassword").value;if(newPassword!==confirmNewPassword){say("New passwords do not match.");return}try{const result=await send("/auth/change-password",{currentPassword,newPassword},{authorization:"Bearer "+ownerSessionToken});say(result.message||"Password updated.");ownerSessionToken="";document.getElementById("currentPassword").value="";document.getElementById("newPassword").value="";document.getElementById("confirmNewPassword").value="";document.getElementById("settings").classList.add("hidden");loginSection.classList.remove("hidden");}catch(error){say(error.message)}});
+document.getElementById("logoutButton").addEventListener("click",async()=>{ownerSessionToken="";document.getElementById("settings").classList.add("hidden");loginSection.classList.remove("hidden");say("Signed out of this page. Session expires server-side within one hour.");});
 </script></body></html>`;
   return new Response(html, {
     headers: {
@@ -205,6 +209,39 @@ export default {
 
     if (!env.DB || !env.SESSIONS) return json({ error: "Owner authentication storage is not configured." }, 503, cors);
     if (!(await authorized(request, env))) return json({ error: "Unauthorized. Sign in with your Owner password." }, 401, cors);
+
+    if (url.pathname === "/auth/session" && request.method === "GET") {
+      return json({ ok: true, authenticated: true, expiresIn: SESSION_TTL_SECONDS }, 200, cors);
+    }
+
+    if (url.pathname === "/auth/change-password" && request.method === "POST") {
+      let body;
+      try { body = await request.json(); } catch { return json({ error: "Expected JSON body." }, 400, cors); }
+      const currentPassword = typeof body.currentPassword === "string" ? body.currentPassword : "";
+      const newPassword = typeof body.newPassword === "string" ? body.newPassword : "";
+      if (newPassword.length < 12 || newPassword.length > 256) {
+        return json({ error: "New password must contain 12–256 characters." }, 400, cors);
+      }
+      try {
+        const credentials = await getCredentials(env);
+        if (!credentials) return json({ error: "Owner password has not been set." }, 409, cors);
+        const currentHash = await derivePasswordHash(currentPassword, credentials.salt);
+        if (!equalSecret(currentHash, credentials.password_hash)) return json({ error: "Current password is incorrect." }, 401, cors);
+        const salt = base64url(crypto.getRandomValues(new Uint8Array(16)));
+        const passwordHash = await derivePasswordHash(newPassword, salt);
+        const result = await env.DB.prepare("UPDATE owner_credentials SET salt = ?, password_hash = ?, updated_at = ? WHERE id = 1")
+          .bind(salt, passwordHash, new Date().toISOString()).run();
+        if (!result?.meta || result.meta.changes !== 1) return json({ error: "Unable to update owner password." }, 503, cors);
+        // Revoke all active sessions after a credential change.
+        if (typeof env.SESSIONS.list === "function") {
+          const listed = await env.SESSIONS.list({ prefix: "session:" });
+          for (const key of (listed?.keys || [])) await env.SESSIONS.delete(key.name);
+        }
+        return json({ ok: true, message: "Owner password updated. Please sign in again." }, 200, cors);
+      } catch {
+        return json({ error: "Owner password update is temporarily unavailable." }, 503, cors);
+      }
+    }
 
     if (url.pathname === "/search" && request.method === "POST") {
       if (!env.SEARCH_API_KEY) return json({ error: "Search is not configured." }, 503, cors);
