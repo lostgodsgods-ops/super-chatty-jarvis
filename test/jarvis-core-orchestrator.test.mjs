@@ -12,7 +12,7 @@ test("Jarvis core instructions define bounded Owner-first operation without clai
   assert.match(JARVIS_CORE_SYSTEM_INSTRUCTIONS, /approval/i);
   assert.match(JARVIS_CORE_SYSTEM_INSTRUCTIONS, /untrusted/i);
   assert.match(JARVIS_CORE_SYSTEM_INSTRUCTIONS, /Never claim.*unless/i);
-  assert.match(JARVIS_CORE_SYSTEM_INSTRUCTIONS, /live search.*only when configured/i);
+  assert.match(JARVIS_CORE_SYSTEM_INSTRUCTIONS, /live search is available only when the configured search provider/i);
 });
 
 test("dynamic intent router recognizes English web search commands", () => {
