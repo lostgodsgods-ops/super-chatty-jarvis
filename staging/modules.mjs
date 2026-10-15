@@ -46,11 +46,11 @@ export function parseBossCommand(rawMessage) {
   if (/^(?:jarvis[,\s]*)?(?:help|commands|what\s+can\s+you\s+do)\b/i.test(normalized) || /^(?:chatty[,\s]*)?(?:मदद|कमांड्स|क्या\s+कर\s+सकते\s+हो|kya\s+kar\s+sakte\s+ho)/i.test(normalized)) {
     return { intent: "help", goal: "", requiresTaskApproval: false };
   }
-  const englishSearch = /^(?:(?:jarvis|chatty)[,\\s]*)?(?:search|web\\s+search|browse|look\\s+up|find|latest\\s+news|news\\s+about)\\s+(?:(?:for|about|on)\\s+)?(.+)$/i.exec(normalized);
-  const hindiSearch = /^(?:(?:jarvis|chatty)[,\\s]*)?(?:वेब\\s+सर्च(?:\\s+करो)?|सर्च\\s+करो|खोजो|ताज़ा\\s+जानकारी\\s+खोजो|ताजा\\s+जानकारी\\s+खोजो)\\s*(?:(?:के\\s+बारे\\s+में|के\\s+लिए|for|about)\\s*)?(.+)$/i.exec(normalized);
+  const englishSearch = /^(?:(?:jarvis|chatty)[,\s]*)?(?:search|web\s+search|browse|look\s+up|find|latest\s+news|news\s+about)\s+(?:(?:for|about|on)\s+)?(.+)$/i.exec(normalized);
+  const hindiSearch = /^(?:(?:jarvis|chatty)[,\s]*)?(?:वेब\s+सर्च(?:\s+करो)?|सर्च\s+करो|खोजो|ताज़ा\s+जानकारी\s+खोजो|ताजा\s+जानकारी\s+खोजो)\s*(?:(?:के\s+बारे\s+में|के\s+लिए|for|about)\s*)?(.+)$/i.exec(normalized);
   const searchMatch = englishSearch || hindiSearch;
   if (searchMatch) {
-    const goal = searchMatch[1].trim().replace(/^[,.:\\s]+|[,.:\\s]+$/g, "");
+    const goal = searchMatch[1].trim().replace(/^[,.:\s]+|[,.:\s]+$/g, "");
     if (goal && goal.length <= 500) return { intent: "web_search", goal, requiresTaskApproval: false };
   }
       const patterns = [
