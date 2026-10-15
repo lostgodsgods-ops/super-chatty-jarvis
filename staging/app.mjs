@@ -19,6 +19,7 @@ main{max-width:560px;margin:0 auto;padding:env(safe-area-inset-top) 0 env(safe-a
 </section>
 <section class="panel"><h2>Chatty response</h2><div id="reply" aria-live="polite">Voice input and spoken output are available in supported browsers. AI response service is not connected in this staging build yet.</div><div id="status" role="status" aria-live="polite">Checking Owner session…</div></section>
 <section class="panel" id="historyPanel" hidden><div class="history-head"><h2>Conversation history</h2><button id="clearHistory" type="button">Clear history</button></div><p class="muted"><small>Saved on this device only. Clearing browser/app data may remove this history.</small></p><ol id="historyList" aria-live="polite"></ol><p id="historyStatus" class="muted" role="status">Loading local history…</p></section>
+<section class="panel" id="taskPanel" hidden><h2>Owner task queue</h2><p class="muted"><small>Tasks need your explicit approval before they can run. The built-in executor uses Workers AI for read-only research summaries and code reviews; it does not run code or change external systems.</small></p><label for="taskType">Task type</label><select id="taskType"><option value="read_only_research">Read-only research summary</option><option value="code_review">Read-only code review</option></select><label for="taskPrompt">Task details</label><textarea id="taskPrompt" placeholder="Write the question or paste code to review…"></textarea><div class="actions"><button id="createTask" class="primary" type="button">Create task</button><button id="refreshTasks" type="button">Refresh queue</button></div><div class="actions"><button id="runNextTask" type="button">Run next approved task</button></div><ol id="taskList" aria-live="polite"></ol><p id="taskStatus" class="muted" role="status">Loading task queue…</p><div id="taskResult" aria-live="polite"></div></section>
 <p class="muted"><small>Microphone audio is handled by the browser's speech recognition service. This page does not store session tokens in browser storage. Never share setup tokens or passwords in chat.</small></p>
 </main>
 <script>
@@ -71,8 +72,87 @@ async function clearConversationHistory(){
  await restoreConversationHistory();
 }
 $("clearHistory").addEventListener("click",()=>{void clearConversationHistory();});
+async function refreshTasks(){
+ $("taskStatus").textContent="Loading task queue…";
+ try{
+  const response=await fetch("/tasks",{cache:"no-store",credentials:"same-origin"});
+  const data=await response.json().catch(()=>({}));
+  if(!response.ok)throw new Error(data.error||"Could not load task queue");
+  renderTaskList(Array.isArray(data.tasks)?data.tasks:[]);
+ }catch(error){$("taskStatus").textContent=error.message||"Task queue unavailable.";}
+}
+function renderTaskList(tasks){
+ const list=$("taskList");list.replaceChildren();
+ for(const task of tasks){
+  const item=document.createElement("li"),title=document.createElement("strong"),meta=document.createElement("p");
+  title.textContent=task.taskType+" · "+task.status;
+  meta.textContent="Task "+task.id+" · Updated "+(task.updatedAt||task.createdAt||"unknown");
+  item.append(title,meta);
+  if(task.status==="pending_approval"){
+   const approve=document.createElement("button");approve.type="button";approve.textContent="Approve task";
+   approve.addEventListener("click",async()=>{
+    approve.disabled=true;
+    try{
+     const response=await fetch("/tasks/"+encodeURIComponent(task.id)+"/approve",{method:"POST",credentials:"same-origin",headers:{"content-type":"application/json"},body:JSON.stringify({approved:true})});
+     const data=await response.json().catch(()=>({}));
+     if(!response.ok)throw new Error(data.error||"Approval failed");
+     $("taskStatus").textContent="Task approved and queued.";
+     await refreshTasks();
+    }catch(error){$("taskStatus").textContent=error.message||"Approval failed.";}
+    finally{approve.disabled=false;}
+   });
+   item.append(approve);
+  }
+  if(task.status==="completed"){
+   const view=document.createElement("button");view.type="button";view.textContent="View result";
+   view.addEventListener("click",async()=>{
+    try{
+     const response=await fetch("/results?taskId="+encodeURIComponent(task.id),{cache:"no-store",credentials:"same-origin"});
+     const data=await response.json().catch(()=>({}));
+     if(!response.ok)throw new Error(data.error||"Could not load result");
+     const result=(data.results||[])[0]?.result;
+     $("taskResult").textContent=result?.summary||JSON.stringify(result||{message:"No result saved."},null,2);
+    }catch(error){$("taskStatus").textContent=error.message||"Could not load result.";}
+   });
+   item.append(view);
+  }
+  list.append(item);
+ }
+ $("taskStatus").textContent=tasks.length?("Tasks loaded · "+tasks.length+" recent tasks"):"No tasks yet. Create a task to begin.";
+}
+$("createTask").addEventListener("click",async()=>{
+ const prompt=$("taskPrompt").value.trim();
+ if(!prompt){$("taskStatus").textContent="Add task details first.";return;}
+ $("createTask").disabled=true;
+ try{
+  const taskType=$("taskType").value;
+  const payload=taskType==="code_review"?{material:prompt}:{question:prompt};
+  const response=await fetch("/tasks",{method:"POST",credentials:"same-origin",headers:{"content-type":"application/json"},body:JSON.stringify({taskType,payload})});
+  const data=await response.json().catch(()=>({}));
+  if(!response.ok)throw new Error(data.error||"Task creation failed");
+  $("taskPrompt").value="";
+  $("taskStatus").textContent="Task created as pending approval. Review it and approve when ready.";
+  await refreshTasks();
+ }catch(error){$("taskStatus").textContent=error.message||"Task creation failed.";}
+ finally{$("createTask").disabled=false;}
+});
+$("refreshTasks").addEventListener("click",()=>{void refreshTasks();});
+$("runNextTask").addEventListener("click",async()=>{
+ $("runNextTask").disabled=true;$("taskResult").textContent="Running one approved task…";
+ try{
+  const response=await fetch("/tasks/run-next",{method:"POST",credentials:"same-origin",headers:{"content-type":"application/json"},body:"{}"});
+  const data=await response.json().catch(()=>({}));
+  if(!response.ok)throw new Error(data.error||"Task execution failed");
+  if(!data.taskId){$("taskResult").textContent=data.message||"No approved tasks are queued.";return;}
+  $("taskResult").textContent=data.result?.summary||"Task completed; see results for details.";
+  $("taskStatus").textContent="Task completed and saved to D1.";
+  await refreshTasks();
+ }catch(error){$("taskResult").textContent="";$("taskStatus").textContent=error.message||"Task execution failed.";}
+ finally{$("runNextTask").disabled=false;}
+});
 
-async function checkSession(){try{const r=await fetch("/auth/status",{cache:"no-store",credentials:"same-origin"});if(!r.ok){location.replace("/owner");return false;}const data=await r.json();if(!data.authenticated){location.replace("/owner");return false;}$("historyPanel").hidden=false;await restoreConversationHistory();sayStatus("Owner session verified.");return true;}catch(e){sayStatus("Session check failed. Reopen Owner security and sign in.");return false;}}
+
+async function checkSession(){try{const r=await fetch("/auth/status",{cache:"no-store",credentials:"same-origin"});if(!r.ok){location.replace("/owner");return false;}const data=await r.json();if(!data.authenticated){location.replace("/owner");return false;}$("historyPanel").hidden=false;$("taskPanel").hidden=false;await restoreConversationHistory();await refreshTasks();sayStatus("Owner session verified.");return true;}catch(e){sayStatus("Session check failed. Reopen Owner security and sign in.");return false;}}
 function makeRecognition(){const C=window.SpeechRecognition||window.webkitSpeechRecognition;if(!C){sayStatus("Voice input is not supported in this browser. Try a current Chrome browser or type your message.");return null;}const r=new C();r.lang=$("language").value;r.interimResults=true;r.continuous=false;r.onstart=()=>{listening=true;$("mic").setAttribute("aria-pressed","true");$("micHint").textContent="Listening… tap again to stop";sayStatus("Listening. Speak now.");};r.onresult=e=>{let text="";for(let i=e.resultIndex;i<e.results.length;i++)text+=e.results[i][0].transcript;$("message").value=text;};r.onerror=e=>sayStatus("Microphone status: "+e.error+". Check browser microphone permission.");r.onend=()=>{listening=false;$("mic").setAttribute("aria-pressed","false");$("micHint").textContent="Tap the microphone and speak";};return r;}
 $("mic").addEventListener("click",()=>{if(listening&&recognition){recognition.stop();return;}recognition=makeRecognition();if(!recognition)return;recognition.lang=$("language").value;try{recognition.start();}catch(e){sayStatus("Could not start microphone. Check permission and try again.");}});
 $("language").addEventListener("change",()=>{if(recognition&&!listening)recognition.lang=$("language").value;});
