@@ -29,7 +29,7 @@ jobs:
           node-version: "20"
 
       - name: Run policy and owner-auth tests
-        run: node --test central-agent/policy.test.mjs central-agent/owner-auth.test.mjs central-agent/bootstrap-owner.test.mjs central-agent/patch-passkey-staging.test.mjs
+        run: node --test central-agent/policy.test.mjs central-agent/owner-auth.test.mjs central-agent/bootstrap-owner.test.mjs central-agent/internal-search.test.mjs central-agent/patch-passkey-staging.test.mjs
 
       - name: Validate required secrets
         shell: bash
@@ -38,6 +38,7 @@ jobs:
           CF_ACCOUNT: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           SETUP_TOKEN: ${{ secrets.OWNER_SETUP_TOKEN }}
           SEARCH_KEY: ${{ secrets.SEARCH_API_KEY }}
+          GATEWAY_TOKEN: ${{ secrets.AGENT_GATEWAY_TOKEN }}
         run: |
           set -euo pipefail
           test -n "$CF_TOKEN" || { echo "Missing CLOUDFLARE_API_TOKEN"; exit 1; }
@@ -63,6 +64,7 @@ jobs:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           OWNER_SETUP_TOKEN: ${{ secrets.OWNER_SETUP_TOKEN }}
           SEARCH_API_KEY: ${{ secrets.SEARCH_API_KEY }}
+          AGENT_GATEWAY_TOKEN: ${{ secrets.AGENT_GATEWAY_TOKEN }}
         run: |
           set -euo pipefail
           umask 077
