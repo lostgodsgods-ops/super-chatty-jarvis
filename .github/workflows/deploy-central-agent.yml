@@ -74,3 +74,35 @@ jobs:
         run: |
           set -euo pipefail
           npx --yes wrangler@4 deploy --config central-agent/wrangler.jsonc
+
+      - name: Initialize owner password when secret is configured
+        shell: bash
+        env:
+          OWNER_SETUP_TOKEN: ${{ secrets.OWNER_SETUP_TOKEN }}
+          OWNER_PASSWORD: ${{ secrets.CENTRAL_AGENT_OWNER_PASSWORD }}
+          CENTRAL_AGENT_URL: https://shrill-silence-164f.lostgodsgods.workers.dev
+        run: |
+          set -euo pipefail
+          if [[ -z "${OWNER_PASSWORD:-}" ]]; then
+            echo "::warning::CENTRAL_AGENT_OWNER_PASSWORD is not configured; owner bootstrap was skipped and monitoring will remain blocked."
+            exit 0
+          fi
+          node --input-type=module <<'NODE'
+          const base = process.env.CENTRAL_AGENT_URL;
+          const response = await fetch(new URL("/auth/setup", base), {
+            method: "POST",
+            headers: { "content-type": "application/json" },
+            body: JSON.stringify({
+              setupToken: process.env.OWNER_SETUP_TOKEN,
+              password: process.env.OWNER_PASSWORD
+            })
+          });
+          if (response.status === 201) {
+            console.log("Owner password bootstrap completed (HTTP 201).");
+          } else if (response.status === 409) {
+            console.log("Owner password already exists; one-time bootstrap was not repeated (HTTP 409).");
+          } else {
+            console.error(`Owner bootstrap failed with HTTP ${response.status}; response body withheld.`);
+            process.exit(1);
+          }
+          NODE
