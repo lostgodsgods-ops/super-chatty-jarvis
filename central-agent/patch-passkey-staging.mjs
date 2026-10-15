@@ -206,6 +206,17 @@ function validateModuleSyntax(source) {
   }
 }
 
+export function extractWorkerSource(raw) {
+  if (typeof raw !== "string") throw new Error("Cloudflare returned an invalid Worker script body.");
+  const boundary = (raw.match(/^--([^\r\n]+)/) || [])[1];
+  if (!boundary) return raw;
+  const part = raw.split("--" + boundary).find((item) => item.includes('name="worker.js"'));
+  if (!part) throw new Error("Cloudflare script response did not contain the worker.js module.");
+  const separator = part.indexOf("\r\n\r\n");
+  if (separator < 0) throw new Error("Cloudflare script response had an invalid worker.js part.");
+  return part.slice(separator + 4).replace(/\r\n$/, "");
+}
+
 export function patchWorkerBundle(source) {
   if (typeof source !== "string" || !source.includes('async function runLiveSearch(query, env, language) {')) {
     throw new Error("Could not find the expected live-search function; refusing to deploy.");
@@ -282,7 +293,7 @@ async function main() {
     cloudflareRequest(base + "/settings")
   ]);
   if (!scriptResponse.ok) throw new Error("Unable to download the current staging Worker (HTTP " + scriptResponse.status + ").");
-  const original = await scriptResponse.text();
+  const original = extractWorkerSource(await scriptResponse.text());
   const settings = settingsPayload.result || {};
   if (!Array.isArray(settings.bindings) || !settings.bindings.some((binding) => binding.name === "SEARCH_BRIDGE_TOKEN" && binding.type === "secret_text")) {
     throw new Error("SEARCH_BRIDGE_TOKEN is not bound to the staging Worker before patch deployment.");
