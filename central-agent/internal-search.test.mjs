@@ -126,7 +126,7 @@ test("central chat endpoint requires the private gateway token", async () => {
     headers: { "content-type": "application/json" },
     body: JSON.stringify({ message: "Hello Chatty", language: "en-IN" })
   }), { SEARCH_BRIDGE_TOKEN: "correct-token", AI: { run: async () => ({ response: "should not run" }) } });
-  assert.equal(response.status, 401);
+  assert.equal(response.status, 401, JSON.stringify(await response.clone().json()));
   assert.deepEqual(await response.json(), { error: "Unauthorized" });
 });
 
@@ -145,7 +145,7 @@ test("central chat endpoint returns a bounded Workers AI answer for the protecte
     } }
   });
   const body = await response.json();
-  assert.equal(response.status, 200);
+  assert.equal(response.status, 200, JSON.stringify(body));
   assert.equal(body.ok, true);
   assert.equal(body.provider, "workers-ai");
   assert.equal(body.answer, "Hello! Super Chatty is connected.");
