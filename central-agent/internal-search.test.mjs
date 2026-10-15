@@ -210,3 +210,59 @@ test("legacy /search route rejects requests without owner session or bridge toke
   assert.equal(response.status, 401);
   assert.deepEqual(await response.json(), { error: "Unauthorized. Sign in with your Owner password." });
 });
+
+
+test("active /chat and /internal/chat routes search Tavily before AI for current questions", async () => {
+  const originalFetch = globalThis.fetch;
+  for (const path of ["/chat", "/internal/chat"]) {
+    const sequence = [];
+    globalThis.fetch = async (url, options) => {
+      sequence.push("tavily");
+      assert.equal(String(url), "https://api.tavily.com/search");
+      assert.equal(options.headers.authorization, "Bearer test-tavily-key");
+      return new Response(JSON.stringify({
+        results: [{ title: "2026 official update", url: "https://example.com/update", content: "Verified source text", published_date: "2026-10-15" }]
+      }), { status: 200, headers: { "content-type": "application/json" } });
+    };
+    try {
+      const response = await worker.fetch(new Request("https://agent.example" + path, {
+        method: "POST",
+        headers: { "content-type": "application/json", authorization: "Bearer correct-token" },
+        body: JSON.stringify({ message: "What is the latest 2026 update?", language: "en-IN" })
+      }), {
+        SEARCH_BRIDGE_TOKEN: "correct-token",
+        SEARCH_API_KEY: "test-tavily-key",
+        AI: { run: async (_model, input) => {
+          sequence.push("ai");
+          assert.match(input.messages[0].content, /current year is 2026/);
+          assert.match(input.messages[1].content, /Verified source text/);
+          return { response: "The source reports a 2026 update." };
+        } }
+      });
+      const body = await response.json();
+      assert.equal(response.status, 200, JSON.stringify(body));
+      assert.equal(body.core.webSearchExecuted, true);
+      assert.equal(body.core.searchProvider, "tavily");
+      assert.equal(body.sources.length, 1);
+      assert.deepEqual(sequence, ["tavily", "ai"]);
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
+  }
+});
+
+test("active current-information chat fails closed when Tavily is not configured", async () => {
+  let aiCalls = 0;
+  const response = await worker.fetch(new Request("https://agent.example/chat", {
+    method: "POST",
+    headers: { "content-type": "application/json", authorization: "Bearer correct-token" },
+    body: JSON.stringify({ message: "What is the latest news today?", language: "en-IN" })
+  }), {
+    SEARCH_BRIDGE_TOKEN: "correct-token",
+    AI: { run: async () => { aiCalls++; return { response: "must not answer from stale memory" }; } }
+  });
+  const body = await response.json();
+  assert.equal(response.status, 503);
+  assert.equal(body.code, "LIVE_SEARCH_NOT_CONFIGURED");
+  assert.equal(aiCalls, 0);
+});
