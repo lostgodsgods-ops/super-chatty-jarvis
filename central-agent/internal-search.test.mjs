@@ -167,3 +167,39 @@ test("legacy /internal/chat route aliases the protected central /chat handler", 
   assert.equal(body.ok, true);
   assert.equal(body.answer, "Legacy route is connected.");
 });
+
+test("legacy /search route also supports the scoped bridge token and preserves owner-session search", async () => {
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async () => new Response(JSON.stringify({
+    results: [{ title: "Cloudflare Workers docs", url: "https://developers.cloudflare.com/workers/", content: "Official documentation." }]
+  }), { status: 200, headers: { "content-type": "application/json" } });
+  try {
+    const response = await worker.fetch(new Request("https://agent.example/search", {
+      method: "POST",
+      headers: { "content-type": "application/json", authorization: "Bearer bridge-token" },
+      body: JSON.stringify({ query: "Cloudflare Workers", language: "en-IN" })
+    }), {
+      SEARCH_BRIDGE_TOKEN: "bridge-token",
+      SEARCH_API_KEY: "test-tavily-key",
+      AI: { run: async () => ({ response: "Cloudflare Workers docs are available." }) }
+    });
+    const body = await response.json();
+    assert.equal(response.status, 200, JSON.stringify(body));
+    assert.equal(body.ok, true);
+    assert.equal(body.provider, "tavily");
+    assert.equal(body.core.webSearchExecuted, true);
+    assert.equal(body.sources.length, 1);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test("legacy /search route rejects requests without owner session or bridge token", async () => {
+  const response = await worker.fetch(new Request("https://agent.example/search", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ query: "Cloudflare Workers" })
+  }), { SEARCH_BRIDGE_TOKEN: "bridge-token", SEARCH_API_KEY: "test-tavily-key" });
+  assert.equal(response.status, 401);
+  assert.deepEqual(await response.json(), { error: "Unauthorized" });
+});
