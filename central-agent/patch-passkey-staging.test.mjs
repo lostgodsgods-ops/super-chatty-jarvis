@@ -110,3 +110,15 @@ test("extracts the JavaScript module from Cloudflare's multipart Worker response
   ].join("\r\n");
   assert.equal(extractWorkerSource(raw), "export default { fetch() { return new Response('ok'); } };");
 });
+
+test("accepts an already connected chat route using the Central Agent service binding helper", () => {
+  const once = patchWorkerBundle(fixture);
+  const connected = once.replace(
+    "fetch(CENTRAL_AGENT_CHAT_ENDPOINT, {",
+    "fetchCentralAgent(env, CENTRAL_AGENT_CHAT_ENDPOINT, {"
+  );
+  assert.notEqual(connected, once);
+  const result = patchWorkerBundle(connected);
+  assert.ok(result.includes("fetchCentralAgent(env, CENTRAL_AGENT_CHAT_ENDPOINT"));
+  assert.ok(result.includes("CENTRAL_AGENT_SEARCH_ENDPOINT"));
+});
