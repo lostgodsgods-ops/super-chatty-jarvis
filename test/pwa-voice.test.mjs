@@ -252,3 +252,16 @@ test("agent task claiming rejects a wrong gateway token before database access",
   assert.deepEqual(await response.json(), { error: "Agent gateway authorization failed" });
   assert.equal(touched, false);
 });
+
+
+test("Owner task console creates, approves, runs, and refreshes bounded tasks", () => {
+  assert.match(APP_HTML, /id="taskPanel" hidden/);
+  assert.match(APP_HTML, /id="taskType"/);
+  assert.match(APP_HTML, /id="taskPrompt"/);
+  assert.match(APP_HTML, /id="createTask"/);
+  assert.match(APP_HTML, /id="refreshTasks"/);
+  assert.match(APP_HTML, /id="runNextTask"/);
+  assert.match(APP_HTML, /\/tasks\/run-next/);
+  assert.match(APP_HTML, /\/tasks\/\$\{encodeURIComponent\(task\.id\)\}\/approve/);
+  assert.match(APP_HTML, /renderTaskList/);
+});
