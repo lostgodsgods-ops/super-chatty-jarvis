@@ -3,6 +3,33 @@ import { pathToFileURL } from "node:url";
 const API = "https://api.cloudflare.com/client/v4";
 const WORKER_NAME = "super-chatty-passkey-staging";
 
+const CENTRAL_AGENT_CHAT_ENDPOINT = "https://shrill-silence-164f.lostgodsgods.workers.dev/internal/chat";
+const CHAT_PROXY_BODY = `const gatewayToken = typeof env.SEARCH_BRIDGE_TOKEN === "string" ? env.SEARCH_BRIDGE_TOKEN.trim() : "";
+              if (!gatewayToken) {
+                response = json2({ error: "AI response gateway is not configured.", code: "CHAT_GATEWAY_NOT_CONFIGURED" }, 503);
+              } else {
+                try {
+                  const upstream = await fetch(CENTRAL_AGENT_CHAT_ENDPOINT, {
+                    method: "POST",
+                    headers: { authorization: "Bearer " + gatewayToken, "content-type": "application/json", accept: "application/json" },
+                    body: JSON.stringify({ message: body.message.trim(), language: body.language }),
+                    signal: AbortSignal.timeout(12000)
+                  });
+                  const payload = await upstream.json().catch(() => ({}));
+                  if (!upstream.ok) {
+                    response = json2({ error: payload.error || "AI response gateway returned HTTP " + upstream.status, code: payload.code || "CHAT_GATEWAY_HTTP_ERROR" }, upstream.status >= 400 ? upstream.status : 502);
+                  } else if (payload.ok !== true || typeof payload.reply !== "string" || !payload.reply.trim()) {
+                    response = json2({ error: "AI response gateway returned an incomplete response.", code: "CHAT_GATEWAY_INCOMPLETE" }, 502);
+                  } else {
+                    response = json2({ ok: true, reply: payload.reply, model: payload.model || "central-agent-workers-ai", core: { ...(payload.core || {}), intent: "chat", requiresTaskApproval: false, externalActionsPerformed: false } });
+                  }
+                } catch (error) {
+                  console.warn("SCJ_CHAT_GATEWAY_ERROR", { errorName: typeof error?.name === "string" ? error.name : "Error" });
+                  response = json2({ error: "AI response gateway could not be reached.", code: "CHAT_GATEWAY_NETWORK_ERROR" }, 502);
+                }
+              }`;
+
+
 const LIVE_SEARCH_FUNCTION = `async function runLiveSearch(query, env, language) {
   const gatewayToken = typeof env.SEARCH_BRIDGE_TOKEN === "string" ? env.SEARCH_BRIDGE_TOKEN.trim() : "";
   if (!gatewayToken) {
@@ -144,7 +171,25 @@ export function patchWorkerBundle(source) {
     throw new Error("Could not locate the expected health route; refusing to deploy.");
   }
 
-  if (!patched.includes('payload?.sources') || !patched.includes('searchProvider: "tavily"') || !patched.includes("CENTRAL_AGENT_SEARCH_ENDPOINT")) {
+
+  const chatRouteStart = patched.indexOf('else if (request.method === "POST" && path === "/api/chat")');
+  if (chatRouteStart < 0) throw new Error("Could not find the PWA /api/chat handler; refusing to deploy.");
+  const localChatStart = patched.indexOf('const defaultModel = "@cf/meta/llama-3.1-8b-instruct";', chatRouteStart);
+  if (localChatStart >= 0) {
+    const localChatEndMarker = '\n            }\n          }\n        }\n      } else {';
+    const localChatEnd = patched.indexOf(localChatEndMarker, localChatStart);
+    if (localChatEnd < 0) throw new Error("Could not locate the end of the PWA chat handler; refusing to deploy.");
+    patched = patched.slice(0, localChatStart) + CHAT_PROXY_BODY + patched.slice(localChatEnd);
+  } else if (!patched.slice(chatRouteStart, chatRouteStart + 5000).includes("fetch(CENTRAL_AGENT_CHAT_ENDPOINT")) {
+    throw new Error("PWA chat handler is neither patchable nor already connected to the central AI gateway.");
+  }
+
+  patched = patched.replaceAll("AI response service is not connected in this staging build yet.", "Ready. Send a message to Chatty.");
+  patched = patched.replaceAll("scj-pwa-v2", "scj-pwa-v3");
+  patched = patched.replace('if(!r.ok){sayStatus(data.error||"Chat request failed.");return;}', 'if(!r.ok){$(\"reply\").textContent=data.error||\"Chat request failed.\";sayStatus(data.error||\"Chat request failed.\");return;}');
+  patched = patched.replace('}catch(e){sayStatus("Chat request failed. Check connection and try again.");}', '}catch(e){$(\"reply\").textContent=\"Chat request failed. Check connection and try again.\";sayStatus(\"Chat request failed. Check connection and try again.\");}');
+
+  if (!patched.includes('payload?.sources') || !patched.includes('searchProvider: "tavily"') || !patched.includes("CENTRAL_AGENT_SEARCH_ENDPOINT") || !patched.includes("CENTRAL_AGENT_CHAT_ENDPOINT") || !patched.includes("fetch(CENTRAL_AGENT_CHAT_ENDPOINT")) {
     throw new Error("Patched search validation failed; refusing to deploy.");
   }
   return patched;
