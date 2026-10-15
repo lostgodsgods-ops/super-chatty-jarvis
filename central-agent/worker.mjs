@@ -7,7 +7,7 @@ import { describePolicy } from "./policy.mjs";
 
 const VERSION = "1.3.0";
 const DEFAULT_WORKERS_AI_MODEL = "@cf/meta/llama-3.1-8b-instruct";
-const PASSWORD_ITERATIONS = 210000;
+export const PASSWORD_ITERATIONS = 100000;
 const SESSION_TTL_SECONDS = 3600;
 
 export function parseSetupToken(hash) {
