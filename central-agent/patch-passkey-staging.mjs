@@ -45,17 +45,24 @@ const LIVE_SEARCH_FUNCTION = `async function runLiveSearch(query, env, language)
   }
 
   let response;
+  const searchEndpoints = [CENTRAL_AGENT_SEARCH_ENDPOINT];
+  if (CENTRAL_AGENT_SEARCH_ENDPOINT.endsWith("/search")) {
+    searchEndpoints.push(CENTRAL_AGENT_SEARCH_ENDPOINT.replace(/\/search$/, "/internal/search"));
+  }
   try {
-    response = await fetch(CENTRAL_AGENT_SEARCH_ENDPOINT, {
-      method: "POST",
-      headers: {
-        authorization: "Bearer " + gatewayToken,
-        "content-type": "application/json",
-        accept: "application/json"
-      },
-      body: JSON.stringify({ query: query.slice(0, 400), language }),
-      signal: AbortSignal.timeout(15000)
-    });
+    for (const endpoint of searchEndpoints) {
+      response = await fetch(endpoint, {
+        method: "POST",
+        headers: {
+          authorization: "Bearer " + gatewayToken,
+          "content-type": "application/json",
+          accept: "application/json"
+        },
+        body: JSON.stringify({ query: query.slice(0, 400), language }),
+        signal: AbortSignal.timeout(15000)
+      });
+      if (response.status !== 404) break;
+    }
   } catch (error) {
     console.warn("SCJ_SEARCH_GATEWAY_NETWORK_ERROR", {
       errorName: typeof error?.name === "string" ? error.name : "Error"
