@@ -18,6 +18,7 @@ Central Agent v1.3.0 adds an owner-defined password flow. It does not connect to
 - KV binding `SESSIONS` → namespace `SUPER_CHATY_OWNER_AUTH`.
 - AI binding `AI` for Cloudflare Workers AI.
 - `ALLOWED_ORIGINS` limits browser cross-origin access.
+- Secret `SEARCH_API_KEY` configures the owner-authenticated `POST /search` endpoint through Tavily Search API. It is installed by the Central Agent deployment workflow and never stored in source code.
 
 Required secret for first-time setup:
 - `OWNER_SETUP_TOKEN` — one-time bootstrap secret. Do not use your actual owner password as this token.
@@ -31,10 +32,12 @@ Required secret for first-time setup:
 - `POST /auth/login` — verifies password and creates a one-hour session.
 - `POST /auth/logout` — revokes current session.
 - `GET /policy`, `GET /agents`, `POST /chat` — require a valid owner session.
+- `POST /search` — requires a valid owner session and `SEARCH_API_KEY`; accepts `{ "query": "...", "searchDepth": "basic" }` and returns up to five results with HTTP(S) source URLs.
 - `POST /tasks` and `GET /results` — remain blocked (503); no durable task executor exists.
 
 ## Security status and limitations
 
+- Tavily search runs server-side; the API key is a Cloudflare Worker secret and is never returned to clients.
 - No Gemini API key or Gemini provider is used.
 - Unknown actions fail closed; no child agents or external tools execute.
 - This is password authentication, not account recovery. If you forget the password, a separately reviewed owner recovery procedure is required.
