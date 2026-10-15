@@ -221,7 +221,7 @@ test("chat retries prompt input when chat-message input is rejected", async () =
 
 test("voice app persists chat history locally and provides a clear-history control", () => {
   assert.match(APP_HTML, /indexedDB\.open/);
-  assert.match(APP_HTML, /localStorage/);
+  assert.doesNotMatch(APP_HTML, /localStorage|sessionStorage/);
   assert.match(APP_HTML, /id="historyList"/);
   assert.match(APP_HTML, /id="clearHistory"/);
   assert.match(APP_HTML, /persistConversationMessage/);
