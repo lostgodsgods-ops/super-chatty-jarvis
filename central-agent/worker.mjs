@@ -156,9 +156,9 @@ export default {
     }
 
     if (url.pathname === "/internal/search" && request.method === "POST") {
-      const expected = typeof env.AGENT_GATEWAY_TOKEN === "string" ? env.AGENT_GATEWAY_TOKEN : "";
+      const expected = typeof env.AGENT_GATEWAY_TOKEN === "string" ? env.AGENT_GATEWAY_TOKEN.trim() : "";
       const authorization = request.headers.get("authorization") || "";
-      const supplied = authorization.startsWith("Bearer ") ? authorization.slice(7) : "";
+      const supplied = authorization.startsWith("Bearer ") ? authorization.slice(7).trim() : "";
       if (!expected || !equalSecret(supplied, expected)) return json({ error: "Unauthorized" }, 401, cors);
       if (!env.SEARCH_API_KEY) return json({ error: "Search provider is not configured." }, 503, cors);
 
