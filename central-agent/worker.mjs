@@ -130,6 +130,40 @@ export default {
     const url = new URL(request.url);
     const cors = corsHeaders(request, env);
 
+    if ((url.pathname === "/chat" || url.pathname === "/internal/chat") && request.method === "POST") {
+      const expected = typeof env.SEARCH_BRIDGE_TOKEN === "string" ? env.SEARCH_BRIDGE_TOKEN.trim() : "";
+      const authorization = request.headers.get("authorization") || "";
+      const supplied = authorization.startsWith("Bearer ") ? authorization.slice(7).trim() : "";
+      if (!expected || !equalSecret(supplied, expected)) return json({ error: "Unauthorized" }, 401, cors);
+      let body;
+      try { body = await request.json(); } catch { return json({ error: "Expected JSON body." }, 400, cors); }
+      const message = typeof body.message === "string" ? body.message.trim() : "";
+      const language = ["hi-IN", "en-IN", "en-US"].includes(body?.language) ? body.language : "en-IN";
+      if (!message || message.length > 8000) return json({ error: "message must contain 1–8000 characters." }, 400, cors);
+      try {
+        if (!env.AI || typeof env.AI.run !== "function") return json({ error: "Workers AI binding is not configured.", code: "AI_BINDING_UNAVAILABLE" }, 503, cors);
+        const model = typeof env.WORKERS_AI_MODEL === "string" && env.WORKERS_AI_MODEL.trim() ? env.WORKERS_AI_MODEL.trim() : DEFAULT_WORKERS_AI_MODEL;
+        const result = await env.AI.run(model, {
+          messages: [
+            { role: "system", content: "You are Super Chatty Central Agent, a coordinator for the Super Chatty Jarvis project. Reply in " + language + ". Never bypass or expand the owner's permissions. Never self-grant permissions. You may plan and propose work, but this endpoint cannot execute tools, spawn child agents, change files, connect providers, create API keys, or deploy. Every external side effect requires explicit, action-scoped owner approval through a separately implemented executor. Never claim an action, integration, test, or deployment succeeded unless verified. Never ask the user to paste secrets into chat." },
+            { role: "user", content: message }
+          ],
+          max_tokens: 450,
+          temperature: 0.4
+        });
+        const answer = typeof result?.response === "string" ? result.response.trim()
+          : typeof result?.output_text === "string" ? result.output_text.trim()
+          : typeof result?.choices?.[0]?.message?.content === "string" ? result.choices[0].message.content.trim()
+          : "";
+        if (!answer) return json({ error: "AI provider returned no reply.", code: "AI_PROVIDER_EMPTY_RESPONSE" }, 502, cors);
+        return json({ ok: true, answer, provider: "workers-ai", model }, 200, cors);
+      } catch (error) {
+        console.warn("central_chat_provider_error", { errorName: typeof error?.name === "string" ? error.name : "Error" });
+        return json({ error: "AI request failed. Check provider quota, network access, and model availability.", code: "AI_PROVIDER_UNAVAILABLE" }, 502, cors);
+      }
+    }
+
+
     if (request.method === "OPTIONS") return new Response(null, { status: 204, headers: cors });
     if (url.pathname === "/owner" && request.method === "GET") return ownerPage();
 
@@ -359,40 +393,6 @@ export default {
         return json({ error: "Unable to save owner password securely." }, 503, cors);
       }
     }
-
-    if ((url.pathname === "/chat" || url.pathname === "/internal/chat") && request.method === "POST") {
-      const expected = typeof env.SEARCH_BRIDGE_TOKEN === "string" ? env.SEARCH_BRIDGE_TOKEN.trim() : "";
-      const authorization = request.headers.get("authorization") || "";
-      const supplied = authorization.startsWith("Bearer ") ? authorization.slice(7).trim() : "";
-      if (!expected || !equalSecret(supplied, expected)) return json({ error: "Unauthorized" }, 401, cors);
-      let body;
-      try { body = await request.json(); } catch { return json({ error: "Expected JSON body." }, 400, cors); }
-      const message = typeof body.message === "string" ? body.message.trim() : "";
-      const language = ["hi-IN", "en-IN", "en-US"].includes(body?.language) ? body.language : "en-IN";
-      if (!message || message.length > 8000) return json({ error: "message must contain 1–8000 characters." }, 400, cors);
-      try {
-        if (!env.AI || typeof env.AI.run !== "function") return json({ error: "Workers AI binding is not configured.", code: "AI_BINDING_UNAVAILABLE" }, 503, cors);
-        const model = typeof env.WORKERS_AI_MODEL === "string" && env.WORKERS_AI_MODEL.trim() ? env.WORKERS_AI_MODEL.trim() : DEFAULT_WORKERS_AI_MODEL;
-        const result = await env.AI.run(model, {
-          messages: [
-            { role: "system", content: "You are Super Chatty Central Agent, a coordinator for the Super Chatty Jarvis project. Reply in " + language + ". Never bypass or expand the owner's permissions. Never self-grant permissions. You may plan and propose work, but this endpoint cannot execute tools, spawn child agents, change files, connect providers, create API keys, or deploy. Every external side effect requires explicit, action-scoped owner approval through a separately implemented executor. Never claim an action, integration, test, or deployment succeeded unless verified. Never ask the user to paste secrets into chat." },
-            { role: "user", content: message }
-          ],
-          max_tokens: 450,
-          temperature: 0.4
-        });
-        const answer = typeof result?.response === "string" ? result.response.trim()
-          : typeof result?.output_text === "string" ? result.output_text.trim()
-          : typeof result?.choices?.[0]?.message?.content === "string" ? result.choices[0].message.content.trim()
-          : "";
-        if (!answer) return json({ error: "AI provider returned no reply.", code: "AI_PROVIDER_EMPTY_RESPONSE" }, 502, cors);
-        return json({ ok: true, answer, provider: "workers-ai", model }, 200, cors);
-      } catch (error) {
-        console.warn("central_chat_provider_error", { errorName: typeof error?.name === "string" ? error.name : "Error" });
-        return json({ error: "AI request failed. Check provider quota, network access, and model availability.", code: "AI_PROVIDER_UNAVAILABLE" }, 502, cors);
-      }
-    }
-
 
     if (url.pathname === "/auth/login" && request.method === "POST") {
 
