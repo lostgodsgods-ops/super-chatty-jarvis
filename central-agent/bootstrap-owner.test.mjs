@@ -99,3 +99,23 @@ test("owner bootstrap refuses to report success when the owner password is missi
   }), /Missing CENTRAL_AGENT_OWNER_PASSWORD/);
   assert.equal(calls, 0);
 });
+
+test("owner bootstrap fails fast when Worker reports a persistent credential-save failure", async () => {
+  let calls = 0;
+  let delays = 0;
+  await assert.rejects(runOwnerBootstrap({
+    base: "https://worker.example",
+    setupToken: "test-setup-token",
+    password: "test-only-password-not-for-production",
+    fetchImpl: async url => {
+      calls++;
+      return new URL(url).pathname === "/auth/status"
+        ? json({ setupRequired: true })
+        : json({ error: "Unable to save owner password securely." }, 503);
+    },
+    sleep: async () => { delays++; },
+    log: () => {}
+  }), /owner_setup_failed/);
+  assert.equal(calls, 2);
+  assert.equal(delays, 0);
+});
