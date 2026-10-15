@@ -280,7 +280,7 @@ export function patchWorkerBundle(source) {
   if (!patched.includes('path === "/internal/chat-smoke"')) {
     const searchSmokeEnd = 'return await runLiveSearch(query, env, "en-IN");\n    }';
     if (!patched.includes(searchSmokeEnd)) throw new Error("Could not insert the protected AI chat smoke route.");
-    patched = patched.replace(searchSmokeEnd, searchSmokeEnd + "\n    " + CHAT_SMOKE_ROUTE.slice(1, -1));
+    patched = patched.replace(searchSmokeEnd, searchSmokeEnd + "\n    " + CHAT_SMOKE_ROUTE);
   }
 
   if (patched.includes(HEALTH_ROUTE_OLD)) {
