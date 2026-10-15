@@ -63,7 +63,8 @@ async function persistConversationMessage(role,content){
  try{
   const db=await openHistoryDb();
   await new Promise((resolve,reject)=>{const tx=db.transaction(HISTORY_STORE,"readwrite");tx.objectStore(HISTORY_STORE).put(row);tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error||new Error("Could not save local history"));tx.onabort=()=>reject(tx.error||new Error("Local history save aborted"));});
-  const rows=await readConversationHistory();
+  const rows=await new Promise((resolve,reject)=>{const tx=db.transaction(HISTORY_STORE,"readonly"),request=tx.objectStore(HISTORY_STORE).getAll();request.onsuccess=()=>resolve(request.result||[]);request.onerror=()=>reject(request.error||new Error("Could not count local history"));});
+  rows.sort((a,b)=>String(a.createdAt).localeCompare(String(b.createdAt)));
   if(rows.length>HISTORY_LIMIT){const old=rows.slice(0,rows.length-HISTORY_LIMIT);await new Promise((resolve,reject)=>{const tx=db.transaction(HISTORY_STORE,"readwrite"),store=tx.objectStore(HISTORY_STORE);for(const entry of old)store.delete(entry.id);tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error||new Error("Could not trim local history"));});}
  }catch{
   const rows=readFallbackHistory();rows.push(row);
