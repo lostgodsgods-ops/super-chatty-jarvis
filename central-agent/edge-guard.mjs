@@ -44,7 +44,8 @@ export async function guardRequest(request, env, nowMs = Date.now()) {
   const window = Math.floor(nowMs / (WINDOW_SECONDS * 1000));
   const rateKey = "edge:rate:" + ipHash + ":" + window + ":" + path.slice(0, 80);
   const count = Number(await kv.get(rateKey) || 0);
-  if (count >= MAX_REQUESTS_PER_WINDOW) {
+  const maxRequests = path === "/auth/login" ? 12 : path === "/auth/setup" ? 5 : MAX_REQUESTS_PER_WINDOW;
+  if (count >= maxRequests) {
     await recordEvent(env, "rate_limit", ipHash, path, { count, windowSeconds: WINDOW_SECONDS }, now);
     return { status: 429, body: { error: "Rate limit exceeded. Retry after the current minute." }, headers: { "retry-after": String(WINDOW_SECONDS - Math.floor((nowMs / 1000) % WINDOW_SECONDS)), "cache-control": "no-store" } };
   }
