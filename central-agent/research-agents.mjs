@@ -39,10 +39,11 @@ export function normalizeResearchItem(source, item) {
     if (!title) return null;
     return { source, externalId: safeText(item?.sha, 100) || title, title, url, sentiment: scoreSentiment(title) };
   }
-  if (source === "hackerNews") {
-    const title = safeText(item?.title, 240), url = typeof item?.url === "string" && /^https?:\/\//i.test(item.url) ? item.url : "";
+  if (source === "releases") {
+    const title = safeText(item?.name || item?.tag_name, 240);
+    const url = typeof item?.html_url === "string" && item.html_url.startsWith("https://github.com/lostgodsgods-ops/super-chatty-jarvis/") ? item.html_url : "";
     if (!title) return null;
-    return { source, externalId: String(item?.id || ""), title, url, sentiment: scoreSentiment(title) };
+    return { source, externalId: safeText(item?.id ? String(item.id) : item?.tag_name, 100) || title, title, url, sentiment: scoreSentiment(title) };
   }
   return null;
 }
@@ -74,13 +75,9 @@ export async function runBoundedResearchCycle(env, options = {}) {
           const result = await env.DB.prepare("INSERT OR IGNORE INTO research_observations (id,source,external_id,title,url,sentiment_score,sentiment_label,confidence,observed_at) VALUES (?,?,?,?,?,?,?,?,?)").bind(crypto.randomUUID(), row.source, row.externalId, row.title, row.url, row.sentiment.score, row.sentiment.label, row.sentiment.confidence, now).run();
           itemsStored += result?.meta?.changes === 1 ? 1 : 0;
         }
-      } else if (source === "hackerNews") {
-        const ids = (Array.isArray(payload) ? payload : []).slice(0, RESEARCH_LIMITS.maxItemsPerSource);
-        // At most 10 subordinate item lookups. URLs in story content are never fetched.
-        for (const id of ids) {
-          const story = await fetchSource("https://hacker-news.firebaseio.com/v0/item/" + encodeURIComponent(String(id)) + ".json");
-          const row = normalizeResearchItem("hackerNews", story);
-          if (!row) continue;
+      } else if (source === "releases") {
+        const rows = (Array.isArray(payload) ? payload : []).slice(0, RESEARCH_LIMITS.maxItemsPerSource).map(item => normalizeResearchItem("releases", item)).filter(Boolean);
+        for (const row of rows) {
           const now = new Date().toISOString();
           const result = await env.DB.prepare("INSERT OR IGNORE INTO research_observations (id,source,external_id,title,url,sentiment_score,sentiment_label,confidence,observed_at) VALUES (?,?,?,?,?,?,?,?,?)").bind(crypto.randomUUID(), row.source, row.externalId, row.title, row.url, row.sentiment.score, row.sentiment.label, row.sentiment.confidence, now).run();
           itemsStored += result?.meta?.changes === 1 ? 1 : 0;
