@@ -647,7 +647,7 @@ export default {
       catch (error) { return json({ error: error instanceof GoalError ? error.code : "GOAL_STORAGE_UNAVAILABLE" }, error instanceof GoalError ? error.status : 503, cors); }
     }
 
-    const goalTransition = url.pathname.match(/^\\/goals\\/([0-9a-f-]{36})\\/transition$/i);
+    const goalTransition = url.pathname.match(/^\/goals\/([0-9a-f-]{36})\/transition$/i);
     if (goalTransition && request.method === "POST") {
       let body;
       try { body = await request.json(); } catch { return json({ error: "Expected JSON body." }, 400, cors); }
