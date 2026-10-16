@@ -1,5 +1,5 @@
 /**
- * Super Chatty Central Agent v1.3.0
+ * Super Chatty Central Agent v1.4.0
  * Owner-defined password setup, PBKDF2 password hashing, and expiring sessions.
  * No Gemini integration. Secrets are read only from Worker bindings.
  */
@@ -182,7 +182,6 @@ function sentinelEventResponse(request, env) {
   return new Response(stream, { status: 200, headers: {
     "content-type": "text/event-stream; charset=utf-8",
     "cache-control": "no-cache, no-transform",
-    "connection": "keep-alive",
     "x-accel-buffering": "no",
     ...corsHeaders(request, env)
   }});
