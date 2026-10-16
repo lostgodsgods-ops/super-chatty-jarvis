@@ -159,9 +159,15 @@
       terminal:$("terminal"), streamStatus:$("streamStatus"), logCount:$("logCount"), workerUrl:$("workerUrl"),
       eventsUrl:$("eventsUrl"), connectBtn:$("connectBtn"), disconnectBtn:$("disconnectBtn"), connectState:$("connectState"),
       micBtn:$("micBtn"), voiceLabel:$("voiceLabel"), commandInput:$("commandInput"), sendBtn:$("sendBtn"),
-      privacyNote:$("privacyNote"), toast:$("toast")
+      privacyNote:$("privacyNote"), toast:$("toast"),
+      auditCount:$("auditCount"), observationCount:$("observationCount"), signalCount:$("signalCount"),
+      lastRunStatus:$("lastRunStatus"), lastRunMeta:$("lastRunMeta"), researchFeed:$("researchFeed"),
+      ownerLoginForm:$("ownerLoginForm"), ownerPassword:$("ownerPassword"), ownerLogin:$("ownerLogin"),
+      ownerLogout:$("ownerLogout"), ownerBadge:$("ownerBadge"), ownerSessionStatus:$("ownerSessionStatus"),
+      refreshTelemetry:$("refreshTelemetry"), factSearchForm:$("factSearchForm"), factQuery:$("factQuery"),
+      researchSearchBtn:$("researchSearchBtn"), researchSearchStatus:$("researchSearchStatus"), sourceResults:$("sourceResults")
     };
-    const state = { events:null, recognition:null, listening:false, audioContext:null, analyser:null, mediaStream:null, raf:0, eventsCount:0, connected:false, started:Date.now(), healthTimer:0, toastTimer:0 };
+    const state = { events:null, recognition:null, listening:false, audioContext:null, analyser:null, mediaStream:null, raf:0, eventsCount:0, connected:false, started:Date.now(), healthTimer:0, toastTimer:0, ownerToken:"", telemetryTimer:0, researchBusy:false };
     const time = () => new Date().toLocaleTimeString([], {hour12:false});
     function log(message, type="info", source="UI") {
       const row = document.createElement("div"); row.className = "log";
@@ -207,6 +213,142 @@
         return false;
       }
     }
+    function workerBaseUrl() {
+      const url = safeUrl(els.workerUrl.value.trim());
+      return url ? url.origin : null;
+    }
+    async function ownerFetch(path, options={}) {
+      const base = workerBaseUrl();
+      if (!base) throw new Error("Enter a valid Worker health URL first.");
+      if (!state.ownerToken) throw new Error("Owner session required. Sign in first.");
+      const headers = { ...(options.headers || {}), authorization: "Bearer " + state.ownerToken };
+      if (options.body && !headers["content-type"]) headers["content-type"] = "application/json";
+      const response = await fetch(base + path, { ...options, headers, cache: "no-store" });
+      const payload = await response.json().catch(() => ({}));
+      if (response.status === 401) {
+        clearOwnerSession("Session expired or rejected. Sign in again.");
+        throw new Error(payload.error || "Owner session expired.");
+      }
+      if (!response.ok) throw new Error(payload.error || ("Request failed: HTTP " + response.status));
+      return payload;
+    }
+    function setOwnerStatus(message, kind="warn") {
+      els.ownerSessionStatus.className = "owner-status " + kind;
+      els.ownerSessionStatus.textContent = message;
+    }
+    function clearOwnerSession(message="Signed out. Session token cleared from memory.") {
+      state.ownerToken = "";
+      clearInterval(state.telemetryTimer); state.telemetryTimer = 0;
+      els.ownerLogout.disabled = true; els.ownerLogin.disabled = false; els.researchSearchBtn.disabled = true;
+      status(els.ownerBadge,"LOCKED","warn"); status(els.researchSearchStatus,"OWNER SESSION REQUIRED","warn");
+      setOwnerStatus(message,"warn");
+      els.auditCount.textContent = "—"; els.observationCount.textContent = "—"; els.signalCount.textContent = "—";
+      els.lastRunStatus.textContent = "Owner sign-in required"; els.lastRunMeta.textContent = "Telemetry is private.";
+      els.researchFeed.replaceChildren();
+      addFeedItem(els.researchFeed,"Telemetry locked",message,"info");
+    }
+    function addFeedItem(container, title, meta, kind="info") {
+      const item = document.createElement("div"); item.className = "feed-item " + kind;
+      const dot = document.createElement("i"); dot.className = "feed-dot";
+      const content = document.createElement("div");
+      const heading = document.createElement("div"); heading.className = "feed-title"; heading.textContent = title;
+      const detail = document.createElement("div"); detail.className = "feed-meta"; detail.textContent = meta;
+      content.append(heading,detail); item.append(dot,content); container.append(item);
+    }
+    async function refreshTelemetry() {
+      if (!state.ownerToken) { setOwnerStatus("Sign in to load authenticated D1 telemetry.","warn"); return; }
+      try {
+        const data = await ownerFetch("/research/status"), counts = data.counts || {};
+        els.auditCount.textContent = Number.isFinite(Number(counts.audits)) ? String(counts.audits) : "—";
+        els.observationCount.textContent = Number.isFinite(Number(counts.observations)) ? String(counts.observations) : "—";
+        els.signalCount.textContent = Number.isFinite(Number(counts.signals)) ? String(counts.signals) : "—";
+        if (!data.initialized) {
+          els.lastRunStatus.textContent = "D1 telemetry not initialized"; els.lastRunMeta.textContent = "No audit tables reported by the Worker.";
+        } else if (data.lastRun) {
+          els.lastRunStatus.textContent = "Latest run: " + String(data.lastRun.status || "unknown").replaceAll("_"," ").toUpperCase();
+          els.lastRunMeta.textContent = "Errors: " + Number(data.lastRun.errorCount || 0) + " · " + (data.lastRun.completedAt || "completion time unavailable");
+        } else {
+          els.lastRunStatus.textContent = "No research cycle recorded"; els.lastRunMeta.textContent = "D1 is initialized, but no audit run is present.";
+        }
+        els.researchFeed.replaceChildren();
+        const runs = Array.isArray(data.recentRuns) ? data.recentRuns : (data.lastRun ? [data.lastRun] : []);
+        for (const run of runs) {
+          const details = run.details || {}, warnings = Array.isArray(details.warnings) ? details.warnings.length : 0;
+          const errors = Number(run.errorCount || 0);
+          addFeedItem(els.researchFeed,"Research cycle · " + String(run.status || "unknown").replaceAll("_"," "),
+            (run.completedAt || run.startedAt || "time unavailable") + " · stored " + Number(run.itemCount || 0) + " items · errors " + errors + " · warnings " + warnings,
+            errors ? "error" : warnings ? "warn" : "info");
+        }
+        for (const signal of (Array.isArray(data.signals) ? data.signals : []).slice(0,5))
+          addFeedItem(els.researchFeed,"Signal · " + String(signal.subject || "unknown") + " / " + String(signal.metric || "metric"),
+            String(signal.value ?? "—") + " · " + String(signal.observedAt || "timestamp unavailable"),"info");
+        if (!els.researchFeed.children.length) addFeedItem(els.researchFeed,"No recent activity","No recent runs or signals were returned.","info");
+        setOwnerStatus("Owner session verified. Telemetry fetched from the protected Worker endpoint.","ok");
+        log("Authenticated telemetry refreshed; audit/observation/signal counts updated.","good","D1");
+      } catch (error) {
+        setOwnerStatus(error.message || "Telemetry request failed.","bad");
+        log("Authenticated telemetry failed: " + (error.message || "unknown error"),"error","D1");
+      }
+    }
+    function renderSources(sources) {
+      els.sourceResults.replaceChildren();
+      if (!sources.length) { addFeedItem(els.sourceResults,"No usable sources returned","The claim could not be verified from the search response.","warn"); return; }
+      for (const source of sources) {
+        const card = document.createElement("article"); card.className = "source-card";
+        const link = document.createElement("a"); link.href = source.url; link.target = "_blank"; link.rel = "noopener noreferrer"; link.textContent = source.title || source.url;
+        const excerpt = document.createElement("p"); excerpt.textContent = source.content || "No excerpt was supplied by the provider.";
+        const meta = document.createElement("div"); meta.className = "source-meta"; meta.textContent = source.publishedDate ? "Published: " + source.publishedDate : "Publication date not supplied";
+        card.append(link,excerpt,meta); els.sourceResults.append(card);
+      }
+      addFeedItem(els.sourceResults,"Evidence review required","Open the source and verify that it directly supports the claim.","warn");
+    }
+    async function signInOwner(event) {
+      event.preventDefault();
+      const base = workerBaseUrl(), password = els.ownerPassword.value;
+      if (!base) { setOwnerStatus("Enter a valid Worker health URL first.","bad"); return; }
+      if (!password) { setOwnerStatus("Owner password is required.","warn"); return; }
+      els.ownerLogin.disabled = true; setOwnerStatus("Verifying owner credentials and session…","warn");
+      try {
+        const response = await fetch(base + "/auth/login",{method:"POST",headers:{"content-type":"application/json",Accept:"application/json"},body:JSON.stringify({password}),cache:"no-store"});
+        const payload = await response.json().catch(() => ({}));
+        if (!response.ok || typeof payload.token !== "string" || !payload.token) throw new Error(payload.error || ("Owner login failed: HTTP " + response.status));
+        state.ownerToken = payload.token;
+        const session = await ownerFetch("/auth/session");
+        if (session.authenticated !== true) throw new Error("Owner session verification failed.");
+        els.ownerPassword.value = ""; els.ownerLogout.disabled = false; els.ownerLogin.disabled = false; els.researchSearchBtn.disabled = false;
+        status(els.ownerBadge,"OWNER VERIFIED","ok"); status(els.researchSearchStatus,"SESSION VERIFIED","ok");
+        setOwnerStatus("Owner session verified. Token is memory-only and expires server-side.","ok");
+        await refreshTelemetry(); clearInterval(state.telemetryTimer); state.telemetryTimer = setInterval(refreshTelemetry,30000);
+        toast("Owner session verified.");
+      } catch (error) {
+        state.ownerToken = ""; els.ownerLogin.disabled = false;
+        setOwnerStatus(error.message || "Owner authentication failed.","bad"); status(els.ownerBadge,"LOCKED","bad");
+      }
+    }
+    async function signOutOwner() {
+      const base = workerBaseUrl(), token = state.ownerToken;
+      try { if (base && token) await fetch(base + "/auth/logout",{method:"POST",headers:{authorization:"Bearer "+token},cache:"no-store"}); } catch {}
+      clearOwnerSession(); log("Owner session cleared from this page.","warn","SECURITY");
+    }
+    async function searchEvidence(event) {
+      event.preventDefault();
+      const query = els.factQuery.value.trim();
+      if (!state.ownerToken) { toast("Sign in to run a live research query."); return; }
+      if (!query || query.length > 400) { toast("Research query must be 1–400 characters."); return; }
+      if (state.researchBusy) return;
+      state.researchBusy = true; els.researchSearchBtn.disabled = true; status(els.researchSearchStatus,"SEARCHING","warn");
+      els.sourceResults.replaceChildren(); addFeedItem(els.sourceResults,"Searching live sources","Bounded request in progress. No unsourced answer is inferred.","info");
+      try {
+        const data = await ownerFetch("/research/query",{method:"POST",body:JSON.stringify({query})});
+        renderSources(Array.isArray(data.sources) ? data.sources : []);
+        status(els.researchSearchStatus,data.sourceCount ? "SOURCES RETURNED" : "NO SOURCES",data.sourceCount ? "ok" : "warn");
+        log("Live research returned " + Number(data.sourceCount || 0) + " source(s).","good","RESEARCH");
+      } catch (error) {
+        els.sourceResults.replaceChildren(); addFeedItem(els.sourceResults,"Live research unavailable",error.message || "No unsourced answer was generated.","error");
+        status(els.researchSearchStatus,"SEARCH FAILED","bad"); log("Live research failed: " + (error.message || "unknown error"),"error","RESEARCH");
+      } finally { state.researchBusy = false; els.researchSearchBtn.disabled = !state.ownerToken; }
+    }
+
     function disconnectEvents() {
       if (state.events) { state.events.close(); state.events = null; }
       state.connected = false; status(els.pipelineStatus,"CI/CD: NOT CONNECTED","warn");
@@ -348,6 +490,10 @@
       toast("Command captured locally. Connect a secured command API before execution.");
       els.privacyNote.textContent="Not sent to a backend. Add an authenticated command API before enabling execution.";
     }
+    els.ownerLoginForm.addEventListener("submit",signInOwner);
+    els.ownerLogout.addEventListener("click",signOutOwner);
+    els.refreshTelemetry.addEventListener("click",refreshTelemetry);
+    els.factSearchForm.addEventListener("submit",searchEvidence);
     els.micBtn.addEventListener("click",startListening);
     els.sendBtn.addEventListener("click",submitCommand);
     els.commandInput.addEventListener("keydown",event=>{if(event.key==="Enter"){event.preventDefault();submitCommand();}});
