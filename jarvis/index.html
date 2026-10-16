@@ -68,7 +68,7 @@
           <label class="field-label" for="workerUrl">Worker health URL</label>
           <input class="text-input" id="workerUrl" type="url" inputmode="url" autocomplete="url" value="https://shrill-silence-164f.lostgodsgods.workers.dev/health" spellcheck="false">
           <label class="field-label" for="eventsUrl">Live events SSE URL (optional)</label>
-          <input class="text-input" id="eventsUrl" type="url" inputmode="url" placeholder="https://your-worker.example/events" spellcheck="false">
+          <input class="text-input" id="eventsUrl" type="url" inputmode="url" placeholder="https://shrill-silence-164f.lostgodsgods.workers.dev/api/events" spellcheck="false">
           <div class="action-row"><button class="action-btn" id="connectBtn" type="button">Connect</button><button class="action-btn secondary" id="disconnectBtn" type="button">Disconnect</button></div>
           <div class="connect-state" id="connectState" role="status">Worker health: not checked yet.</div>
         </section>
@@ -376,20 +376,20 @@
       if (!base || !state.ownerToken) return;
       const controller = new AbortController();
       state.events = { close: () => controller.abort() };
-      els.streamStatus.textContent = "Connecting to authenticated Sentinel SSE…";
+      els.streamStatus.textContent = "Connecting to authenticated Central Event Bus SSE…";
       const pause = () => new Promise(resolve => setTimeout(resolve, 1000));
       (async () => {
         while (!controller.signal.aborted && state.ownerToken) {
           try {
-            const response = await fetch(base + "/events", {
+            const response = await fetch(base + "/api/events", {
               method: "GET", cache: "no-store", signal: controller.signal,
               headers: { authorization: "Bearer " + state.ownerToken, accept: "text/event-stream" }
             });
             if (response.status === 401) { clearOwnerSession("Owner session expired; sign in again."); return; }
             if (!response.ok || !response.body) throw new Error("SSE HTTP " + response.status);
             state.connected = true;
-            els.streamStatus.textContent = "Authenticated Sentinel stream live";
-            status(els.pipelineStatus,"SENTINEL: LIVE","ok");
+            els.streamStatus.textContent = "Authenticated Central Event Bus live";
+            status(els.pipelineStatus,"EVENT BUS: LIVE","ok");
             const reader = response.body.getReader(), decoder = new TextDecoder();
             let buffer = "";
             while (!controller.signal.aborted) {
