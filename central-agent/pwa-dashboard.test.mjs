@@ -17,6 +17,9 @@ test("PWA dashboard includes live D1 telemetry, activity feed, owner session and
   assert.ok(html.includes("restoreConversationMemory"));
   assert.ok(html.includes("memory_type:\"conversation_state\""));
   assert.ok(html.includes('id="micBtn"'));
+  assert.ok(html.includes("connectSentinelEvents"));
+  assert.ok(html.includes('base + "/events"'));
+  assert.ok(html.includes("Authenticated Sentinel stream live"));
 });
 
 test("PWA dashboard keeps owner session token in memory rather than persistent browser storage", () => {
