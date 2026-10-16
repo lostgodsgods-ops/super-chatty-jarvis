@@ -40,7 +40,19 @@ async function request(url, init, fetchImpl) {
   const text = await response.text();
   if (text.length > jsonLimit) throw new IntegrationError("UPSTREAM_RESPONSE_TOO_LARGE", 502);
   let data = null;
-  if (text) { try { data = JSON.parse(text); } catch { throw new IntegrationError("INVALID_UPSTREAM_JSON", 502); } }
+  if (text) {
+    const contentType = response.headers.get("content-type") || "";
+    if (/text\/event-stream/i.test(contentType)) {
+      const events = text.split(/\r?\n/).filter(line => line.startsWith("data:")).map(line => line.slice(5).trim()).filter(Boolean);
+      for (const event of events) {
+        if (event === "[DONE]") continue;
+        try { data = JSON.parse(event); } catch { throw new IntegrationError("INVALID_UPSTREAM_SSE_JSON", 502); }
+      }
+      if (!data) throw new IntegrationError("EMPTY_UPSTREAM_SSE", 502);
+    } else {
+      try { data = JSON.parse(text); } catch { throw new IntegrationError("INVALID_UPSTREAM_JSON", 502); }
+    }
+  }
   if (!response.ok) throw new IntegrationError("UPSTREAM_HTTP_" + response.status, 502);
   if (data?.error) throw new IntegrationError("UPSTREAM_OPERATION_FAILED", 502);
   return { data, headers: response.headers };
@@ -50,7 +62,13 @@ function vectorRecord(record) {
   if (!record || typeof record.id !== "string" || !/^[A-Za-z0-9._:-]{1,128}$/.test(record.id)) throw new IntegrationError("INVALID_RECORD_ID", 400);
   if (!Array.isArray(record.values) || record.values.length < 1 || record.values.length > 20000 ||
       record.values.some(v => typeof v !== "number" || !Number.isFinite(v))) throw new IntegrationError("INVALID_VECTOR", 400);
-  return { id: record.id, values: record.values, ...(record.metadata && typeof record.metadata === "object" && !Array.isArray(record.metadata) ? { metadata: record.metadata } : {}) };
+  if (record.metadata !== undefined && (record.metadata === null || typeof record.metadata !== "object" || Array.isArray(record.metadata))) throw new IntegrationError("INVALID_VECTOR_METADATA", 400);
+  if (record.metadata !== undefined) {
+    let metadataSize;
+    try { metadataSize = JSON.stringify(record.metadata).length; } catch { throw new IntegrationError("INVALID_VECTOR_METADATA", 400); }
+    if (metadataSize > 16000) throw new IntegrationError("VECTOR_METADATA_TOO_LARGE", 400);
+  }
+  return { id: record.id, values: record.values, ...(record.metadata !== undefined ? { metadata: record.metadata } : {}) };
 }
 function sameVector(actual, expected) {
   return Array.isArray(actual) && actual.length === expected.length &&
