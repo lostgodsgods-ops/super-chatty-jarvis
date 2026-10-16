@@ -78,6 +78,28 @@ async function authorized(request, env) {
   return (await env.SESSIONS.get(key)) === "active";
 }
 
+
+async function consumeScopedApproval(env, approval, action, resourceId, confirmation) {
+  if (!approval || approval.approved !== true || approval.action !== action ||
+      approval.resourceId !== resourceId || approval.confirmation !== confirmation ||
+      typeof approval.nonce !== "string" ||
+      !/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(approval.nonce)) {
+    return { ok: false, status: 403, error: "EXACT_SCOPED_OWNER_APPROVAL_REQUIRED" };
+  }
+  if (!env.DB || typeof env.DB.prepare !== "function") {
+    return { ok: false, status: 503, error: "OWNER_APPROVAL_STORE_UNAVAILABLE" };
+  }
+  try {
+    await env.DB.prepare("CREATE TABLE IF NOT EXISTS integration_approvals (nonce TEXT PRIMARY KEY, action TEXT NOT NULL, resource_id TEXT NOT NULL, created_at TEXT NOT NULL)").run();
+    await env.DB.prepare("INSERT INTO integration_approvals (nonce, action, resource_id, created_at) VALUES (?, ?, ?, ?)")
+      .bind(approval.nonce, action, resourceId, new Date().toISOString()).run();
+    return { ok: true };
+  } catch (error) {
+    if (String(error?.message || "").toLowerCase().includes("unique")) return { ok: false, status: 409, error: "OWNER_APPROVAL_NONCE_REPLAY" };
+    return { ok: false, status: 503, error: "OWNER_APPROVAL_STORE_UNAVAILABLE" };
+  }
+}
+
 function corsHeaders(request, env) {
   const origin = request.headers.get("origin");
   const allowed = (env.ALLOWED_ORIGINS || "").split(",").map(s => s.trim()).filter(Boolean);
@@ -601,8 +623,11 @@ export default {
     if (url.pathname === "/mcp/tools/list" && request.method === "POST") {
       let body;
       try { body = await request.json(); } catch { return json({ error: "Expected JSON body." }, 400, cors); }
+      const serverId = body?.serverId;
+      const approvalResult = await consumeScopedApproval(env, body?.ownerApproval, "mcp_discovery", String(serverId || ""), "CONNECT AND LIST TOOLS FOR THIS EXACT MCP SERVER");
+      if (!approvalResult.ok) return json({ error: approvalResult.error }, approvalResult.status, cors);
       try {
-        const result = await connectMcpAndListTools(body?.serverId, env);
+        const result = await connectMcpAndListTools(serverId, env);
         return json(result, 200, cors);
       } catch (error) {
         if (error instanceof IntegrationError) return json({ error: error.code }, error.status, cors);
@@ -613,23 +638,8 @@ export default {
     if (url.pathname === "/vectors/roundtrip" && request.method === "POST") {
       let body;
       try { body = await request.json(); } catch { return json({ error: "Expected JSON body." }, 400, cors); }
-      const approval = body?.ownerApproval;
-      if (!approval || approval.approved !== true || approval.action !== "vector_roundtrip" ||
-          approval.confirmation !== "UPSERT AND VERIFY THIS EXACT VECTOR" ||
-          approval.recordId !== body?.record?.id ||
-          typeof approval.nonce !== "string" ||
-          !/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(approval.nonce)) {
-        return json({ error: "Explicit action-scoped owner approval for this exact vector ID is required." }, 403, cors);
-      }
-      if (!env.DB || typeof env.DB.prepare !== "function") return json({ error: "OWNER_APPROVAL_STORE_UNAVAILABLE" }, 503, cors);
-      try {
-        await env.DB.prepare("CREATE TABLE IF NOT EXISTS integration_approvals (nonce TEXT PRIMARY KEY, action TEXT NOT NULL, resource_id TEXT NOT NULL, created_at TEXT NOT NULL)").run();
-        await env.DB.prepare("INSERT INTO integration_approvals (nonce, action, resource_id, created_at) VALUES (?, 'vector_roundtrip', ?, ?)")
-          .bind(approval.nonce, String(body.record.id), new Date().toISOString()).run();
-      } catch (error) {
-        if (String(error?.message || "").toLowerCase().includes("unique")) return json({ error: "OWNER_APPROVAL_NONCE_REPLAY" }, 409, cors);
-        return json({ error: "OWNER_APPROVAL_STORE_UNAVAILABLE" }, 503, cors);
-      }
+      const approvalResult = await consumeScopedApproval(env, body?.ownerApproval, "vector_roundtrip", String(body?.record?.id || ""), "UPSERT AND VERIFY THIS EXACT VECTOR");
+      if (!approvalResult.ok) return json({ error: approvalResult.error }, approvalResult.status, cors);
       try {
         const result = await vectorUpsertQueryReadback(body?.backendId, env, { record: body?.record, namespace: body?.namespace });
         return json(result, 200, cors);
@@ -660,7 +670,10 @@ export default {
     if (goalTransition && request.method === "POST") {
       let body;
       try { body = await request.json(); } catch { return json({ error: "Expected JSON body." }, 400, cors); }
-      try { return json({ ok: true, goal: await transitionGoal(env, goalTransition[1], body?.target, body?.details || {}) }, 200, cors); }
+      const target = body?.target;
+      const approvalResult = await consumeScopedApproval(env, body?.ownerApproval, "goal_transition", goalTransition[1] + ":" + String(target || ""), "APPROVE THIS EXACT GOAL TRANSITION");
+      if (!approvalResult.ok) return json({ error: approvalResult.error }, approvalResult.status, cors);
+      try { return json({ ok: true, goal: await transitionGoal(env, goalTransition[1], target, body?.details || {}) }, 200, cors); }
       catch (error) { return json({ error: error instanceof GoalError ? error.code : "GOAL_TRANSITION_FAILED" }, error instanceof GoalError ? error.status : 503, cors); }
     }
 
