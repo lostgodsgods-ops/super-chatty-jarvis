@@ -106,3 +106,25 @@ test("Qdrant sends unsigned integer point IDs as JSON numbers", async () => {
   assert.equal(result.readback, "PASS");
   assert.equal(calls.length, 2);
 });
+
+test("MCP Streamable HTTP SSE responses are parsed safely", async () => {
+  const result = await connectMcpAndListTools("github", {
+    MCP_GITHUB_URL: "https://mcp.example/mcp", MCP_GITHUB_TOKEN: "test-token"
+  }, async (_url, init) => {
+    const body = JSON.parse(init.body);
+    if (body.method === "initialize") return new Response('event: message\\ndata: {"jsonrpc":"2.0","id":1,"result":{"protocolVersion":"2025-03-26","serverInfo":{"name":"sse-mock","version":"1"},"capabilities":{}}}\\n\\n', { status: 200, headers: { "content-type": "text/event-stream" } });
+    if (body.method === "notifications/initialized") return new Response(null, { status: 202 });
+    if (body.method === "tools/list") return new Response('data: {"jsonrpc":"2.0","id":2,"result":{"tools":[{"name":"safe_read"}]}}\\n\\n', { status: 200, headers: { "content-type": "text/event-stream" } });
+    throw new Error("Unexpected method");
+  });
+  assert.equal(result.tools[0].name, "safe_read");
+});
+
+test("vector metadata must be an object and stay within the size limit", async () => {
+  let called = false;
+  await assert.rejects(vectorUpsertQueryReadback("pinecone", {
+    PINECONE_INDEX_HOST: "https://index.example", PINECONE_API_KEY: "test-key"
+  }, { record: { id: "metadata-test", values: [1], metadata: "not-an-object" } }, async () => { called = true; }),
+  e => e.code === "INVALID_VECTOR_METADATA");
+  assert.equal(called, false);
+});
