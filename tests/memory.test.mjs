@@ -11,12 +11,12 @@ function memoryDb() {
           return {
             async run() {
               if (sql.startsWith("INSERT INTO conversation_memory")) {
-                const [id, sessionId, memoryType, stateJson, createdAt, updatedAt] = args;
+                const [id, ownerScope, sessionId, memoryType, stateJson, createdAt, updatedAt] = args;
                 const key = `owner:${sessionId}:${memoryType}`;
                 const prior = rows.get(key);
                 rows.set(key, {
                   id: prior?.id ?? id,
-                  owner_scope: "owner",
+                  owner_scope: ownerScope,
                   session_id: sessionId,
                   memory_type: memoryType,
                   state_json: stateJson,
@@ -52,12 +52,12 @@ test("memory route persists and retrieves state across requests", async () => {
   const write = await worker.fetch(new Request("https://example.test/api/memory", {
     method: "POST",
     headers: { authorization: "Bearer test-secret", "content-type": "application/json" },
-    body: JSON.stringify({ session_id: "session_123456", memory_type: "conversation_state", state: { topic: "NEXUS", turn: 3 } }),
+    body: JSON.stringify({ session_id: "owner-global", memory_type: "conversation_state", state: { topic: "NEXUS", turn: 3 } }),
   }), env);
   assert.equal(write.status, 200);
   assert.equal((await write.json()).ok, true);
 
-  const read = await worker.fetch(new Request("https://example.test/api/memory?session_id=session_123456", {
+  const read = await worker.fetch(new Request("https://example.test/api/memory?session_id=owner-global", {
     headers: { authorization: "Bearer test-secret" },
   }), env);
   const body = await read.json();
@@ -70,7 +70,7 @@ test("memory route persists and retrieves state across requests", async () => {
   const crossSessionBody = await crossSessionRead.json();
   assert.equal(crossSessionRead.status, 200);
   assert.equal(crossSessionBody.memories.length, 1);
-  assert.equal(crossSessionBody.memories[0].session_id, "session_123456");
+  assert.equal(crossSessionBody.memories[0].session_id, "owner-global");
 });
 
 test("memory route rejects malformed state and invalid session IDs", async () => {
@@ -85,7 +85,7 @@ test("memory route rejects malformed state and invalid session IDs", async () =>
   const badState = await worker.fetch(new Request("https://example.test/api/memory", {
     method: "POST",
     headers: { authorization: "Bearer test-secret", "content-type": "application/json" },
-    body: JSON.stringify({ session_id: "session_123456", state: ["not", "object"] }),
+    body: JSON.stringify({ session_id: "owner-global", state: ["not", "object"] }),
   }), env);
   assert.equal(badState.status, 400);
 });
