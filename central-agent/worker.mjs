@@ -797,14 +797,18 @@ export default {
         const tables = await env.DB.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name IN ('research_observations','research_signals','agent_run_audit')").all();
         const present = new Set((tables?.results || []).map(row => row.name));
         if (present.size < 3) return json({ ok: true, enabled: env.AUTONOMOUS_RESEARCH_ENABLED === "true", initialized: false, lastRun: null, sentiment: [], signals: [] }, 200, cors);
-        const [lastRun, sentiment, signals] = await Promise.all([
-          env.DB.prepare("SELECT status, source_count AS sourceCount, item_count AS itemCount, error_count AS errorCount, started_at AS startedAt, completed_at AS completedAt, details_json AS detailsJson FROM agent_run_audit ORDER BY completed_at DESC LIMIT 1").first(),
+        const [counts, recentRuns, sentiment, signals] = await Promise.all([
+          env.DB.prepare("SELECT (SELECT COUNT(*) FROM agent_run_audit) AS audits, (SELECT COUNT(*) FROM research_observations) AS observations, (SELECT COUNT(*) FROM research_signals) AS signals").first(),
+          env.DB.prepare("SELECT status, source_count AS sourceCount, item_count AS itemCount, error_count AS errorCount, started_at AS startedAt, completed_at AS completedAt, details_json AS detailsJson FROM agent_run_audit ORDER BY completed_at DESC LIMIT 5").all(),
           env.DB.prepare("SELECT sentiment_label AS label, COUNT(*) AS count, ROUND(AVG(sentiment_score),4) AS averageScore FROM research_observations GROUP BY sentiment_label ORDER BY count DESC").all(),
           env.DB.prepare("SELECT source, subject, metric, value, details_json AS detailsJson, observed_at AS observedAt FROM research_signals ORDER BY observed_at DESC LIMIT 10").all()
         ]);
+        const runs = (recentRuns?.results || []).map(row => ({ ...row, details: row.detailsJson ? JSON.parse(row.detailsJson) : null, detailsJson: undefined }));
         return json({
           ok: true, enabled: env.AUTONOMOUS_RESEARCH_ENABLED === "true", initialized: true,
-          lastRun: lastRun ? { ...lastRun, details: lastRun.detailsJson ? JSON.parse(lastRun.detailsJson) : null, detailsJson: undefined } : null,
+          counts: counts || { audits: 0, observations: 0, signals: 0 },
+          lastRun: runs[0] || null,
+          recentRuns: runs,
           sentiment: sentiment?.results || [],
           signals: (signals?.results || []).map(row => ({ ...row, details: row.detailsJson ? JSON.parse(row.detailsJson) : null, detailsJson: undefined }))
         }, 200, cors);
