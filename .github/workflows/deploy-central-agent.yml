@@ -203,28 +203,6 @@ jobs:
           }));
           NODE
 
-          curl --silent --show-error --retry 2 --retry-all-errors --retry-delay 1 --max-time 20 \
-            -X POST -H "Authorization: Bearer $token" -o /dev/null "$CENTRAL_AGENT_URL/auth/logout" || true
-
-      - name: Verify authenticated D1 memory round-trip
-        shell: bash
-        env:
-          OWNER_PASSWORD: \${{ secrets.CENTRAL_AGENT_OWNER_PASSWORD }}
-          CENTRAL_AGENT_URL: https://shrill-silence-164f.lostgodsgods.workers.dev
-        run: |
-          set -euo pipefail
-          umask 077
-          tmp="$(mktemp -d)"
-          trap 'rm -rf "$tmp"' EXIT
-          test -n "$OWNER_PASSWORD" || { echo "::error::Missing CENTRAL_AGENT_OWNER_PASSWORD"; exit 1; }
-
-          node -e 'process.stdout.write(JSON.stringify({password: process.env.OWNER_PASSWORD}))' > "$tmp/login-request.json"
-          login_code="$(curl --silent --show-error --retry 3 --retry-all-errors --retry-delay 1 --max-time 20 \
-            -H 'content-type: application/json' --data-binary "@$tmp/login-request.json" \
-            -o "$tmp/login.json" -w '%{http_code}' "$CENTRAL_AGENT_URL/auth/login")"
-          test "$login_code" = "200" || { echo "::error::Owner login for memory verification failed: HTTP $login_code"; exit 1; }
-          token="$(node -e 'const x=require(process.argv[1]); if(typeof x.token!=="string"||!x.token) process.exit(1); process.stdout.write(x.token)' "$tmp/login.json")"
-
           node -e 'process.stdout.write(JSON.stringify({session_id:"owner-global",memory_type:"deployment_probe",state:{deploymentRun:process.env.GITHUB_RUN_ID,verifiedAt:new Date().toISOString()}}))' > "$tmp/memory-write.json"
           write_code="$(curl --silent --show-error --max-time 20 -H "Authorization: Bearer $token" \
             -H 'content-type: application/json' --data-binary "@$tmp/memory-write.json" \
@@ -245,4 +223,7 @@ jobs:
           if (write.ok !== true || !found) throw new Error("D1 memory write/read-back verification failed.");
           console.log(JSON.stringify({ memoryBridge: "PASS", writeConfirmed: write.ok, readBackConfirmed: true }));
           NODE
-          curl --silent --show-error --max-time 15 -X POST -H "Authorization: Bearer $token" -o /dev/null "$CENTRAL_AGENT_URL/auth/logout" || true
+
+          curl --silent --show-error --retry 2 --retry-all-errors --retry-delay 1 --max-time 20 \
+            -X POST -H "Authorization: Bearer $token" -o /dev/null "$CENTRAL_AGENT_URL/auth/logout" || true
+
