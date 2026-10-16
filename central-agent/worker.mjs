@@ -8,7 +8,7 @@ import { enqueueKnowledgeTask, listKnowledgeTasks, getKnowledgeResults, processA
 import { listProviderCapabilities } from "./architecture/provider-router.mjs";
 import { listMcpCapabilities, listVectorCapabilities, connectMcpAndListTools, vectorUpsertQueryReadback, IntegrationError } from "./architecture/integration-registry.mjs";
 import { createGoal, listGoals, transitionGoal, GoalError } from "./architecture/goal-lifecycle.mjs";
-import { requiresLiveSearch } from "./current-info-query.mjs";
+import { requiresLiveSearch } from "./current-info-query.mjs";\nimport { runBoundedResearchCycle } from "./research-agents.mjs";
 
 const VERSION = "1.3.0";
 const DEFAULT_WORKERS_AI_MODEL = "@cf/meta/llama-3.1-8b-instruct-fast";
