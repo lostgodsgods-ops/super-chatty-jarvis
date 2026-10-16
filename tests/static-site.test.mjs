@@ -128,3 +128,19 @@ test("NEXUS PWA preserves owner-only telemetry and adds safe local visual intake
   assert.equal(scripts.length, 1, "expected one self-contained application script");
   assert.doesNotThrow(() => new vm.Script(scripts[0]), "PWA JavaScript must parse");
 });
+
+
+test("owner session survives PWA reloads through a Secure HttpOnly cookie, never JS storage", () => {
+  assert.match(centralWorker, /function readSessionCookie\(request\)/);
+  assert.match(centralWorker, /__Host-sc_session/);
+  assert.match(centralWorker, /Secure; HttpOnly; SameSite=Strict/);
+  assert.match(centralWorker, /set-cookie": sessionCookie\(token\)/);
+  assert.match(centralWorker, /set-cookie": sessionCookie\("", 0\)/);
+  assert.match(jarvisHtml, /async function resumeOwnerSession\(\)/);
+  assert.match(jarvisHtml, /credentials:\s*"same-origin"/);
+  assert.match(jarvisHtml, /state\.ownerToken = "cookie-session"/);
+  assert.match(jarvisHtml, /resumeOwnerSession\(\);/);
+  assert.match(jarvisHtml, /token === "cookie-session" \? \{\} : \{ authorization:/);
+  assert.doesNotMatch(jarvisHtml, /localStorage\.setItem\([^\n]*(?:token|session)/i);
+  assert.doesNotMatch(jarvisHtml, /sessionStorage\.setItem\([^\n]*(?:token|session)/i);
+});
