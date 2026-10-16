@@ -159,3 +159,60 @@ jobs:
           set -euo pipefail
           node central-agent/patch-passkey-staging.mjs
 
+      - name: Verify authenticated research telemetry
+        shell: bash
+        env:
+          OWNER_PASSWORD: ${{ secrets.CENTRAL_AGENT_OWNER_PASSWORD }}
+          CENTRAL_AGENT_URL: https://shrill-silence-164f.lostgods.workers.dev
+        run: |
+          set -euo pipefail
+          node --input-type=module <<'NODE'
+          const base = process.env.CENTRAL_AGENT_URL;
+          const password = process.env.OWNER_PASSWORD;
+          if (!password) throw new Error("Missing CENTRAL_AGENT_OWNER_PASSWORD.");
+          const loginResponse = await fetch(`${base}/auth/login`, {
+            method: "POST",
+            headers: { "content-type": "application/json" },
+            body: JSON.stringify({ password }),
+            cache: "no-store"
+          });
+          if (!loginResponse.ok) throw new Error(`Owner login failed: HTTP ${loginResponse.status}`);
+          const login = await loginResponse.json();
+          const token = login?.token;
+          if (typeof token !== "string" || !token) throw new Error("Owner login returned no session token.");
+          try {
+            const sessionResponse = await fetch(`${base}/auth/session`, {
+              headers: { authorization: `Bearer ${token}` },
+              cache: "no-store"
+            });
+            if (!sessionResponse.ok) throw new Error(`Owner session verification failed: HTTP ${sessionResponse.status}`);
+            const session = await sessionResponse.json();
+            if (session.authenticated !== true) throw new Error("Owner session was not authenticated.");
+            const statusResponse = await fetch(`${base}/research/status`, {
+              headers: { authorization: `Bearer ${token}` },
+              cache: "no-store"
+            });
+            if (!statusResponse.ok) throw new Error(`Authenticated research status failed: HTTP ${statusResponse.status}`);
+            const telemetry = await statusResponse.json();
+            if (telemetry.ok !== true || telemetry.enabled !== true || telemetry.initialized !== true ||
+                !telemetry.lastRun || !Array.isArray(telemetry.sentiment) || !Array.isArray(telemetry.signals)) {
+              throw new Error("Authenticated research status payload failed schema checks.");
+            }
+            console.log(JSON.stringify({
+              authenticated: true,
+              researchStatus: "PASS",
+              initialized: telemetry.initialized,
+              latestRunStatus: telemetry.lastRun.status,
+              latestRunErrorCount: telemetry.lastRun.errorCount,
+              sentimentGroups: telemetry.sentiment.length,
+              signalsReturned: telemetry.signals.length
+            }));
+          } finally {
+            await fetch(`${base}/auth/logout`, {
+              method: "POST",
+              headers: { authorization: `Bearer ${token}` },
+              cache: "no-store"
+            }).catch(() => {});
+          }
+          NODE
+
