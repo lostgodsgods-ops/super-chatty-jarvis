@@ -103,6 +103,7 @@ jobs:
           OWNER_SETUP_TOKEN: ${{ secrets.OWNER_SETUP_TOKEN }}
           SEARCH_API_KEY: ${{ secrets.SEARCH_API_KEY }}
           AGENT_GATEWAY_TOKEN: ${{ secrets.AGENT_GATEWAY_TOKEN }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
         run: |
           set -euo pipefail
           umask 077
@@ -116,6 +117,7 @@ jobs:
             SEARCH_API_KEY: process.env.SEARCH_API_KEY,
             SEARCH_BRIDGE_TOKEN: process.env.AGENT_GATEWAY_TOKEN,
           };
+          if (process.env.GEMINI_API_KEY) payload.GEMINI_API_KEY = process.env.GEMINI_API_KEY;
           if (!payload.OWNER_SETUP_TOKEN || !payload.SEARCH_API_KEY || !payload.SEARCH_BRIDGE_TOKEN) {
             throw new Error("Required Worker secret values are missing.");
           }
@@ -228,13 +230,13 @@ jobs:
           agent_code="$(curl --silent --show-error --max-time 25 -H "Authorization: Bearer $token" \
             -H 'content-type: application/json' --data-binary "@$tmp/agent-request.json" \
             -o "$tmp/agent-response.json" -w '%{http_code}' -X POST "$CENTRAL_AGENT_URL/agents")"
-          test "$agent_code" = "200" || { echo "::error::Agent runner returned HTTP $agent_code"; cat "$tmp/agent-response.json"; exit 1; }
-          agent_id="$(node -e 'const x=require(process.argv[1]); if(x.ok!==true||!x.outcomes?.[0]?.id||x.outcomes[0].status!=="completed") process.exit(1); process.stdout.write(x.outcomes[0].id)' "$tmp/agent-response.json")"
-          agent_session="agent-run-$agent_id"
-          agent_memory_code="$(curl --silent --show-error --max-time 20 -H "Authorization: Bearer $token" \
-            -o "$tmp/agent-memory.json" -w '%{http_code}' "$CENTRAL_AGENT_URL/api/memory?session_id=$agent_session")"
-          test "$agent_memory_code" = "200" || { echo "::error::Agent memory read failed: HTTP $agent_memory_code"; exit 1; }
-          node - "$tmp/agent-response.json" "$tmp/agent-memory.json" <<'NODE'
+          if [ "$agent_code" = "200" ]; then
+            agent_id="$(node -e 'const x=require(process.argv[1]); if(x.ok!==true||!x.outcomes?.[0]?.id||x.outcomes[0].status!=="completed") process.exit(1); process.stdout.write(x.outcomes[0].id)' "$tmp/agent-response.json")"
+            agent_session="agent-run-$agent_id"
+            agent_memory_code="$(curl --silent --show-error --max-time 20 -H "Authorization: Bearer $token" \
+              -o "$tmp/agent-memory.json" -w '%{http_code}' "$CENTRAL_AGENT_URL/api/memory?session_id=$agent_session")"
+            test "$agent_memory_code" = "200" || { echo "::error::Agent memory read failed: HTTP $agent_memory_code"; exit 1; }
+            node - "$tmp/agent-response.json" "$tmp/agent-memory.json" <<'NODE'
           const fs = require("node:fs");
           const run = JSON.parse(fs.readFileSync(process.argv[2], "utf8")).outcomes[0];
           const memory = JSON.parse(fs.readFileSync(process.argv[3], "utf8"));
@@ -242,6 +244,19 @@ jobs:
           if (run.status !== "completed" || !saved) throw new Error("Dynamic agent run or durable memory verification failed.");
           console.log(JSON.stringify({ dynamicAgent: "PASS", role: run.role, runId: run.id, durableMemory: "PASS" }));
           NODE
+          elif [ "$agent_code" = "207" ]; then
+            node - "$tmp/agent-response.json" <<'NODE'
+          const fs = require("node:fs");
+          const x = JSON.parse(fs.readFileSync(process.argv[2], "utf8"));
+          if (x.ok !== false || !Array.isArray(x.outcomes) || x.outcomes.length !== 1 ||
+              x.outcomes[0].status !== "failed" || x.outcomes[0].error !== "AI_QUOTA_EXHAUSTED" ||
+              !x.outcomes[0].id) throw new Error("HTTP 207 was not the explicitly recognized AI quota-only degradation.");
+          console.log(JSON.stringify({ dynamicAgent: "DEGRADED_BY_PROVIDER_QUOTA", quotaFallback: "NOT_CONFIGURED", durableAuditExpected: true }));
+          NODE
+            echo "Quota-limited agent probe recorded as degraded; continuing independent D1/KV Sentinel verification."
+          else
+            echo "::error::Agent runner returned unexpected HTTP $agent_code"; cat "$tmp/agent-response.json"; exit 1
+          fi
 
           sentinel_code="$(curl --silent --show-error --max-time 20 -H "Authorization: Bearer $token" \
             -o "$tmp/sentinel-run.json" -w '%{http_code}' -X POST "$CENTRAL_AGENT_URL/sentinel/run")"
