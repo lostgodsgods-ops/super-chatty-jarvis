@@ -684,7 +684,8 @@ export default {
         if (!credentials.length) return json({ error: "No owner passkey is registered yet. Sign in with the owner password and register one first." }, 409, cors);
         const challenge = randomChallenge();
         await env.SESSIONS.put("webauthn:login:" + challenge, JSON.stringify({ createdAt: Date.now() }), { expirationTtl: 300 });
-        const rpId = new URL(request.url).hostname;
+        const ceremonyOrigin = request.headers.get("origin") || new URL(request.url).origin;
+        const rpId = new URL(ceremonyOrigin).hostname;
         return json({ challenge, rpId, timeout: 300000, userVerification: "required",
           allowCredentials: credentials.map(item => ({ type: "public-key", id: item.credential_id, transports: ["internal", "hybrid"] })) }, 200, cors);
       } catch {
@@ -706,7 +707,7 @@ export default {
         const stored = await env.DB.prepare("SELECT credential_id, public_key_json, sign_count FROM owner_passkeys WHERE credential_id = ?").bind(credentialId).first();
         if (!stored) return json({ error: "Unknown owner passkey." }, 401, cors);
         const origin = request.headers.get("origin") || new URL(request.url).origin;
-        const result = await verifyAssertion(body, challenge, origin, new URL(request.url).hostname, stored);
+        const result = await verifyAssertion(body, challenge, origin, new URL(origin).hostname, stored);
         await env.DB.prepare("UPDATE owner_passkeys SET sign_count = ? WHERE credential_id = ?").bind(result.signCount, result.credentialId).run();
         const token = base64url(crypto.getRandomValues(new Uint8Array(32)));
         await env.SESSIONS.put("session:" + await sha256Hex(token), "active", { expirationTtl: SESSION_TTL_SECONDS });
@@ -734,7 +735,8 @@ export default {
         const sessionToken = bearer || readSessionCookie(request);
         if (!sessionToken) return json({ error: "Owner session required." }, 401, cors);
         await env.SESSIONS.put("webauthn:register:" + await sha256Hex(sessionToken), challenge, { expirationTtl: 300 });
-        const rpId = new URL(request.url).hostname;
+        const ceremonyOrigin = request.headers.get("origin") || new URL(request.url).origin;
+        const rpId = new URL(ceremonyOrigin).hostname;
         return json({ challenge, rp: { id: rpId, name: "Super Chatty Jarvis" },
           user: { id: base64url(crypto.getRandomValues(new Uint8Array(16))), name: "owner", displayName: "Super Chatty Owner" },
           pubKeyCredParams: [{ type: "public-key", alg: -7 }], timeout: 300000, attestation: "none",
@@ -759,7 +761,7 @@ export default {
       try { body = await request.json(); } catch { return json({ error: "Expected JSON body." }, 400, cors); }
       try {
         const origin = request.headers.get("origin") || new URL(request.url).origin;
-        const credential = await verifyRegistration(body, challenge, origin, new URL(request.url).hostname);
+        const credential = await verifyRegistration(body, challenge, origin, new URL(origin).hostname);
         await env.DB.prepare("INSERT INTO owner_passkeys (credential_id, public_key_json, sign_count, created_at) VALUES (?, ?, ?, ?)").bind(
           credential.credentialId, JSON.stringify(credential.publicKey), credential.signCount, new Date().toISOString()
         ).run();
