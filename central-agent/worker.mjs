@@ -184,8 +184,7 @@ function sentinelEventResponse(request, env) {
     "cache-control": "no-cache, no-transform",
     "connection": "keep-alive",
     "x-accel-buffering": "no",
-    "access-control-allow-origin": corsHeaders(request, env)["access-control-allow-origin"] || "null",
-    "vary": "Origin"
+    ...corsHeaders(request, env)
   }});
 }
 
