@@ -7,9 +7,6 @@ on:
       - main
     paths:
       - "central-agent/**"
-      - "jarvis/**"
-      - "sw.js"
-      - ".github/workflows/deploy-central-agent.yml"
 
 permissions:
   contents: read
