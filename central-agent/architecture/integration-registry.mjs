@@ -117,6 +117,7 @@ export async function vectorUpsertQueryReadback(backendId, env = {}, input, fetc
     const found = query.data?.vectors?.[record.id];
     if (!found || !sameVector(found.values, record.values)) throw new IntegrationError("VECTOR_READBACK_MISMATCH", 502);
   } else if (backendId === "qdrant") {
+    if (!/^(?:[0-9]+|[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12})$/i.test(record.id)) throw new IntegrationError("QDRANT_ID_MUST_BE_UUID_OR_UNSIGNED_INTEGER", 400);
     const collection = encodeURIComponent(required(env, c.collection));
     if (!/^[A-Za-z0-9._-]{1,255}$/.test(env[c.collection])) throw new IntegrationError("INVALID_COLLECTION", 400);
     const id = record.id;
