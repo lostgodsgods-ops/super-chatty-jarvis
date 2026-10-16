@@ -39,8 +39,8 @@ test("enabled research fails closed when D1 is unavailable", async () => {
 });
 
 function createAuditDb() {
-  const auditRows = [];
-  return {
+  const db = {
+    auditRows: [],
     auditRows,
     prepare(sql) {
       const statement = {
@@ -63,6 +63,7 @@ function createAuditDb() {
     },
     async batch() { return []; }
   };
+  return db;
 }
 
 test("persistent market HTTP 429 is retried and recorded as a transparent warning, not a partial failure", async () => {
