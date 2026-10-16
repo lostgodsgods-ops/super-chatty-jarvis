@@ -160,7 +160,6 @@ jobs:
         shell: bash
         env:
           OWNER_PASSWORD: ${{ secrets.CENTRAL_AGENT_OWNER_PASSWORD }}
-          OWNER_TOKEN: ${{ secrets.AGENT_GATEWAY_TOKEN }}
           CENTRAL_AGENT_URL: https://shrill-silence-164f.lostgodsgods.workers.dev
         run: |
           set -euo pipefail
@@ -264,7 +263,7 @@ jobs:
           console.log(JSON.stringify({sentinelAudit:"PASS",records:x.runs.length}));
           NODE
 
-          node - <<'NODE'
+          OWNER_TOKEN="$token" node - <<'NODE'
           const base=process.env.CENTRAL_AGENT_URL;
           const token=process.env.OWNER_TOKEN;
           const controller=new AbortController();
