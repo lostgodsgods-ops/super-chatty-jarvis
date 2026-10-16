@@ -32,10 +32,10 @@ jobs:
       - name: Require Cloudflare deployment token
         shell: bash
         env:
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_PAGES_API_TOKEN: ${{ secrets.CLOUDFLARE_PAGES_API_TOKEN }}
         run: |
-          if [[ -z "$CLOUDFLARE_API_TOKEN" ]]; then
-            echo "::error::Deployment blocked: add Actions secret CLOUDFLARE_API_TOKEN."
+          if [[ -z "$CLOUDFLARE_PAGES_API_TOKEN" ]]; then
+            echo "::error::Deployment blocked: add repository Actions secret CLOUDFLARE_PAGES_API_TOKEN with Pages Edit permission."
             exit 1
           fi
 
@@ -43,14 +43,14 @@ jobs:
         id: deployment-credentials
         shell: bash
         env:
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_PAGES_API_TOKEN: ${{ secrets.CLOUDFLARE_PAGES_API_TOKEN }}
         run: |
-          token="$(printf '%s' "$CLOUDFLARE_API_TOKEN" | tr -d '\r' | sed 's/^[[:space:]]*//; s/[[:space:]]*$//')"
+          token="$(printf '%s' "$CLOUDFLARE_PAGES_API_TOKEN" | tr -d '\r' | sed 's/^[[:space:]]*//; s/[[:space:]]*$//')"
           if [[ "$token" =~ ^[Bb][Ee][Aa][Rr][Ee][Rr][[:space:]]+ ]]; then
             token="$(printf '%s' "$token" | sed -E 's/^[Bb][Ee][Aa][Rr][Ee][Rr][[:space:]]+//')"
           fi
           if [[ -z "$token" || "$token" =~ [[:space:]] ]]; then
-            echo "::error::CLOUDFLARE_API_TOKEN must be a raw Cloudflare API token without internal whitespace."
+            echo "::error::CLOUDFLARE_PAGES_API_TOKEN must be a raw Pages-enabled Cloudflare API token without internal whitespace."
             exit 1
           fi
           echo "::add-mask::$token"
