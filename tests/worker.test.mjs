@@ -16,7 +16,7 @@ test("unified Worker health reports Central Agent without exposing credentials",
   assert.equal(response.status, 200);
   assert.equal(body.ok, true);
   assert.equal(body.service, "super-chatty-central-agent");
-  assert.equal(body.version, "1.3.0");
+  assert.equal(body.version, "1.4.0");
   assert.equal(JSON.stringify(body).includes("token"), false);
 });
 
