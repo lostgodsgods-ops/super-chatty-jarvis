@@ -919,61 +919,6 @@ export default {
     }
 
 
-    // Owner-authenticated durable conversation memory. Never expose D1 directly to the browser.
-    if (url.pathname === "/api/memory" && (request.method === "GET" || request.method === "POST")) {
-      if (!(await authorized(request, env))) return json({ error: "Unauthorized" }, 401, cors);
-      if (!env.DB || typeof env.DB.prepare !== "function") return json({ error: "Memory storage unavailable." }, 503, cors);
-
-      let body = null;
-      if (request.method === "POST") {
-        try { body = await request.json(); } catch { return json({ error: "Expected JSON body." }, 400, cors); }
-      }
-      const sessionId = request.method === "GET"
-        ? (url.searchParams.get("session_id") || "owner-global")
-        : (typeof body?.session_id === "string" ? body.session_id.trim() : "owner-global");
-      const memoryType = request.method === "GET"
-        ? (url.searchParams.get("memory_type") || "")
-        : (typeof body?.memory_type === "string" ? body.memory_type.trim() : "");
-      if (!sessionId || sessionId.length > 128 || !/^[a-zA-Z0-9._:-]+$/.test(sessionId)) {
-        return json({ error: "session_id must contain 1–128 safe characters." }, 400, cors);
-      }
-      if (request.method === "POST") {
-        if (!memoryType || memoryType.length > 64 || !/^[a-zA-Z0-9_-]+$/.test(memoryType)) {
-          return json({ error: "memory_type must contain 1–64 letters, numbers, underscores, or hyphens." }, 400, cors);
-        }
-        if (!body?.state || typeof body.state !== "object" || Array.isArray(body.state)) {
-          return json({ error: "state must be a JSON object." }, 400, cors);
-        }
-        let stateJson;
-        try { stateJson = JSON.stringify(body.state); } catch { return json({ error: "state is not valid JSON." }, 400, cors); }
-        if (!stateJson || stateJson.length > 16000) return json({ error: "state exceeds the 16000-character limit." }, 413, cors);
-      }
-      try {
-        await env.DB.prepare("CREATE TABLE IF NOT EXISTS conversation_memory (id TEXT PRIMARY KEY, owner_scope TEXT NOT NULL, session_id TEXT NOT NULL, memory_type TEXT NOT NULL, state_json TEXT NOT NULL, created_at TEXT NOT NULL, updated_at TEXT NOT NULL, UNIQUE(owner_scope, session_id, memory_type))").run();
-        if (request.method === "GET") {
-          const statement = memoryType
-            ? env.DB.prepare("SELECT id, session_id, memory_type, state_json, created_at, updated_at FROM conversation_memory WHERE owner_scope = ? AND session_id = ? AND memory_type = ? ORDER BY updated_at DESC LIMIT 50").bind("owner", sessionId, memoryType)
-            : env.DB.prepare("SELECT id, session_id, memory_type, state_json, created_at, updated_at FROM conversation_memory WHERE owner_scope = ? AND session_id = ? ORDER BY updated_at DESC LIMIT 50").bind("owner", sessionId);
-          const result = await statement.all();
-          const memories = (result?.results || []).map(row => {
-            let state = null;
-            try { state = JSON.parse(row.state_json); } catch {}
-            return { id: row.id, session_id: row.session_id, memory_type: row.memory_type, state, created_at: row.created_at, updated_at: row.updated_at };
-          });
-          return json({ ok: true, memories }, 200, cors);
-        }
-        const now = new Date().toISOString();
-        const stateJson = JSON.stringify(body.state);
-        const id = crypto.randomUUID();
-        await env.DB.prepare("INSERT INTO conversation_memory (id, owner_scope, session_id, memory_type, state_json, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?) ON CONFLICT(owner_scope, session_id, memory_type) DO UPDATE SET state_json = excluded.state_json, updated_at = excluded.updated_at")
-          .bind(id, "owner", sessionId, memoryType, stateJson, now, now).run();
-        return json({ ok: true, saved: true, session_id: sessionId, memory_type: memoryType, updated_at: now }, 200, cors);
-      } catch (error) {
-        console.warn("conversation_memory_storage_error", { errorName: typeof error?.name === "string" ? error.name : "Error" });
-        return json({ error: "Memory storage is temporarily unavailable." }, 503, cors);
-      }
-    }
-
     if (url.pathname === "/auth/logout" && request.method === "POST") {
       const header = request.headers.get("authorization") || "";
       const supplied = header.startsWith("Bearer ") ? header.slice(7) : "";
