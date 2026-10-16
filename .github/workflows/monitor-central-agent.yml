@@ -211,6 +211,28 @@ jobs:
           fi
           node -e 'const fs=require("node:fs"); const x=JSON.parse(fs.readFileSync(process.argv[1],"utf8")); if(x.ok!==true||x.core?.webSearchExecuted!==true||x.core?.searchProvider!=="tavily"||!Array.isArray(x.sources)||x.sources.length<1) throw Error("Expected a live Tavily result with at least one source"); if(x.sources.some(s=>typeof s.url!=="string"||!/^https?:\/\//i.test(s.url))) throw Error("Invalid source URL"); console.log(JSON.stringify({ok:x.ok,searchProvider:x.core.searchProvider,sourceCount:x.sources.length,sourceUrls:x.sources.map(s=>s.url)},null,2));' "$tmp/search.json"
 
+      - name: Verify authenticated event bus and module registry
+        shell: bash
+        env:
+          CENTRAL_AGENT_URL: https://shrill-silence-164f.lostgodsgods.workers.dev
+          OWNER_PASSWORD: ${{ secrets.CENTRAL_AGENT_OWNER_PASSWORD }}
+        run: |
+          set -euo pipefail
+          test -n "$OWNER_PASSWORD" || { echo "::error::Missing CENTRAL_AGENT_OWNER_PASSWORD"; exit 1; }
+          tmp="$(mktemp -d)"
+          trap 'rm -rf "$tmp"; unset OWNER_PASSWORD' EXIT
+          login_code="$(curl --silent --show-error --max-time 15 --output "$tmp/login.json" --write-out '%{http_code}' -H 'content-type: application/json' -X POST "$CENTRAL_AGENT_URL/auth/login" --data "$(node -e 'process.stdout.write(JSON.stringify({password:process.env.OWNER_PASSWORD}))')")"
+          test "$login_code" = "200" || { echo "::error::Owner login failed during event bus check (HTTP $login_code)"; exit 1; }
+          token="$(node -e 'const x=require(process.argv[1]); if(x.ok!==true||typeof x.token!=="string"||!x.token) process.exit(1); process.stdout.write(x.token)' "$tmp/login.json")"
+          modules_code="$(curl --silent --show-error --max-time 10 --output "$tmp/modules.json" --write-out '%{http_code}' -H "authorization: Bearer $token" "$CENTRAL_AGENT_URL/api/modules")"
+          test "$modules_code" = "200" || { echo "::error::Authenticated /api/modules failed (HTTP $modules_code)"; exit 1; }
+          node -e 'const fs=require("fs"); const x=JSON.parse(fs.readFileSync(process.argv[1],"utf8")); if(x.ok!==true||x.registry!=="central-event-bus"||!Array.isArray(x.modules)||!x.modules.some(m=>m.id==="pwa-event-stream")||!x.modules.some(m=>m.id==="agent-orchestrator")) throw Error("Module registry response is invalid"); console.log(JSON.stringify({ok:true,registry:x.registry,moduleCount:x.modules.length,agentModule:"PASS",pwaStreamModule:"PASS"}));' "$tmp/modules.json"
+          stream_code="$(curl --silent --show-error --no-buffer --max-time 4 --output "$tmp/events.txt" --write-out '%{http_code}' -H "authorization: Bearer $token" -H 'accept: text/event-stream' "$CENTRAL_AGENT_URL/api/events" || true)"
+          unset token OWNER_PASSWORD
+          test "$stream_code" = "200" || { echo "::error::Authenticated /api/events failed (HTTP $stream_code)"; cat "$tmp/events.txt"; exit 1; }
+          grep -q '^event: heartbeat' "$tmp/events.txt" || { echo "::error::SSE heartbeat was not observed"; cat "$tmp/events.txt"; exit 1; }
+          echo '{"ok":true,"authenticatedSSE":"PASS","heartbeat":"PASS","readOnly":true}'
+
       - name: Open or update incident issue on failure
         if: failure() && github.event_name != 'pull_request'
         uses: actions/github-script@v7
