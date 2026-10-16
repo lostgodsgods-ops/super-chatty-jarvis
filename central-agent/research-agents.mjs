@@ -49,7 +49,16 @@ export function normalizeResearchItem(source, item) {
 }
 async function fetchJson(url) {
   const response = await fetch(url, { method: "GET", headers: { accept: "application/json", "user-agent": "Super-Chatty-Jarvis-ReadOnly-Research/1.0" }, signal: AbortSignal.timeout(RESEARCH_LIMITS.timeoutMs) });
-  if (!response.ok) throw new Error("SOURCE_HTTP_" + response.status);
+  if (!response.ok) {
+    if (response.status === 403) {
+      const remaining = response.headers.get("x-ratelimit-remaining");
+      const body = await response.text().catch(() => "");
+      if (remaining === "0" || /API rate limit exceeded|secondary rate limit/i.test(body)) {
+        throw new Error("SOURCE_RATE_LIMITED_403");
+      }
+    }
+    throw new Error("SOURCE_HTTP_" + response.status);
+  }
   return response.json();
 }
 
@@ -110,6 +119,10 @@ export async function runBoundedResearchCycle(env, options = {}) {
         // A rate-limited optional market feed is degraded, not a coordinator failure.
         // Keep the limitation visible in the audit details; never fabricate market data.
         warnings.push({ source, code, action: "market-telemetry-skipped" });
+      } else if ((source === "github" || source === "releases") &&
+          (code === "SOURCE_HTTP_429" || code === "SOURCE_RATE_LIMITED_403")) {
+        // Public GitHub API quota exhaustion is also a source-level degradation.
+        warnings.push({ source, code, action: "source-rate-limited-skipped" });
       } else {
         errorCount++;
         errors.push({ source, code });
