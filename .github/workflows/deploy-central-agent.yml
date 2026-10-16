@@ -85,10 +85,10 @@ jobs:
           grep -Fq 'Super Chatty Jarvis · Neural Console' "$tmp/index.html"
 
           fetch_asset "/sw.js" "$tmp/sw-root.js" "$tmp/sw-root.headers" "application/javascript"
-          grep -Fq 'super-chatty-jarvis-shell-v2' "$tmp/sw-root.js"
+          grep -Fq 'super-chatty-jarvis-shell-v3' "$tmp/sw-root.js"
 
           fetch_asset "/jarvis/sw.js" "$tmp/sw-subpath.js" "$tmp/sw-subpath.headers" "application/javascript"
-          grep -Fq 'super-chatty-jarvis-shell-v2' "$tmp/sw-subpath.js"
+          grep -Fq 'super-chatty-jarvis-shell-v3' "$tmp/sw-subpath.js"
 
           fetch_asset "/manifest.webmanifest" "$tmp/manifest.json" "$tmp/manifest.headers" "application/manifest+json"
           node -e 'const m=require(process.argv[1]); if(m.name!=="Super Chatty Jarvis"||m.scope!=="./") throw Error("PWA manifest identity/scope mismatch");' "$tmp/manifest.json"
