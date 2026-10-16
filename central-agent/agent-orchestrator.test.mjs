@@ -21,7 +21,7 @@ test("agent catalogue exposes bounded executors and no self-granted side effects
   assert.ok(roles.every(role => role.requiresOwnerSession && role.autoExecutesSideEffects === false));
 });
 test("agent spawn validates role and bounds parallel batch size", async () => {
-  assert.equal((await spawnAgents({}, { role: "root", input: "do anything" })).error, "UNSUPPORTED_AGENT_ROLE");
+  assert.equal((await spawnAgents({}, { role: "root", input: "do anything" })).outcomes[0].error, "UNSUPPORTED_AGENT_ROLE");
   assert.equal((await spawnAgents({}, { tasks: Array.from({length:4}, () => ({role:"testing",input:"check"})) })).error, "TASK_BATCH_MUST_BE_1_TO_3");
 });
 test("missing D1 blocks agent execution without pretending it ran", async () => {
@@ -31,7 +31,7 @@ test("missing D1 blocks agent execution without pretending it ran", async () => 
 });
 test("successful bounded agent persists audit, memory and task result", async () => {
   const db = dbMock();
-  const env = { DB: db, AI: { async run(model, input) { assert.equal(model, "@cf/meta/llama-3.1-8b-instruct-fast"); return { response: JSON.stringify({ testCases: ["happy path"], notExecuted: true }) }; } };
+  const env = { DB: db, AI: { async run(model, input) { assert.equal(model, "@cf/meta/llama-3.1-8b-instruct-fast"); return { response: JSON.stringify({ testCases: ["happy path"], notExecuted: true }) }; } } };
   const result = await spawnAgents(env, { role: "testing", input: "review owner auth" });
   assert.equal(result.ok, true);
   assert.equal(result.outcomes[0].status, "completed");
@@ -43,7 +43,7 @@ test("successful bounded agent persists audit, memory and task result", async ()
 });
 test("code mutator is proposal-only and never writes repository files", async () => {
   const db = dbMock();
-  const env = { DB: db, AI: { async run() { return { response: JSON.stringify({ summary: "proposed", filesToReview: [], proposedPatch: null, tests: [], risks: [] }) }; } };
+  const env = { DB: db, AI: { async run() { return { response: JSON.stringify({ summary: "proposed", filesToReview: [], proposedPatch: null, tests: [], risks: [] }) }; } } };
   const result = await spawnAgents(env, { role: "code_mutator", input: "Suggest a safe fix" });
   assert.equal(result.ok, true);
   assert.equal(result.outcomes[0].mode, "proposal-only");
