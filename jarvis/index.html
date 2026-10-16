@@ -157,10 +157,11 @@
         <form id="ownerLoginForm" class="owner-grid">
           <label class="field-label" for="ownerPassword">Owner password</label>
           <input class="text-input" id="ownerPassword" type="password" autocomplete="current-password" minlength="12" maxlength="256" placeholder="Enter owner password" required>
-          <div class="owner-actions"><button class="action-btn" id="ownerLogin" type="submit">Verify session</button><button class="action-btn secondary" id="ownerLogout" type="button" disabled>Sign out</button></div>
+          <div class="owner-actions"><button class="action-btn" id="ownerLogin" type="submit">Verify session</button><button class="action-btn secondary" id="ownerPasskeyLogin" type="button">Use device passkey</button><button class="action-btn secondary" id="ownerLogout" type="button" disabled>Sign out</button></div>
         </form>
-        <div class="owner-status warn" id="ownerSessionStatus" role="status" aria-live="polite">Locked. Session tokens are held in page memory only and cleared on sign-out or reload.</div>
-        <p class="dashboard-note">This is the existing owner-password session, not a WebAuthn passkey. No secret is embedded in the PWA or stored in browser storage.</p>
+        <div class="owner-actions" style="margin-top:10px"><button class="action-btn secondary" id="ownerPasskeyRegister" type="button" disabled>Register fingerprint / passkey</button><button class="action-btn secondary" id="ownerSetupOpen" type="button">Setup / reset password</button></div>
+        <div class="owner-status warn" id="ownerSessionStatus" role="status" aria-live="polite">Locked. Sign in with the owner password, then register a device passkey. Session tokens are not stored in browser storage.</div>
+        <p class="dashboard-note">Passkeys use the device's supported screen-lock / biometric prompt. The operating system controls whether fingerprint, face, or PIN is used; the website cannot force a fingerprint scan.</p>
       </div>
     </section>
     <section class="panel dashboard-panel" aria-labelledby="factSearchTitle" style="grid-column:1/-1">
@@ -322,7 +323,7 @@
       state.ownerToken = "";
       disconnectEvents();
       clearInterval(state.telemetryTimer); state.telemetryTimer = 0;
-      els.ownerLogout.disabled = true; els.ownerLogin.disabled = false; els.researchSearchBtn.disabled = true;
+      els.ownerLogout.disabled = true; els.ownerLogin.disabled = false; els.ownerPasskeyRegister.disabled = true; els.researchSearchBtn.disabled = true;
       status(els.ownerBadge,"LOCKED","warn"); status(els.researchSearchStatus,"OWNER SESSION REQUIRED","warn");
       setOwnerStatus(message,"warn");
       els.auditCount.textContent = "—"; els.observationCount.textContent = "—"; els.signalCount.textContent = "—";
@@ -396,6 +397,7 @@
         state.ownerToken = "cookie-session";
         els.ownerLogout.disabled = false;
         els.ownerLogin.disabled = false;
+        els.ownerPasskeyRegister.disabled = false;
         els.researchSearchBtn.disabled = false;
         status(els.ownerBadge, "OWNER VERIFIED", "ok");
         status(els.researchSearchStatus, "SESSION RESTORED", "ok");
@@ -411,6 +413,104 @@
       }
     }
 
+    function decodeB64url(value) {
+      const padded = value.replace(/-/g, "+").replace(/_/g, "/") + "=".repeat((4 - value.length % 4) % 4);
+      const binary = atob(padded);
+      return Uint8Array.from(binary, char => char.charCodeAt(0)).buffer;
+    }
+    function encodeB64url(value) {
+      const bytes = new Uint8Array(value);
+      let binary = "";
+      for (const byte of bytes) binary += String.fromCharCode(byte);
+      return btoa(binary).replace(/\\+/g, "-").replace(/\\//g, "_").replace(/=+$/g, "");
+    }
+    async function activateOwnerSession(token, methodLabel) {
+      state.ownerToken = token;
+      const session = await ownerFetch("/auth/session");
+      if (session.authenticated !== true) throw new Error("Owner session verification failed.");
+      els.ownerPassword.value = "";
+      els.ownerLogout.disabled = false;
+      els.ownerLogin.disabled = false;
+      els.ownerPasskeyRegister.disabled = false;
+      els.researchSearchBtn.disabled = false;
+      status(els.ownerBadge,"OWNER VERIFIED","ok");
+      status(els.researchSearchStatus,"SESSION VERIFIED","ok");
+      setOwnerStatus("Owner session verified with " + methodLabel + ". Register a device passkey for future sign-ins.", "ok");
+      await restoreConversationMemory();
+      await refreshTelemetry();
+      clearInterval(state.telemetryTimer);
+      state.telemetryTimer = setInterval(refreshTelemetry, 30000);
+      connectSentinelEvents();
+      toast("Owner session verified; live sync requested.");
+    }
+    async function signInPasskey() {
+      const base = workerBaseUrl();
+      if (!base) { setOwnerStatus("Enter a valid Worker health URL first.", "bad"); return; }
+      if (!window.PublicKeyCredential || !navigator.credentials) {
+        setOwnerStatus("This browser does not support WebAuthn passkeys.", "bad"); return;
+      }
+      els.ownerPasskeyLogin.disabled = true;
+      try {
+        const optionsResponse = await fetch(base + "/auth/passkey/login/options", { method:"POST", credentials:"same-origin", headers:{Accept:"application/json"}, cache:"no-store" });
+        const options = await optionsResponse.json().catch(() => ({}));
+        if (!optionsResponse.ok) throw new Error(options.error || "Passkey sign-in is not configured.");
+        const credential = await navigator.credentials.get({ publicKey: {
+          challenge: decodeB64url(options.challenge), rpId: options.rpId, timeout: options.timeout,
+          userVerification: options.userVerification,
+          allowCredentials: (options.allowCredentials || []).map(item => ({ type:item.type, id:decodeB64url(item.id), transports:item.transports }))
+        }});
+        if (!credential) throw new Error("No passkey assertion was returned.");
+        const assertion = {
+          id: credential.id, rawId: encodeB64url(credential.rawId), type: credential.type, challenge: options.challenge,
+          response: {
+            authenticatorData: encodeB64url(credential.response.authenticatorData),
+            clientDataJSON: encodeB64url(credential.response.clientDataJSON),
+            signature: encodeB64url(credential.response.signature),
+            userHandle: credential.response.userHandle ? encodeB64url(credential.response.userHandle) : null
+          }
+        };
+        const verified = await fetch(base + "/auth/passkey/login/verify", { method:"POST", credentials:"same-origin", headers:{"content-type":"application/json",Accept:"application/json"}, body:JSON.stringify(assertion), cache:"no-store" });
+        const payload = await verified.json().catch(() => ({}));
+        if (!verified.ok || !payload.token) throw new Error(payload.error || "Passkey verification failed.");
+        await activateOwnerSession(payload.token, "device passkey");
+      } catch (error) {
+        setOwnerStatus(error.message || "Passkey sign-in failed.", "bad");
+        status(els.ownerBadge, "LOCKED", "bad");
+      } finally { els.ownerPasskeyLogin.disabled = false; }
+    }
+    async function registerDevicePasskey() {
+      const base = workerBaseUrl();
+      if (!base || !state.ownerToken) { setOwnerStatus("Sign in with the owner password before registering a passkey.", "warn"); return; }
+      if (!window.PublicKeyCredential || !navigator.credentials) { setOwnerStatus("This browser does not support WebAuthn passkeys.", "bad"); return; }
+      els.ownerPasskeyRegister.disabled = true;
+      try {
+        const options = await ownerFetch("/auth/passkey/register/options", { method:"POST", body:"{}" });
+        const credential = await navigator.credentials.create({ publicKey: {
+          challenge: decodeB64url(options.challenge),
+          rp: options.rp,
+          user: { ...options.user, id: decodeB64url(options.user.id) },
+          pubKeyCredParams: options.pubKeyCredParams,
+          timeout: options.timeout,
+          attestation: options.attestation,
+          authenticatorSelection: options.authenticatorSelection,
+          excludeCredentials: (options.excludeCredentials || []).map(item => ({ type:item.type, id:decodeB64url(item.id) }))
+        }});
+        if (!credential) throw new Error("The device did not create a passkey.");
+        const registration = {
+          id: credential.id, rawId: encodeB64url(credential.rawId), type: credential.type,
+          response: {
+            clientDataJSON: encodeB64url(credential.response.clientDataJSON),
+            attestationObject: encodeB64url(credential.response.attestationObject)
+          }
+        };
+        const result = await ownerFetch("/auth/passkey/register/verify", { method:"POST", body:JSON.stringify(registration) });
+        setOwnerStatus(result.message || "Device passkey registered.", "ok");
+        toast("Device passkey registered.");
+      } catch (error) {
+        setOwnerStatus(error.message || "Passkey registration failed.", "bad");
+        els.ownerPasskeyRegister.disabled = !state.ownerToken;
+      }
+    }
     async function signInOwner(event) {
       event.preventDefault();
       const base = workerBaseUrl(), password = els.ownerPassword.value;
@@ -421,15 +521,7 @@
         const response = await fetch(base + "/auth/login",{method:"POST",headers:{"content-type":"application/json",Accept:"application/json"},body:JSON.stringify({password}),cache:"no-store"});
         const payload = await response.json().catch(() => ({}));
         if (!response.ok || typeof payload.token !== "string" || !payload.token) throw new Error(payload.error || ("Owner login failed: HTTP " + response.status));
-        state.ownerToken = payload.token;
-        const session = await ownerFetch("/auth/session");
-        if (session.authenticated !== true) throw new Error("Owner session verification failed.");
-        els.ownerPassword.value = ""; els.ownerLogout.disabled = false; els.ownerLogin.disabled = false; els.researchSearchBtn.disabled = false;
-        status(els.ownerBadge,"OWNER VERIFIED","ok"); status(els.researchSearchStatus,"SESSION VERIFIED","ok");
-        setOwnerStatus("Owner session verified. Token is memory-only and expires server-side.","ok");
-        await restoreConversationMemory(); await refreshTelemetry(); clearInterval(state.telemetryTimer); state.telemetryTimer = setInterval(refreshTelemetry,30000);
-        connectSentinelEvents();
-        toast("Owner session verified; Sentinel auto-sync connected.");
+        await activateOwnerSession(payload.token, "owner password");
       } catch (error) {
         state.ownerToken = ""; els.ownerLogin.disabled = false;
         setOwnerStatus(error.message || "Owner authentication failed.","bad"); status(els.ownerBadge,"LOCKED","bad");
@@ -884,6 +976,9 @@
     })();
 
     els.ownerLoginForm.addEventListener("submit",signInOwner);
+    els.ownerPasskeyLogin.addEventListener("click", signInPasskey);
+    els.ownerPasskeyRegister.addEventListener("click", registerDevicePasskey);
+    els.ownerSetupOpen.addEventListener("click", () => { const base = workerBaseUrl(); if (base) window.open(base + "/owner", "_blank", "noopener,noreferrer"); else setOwnerStatus("Enter a valid Worker URL first.", "warn"); });
     els.ownerLogout.addEventListener("click",signOutOwner);
     els.refreshTelemetry.addEventListener("click",refreshTelemetry);
     els.factSearchForm.addEventListener("submit",searchEvidence);
