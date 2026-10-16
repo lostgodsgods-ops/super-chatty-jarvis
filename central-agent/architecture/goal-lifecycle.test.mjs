@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { GoalError, normalizeGoalPlan, validateGoalApproval, GOAL_APPROVAL_PHRASE } from "./goal-lifecycle.mjs";
+import { GoalError, normalizeGoalPlan, validateGoalApproval, GOAL_APPROVAL_PHRASE, transitionGoal } from "./goal-lifecycle.mjs";
 
 test("goal plan normalization bounds steps and allows only registered actions", () => {
   const plan = normalizeGoalPlan({
@@ -36,4 +36,67 @@ test("goal approval must match the exact canonical plan and one-use UUID nonce",
   assert.equal(validateGoalApproval(canonical, { ...approval, planDigest: "{}" }), false);
   assert.equal(validateGoalApproval(canonical, { ...approval, action: "deploy" }), false);
   assert.equal(validateGoalApproval(canonical, { ...approval, nonce: "replay" }), false);
+});
+
+test("completed goal transition requires evidence for every planned step", async () => {
+  const row = {
+    id: "550e8400-e29b-41d4-a716-446655440000",
+    status: "running",
+    stepsJson: JSON.stringify([{ action: "knowledge_search" }, { action: "mcp_discovery" }]),
+    rollbackJson: "[]",
+    currentStep: 0,
+    version: 1
+  };
+  let batches = 0;
+  const db = {
+    prepare(sql) {
+      return {
+        bind() { return this; },
+        async run() { return { meta: { changes: 0 } }; },
+        async first() { return sql.includes("SELECT id,status") ? row : null; }
+      };
+    },
+    async batch(statements) {
+      batches++;
+      assert.equal(statements.length, 2);
+      return [{ meta: { changes: 1 } }, { meta: { changes: 1 } }];
+    }
+  };
+  const env = { DB: db };
+  await assert.rejects(
+    transitionGoal(env, row.id, "completed", {}),
+    error => error instanceof GoalError && error.code === "COMPLETION_EVIDENCE_REQUIRED"
+  );
+  assert.equal(batches, 0);
+  const result = await transitionGoal(env, row.id, "completed", {
+    completedStepCount: 2, evidenceRef: "test-run:verified-steps-1-2"
+  });
+  assert.equal(result.status, "completed");
+  assert.equal(result.executionPerformed, false);
+  assert.equal(batches, 1);
+});
+
+test("rollback completion requires explicit compensation evidence", async () => {
+  const row = {
+    id: "550e8400-e29b-41d4-a716-446655440000",
+    status: "rollback_requested",
+    stepsJson: JSON.stringify([{ action: "knowledge_search" }]),
+    rollbackJson: JSON.stringify([{ compensation: "manual review", status: "pending_manual_compensation" }]),
+    currentStep: 0,
+    version: 2
+  };
+  const db = {
+    prepare(sql) {
+      return {
+        bind() { return this; },
+        async run() { return { meta: { changes: 0 } }; },
+        async first() { return sql.includes("SELECT id,status") ? row : null; }
+      };
+    },
+    async batch() { return [{ meta: { changes: 1 } }, { meta: { changes: 1 } }]; }
+  };
+  await assert.rejects(
+    transitionGoal({ DB: db }, row.id, "rolled_back", {}),
+    error => error instanceof GoalError && error.code === "ROLLBACK_EVIDENCE_REQUIRED"
+  );
 });
