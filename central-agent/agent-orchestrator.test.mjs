@@ -84,3 +84,20 @@ test("Workers AI quota exhaustion without a backup route returns a stable quota 
   assert.equal(db.state.audits.length, 1);
   assert.equal(JSON.parse(db.state.audits[0].details).errorCode, "AI_QUOTA_EXHAUSTED");
 });
+
+test("backup-provider quota/rate-limit failures degrade to the stable quota code", async (t) => {
+  const db = dbMock();
+  const originalFetch = globalThis.fetch;
+  t.after(() => { globalThis.fetch = originalFetch; });
+  globalThis.fetch = async () => new Response(JSON.stringify({ error: { status: "RESOURCE_EXHAUSTED" } }), { status: 429 });
+  const env = {
+    DB: db,
+    GEMINI_API_KEY: "test-only-not-a-real-key",
+    AI: { async run() { throw new Error("Workers AI HTTP 429 rate limit"); } }
+  };
+  const result = await spawnAgents(env, { role: "testing", input: "backup quota failure" });
+  assert.equal(result.ok, false);
+  assert.equal(result.status, 207);
+  assert.equal(result.outcomes[0].error, "AI_QUOTA_EXHAUSTED");
+  assert.equal(db.state.audits.length, 1);
+});
