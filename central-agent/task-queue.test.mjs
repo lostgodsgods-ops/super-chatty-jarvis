@@ -5,6 +5,7 @@ import {
   validateKnowledgeApproval,
   enqueueKnowledgeTask,
   processApprovedKnowledgeTasks,
+  recoverStaleKnowledgeTasks,
   OWNER_APPROVAL_PHRASE
 } from "./task-queue.mjs";
 
@@ -64,6 +65,18 @@ function mockD1(initialTasks = []) {
           state.tasks.push({ id: a[0], query: a[1], status: "queued", owner_approved: 1, approval_scope: a[3], attempts: 0 });
           return { meta: { changes: 1 } };
         }
+        if (sql.includes("SET status = 'queued', started_at = NULL")) {
+          const task = state.tasks.find(item => item.id === a[1]);
+          if (!task || task.status !== "running" || task.started_at !== a[2] || task.owner_approved !== 1) return { meta: { changes: 0 } };
+          Object.assign(task, { status: "queued", started_at: null, updated_at: a[0], error_code: "RECOVERED_STALE_RUNNING_TASK" });
+          return { meta: { changes: 1 } };
+        }
+        if (sql.includes("SET status = 'failed'") && sql.includes("STALE_TASK_RETRY_LIMIT")) {
+          const task = state.tasks.find(item => item.id === a[2]);
+          if (!task || task.status !== "running" || task.started_at !== a[3]) return { meta: { changes: 0 } };
+          Object.assign(task, { status: "failed", completed_at: a[0], updated_at: a[1], error_code: "STALE_TASK_RETRY_LIMIT" });
+          return { meta: { changes: 1 } };
+        }
         if (sql.includes("SET status = 'running'")) {
           const task = state.tasks.find(item => item.id === a[2]);
           if (!task || task.status !== "queued" || task.owner_approved !== 1) return { meta: { changes: 0 } };
@@ -83,6 +96,11 @@ function mockD1(initialTasks = []) {
         throw new Error("Unexpected mock SQL: " + sql);
       },
       async all() {
+        if (sql.includes("WHERE status = 'running' AND started_at <")) {
+          return { results: state.tasks.filter(item => item.status === "running" && item.owner_approved === 1 && item.started_at < this.args[0]).map(item => ({
+            id: item.id, startedAt: item.started_at, attempts: item.attempts, approvalScope: item.approval_scope
+          })) };
+        }
         if (sql.includes("WHERE status = 'queued'")) {
           return { results: state.tasks.filter(item => item.status === "queued" && item.owner_approved === 1).map(({ id, query, approval_scope }) => ({ id, query, approval_scope })) };
         }
@@ -161,4 +179,18 @@ test("scheduled processor fetches only persisted owner-approved tasks and audits
   } finally {
     globalThis.fetch = originalFetch;
   }
+});
+
+
+test("stale approved tasks are requeued once and fail after the bounded retry count", async () => {
+  const old = new Date(Date.now() - 60 * 60_000).toISOString();
+  const DB = mockD1([
+    { id: "retry-once", status: "running", owner_approved: 1, started_at: old, attempts: 1, approval_scope: "knowledge_search:a" },
+    { id: "retry-exhausted", status: "running", owner_approved: 1, started_at: old, attempts: 2, approval_scope: "knowledge_search:b" }
+  ]);
+  const outcome = await recoverStaleKnowledgeTasks({ DB }, 20);
+  assert.deepEqual(outcome, { recovered: 1, failed: 1, blocked: false });
+  assert.equal(DB.state.tasks.find(t => t.id === "retry-once").status, "queued");
+  assert.equal(DB.state.tasks.find(t => t.id === "retry-exhausted").status, "failed");
+  assert.deepEqual(DB.state.audits.map(a => a.eventType), ["stale_task_requeued", "stale_task_failed_retry_limit"]);
 });
