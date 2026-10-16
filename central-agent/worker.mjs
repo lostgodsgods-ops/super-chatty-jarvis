@@ -161,12 +161,14 @@ export default {
     // The static asset binding points only at ../jarvis; API/auth routes continue through this handler.
     if (env.ASSETS && (request.method === "GET" || request.method === "HEAD")) {
       let assetPath = null;
-      if (url.pathname === "/" || url.pathname === "/index.html") assetPath = "/index.html";
+      // Fetch the directory URL for the entry document. Cloudflare Assets canonicalizes
+      // /index.html to /; requesting /index.html here can create a redirect loop.
+      if (url.pathname === "/" || url.pathname === "/index.html") assetPath = "/";
       else if (["/sw.js", "/manifest.webmanifest", "/icon.svg"].includes(url.pathname)) assetPath = url.pathname;
-      else if (url.pathname === "/jarvis" || url.pathname === "/jarvis/") assetPath = "/index.html";
+      else if (url.pathname === "/jarvis" || url.pathname === "/jarvis/") assetPath = "/";
       else if (url.pathname.startsWith("/jarvis/")) assetPath = url.pathname.slice("/jarvis".length);
       if (assetPath !== null) {
-        return env.ASSETS.fetch(new Request(new URL(assetPath, url.origin), request));
+        return env.ASSETS.fetch(new Request(new URL(assetPath, url.origin), { method: request.method, headers: request.headers }));
       }
     }
 
