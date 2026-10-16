@@ -151,7 +151,7 @@ function sentinelEventResponse(request, env) {
   const stream = new ReadableStream({
     start(controller) {
       const emit = (event, payload) => {
-        if (!cancelled) controller.enqueue(encoder.encode("event: " + event + "\\ndata: " + JSON.stringify(payload) + "\\n\\n"));
+        if (!cancelled) controller.enqueue(encoder.encode("event: " + event + "\ndata: " + JSON.stringify(payload) + "\n\n"));
       };
       const run = async () => {
         const seen = new Set();
