@@ -133,14 +133,29 @@ test("NEXUS PWA preserves owner-only telemetry and adds safe local visual intake
 test("owner session survives PWA reloads through a Secure HttpOnly cookie, never JS storage", () => {
   assert.match(centralWorker, /function readSessionCookie\(request\)/);
   assert.match(centralWorker, /__Host-sc_session/);
+  assert.match(centralWorker, /access-control-allow-credentials": "true"/);
   assert.match(centralWorker, /Secure; HttpOnly; SameSite=Strict/);
   assert.match(centralWorker, /set-cookie": sessionCookie\(token\)/);
   assert.match(centralWorker, /set-cookie": sessionCookie\("", 0\)/);
   assert.match(jarvisHtml, /async function resumeOwnerSession\(\)/);
-  assert.match(jarvisHtml, /credentials:\s*"same-origin"/);
+  assert.match(jarvisHtml, /credentials:\s*"include"/);
   assert.match(jarvisHtml, /state\.ownerToken = "cookie-session"/);
   assert.match(jarvisHtml, /resumeOwnerSession\(\);/);
   assert.match(jarvisHtml, /token === "cookie-session" \? \{\} : \{ authorization:/);
   assert.doesNotMatch(jarvisHtml, /localStorage\.setItem\([^\n]*(?:token|session)/i);
   assert.doesNotMatch(jarvisHtml, /sessionStorage\.setItem\([^\n]*(?:token|session)/i);
+});
+
+test("PWA exposes real WebAuthn passkey sign-in and authenticated registration controls", () => {
+  assert.match(centralWorker, /\/auth\/passkey\/login\/options/);
+  assert.match(centralWorker, /\/auth\/passkey\/login\/verify/);
+  assert.match(centralWorker, /\/auth\/passkey\/register\/options/);
+  assert.match(centralWorker, /\/auth\/passkey\/register\/verify/);
+  assert.match(centralWorker, /verifyAssertion\(body, challenge, origin/);
+  assert.match(centralWorker, /verifyRegistration\(body, challenge, origin/);
+  assert.match(jarvisHtml, /navigator\.credentials\.get/);
+  assert.match(jarvisHtml, /navigator\.credentials\.create/);
+  assert.match(jarvisHtml, /ownerPasskeyLogin/);
+  assert.match(jarvisHtml, /ownerPasskeyRegister/);
+  assert.match(jarvisHtml, /ownerSetupOpen/);
 });
