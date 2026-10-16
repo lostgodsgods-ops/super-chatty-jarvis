@@ -64,7 +64,7 @@
 
         <section class="panel connection-panel" aria-labelledby="connectionTitle">
           <div class="panel-title" id="connectionTitle">Secure connection</div>
-          <p>Health checks use the Worker URL. Real backend logs require a compatible Server-Sent Events (SSE) endpoint. No secret is stored in this page.</p>
+          <p>Health checks use the Worker URL. Backend logs use the authenticated Central Event Bus SSE stream with reconnect and event replay. No secret is stored in this page.</p>
           <label class="field-label" for="workerUrl">Worker health URL</label>
           <input class="text-input" id="workerUrl" type="url" inputmode="url" autocomplete="url" value="https://shrill-silence-164f.lostgodsgods.workers.dev/health" spellcheck="false">
           <label class="field-label" for="eventsUrl">Live events SSE URL (optional)</label>
