@@ -41,7 +41,6 @@ test("enabled research fails closed when D1 is unavailable", async () => {
 function createAuditDb() {
   const db = {
     auditRows: [],
-    auditRows,
     prepare(sql) {
       const statement = {
         values: [],
