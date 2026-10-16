@@ -858,7 +858,7 @@ export default {
       }
     }
 
-    // Durable D1 memory bridge is owner-authenticated and covered by live deployment read/write verification.
+    // Durable D1 memory bridge is owner-authenticated and covered by live deployment read/write verification. Workflow verification reuses the already authenticated owner session.
     if (url.pathname === "/api/memory") {
       if (request.method !== "GET" && request.method !== "POST") {
         return json({ ok: false, error: "METHOD_NOT_ALLOWED" }, 405, { allow: "GET, POST", ...cors });
