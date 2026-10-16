@@ -1,5 +1,5 @@
 /**
- * Super Chatty Central Agent v1.3.0
+ * Unified Super Chatty Central Agent + NEXUS assets v1.3.0
  * Owner-defined password setup, PBKDF2 password hashing, and expiring sessions.
  * No Gemini integration. Secrets are read only from Worker bindings.
  */
