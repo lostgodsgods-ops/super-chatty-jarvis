@@ -107,7 +107,7 @@
           <label class="field-label" for="workerUrl">Worker health URL</label>
           <input class="text-input" id="workerUrl" type="url" inputmode="url" autocomplete="url" value="https://shrill-silence-164f.lostgodsgods.workers.dev/health" spellcheck="false">
           <label class="field-label" for="eventsUrl">Live events SSE URL (optional)</label>
-          <input class="text-input" id="eventsUrl" type="url" inputmode="url" placeholder="https://shrill-silence-164f.lostgodsgods.workers.dev/api/events" spellcheck="false">
+          <input class="text-input" id="eventsUrl" type="url" inputmode="url" value="https://shrill-silence-164f.lostgodsgods.workers.dev/api/events" placeholder="https://shrill-silence-164f.lostgodsgods.workers.dev/api/events" spellcheck="false">
           <div class="action-row"><button class="action-btn" id="connectBtn" type="button">Connect</button><button class="action-btn secondary" id="disconnectBtn" type="button">Disconnect</button></div>
           <div class="connect-state" id="connectState" role="status">Worker health: not checked yet.</div>
         </section>
@@ -510,7 +510,7 @@
       catch { return {message:String(raw||"")}; }
     }
     function updateAgentHud(eventType, raw, eventId="") {
-      const p=hudPayload(raw), type=String(p.type||p.event_type||p.event||eventType||"message").toLowerCase();
+      const parsed=hudPayload(raw), p=parsed.payload && typeof parsed.payload==="object" ? {...parsed,...parsed.payload} : parsed, type=String(p.type||p.event_type||p.event||eventType||"message").toLowerCase();
       const message=hudText(p.message||p.summary||p.description||p.status||raw||type);
       const id=eventId||p.id||p.event_id||"";
       if(id) hudState.lastEventId=hudText(id,160);
@@ -599,7 +599,7 @@
           updateAgentHud("message", event.data, event.lastEventId);
         };
 
-        ["log","deploy","ci","status","commit","deployment","search","tavily","tavily.result","research","scrape","agent.status","agent.started","agent.executing","task.started","task.executing","task.completed","task.failed","security","security.alert","health","heartbeat","sentinel.status","reactor.state","system.state","audit","error","alert"].forEach((name) => state.events.addEventListener(name, (event) => {
+        ["log","deploy","ci","status","commit","deployment","search","tavily","tavily.result","research","scrape","agent.status","agent.started","agent.executing","agent.execution.started","agent.execution.completed","task.started","task.enqueued","task.executing","task.completed","task.failed","security","security.alert","security.request.denied","security.auth.denied","health","heartbeat","sentinel.status","sentinel.completed","sentinel.degraded","scheduler.cycle.completed","reactor.state","system.state","audit","error","alert","bus.degraded"].forEach((name) => state.events.addEventListener(name, (event) => {
           let payload = event.data;
           try { const parsed = JSON.parse(event.data); payload = parsed.message || parsed.log || parsed.status || JSON.stringify(parsed); } catch {}
           log(payload, name === "deploy" ? "good" : "info", name.toUpperCase());
@@ -878,6 +878,7 @@
     log("Console initialized. UI events are local; backend telemetry is unverified until SSE connects.","good","BOOT");
     log("Voice command execution is disabled until a secured command API is configured.","warn","SECURITY");
     checkHealth();
+    connectEvents();
   })();
   </script>
 </body>
