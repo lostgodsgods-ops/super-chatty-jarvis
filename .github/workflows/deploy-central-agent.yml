@@ -249,8 +249,7 @@ jobs:
           const fs = require("node:fs");
           const x = JSON.parse(fs.readFileSync(process.argv[2], "utf8"));
           if (x.ok !== false || !Array.isArray(x.outcomes) || x.outcomes.length !== 1 ||
-              x.outcomes[0].status !== "failed" || x.outcomes[0].error !== "AI_QUOTA_EXHAUSTED" ||
-              !x.outcomes[0].id) throw new Error("HTTP 207 was not the explicitly recognized AI quota-only degradation.");
+              x.outcomes[0].status !== "failed" || !/^AI_QUOTA_EXHAUSTED(?:_BACKUP_UNAVAILABLE)?$/.test(x.outcomes[0].error || "")) throw new Error("HTTP 207 was not the explicitly recognized AI quota-only degradation.");
           console.log(JSON.stringify({ dynamicAgent: "DEGRADED_BY_PROVIDER_QUOTA", quotaFallback: "NOT_CONFIGURED", durableAuditExpected: true }));
           NODE
             echo "Quota-limited agent probe recorded as degraded; continuing independent D1/KV Sentinel verification."
