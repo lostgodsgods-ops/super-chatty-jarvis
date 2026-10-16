@@ -52,17 +52,22 @@ test("public files contain no obvious provider keys or GitHub tokens", () => {
   assert.doesNotMatch(publicFiles, /Bearer\s+[A-Za-z0-9._-]{24,}/i);
 });
 
-test("README accurately marks deployment as not yet live-verified", () => {
-  assert.match(readme, /automated GitHub Actions-to-Cloudflare deployment has not yet been verified end-to-end/i);
+test("README distinguishes verified NEXUS delivery from unverified memory round-trip", () => {
+  assert.match(readme, /Root returned HTTP 200/i);
+  assert.match(readme, /authenticated D1 memory write\/read round-trip is not yet independently verified/i);
   assert.match(readme, /does not itself provide a complete live multi-agent system/i);
   assert.match(readme, /inquiry form is a demo preview only/i);
 });
 
-test("Worker config defines the same fail-closed chat rate limiter used by the handler", () => {
-  assert.match(wranglerConfig, /"name":\s*"CHAT_RATE_LIMITER"/);
-  assert.match(wranglerConfig, /"namespace_id":\s*"1001"/);
-  assert.match(wranglerConfig, /"limit":\s*5/);
-  assert.match(wranglerConfig, /"period":\s*60/);
+test("Worker config targets the unified production gateway and required bindings", () => {
+  assert.match(wranglerConfig, /"name":\s*"shrill-silence-164f"/);
+  assert.match(wranglerConfig, /"main":\s*"src\/worker\.mjs"/);
+  assert.match(wranglerConfig, /"directory":\s*"\.\/jarvis"/);
+  assert.match(wranglerConfig, /"binding":\s*"ASSETS"/);
+  assert.match(wranglerConfig, /"binding":\s*"DB"/);
+  assert.match(wranglerConfig, /"binding":\s*"SESSIONS"/);
+  assert.match(wranglerConfig, /"binding":\s*"AI"/);
+  assert.match(wranglerConfig, /"name":\s*"shrill-silence-164f"/);
 });
 
 test("Cloudflare deployment is main-only and uses a private token plus explicit account ID", () => {
