@@ -84,6 +84,17 @@ test("Cloudflare deployment is main-only and uses a private token plus explicit 
 });
 
 
+test("NEXUS agent HUD is live-wired to the production SSE event bus", () => {
+  for (const text of ["Code Mutator Agent", "Tavily Global Scraper", "24/7 Sentinel Grid", "hudCommitCount", "hudSearchCount", "hudHealthValue", "data-hud-state=\\"PROCESSING\\""]) {
+    assert.ok(jarvisHtml.includes(text), "missing agent HUD feature: " + text);
+  }
+  assert.match(jarvisHtml, /id="eventsUrl"[^>]+value="https:\\/\\/shrill-silence-164f\\.lostgodsgods\\.workers\\.dev\\/api\\/events"/);
+  assert.match(jarvisHtml, /connectEvents\(\);\s*\}\)\(\);/, "SSE must connect during initialization");
+  assert.match(jarvisHtml, /updateAgentHud\("message", event\.data, event\.lastEventId\)/);
+  assert.match(jarvisHtml, /security\.request\.denied/);
+  assert.match(jarvisHtml, /parsed\.payload && typeof parsed\.payload==="object"/);
+});
+
 test("NEXUS PWA preserves owner-only telemetry and adds safe local visual intake", () => {
   for (const id of ["particleMesh", "auditCount", "observationCount", "signalCount", "researchFeed", "ownerLoginForm", "mediaPicker", "cameraStart", "cameraCapture", "cameraStop"]) {
     assert.ok(jarvisHtml.indexOf("id=" + String.fromCharCode(34) + id + String.fromCharCode(34)) >= 0, "missing NEXUS control: " + id);
