@@ -115,6 +115,37 @@ async function writeTaskAudit(db, taskId, eventType, scope, details, now) {
     .bind(crypto.randomUUID(), taskId, eventType, scope, now, JSON.stringify(details)).run();
 }
 
+/** Recovers stale approved work after a crashed invocation. Search is read-only; retries are bounded. */
+export async function recoverStaleKnowledgeTasks(env, staleMinutes = 20) {
+  if (!env.DB || typeof env.DB.prepare !== "function") return { recovered: 0, failed: 0, blocked: true };
+  await ensureTaskSchema(env.DB);
+  const boundedMinutes = Math.max(5, Math.min(60, Number(staleMinutes) || 20));
+  const cutoff = new Date(Date.now() - boundedMinutes * 60_000).toISOString();
+  const stale = await env.DB.prepare("SELECT id, started_at AS startedAt, attempts, approval_scope AS approvalScope FROM knowledge_tasks WHERE status = 'running' AND started_at < ? AND owner_approved = 1 ORDER BY started_at ASC LIMIT 20")
+    .bind(cutoff).all();
+  let recovered = 0;
+  let failed = 0;
+  for (const task of stale?.results || []) {
+    const now = new Date().toISOString();
+    if (Number(task.attempts) < 2) {
+      const result = await env.DB.prepare("UPDATE knowledge_tasks SET status = 'queued', started_at = NULL, updated_at = ?, error_code = 'RECOVERED_STALE_RUNNING_TASK' WHERE id = ? AND status = 'running' AND started_at = ? AND owner_approved = 1")
+        .bind(now, task.id, task.startedAt).run();
+      if (result?.meta?.changes === 1) {
+        await writeTaskAudit(env.DB, task.id, "stale_task_requeued", task.approvalScope, { previousAttempts: Number(task.attempts) || 0, retryBound: 2 }, now);
+        recovered++;
+      }
+    } else {
+      const result = await env.DB.prepare("UPDATE knowledge_tasks SET status = 'failed', completed_at = ?, updated_at = ?, error_code = 'STALE_TASK_RETRY_LIMIT' WHERE id = ? AND status = 'running' AND started_at = ? AND owner_approved = 1")
+        .bind(now, now, task.id, task.startedAt).run();
+      if (result?.meta?.changes === 1) {
+        await writeTaskAudit(env.DB, task.id, "stale_task_failed_retry_limit", task.approvalScope, { attempts: Number(task.attempts) || 0 }, now);
+        failed++;
+      }
+    }
+  }
+  return { recovered, failed, blocked: false };
+}
+
 export async function processApprovedKnowledgeTasks(env, limit = MAX_TASKS_PER_TICK) {
   if (!env.DB || !env.SEARCH_API_KEY) return { processed: 0, blocked: true, reason: !env.DB ? "D1 unavailable" : "Tavily key unavailable" };
   await ensureTaskSchema(env.DB);
