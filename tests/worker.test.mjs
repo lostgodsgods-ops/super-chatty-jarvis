@@ -21,7 +21,7 @@ test("unified Worker health reports Central Agent without exposing credentials",
 });
 
 test("owner-only policy endpoint rejects unauthenticated requests", async () => {
-  const response = await worker.fetch(new Request("https://example.test/policy"), {});
+  const response = await worker.fetch(new Request("https://example.test/policy"), { DB: { prepare() { throw new Error("database should not be queried"); } }, SESSIONS: { get: async () => null } });
   assert.equal(response.status, 401);
 });
 
