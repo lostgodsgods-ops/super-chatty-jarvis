@@ -160,6 +160,7 @@ jobs:
         shell: bash
         env:
           OWNER_PASSWORD: ${{ secrets.CENTRAL_AGENT_OWNER_PASSWORD }}
+          OWNER_TOKEN: ${{ secrets.AGENT_GATEWAY_TOKEN }}
           CENTRAL_AGENT_URL: https://shrill-silence-164f.lostgodsgods.workers.dev
         run: |
           set -euo pipefail
@@ -241,6 +242,44 @@ jobs:
           const saved = (memory.memories || []).find(item => item.memory_type === "agent_run" && item.state?.runId === run.id);
           if (run.status !== "completed" || !saved) throw new Error("Dynamic agent run or durable memory verification failed.");
           console.log(JSON.stringify({ dynamicAgent: "PASS", role: run.role, runId: run.id, durableMemory: "PASS" }));
+          NODE
+
+          sentinel_code="$(curl --silent --show-error --max-time 20 -H "Authorization: Bearer $token" \
+            -o "$tmp/sentinel-run.json" -w '%{http_code}' -X POST "$CENTRAL_AGENT_URL/sentinel/run")"
+          test "$sentinel_code" = "200" || { echo "::error::Sentinel probe returned HTTP $sentinel_code"; cat "$tmp/sentinel-run.json"; exit 1; }
+          node - "$tmp/sentinel-run.json" <<'NODE'
+          const fs=require("node:fs");
+          const x=JSON.parse(fs.readFileSync(process.argv[2],"utf8"));
+          if(x.ok!==true||x.status!=="healthy"||x.metrics?.d1?.ok!==true||x.metrics?.kv?.ok!==true) throw new Error("Sentinel D1/KV probes are not healthy.");
+          console.log(JSON.stringify({sentinel:"PASS",d1:"PASS",kv:"PASS",r2ArchiveConfigured:!!x.metrics?.archive?.configured}));
+          NODE
+
+          status_code="$(curl --silent --show-error --max-time 20 -H "Authorization: Bearer $token" \
+            -o "$tmp/sentinel-status.json" -w '%{http_code}' "$CENTRAL_AGENT_URL/sentinel/status")"
+          test "$status_code" = "200" || { echo "::error::Sentinel status read failed: HTTP $status_code"; exit 1; }
+          node - "$tmp/sentinel-status.json" <<'NODE'
+          const fs=require("node:fs");
+          const x=JSON.parse(fs.readFileSync(process.argv[2],"utf8"));
+          if(x.ok!==true||!Array.isArray(x.runs)||!x.runs.some(run=>run.status==="healthy")) throw new Error("Sentinel audit readback failed.");
+          console.log(JSON.stringify({sentinelAudit:"PASS",records:x.runs.length}));
+          NODE
+
+          node - <<'NODE'
+          const base=process.env.CENTRAL_AGENT_URL;
+          const token=process.env.OWNER_TOKEN;
+          const controller=new AbortController();
+          const response=await fetch(base+"/events",{headers:{authorization:"Bearer "+token,accept:"text/event-stream"},signal:controller.signal});
+          if(response.status!==200||!response.headers.get("content-type")?.includes("text/event-stream")) throw new Error("SSE endpoint did not return an authenticated event stream.");
+          const reader=response.body.getReader(), decoder=new TextDecoder();
+          let buffer="", found=false;
+          for(let i=0;i<6&&!found;i++){
+            const chunk=await reader.read(); if(chunk.done) break;
+            buffer+=decoder.decode(chunk.value,{stream:true});
+            if(buffer.includes("event: status")&&buffer.includes("data:")) found=true;
+          }
+          await reader.cancel(); controller.abort();
+          if(!found) throw new Error("SSE did not deliver a Sentinel status event.");
+          console.log(JSON.stringify({authenticatedSSE:"PASS"}));
           NODE
 
           curl --silent --show-error --retry 2 --retry-all-errors --retry-delay 1 --max-time 20 \
