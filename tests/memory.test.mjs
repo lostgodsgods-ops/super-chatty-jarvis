@@ -29,7 +29,7 @@ function memoryDb() {
             async all() {
               if (sql.includes("SELECT session_id")) {
                 const sessionId = args[1];
-                return { results: [...rows.values()].filter((r) => r.owner_scope === args[0] && r.session_id === sessionId) };
+                return { results: [...rows.values()].filter((r) => r.owner_scope === args[0] && (!sessionId || r.session_id === sessionId)) };
               }
               return { results: [] };
             },
@@ -63,6 +63,14 @@ test("memory route persists and retrieves state across requests", async () => {
   const body = await read.json();
   assert.equal(read.status, 200);
   assert.deepEqual(body.memories[0].state, { topic: "NEXUS", turn: 3 });
+
+  const crossSessionRead = await worker.fetch(new Request("https://example.test/api/memory", {
+    headers: { authorization: "Bearer test-secret" },
+  }), env);
+  const crossSessionBody = await crossSessionRead.json();
+  assert.equal(crossSessionRead.status, 200);
+  assert.equal(crossSessionBody.memories.length, 1);
+  assert.equal(crossSessionBody.memories[0].session_id, "session_123456");
 });
 
 test("memory route rejects malformed state and invalid session IDs", async () => {
