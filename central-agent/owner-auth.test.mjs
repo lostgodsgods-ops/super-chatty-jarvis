@@ -240,6 +240,7 @@ test("PBKDF2 iteration count stays within the Cloudflare Workers Web Crypto limi
 
 test("owner-authenticated research query returns sourced evidence and rejects anonymous requests", async () => {
   const e = env();
+  e.SEARCH_API_KEY = "test-search-key";
   await call(e, "/auth/setup", { setupToken: "test-bootstrap-code", password: "a-long-memorable-password" });
   const anonymous = await call(e, "/research/query", { query: "Kamala Hydro Electric Project 1720 MW CCEA" });
   assert.equal(anonymous.status, 401);
@@ -268,6 +269,7 @@ test("owner-authenticated research query returns sourced evidence and rejects an
 
 test("authenticated research query retries upstream rate limits before returning evidence", async () => {
   const e = env();
+  e.SEARCH_API_KEY = "test-search-key";
   await call(e, "/auth/setup", { setupToken: "test-bootstrap-code", password: "a-long-memorable-password" });
   const login = await call(e, "/auth/login", { password: "a-long-memorable-password" });
   const { token } = await login.json();
