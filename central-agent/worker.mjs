@@ -4,6 +4,7 @@
  * No Gemini integration. Secrets are read only from Worker bindings.
  */
 import { describePolicy } from "./policy.mjs";
+import { randomChallenge, verifyRegistration, verifyAssertion } from "./webauthn.mjs";
 import { enqueueKnowledgeTask, listKnowledgeTasks, getKnowledgeResults, processApprovedKnowledgeTasks, recoverStaleKnowledgeTasks } from "./task-queue.mjs";
 import { listProviderCapabilities } from "./architecture/provider-router.mjs";
 import { listMcpCapabilities, listVectorCapabilities, connectMcpAndListTools, vectorUpsertQueryReadback, IntegrationError } from "./architecture/integration-registry.mjs";
@@ -671,12 +672,102 @@ export default {
       }
     }
 
+    // WebAuthn authentication options/verification are public ceremonies protected by
+    // one-time challenges, strict origin/RP checks, UV flags, and signature verification.
+    if (url.pathname === "/auth/passkey/login/options" && request.method === "POST") {
+      if (!env.DB || !env.SESSIONS) return json({ error: "Passkey authentication storage is not configured." }, 503, cors);
+      try {
+        await env.DB.prepare("CREATE TABLE IF NOT EXISTS owner_passkeys (credential_id TEXT PRIMARY KEY, public_key_json TEXT NOT NULL, sign_count INTEGER NOT NULL DEFAULT 0, created_at TEXT NOT NULL)").run();
+        const rows = await env.DB.prepare("SELECT credential_id FROM owner_passkeys ORDER BY created_at DESC").all();
+        const credentials = rows?.results || [];
+        if (!credentials.length) return json({ error: "No owner passkey is registered yet. Sign in with the owner password and register one first." }, 409, cors);
+        const challenge = randomChallenge();
+        await env.SESSIONS.put("webauthn:login:" + challenge, JSON.stringify({ createdAt: Date.now() }), { expirationTtl: 300 });
+        const rpId = new URL(request.url).hostname;
+        return json({ challenge, rpId, timeout: 300000, userVerification: "required",
+          allowCredentials: credentials.map(item => ({ type: "public-key", id: item.credential_id, transports: ["internal", "hybrid"] })) }, 200, cors);
+      } catch {
+        return json({ error: "Unable to prepare passkey sign-in." }, 503, cors);
+      }
+    }
+    if (url.pathname === "/auth/passkey/login/verify" && request.method === "POST") {
+      if (!env.DB || !env.SESSIONS) return json({ error: "Passkey authentication storage is not configured." }, 503, cors);
+      let body;
+      try { body = await request.json(); } catch { return json({ error: "Expected JSON body." }, 400, cors); }
+      const credentialId = typeof body?.rawId === "string" ? body.rawId : (typeof body?.id === "string" ? body.id : "");
+      const challenge = typeof body?.challenge === "string" ? body.challenge : "";
+      if (!credentialId || !challenge) return json({ error: "Passkey assertion is incomplete." }, 400, cors);
+      const challengeKey = "webauthn:login:" + challenge;
+      const challengeRecord = await env.SESSIONS.get(challengeKey);
+      if (!challengeRecord) return json({ error: "Passkey challenge expired. Try again." }, 401, cors);
+      await env.SESSIONS.delete(challengeKey);
+      try {
+        const stored = await env.DB.prepare("SELECT credential_id, public_key_json, sign_count FROM owner_passkeys WHERE credential_id = ?").bind(credentialId).first();
+        if (!stored) return json({ error: "Unknown owner passkey." }, 401, cors);
+        const origin = request.headers.get("origin") || new URL(request.url).origin;
+        const result = await verifyAssertion(body, challenge, origin, new URL(request.url).hostname, stored);
+        await env.DB.prepare("UPDATE owner_passkeys SET sign_count = ? WHERE credential_id = ?").bind(result.signCount, result.credentialId).run();
+        const token = base64url(crypto.getRandomValues(new Uint8Array(32)));
+        await env.SESSIONS.put("session:" + await sha256Hex(token), "active", { expirationTtl: SESSION_TTL_SECONDS });
+        return json({ ok: true, token, expiresIn: SESSION_TTL_SECONDS, method: "webauthn-passkey" }, 200, { ...cors, "set-cookie": sessionCookie(token) });
+      } catch {
+        return json({ error: "Passkey verification failed. Use your owner password or register the device passkey again." }, 401, cors);
+      }
+    }
+
     const gatewayChatRoute = request.method === "POST" && (url.pathname === "/chat" || url.pathname === "/internal/chat");
     const memoryBridgeRoute = url.pathname === "/api/memory";
     if (!gatewayChatRoute && !memoryBridgeRoute && (!env.DB || !env.SESSIONS)) return json({ error: "Owner authentication storage is not configured." }, 503, cors);
     if (!gatewayChatRoute && !memoryBridgeRoute && !(await authorized(request, env))) {
       await publishEvent(env, { type: "security.auth.denied", source: "owner-auth", payload: { path: url.pathname, method: request.method } });
       return json({ error: "Unauthorized. Sign in with your Owner password." }, 401, cors);
+    }
+
+    if (url.pathname === "/auth/passkey/register/options" && request.method === "POST") {
+      if (!env.DB || !env.SESSIONS) return json({ error: "Passkey registration storage is not configured." }, 503, cors);
+      try {
+        await env.DB.prepare("CREATE TABLE IF NOT EXISTS owner_passkeys (credential_id TEXT PRIMARY KEY, public_key_json TEXT NOT NULL, sign_count INTEGER NOT NULL DEFAULT 0, created_at TEXT NOT NULL)").run();
+        const challenge = randomChallenge();
+        const auth = request.headers.get("authorization") || "";
+        const bearer = auth.startsWith("Bearer ") ? auth.slice(7) : "";
+        const sessionToken = bearer || readSessionCookie(request);
+        if (!sessionToken) return json({ error: "Owner session required." }, 401, cors);
+        await env.SESSIONS.put("webauthn:register:" + await sha256Hex(sessionToken), challenge, { expirationTtl: 300 });
+        const rpId = new URL(request.url).hostname;
+        return json({ challenge, rp: { id: rpId, name: "Super Chatty Jarvis" },
+          user: { id: base64url(crypto.getRandomValues(new Uint8Array(16))), name: "owner", displayName: "Super Chatty Owner" },
+          pubKeyCredParams: [{ type: "public-key", alg: -7 }], timeout: 300000, attestation: "none",
+          authenticatorSelection: { authenticatorAttachment: "platform", residentKey: "preferred", userVerification: "required" },
+          excludeCredentials: (await env.DB.prepare("SELECT credential_id FROM owner_passkeys").all())?.results?.map(item => ({ type: "public-key", id: item.credential_id })) || []
+        }, 200, cors);
+      } catch {
+        return json({ error: "Unable to prepare passkey registration." }, 503, cors);
+      }
+    }
+    if (url.pathname === "/auth/passkey/register/verify" && request.method === "POST") {
+      if (!env.DB || !env.SESSIONS) return json({ error: "Passkey registration storage is not configured." }, 503, cors);
+      const auth = request.headers.get("authorization") || "";
+      const bearer = auth.startsWith("Bearer ") ? auth.slice(7) : "";
+      const sessionToken = bearer || readSessionCookie(request);
+      if (!sessionToken) return json({ error: "Owner session required." }, 401, cors);
+      const challengeKey = "webauthn:register:" + await sha256Hex(sessionToken);
+      const challenge = await env.SESSIONS.get(challengeKey);
+      if (!challenge) return json({ error: "Passkey registration challenge expired. Try again." }, 401, cors);
+      await env.SESSIONS.delete(challengeKey);
+      let body;
+      try { body = await request.json(); } catch { return json({ error: "Expected JSON body." }, 400, cors); }
+      try {
+        const origin = request.headers.get("origin") || new URL(request.url).origin;
+        const credential = await verifyRegistration(body, challenge, origin, new URL(request.url).hostname);
+        await env.DB.prepare("INSERT INTO owner_passkeys (credential_id, public_key_json, sign_count, created_at) VALUES (?, ?, ?, ?)").bind(
+          credential.credentialId, JSON.stringify(credential.publicKey), credential.signCount, new Date().toISOString()
+        ).run();
+        return json({ ok: true, message: "Device passkey registered. Fingerprint/biometric prompts are managed by your device.", credentialId: credential.credentialId }, 201, cors);
+      } catch (error) {
+        const message = String(error?.message || "");
+        if (message.toLowerCase().includes("unique")) return json({ error: "This passkey is already registered." }, 409, cors);
+        return json({ error: "Passkey registration could not be verified. Ensure device screen lock/biometrics are configured and try again." }, 400, cors);
+      }
     }
 
     if (url.pathname === "/sentinel/run" && request.method === "POST") {
