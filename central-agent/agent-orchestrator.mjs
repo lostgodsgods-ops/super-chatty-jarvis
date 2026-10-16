@@ -32,6 +32,11 @@ function responseText(result) {
   if (typeof result?.result?.response === "string") return result.result.response;
   return "";
 }
+function boundResult(value) {
+  const encoded = JSON.stringify(value);
+  if (encoded.length <= MAX_OUTPUT) return value;
+  return { truncated: true, preview: encoded.slice(0, MAX_OUTPUT - 96), originalLength: encoded.length };
+}
 async function ensureAgentSchema(db) {
   await db.prepare("CREATE TABLE IF NOT EXISTS agent_run_audit (id TEXT PRIMARY KEY, agent_id TEXT NOT NULL, status TEXT NOT NULL, source_count INTEGER NOT NULL, item_count INTEGER NOT NULL, error_count INTEGER NOT NULL, started_at TEXT NOT NULL, completed_at TEXT NOT NULL, details_json TEXT NOT NULL)").run();
   await db.prepare("CREATE TABLE IF NOT EXISTS conversation_memory (id TEXT PRIMARY KEY, owner_scope TEXT NOT NULL, session_id TEXT NOT NULL, memory_type TEXT NOT NULL, state_json TEXT NOT NULL, created_at TEXT NOT NULL, updated_at TEXT NOT NULL, UNIQUE(owner_scope, session_id, memory_type))").run();
@@ -102,7 +107,7 @@ async function executeOne(env, rawRole, rawInput) {
   let result = null, errorCode = null;
   try {
     await ensureAgentSchema(env.DB);
-    result = await runRole(env, role, input);
+    result = boundResult(await runRole(env, role, input));
     const completedAt = new Date().toISOString();
     const sourceCount = Number(result?.sourceCount) || 0;
     const itemCount = Array.isArray(result?.sources) ? result.sources.length : Array.isArray(result?.steps) ? result.steps.length : 1;
