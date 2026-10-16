@@ -76,8 +76,8 @@ async function askModel(env, role, input) {
       throw new Error("AI_QUOTA_EXHAUSTED_BACKUP_UNAVAILABLE");
     }
     if (!backupResponse.ok) {
-      if (backupResponse.status === 429 || backupResponse.status === 403 || backupResponse.status === 503) throw new Error("AI_QUOTA_EXHAUSTED_BACKUP_UNAVAILABLE");
-      throw new Error("AI_BACKUP_PROVIDER_HTTP_" + backupResponse.status);
+      // Primary Workers AI is already quota-exhausted; any backup HTTP failure is a provider-degraded outcome, not a deployment/code-success signal.
+      throw new Error("AI_QUOTA_EXHAUSTED_BACKUP_UNAVAILABLE");
     }
     let backupPayload;
     try { backupPayload = await backupResponse.json(); } catch { throw new Error("AI_BACKUP_INVALID_RESPONSE"); }
