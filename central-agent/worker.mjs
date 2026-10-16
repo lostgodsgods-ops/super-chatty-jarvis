@@ -368,7 +368,6 @@ export default {
           selfGrantedPermissions: false,
           sentinelMonitoring: true,
           kvHotState: Boolean(env.SESSIONS),
-          r2ArchiveConfigured: Boolean(env.JARVIS_ARCHIVE || env.ARCHIVE),
           realtimeOwnerEvents: true
         }
       }, 200, cors);
