@@ -11,3 +11,11 @@ test("does not force search for timeless questions", () => {
   for (const q of ["Explain photosynthesis", "What is a variable in JavaScript?", "Tell me a short story"]) assert.equal(requiresLiveSearch(q), false, q);
 });
 test("rejects empty and non-string values", () => { assert.equal(requiresLiveSearch(""), false); assert.equal(requiresLiveSearch(null), false); });
+
+test("routes specific regional factual claims to live evidence search", () => {
+  for (const q of [
+    "Verify whether the 1720 MW Kamala Hydro Electric Project in Kamle was approved by CCEA",
+    "Arunachal Pradesh Kamala hydroelectric project installed capacity 1720 MW",
+    "क्या कमला जलविद्युत परियोजना को CCEA ने मंजूरी दी?"
+  ]) assert.equal(requiresLiveSearch(q), true, q);
+});

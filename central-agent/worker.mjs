@@ -16,6 +16,34 @@ const DEFAULT_WORKERS_AI_MODEL = "@cf/meta/llama-3.1-8b-instruct-fast";
 export const PASSWORD_ITERATIONS = 100000;
 const SESSION_TTL_SECONDS = 3600;
 
+async function fetchTavilyWithRetry(query, env) {
+  const endpoint = "https://api.tavily.com/search";
+  let response;
+  for (let attempt = 0; attempt < 3; attempt++) {
+    try {
+      response = await fetch(endpoint, {
+        method: "POST",
+        headers: { authorization: "Bearer " + env.SEARCH_API_KEY, "content-type": "application/json", accept: "application/json" },
+        body: JSON.stringify({ query: query.slice(0, 400), search_depth: "basic", max_results: 5, include_answer: false, include_raw_content: false }),
+        signal: AbortSignal.timeout(8000)
+      });
+    } catch {
+      if (attempt === 2) throw new Error("LIVE_SEARCH_NETWORK_ERROR");
+      await new Promise(resolve => setTimeout(resolve, 250 * (2 ** attempt)));
+      continue;
+    }
+    if (response.ok || ![429, 500, 502, 503, 504].includes(response.status) || attempt === 2) return response;
+    const retryAfter = Number(response.headers.get("retry-after"));
+    const delay = Number.isFinite(retryAfter) && retryAfter > 0
+      ? Math.min(1500, Math.max(250, retryAfter * 1000))
+      : 250 * (2 ** attempt);
+    await new Promise(resolve => setTimeout(resolve, delay));
+  }
+  throw new Error("LIVE_SEARCH_NETWORK_ERROR");
+}
+
+
+
 export function parseSetupToken(hash) {
   if (typeof hash !== "string" || !hash.startsWith("#")) return "";
   try { return new URLSearchParams(hash.slice(1)).get("setup") || ""; }
@@ -206,16 +234,15 @@ export default {
         if (!env.SEARCH_API_KEY) return json({ error: "Live search is required for this question but is not configured. No stale-model fallback was used.", code: "LIVE_SEARCH_NOT_CONFIGURED" }, 503, cors);
         let searchResponse;
         try {
-          searchResponse = await fetch("https://api.tavily.com/search", {
-            method: "POST",
-            headers: { authorization: "Bearer " + env.SEARCH_API_KEY, "content-type": "application/json", accept: "application/json" },
-            body: JSON.stringify({ query: message.slice(0, 400), search_depth: "basic", max_results: 5, include_answer: false, include_raw_content: false }),
-            signal: AbortSignal.timeout(8000)
-          });
+          searchResponse = await fetchTavilyWithRetry(message.slice(0, 400), env);
         } catch {
           return json({ error: "Live search failed. No stale-model fallback was used.", code: "LIVE_SEARCH_NETWORK_ERROR" }, 502, cors);
         }
-        if (!searchResponse.ok) return json({ error: "Live search provider failed. No stale-model fallback was used.", code: "LIVE_SEARCH_PROVIDER_ERROR" }, 502, cors);
+        if (!searchResponse.ok) return json({
+          error: "Live search provider failed. No stale-model fallback was used.",
+          code: searchResponse.status === 429 ? "LIVE_SEARCH_RATE_LIMITED" : "LIVE_SEARCH_PROVIDER_ERROR",
+          retryAfter: searchResponse.headers.get("retry-after") || null
+        }, 502, cors);
         let searchPayload;
         try { searchPayload = await searchResponse.json(); } catch {
           return json({ error: "Live search returned invalid data. No stale-model fallback was used.", code: "LIVE_SEARCH_INVALID_RESPONSE" }, 502, cors);
@@ -439,16 +466,15 @@ export default {
         if (!env.SEARCH_API_KEY) return json({ error: "Live search is required for this question but is not configured. No stale-model fallback was used.", code: "LIVE_SEARCH_NOT_CONFIGURED" }, 503, cors);
         let searchResponse;
         try {
-          searchResponse = await fetch("https://api.tavily.com/search", {
-            method: "POST",
-            headers: { authorization: "Bearer " + env.SEARCH_API_KEY, "content-type": "application/json", accept: "application/json" },
-            body: JSON.stringify({ query: message, search_depth: "basic", max_results: 5, include_answer: false, include_raw_content: false }),
-            signal: AbortSignal.timeout(8000)
-          });
+          searchResponse = await fetchTavilyWithRetry(message, env);
         } catch {
           return json({ error: "Live search failed. No stale-model fallback was used.", code: "LIVE_SEARCH_NETWORK_ERROR" }, 502, cors);
         }
-        if (!searchResponse.ok) return json({ error: "Live search provider failed. No stale-model fallback was used.", code: "LIVE_SEARCH_PROVIDER_ERROR" }, 502, cors);
+        if (!searchResponse.ok) return json({
+          error: "Live search provider failed. No stale-model fallback was used.",
+          code: searchResponse.status === 429 ? "LIVE_SEARCH_RATE_LIMITED" : "LIVE_SEARCH_PROVIDER_ERROR",
+          retryAfter: searchResponse.headers.get("retry-after") || null
+        }, 502, cors);
         let searchPayload;
         try { searchPayload = await searchResponse.json(); } catch {
           return json({ error: "Live search returned invalid data. No stale-model fallback was used.", code: "LIVE_SEARCH_INVALID_RESPONSE" }, 502, cors);
@@ -726,19 +752,63 @@ export default {
       }, 200, cors);
     }
 
+    if (url.pathname === "/research/query" && request.method === "POST") {
+      const body = await request.json().catch(() => null);
+      const query = typeof body?.query === "string" ? body.query.trim() : "";
+      if (!query || query.length > 400) return json({ error: "Query must contain 1–400 characters.", code: "INVALID_RESEARCH_QUERY" }, 400, cors);
+      if (!env.SEARCH_API_KEY) return json({ error: "Live search is not configured.", code: "LIVE_SEARCH_NOT_CONFIGURED" }, 503, cors);
+      let response;
+      try {
+        response = await fetchTavilyWithRetry(query, env);
+      } catch {
+        return json({ error: "Live search is temporarily unavailable. No unsourced answer was generated.", code: "LIVE_SEARCH_NETWORK_ERROR" }, 502, cors);
+      }
+      if (!response.ok) return json({
+        error: response.status === 429 ? "Live search is rate-limited. Retry later; no unsourced answer was generated." : "Live search provider failed. No unsourced answer was generated.",
+        code: response.status === 429 ? "LIVE_SEARCH_RATE_LIMITED" : "LIVE_SEARCH_PROVIDER_ERROR",
+        retryAfter: response.headers.get("retry-after") || null
+      }, 502, cors);
+      let payload;
+      try { payload = await response.json(); } catch {
+        return json({ error: "Live search returned invalid data. No unsourced answer was generated.", code: "LIVE_SEARCH_INVALID_RESPONSE" }, 502, cors);
+      }
+      const sources = (Array.isArray(payload?.results) ? payload.results : []).map(item => {
+        let sourceUrl = "";
+        try {
+          const parsed = new URL(item?.url);
+          if (parsed.protocol === "https:" || parsed.protocol === "http:") sourceUrl = parsed.toString();
+        } catch {}
+        return {
+          title: typeof item?.title === "string" ? item.title.slice(0, 240) : "",
+          url: sourceUrl,
+          content: typeof item?.content === "string" ? item.content.slice(0, 1600) : "",
+          publishedDate: typeof item?.published_date === "string" ? item.published_date.slice(0, 80) : null
+        };
+      }).filter(item => item.title && item.url).slice(0, 5);
+      return json({
+        ok: true, provider: "tavily", query, fetchedAt: new Date().toISOString(),
+        sourceCount: sources.length, sources,
+        note: sources.length ? "Search evidence only. Confirm claims against the linked source; no claim is verified solely by appearing in search results." : "No usable sources returned; the query could not be verified."
+      }, 200, cors);
+    }
+
     if (url.pathname === "/research/status" && request.method === "GET") {
       try {
         const tables = await env.DB.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name IN ('research_observations','research_signals','agent_run_audit')").all();
         const present = new Set((tables?.results || []).map(row => row.name));
         if (present.size < 3) return json({ ok: true, enabled: env.AUTONOMOUS_RESEARCH_ENABLED === "true", initialized: false, lastRun: null, sentiment: [], signals: [] }, 200, cors);
-        const [lastRun, sentiment, signals] = await Promise.all([
-          env.DB.prepare("SELECT status, source_count AS sourceCount, item_count AS itemCount, error_count AS errorCount, started_at AS startedAt, completed_at AS completedAt, details_json AS detailsJson FROM agent_run_audit ORDER BY completed_at DESC LIMIT 1").first(),
+        const [counts, recentRuns, sentiment, signals] = await Promise.all([
+          env.DB.prepare("SELECT (SELECT COUNT(*) FROM agent_run_audit) AS audits, (SELECT COUNT(*) FROM research_observations) AS observations, (SELECT COUNT(*) FROM research_signals) AS signals").first(),
+          env.DB.prepare("SELECT status, source_count AS sourceCount, item_count AS itemCount, error_count AS errorCount, started_at AS startedAt, completed_at AS completedAt, details_json AS detailsJson FROM agent_run_audit ORDER BY completed_at DESC LIMIT 5").all(),
           env.DB.prepare("SELECT sentiment_label AS label, COUNT(*) AS count, ROUND(AVG(sentiment_score),4) AS averageScore FROM research_observations GROUP BY sentiment_label ORDER BY count DESC").all(),
           env.DB.prepare("SELECT source, subject, metric, value, details_json AS detailsJson, observed_at AS observedAt FROM research_signals ORDER BY observed_at DESC LIMIT 10").all()
         ]);
+        const runs = (recentRuns?.results || []).map(row => ({ ...row, details: row.detailsJson ? JSON.parse(row.detailsJson) : null, detailsJson: undefined }));
         return json({
           ok: true, enabled: env.AUTONOMOUS_RESEARCH_ENABLED === "true", initialized: true,
-          lastRun: lastRun ? { ...lastRun, details: lastRun.detailsJson ? JSON.parse(lastRun.detailsJson) : null, detailsJson: undefined } : null,
+          counts: counts || { audits: 0, observations: 0, signals: 0 },
+          lastRun: runs[0] || null,
+          recentRuns: runs,
           sentiment: sentiment?.results || [],
           signals: (signals?.results || []).map(row => ({ ...row, details: row.detailsJson ? JSON.parse(row.detailsJson) : null, detailsJson: undefined }))
         }, 200, cors);

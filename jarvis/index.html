@@ -23,6 +23,29 @@
     .sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}.toast{position:fixed;top:80px;left:50%;transform:translateX(-50%);z-index:20;background:#181a21;border:1px solid var(--line);border-radius:10px;padding:10px 14px;color:var(--text);font-size:12px;box-shadow:0 8px 28px #0008;max-width:90vw}.hidden{display:none!important}
     @keyframes rotate{to{transform:rotate(360deg)}}@keyframes micPulse{0%,100%{box-shadow:0 0 0 0 #ff827a44}50%{box-shadow:0 0 0 9px #ff827a00}}@media(prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;scroll-behavior:auto!important}}
     @media(max-width:760px){.shell{padding-top:9px}.topbar{align-items:flex-start;flex-direction:column}.telemetry{justify-content:flex-start}.grid{grid-template-columns:1fr}.core-panel{min-height:430px}.core-wrap{width:min(70vw,270px);margin:15px auto}.side{display:grid;grid-template-columns:1fr}.terminal-panel{min-height:260px}.terminal{max-height:260px}.commandbar{gap:8px;padding:8px}.mic{width:46px;height:46px;flex-basis:46px}.send{padding:11px 10px}.mini-metrics{gap:17px}}
+  
+.dashboard-grid{display:grid;grid-template-columns:1.1fr .9fr;gap:14px;margin-top:2px}
+.dashboard-panel{padding:0;overflow:hidden}.dashboard-panel .panel-body{padding:14px}
+.db-stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px}
+.db-stat{border:1px solid #ffffff12;border-radius:12px;padding:12px 10px;background:linear-gradient(145deg,#ffffff08,#ffffff02);min-width:0}
+.db-stat strong{display:block;font-size:clamp(20px,3vw,28px);line-height:1.2;color:var(--cyan);font-variant-numeric:tabular-nums}
+.db-stat span{display:block;margin-top:6px;font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+.run-summary{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin:12px 0;padding:10px 12px;border:1px solid #ffffff12;border-radius:11px;background:#ffffff04}
+.run-summary strong{font-size:12px}.run-summary span{font-size:11px;color:var(--muted)}
+.research-feed,.research-results{display:flex;flex-direction:column;gap:8px;max-height:260px;overflow:auto}
+.feed-item{display:grid;grid-template-columns:9px minmax(0,1fr);gap:9px;padding:9px 10px;border:1px solid #ffffff0d;border-radius:10px;background:#ffffff03}
+.feed-dot{width:7px;height:7px;margin-top:6px;border-radius:50%;background:var(--cyan);box-shadow:0 0 10px currentColor}
+.feed-item.warn .feed-dot{background:var(--gold)}.feed-item.error .feed-dot{background:var(--red)}
+.feed-title{font-size:11px;font-weight:750;overflow-wrap:anywhere}.feed-meta{font-size:10px;color:var(--muted);margin-top:3px;overflow-wrap:anywhere}
+.owner-grid{display:grid;grid-template-columns:1fr;gap:9px}.owner-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+.owner-status{margin:10px 0;padding:10px 11px;border:1px solid #ffffff12;border-radius:10px;color:var(--muted);font-size:11px;overflow-wrap:anywhere}
+.owner-status.ok{border-color:#69e5b14a;color:var(--green)}.owner-status.warn{border-color:#ffca704a;color:var(--gold)}.owner-status.bad{border-color:#ff79794a;color:var(--red)}
+.source-card{border:1px solid #ffffff12;border-radius:12px;padding:12px;background:#ffffff03;min-width:0}
+.source-card a{font-size:12px;font-weight:750;overflow-wrap:anywhere}.source-card p{font-size:11px;line-height:1.55;color:#c4c7d2;margin:7px 0 0;overflow-wrap:anywhere}
+.source-meta{font-size:10px;color:var(--muted);margin-top:6px}.dashboard-note{font-size:10px;color:var(--muted);margin:10px 0 0;line-height:1.55}
+.dashboard-grid .panel-head{min-height:48px}
+@media(max-width:760px){.dashboard-grid{grid-template-columns:1fr}.db-stats{gap:7px}.db-stat{padding:10px 8px}.research-feed,.research-results{max-height:220px}}
+
   </style>
 </head>
 <body>
@@ -71,6 +94,47 @@
         </section>
       </aside>
     </div>
+
+  <section class="dashboard-grid" aria-label="Live system dashboard">
+    <section class="panel dashboard-panel" aria-labelledby="telemetryTitle">
+      <div class="panel-head"><div class="panel-title" id="telemetryTitle">Live telemetry / D1 health</div><button class="tiny-btn" id="refreshTelemetry" type="button">Refresh</button></div>
+      <div class="panel-body">
+        <div class="db-stats" aria-label="Database record counts">
+          <div class="db-stat"><strong id="auditCount">—</strong><span>Audit runs</span></div>
+          <div class="db-stat"><strong id="observationCount">—</strong><span>Observations</span></div>
+          <div class="db-stat"><strong id="signalCount">—</strong><span>Signals</span></div>
+        </div>
+        <div class="run-summary"><strong id="lastRunStatus">Owner sign-in required</strong><span id="lastRunMeta">Telemetry is private.</span></div>
+        <div class="section-label" style="margin:12px 0 9px">Research agent activity</div>
+        <div class="research-feed" id="researchFeed" role="log" aria-live="polite"><div class="feed-item"><i class="feed-dot"></i><div><div class="feed-title">Telemetry locked</div><div class="feed-meta">Sign in with the owner password to load real D1 data.</div></div></div></div>
+        <p class="dashboard-note">Counts and activity are loaded from the authenticated Worker endpoint. No sample telemetry is presented as live data.</p>
+      </div>
+    </section>
+    <section class="panel dashboard-panel" aria-labelledby="ownerTitle">
+      <div class="panel-head"><div class="panel-title" id="ownerTitle">Owner security / session</div><span class="status warn" id="ownerBadge"><i class="dot"></i><span>LOCKED</span></span></div>
+      <div class="panel-body">
+        <form id="ownerLoginForm" class="owner-grid">
+          <label class="field-label" for="ownerPassword">Owner password</label>
+          <input class="text-input" id="ownerPassword" type="password" autocomplete="current-password" minlength="12" maxlength="256" placeholder="Enter owner password" required>
+          <div class="owner-actions"><button class="action-btn" id="ownerLogin" type="submit">Verify session</button><button class="action-btn secondary" id="ownerLogout" type="button" disabled>Sign out</button></div>
+        </form>
+        <div class="owner-status warn" id="ownerSessionStatus" role="status" aria-live="polite">Locked. Session tokens are held in page memory only and cleared on sign-out or reload.</div>
+        <p class="dashboard-note">This is the existing owner-password session, not a WebAuthn passkey. No secret is embedded in the PWA or stored in browser storage.</p>
+      </div>
+    </section>
+    <section class="panel dashboard-panel" aria-labelledby="factSearchTitle" style="grid-column:1/-1">
+      <div class="panel-head"><div class="panel-title" id="factSearchTitle">Live knowledge / evidence lookup</div><span class="status warn" id="researchSearchStatus"><i class="dot"></i><span>OWNER SESSION REQUIRED</span></span></div>
+      <div class="panel-body">
+        <form id="factSearchForm">
+          <label class="field-label" for="factQuery">Research question</label>
+          <input class="text-input" id="factQuery" type="search" maxlength="400" placeholder="e.g. Kamala Hydro Electric Project 1720 MW CCEA approval" required>
+          <div class="owner-actions"><button class="action-btn" id="researchSearchBtn" type="submit" disabled>Search evidence</button></div>
+        </form>
+        <div class="research-results" id="sourceResults" aria-live="polite"><div class="feed-item"><i class="feed-dot"></i><div><div class="feed-title">No search performed</div><div class="feed-meta">Sign in first. Results include source links and evidence excerpts; search results alone are not proof.</div></div></div></div>
+        <p class="dashboard-note">Rate limits are retried a bounded number of times. If the provider remains unavailable, the interface shows an error instead of inventing a result.</p>
+      </div>
+    </section>
+  </section>
   </main>
 
   <section class="commandbar" aria-label="Voice command">
@@ -95,9 +159,15 @@
       terminal:$("terminal"), streamStatus:$("streamStatus"), logCount:$("logCount"), workerUrl:$("workerUrl"),
       eventsUrl:$("eventsUrl"), connectBtn:$("connectBtn"), disconnectBtn:$("disconnectBtn"), connectState:$("connectState"),
       micBtn:$("micBtn"), voiceLabel:$("voiceLabel"), commandInput:$("commandInput"), sendBtn:$("sendBtn"),
-      privacyNote:$("privacyNote"), toast:$("toast")
+      privacyNote:$("privacyNote"), toast:$("toast"),
+      auditCount:$("auditCount"), observationCount:$("observationCount"), signalCount:$("signalCount"),
+      lastRunStatus:$("lastRunStatus"), lastRunMeta:$("lastRunMeta"), researchFeed:$("researchFeed"),
+      ownerLoginForm:$("ownerLoginForm"), ownerPassword:$("ownerPassword"), ownerLogin:$("ownerLogin"),
+      ownerLogout:$("ownerLogout"), ownerBadge:$("ownerBadge"), ownerSessionStatus:$("ownerSessionStatus"),
+      refreshTelemetry:$("refreshTelemetry"), factSearchForm:$("factSearchForm"), factQuery:$("factQuery"),
+      researchSearchBtn:$("researchSearchBtn"), researchSearchStatus:$("researchSearchStatus"), sourceResults:$("sourceResults")
     };
-    const state = { events:null, recognition:null, listening:false, audioContext:null, analyser:null, mediaStream:null, raf:0, eventsCount:0, connected:false, started:Date.now(), healthTimer:0, toastTimer:0 };
+    const state = { events:null, recognition:null, listening:false, audioContext:null, analyser:null, mediaStream:null, raf:0, eventsCount:0, connected:false, started:Date.now(), healthTimer:0, toastTimer:0, ownerToken:"", telemetryTimer:0, researchBusy:false };
     const time = () => new Date().toLocaleTimeString([], {hour12:false});
     function log(message, type="info", source="UI") {
       const row = document.createElement("div"); row.className = "log";
@@ -143,6 +213,142 @@
         return false;
       }
     }
+    function workerBaseUrl() {
+      const url = safeUrl(els.workerUrl.value.trim());
+      return url ? url.origin : null;
+    }
+    async function ownerFetch(path, options={}) {
+      const base = workerBaseUrl();
+      if (!base) throw new Error("Enter a valid Worker health URL first.");
+      if (!state.ownerToken) throw new Error("Owner session required. Sign in first.");
+      const headers = { ...(options.headers || {}), authorization: "Bearer " + state.ownerToken };
+      if (options.body && !headers["content-type"]) headers["content-type"] = "application/json";
+      const response = await fetch(base + path, { ...options, headers, cache: "no-store" });
+      const payload = await response.json().catch(() => ({}));
+      if (response.status === 401) {
+        clearOwnerSession("Session expired or rejected. Sign in again.");
+        throw new Error(payload.error || "Owner session expired.");
+      }
+      if (!response.ok) throw new Error(payload.error || ("Request failed: HTTP " + response.status));
+      return payload;
+    }
+    function setOwnerStatus(message, kind="warn") {
+      els.ownerSessionStatus.className = "owner-status " + kind;
+      els.ownerSessionStatus.textContent = message;
+    }
+    function clearOwnerSession(message="Signed out. Session token cleared from memory.") {
+      state.ownerToken = "";
+      clearInterval(state.telemetryTimer); state.telemetryTimer = 0;
+      els.ownerLogout.disabled = true; els.ownerLogin.disabled = false; els.researchSearchBtn.disabled = true;
+      status(els.ownerBadge,"LOCKED","warn"); status(els.researchSearchStatus,"OWNER SESSION REQUIRED","warn");
+      setOwnerStatus(message,"warn");
+      els.auditCount.textContent = "—"; els.observationCount.textContent = "—"; els.signalCount.textContent = "—";
+      els.lastRunStatus.textContent = "Owner sign-in required"; els.lastRunMeta.textContent = "Telemetry is private.";
+      els.researchFeed.replaceChildren();
+      addFeedItem(els.researchFeed,"Telemetry locked",message,"info");
+    }
+    function addFeedItem(container, title, meta, kind="info") {
+      const item = document.createElement("div"); item.className = "feed-item " + kind;
+      const dot = document.createElement("i"); dot.className = "feed-dot";
+      const content = document.createElement("div");
+      const heading = document.createElement("div"); heading.className = "feed-title"; heading.textContent = title;
+      const detail = document.createElement("div"); detail.className = "feed-meta"; detail.textContent = meta;
+      content.append(heading,detail); item.append(dot,content); container.append(item);
+    }
+    async function refreshTelemetry() {
+      if (!state.ownerToken) { setOwnerStatus("Sign in to load authenticated D1 telemetry.","warn"); return; }
+      try {
+        const data = await ownerFetch("/research/status"), counts = data.counts || {};
+        els.auditCount.textContent = Number.isFinite(Number(counts.audits)) ? String(counts.audits) : "—";
+        els.observationCount.textContent = Number.isFinite(Number(counts.observations)) ? String(counts.observations) : "—";
+        els.signalCount.textContent = Number.isFinite(Number(counts.signals)) ? String(counts.signals) : "—";
+        if (!data.initialized) {
+          els.lastRunStatus.textContent = "D1 telemetry not initialized"; els.lastRunMeta.textContent = "No audit tables reported by the Worker.";
+        } else if (data.lastRun) {
+          els.lastRunStatus.textContent = "Latest run: " + String(data.lastRun.status || "unknown").replaceAll("_"," ").toUpperCase();
+          els.lastRunMeta.textContent = "Errors: " + Number(data.lastRun.errorCount || 0) + " · " + (data.lastRun.completedAt || "completion time unavailable");
+        } else {
+          els.lastRunStatus.textContent = "No research cycle recorded"; els.lastRunMeta.textContent = "D1 is initialized, but no audit run is present.";
+        }
+        els.researchFeed.replaceChildren();
+        const runs = Array.isArray(data.recentRuns) ? data.recentRuns : (data.lastRun ? [data.lastRun] : []);
+        for (const run of runs) {
+          const details = run.details || {}, warnings = Array.isArray(details.warnings) ? details.warnings.length : 0;
+          const errors = Number(run.errorCount || 0);
+          addFeedItem(els.researchFeed,"Research cycle · " + String(run.status || "unknown").replaceAll("_"," "),
+            (run.completedAt || run.startedAt || "time unavailable") + " · stored " + Number(run.itemCount || 0) + " items · errors " + errors + " · warnings " + warnings,
+            errors ? "error" : warnings ? "warn" : "info");
+        }
+        for (const signal of (Array.isArray(data.signals) ? data.signals : []).slice(0,5))
+          addFeedItem(els.researchFeed,"Signal · " + String(signal.subject || "unknown") + " / " + String(signal.metric || "metric"),
+            String(signal.value ?? "—") + " · " + String(signal.observedAt || "timestamp unavailable"),"info");
+        if (!els.researchFeed.children.length) addFeedItem(els.researchFeed,"No recent activity","No recent runs or signals were returned.","info");
+        setOwnerStatus("Owner session verified. Telemetry fetched from the protected Worker endpoint.","ok");
+        log("Authenticated telemetry refreshed; audit/observation/signal counts updated.","good","D1");
+      } catch (error) {
+        setOwnerStatus(error.message || "Telemetry request failed.","bad");
+        log("Authenticated telemetry failed: " + (error.message || "unknown error"),"error","D1");
+      }
+    }
+    function renderSources(sources) {
+      els.sourceResults.replaceChildren();
+      if (!sources.length) { addFeedItem(els.sourceResults,"No usable sources returned","The claim could not be verified from the search response.","warn"); return; }
+      for (const source of sources) {
+        const card = document.createElement("article"); card.className = "source-card";
+        const link = document.createElement("a"); link.href = source.url; link.target = "_blank"; link.rel = "noopener noreferrer"; link.textContent = source.title || source.url;
+        const excerpt = document.createElement("p"); excerpt.textContent = source.content || "No excerpt was supplied by the provider.";
+        const meta = document.createElement("div"); meta.className = "source-meta"; meta.textContent = source.publishedDate ? "Published: " + source.publishedDate : "Publication date not supplied";
+        card.append(link,excerpt,meta); els.sourceResults.append(card);
+      }
+      addFeedItem(els.sourceResults,"Evidence review required","Open the source and verify that it directly supports the claim.","warn");
+    }
+    async function signInOwner(event) {
+      event.preventDefault();
+      const base = workerBaseUrl(), password = els.ownerPassword.value;
+      if (!base) { setOwnerStatus("Enter a valid Worker health URL first.","bad"); return; }
+      if (!password) { setOwnerStatus("Owner password is required.","warn"); return; }
+      els.ownerLogin.disabled = true; setOwnerStatus("Verifying owner credentials and session…","warn");
+      try {
+        const response = await fetch(base + "/auth/login",{method:"POST",headers:{"content-type":"application/json",Accept:"application/json"},body:JSON.stringify({password}),cache:"no-store"});
+        const payload = await response.json().catch(() => ({}));
+        if (!response.ok || typeof payload.token !== "string" || !payload.token) throw new Error(payload.error || ("Owner login failed: HTTP " + response.status));
+        state.ownerToken = payload.token;
+        const session = await ownerFetch("/auth/session");
+        if (session.authenticated !== true) throw new Error("Owner session verification failed.");
+        els.ownerPassword.value = ""; els.ownerLogout.disabled = false; els.ownerLogin.disabled = false; els.researchSearchBtn.disabled = false;
+        status(els.ownerBadge,"OWNER VERIFIED","ok"); status(els.researchSearchStatus,"SESSION VERIFIED","ok");
+        setOwnerStatus("Owner session verified. Token is memory-only and expires server-side.","ok");
+        await refreshTelemetry(); clearInterval(state.telemetryTimer); state.telemetryTimer = setInterval(refreshTelemetry,30000);
+        toast("Owner session verified.");
+      } catch (error) {
+        state.ownerToken = ""; els.ownerLogin.disabled = false;
+        setOwnerStatus(error.message || "Owner authentication failed.","bad"); status(els.ownerBadge,"LOCKED","bad");
+      }
+    }
+    async function signOutOwner() {
+      const base = workerBaseUrl(), token = state.ownerToken;
+      try { if (base && token) await fetch(base + "/auth/logout",{method:"POST",headers:{authorization:"Bearer "+token},cache:"no-store"}); } catch {}
+      clearOwnerSession(); log("Owner session cleared from this page.","warn","SECURITY");
+    }
+    async function searchEvidence(event) {
+      event.preventDefault();
+      const query = els.factQuery.value.trim();
+      if (!state.ownerToken) { toast("Sign in to run a live research query."); return; }
+      if (!query || query.length > 400) { toast("Research query must be 1–400 characters."); return; }
+      if (state.researchBusy) return;
+      state.researchBusy = true; els.researchSearchBtn.disabled = true; status(els.researchSearchStatus,"SEARCHING","warn");
+      els.sourceResults.replaceChildren(); addFeedItem(els.sourceResults,"Searching live sources","Bounded request in progress. No unsourced answer is inferred.","info");
+      try {
+        const data = await ownerFetch("/research/query",{method:"POST",body:JSON.stringify({query})});
+        renderSources(Array.isArray(data.sources) ? data.sources : []);
+        status(els.researchSearchStatus,data.sourceCount ? "SOURCES RETURNED" : "NO SOURCES",data.sourceCount ? "ok" : "warn");
+        log("Live research returned " + Number(data.sourceCount || 0) + " source(s).","good","RESEARCH");
+      } catch (error) {
+        els.sourceResults.replaceChildren(); addFeedItem(els.sourceResults,"Live research unavailable",error.message || "No unsourced answer was generated.","error");
+        status(els.researchSearchStatus,"SEARCH FAILED","bad"); log("Live research failed: " + (error.message || "unknown error"),"error","RESEARCH");
+      } finally { state.researchBusy = false; els.researchSearchBtn.disabled = !state.ownerToken; }
+    }
+
     function disconnectEvents() {
       if (state.events) { state.events.close(); state.events = null; }
       state.connected = false; status(els.pipelineStatus,"CI/CD: NOT CONNECTED","warn");
@@ -284,6 +490,10 @@
       toast("Command captured locally. Connect a secured command API before execution.");
       els.privacyNote.textContent="Not sent to a backend. Add an authenticated command API before enabling execution.";
     }
+    els.ownerLoginForm.addEventListener("submit",signInOwner);
+    els.ownerLogout.addEventListener("click",signOutOwner);
+    els.refreshTelemetry.addEventListener("click",refreshTelemetry);
+    els.factSearchForm.addEventListener("submit",searchEvidence);
     els.micBtn.addEventListener("click",startListening);
     els.sendBtn.addEventListener("click",submitCommand);
     els.commandInput.addEventListener("keydown",event=>{if(event.key==="Enter"){event.preventDefault();submitCommand();}});
