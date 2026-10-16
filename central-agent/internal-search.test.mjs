@@ -142,7 +142,7 @@ test("central chat endpoint returns a bounded Workers AI answer for the protecte
     AI: { run: async (model, input) => {
       assert.equal(model, "@cf/meta/llama-3.1-8b-instruct-fast");
       assert.equal(input.max_tokens, 450);
-      assert.match(input.messages[0].content, /en-IN/);
+      assert.equal(input.messages.at(-1).content, "Hello Chatty");
       return { response: "Hello! Super Chatty is connected." };
     } }
   });
