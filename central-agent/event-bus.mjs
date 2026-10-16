@@ -123,7 +123,7 @@ export async function eventStreamResponse(request, env, corsHeaders = {}) {
     status: 200,
     headers: {
       "content-type": "text/event-stream; charset=utf-8", "cache-control": "no-cache, no-transform",
-      "connection": "keep-alive", "x-accel-buffering": "no", ...corsHeaders
+      "x-accel-buffering": "no", ...corsHeaders
     }
   });
 }
