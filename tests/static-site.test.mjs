@@ -92,7 +92,7 @@ test("NEXUS agent HUD is live-wired to the production SSE event bus", () => {
     assert.ok(jarvisHtml.includes(text), "missing agent HUD feature: " + text);
   }
   assert.ok(jarvisHtml.includes('id="eventsUrl"') && jarvisHtml.includes('value="https://shrill-silence-164f.lostgodsgods.workers.dev/api/events"'), "SSE URL should default to the production endpoint");
-  assert.match(jarvisHtml, /connectEvents\(\);\s*\}\)\(\);/, "SSE must connect during initialization");
+  assert.match(jarvisHtml, /connectEvents\(\);\s*resumeOwnerSession\(\);\s*\}\)\(\);/, "SSE and cookie-session restoration must initialize");
   assert.match(jarvisHtml, /updateAgentHud\("message", event\.data, event\.lastEventId\)/);
   assert.match(jarvisHtml, /security\.request\.denied/);
   assert.match(jarvisHtml, /parsed\.payload && typeof parsed\.payload==="object"/);
