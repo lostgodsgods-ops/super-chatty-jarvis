@@ -6,7 +6,8 @@
 import { describePolicy } from "./policy.mjs";
 import { enqueueKnowledgeTask, listKnowledgeTasks, getKnowledgeResults, processApprovedKnowledgeTasks } from "./task-queue.mjs";
 import { listProviderCapabilities } from "./architecture/provider-router.mjs";
-import { listMcpCapabilities, listVectorCapabilities } from "./architecture/integration-registry.mjs";
+import { listMcpCapabilities, listVectorCapabilities, connectMcpAndListTools, vectorUpsertQueryReadback, IntegrationError } from "./architecture/integration-registry.mjs";
+import { createGoal, listGoals, transitionGoal, GoalError } from "./architecture/goal-lifecycle.mjs";
 import { requiresLiveSearch } from "./current-info-query.mjs";
 
 const VERSION = "1.3.0";
@@ -597,12 +598,69 @@ export default {
       }, 200, cors);
     }
 
+    if (url.pathname === "/mcp/tools/list" && request.method === "POST") {
+      let body;
+      try { body = await request.json(); } catch { return json({ error: "Expected JSON body." }, 400, cors); }
+      try {
+        const result = await connectMcpAndListTools(body?.serverId, env);
+        return json(result, 200, cors);
+      } catch (error) {
+        if (error instanceof IntegrationError) return json({ error: error.code }, error.status, cors);
+        return json({ error: "MCP_CONNECTION_FAILED" }, 502, cors);
+      }
+    }
+
+    if (url.pathname === "/vectors/roundtrip" && request.method === "POST") {
+      let body;
+      try { body = await request.json(); } catch { return json({ error: "Expected JSON body." }, 400, cors); }
+      const approval = body?.ownerApproval;
+      if (!approval || approval.approved !== true || approval.action !== "vector_roundtrip" ||
+          approval.confirmation !== "UPSERT AND VERIFY THIS EXACT VECTOR" ||
+          approval.recordId !== body?.record?.id ||
+          typeof approval.nonce !== "string" ||
+          !/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(approval.nonce)) {
+        return json({ error: "Explicit action-scoped owner approval for this exact vector ID is required." }, 403, cors);
+      }
+      try {
+        const result = await vectorUpsertQueryReadback(body?.backendId, env, { record: body?.record, namespace: body?.namespace });
+        return json(result, 200, cors);
+      } catch (error) {
+        if (error instanceof IntegrationError) return json({ error: error.code }, error.status, cors);
+        return json({ error: "VECTOR_ROUNDTRIP_FAILED" }, 502, cors);
+      }
+    }
+
+    if (url.pathname === "/goals" && request.method === "POST") {
+      let body;
+      try { body = await request.json(); } catch { return json({ error: "Expected JSON body." }, 400, cors); }
+      try {
+        const goal = await createGoal(env, body?.plan, body?.ownerApproval);
+        return json({ ok: true, goal }, 201, cors);
+      } catch (error) {
+        if (error instanceof GoalError) return json({ error: error.code }, error.status, cors);
+        return json({ error: "GOAL_CREATE_FAILED" }, 503, cors);
+      }
+    }
+
+    if (url.pathname === "/goals" && request.method === "GET") {
+      try { return json({ ok: true, goals: await listGoals(env.DB, Number(url.searchParams.get("limit")) || 20) }, 200, cors); }
+      catch (error) { return json({ error: error instanceof GoalError ? error.code : "GOAL_STORAGE_UNAVAILABLE" }, error instanceof GoalError ? error.status : 503, cors); }
+    }
+
+    const goalTransition = url.pathname.match(/^\\/goals\\/([0-9a-f-]{36})\\/transition$/i);
+    if (goalTransition && request.method === "POST") {
+      let body;
+      try { body = await request.json(); } catch { return json({ error: "Expected JSON body." }, 400, cors); }
+      try { return json({ ok: true, goal: await transitionGoal(env, goalTransition[1], body?.target, body?.details || {}) }, 200, cors); }
+      catch (error) { return json({ error: error instanceof GoalError ? error.code : "GOAL_TRANSITION_FAILED" }, error instanceof GoalError ? error.status : 503, cors); }
+    }
+
     if (url.pathname === "/mcp/status" && request.method === "GET") {
       return json({
         ok: true,
         integrations: listMcpCapabilities(env),
         executionEnabled: false,
-        note: "MCP transport and tool allowlists are not yet implemented; no outbound connection was attempted."
+        note: "Owner-authenticated MCP initialize/tools/list is available for configured servers. Tool execution remains disabled."
       }, 200, cors);
     }
 
@@ -611,7 +669,7 @@ export default {
         ok: true,
         integrations: listVectorCapabilities(env),
         queryEnabled: false,
-        note: "Vector adapters are not yet implemented. KV/D1 are not being represented as vector databases."
+        note: "Owner-authenticated upsert/readback is available for configured Pinecone, Qdrant, or explicitly provisioned pgvector RPCs; capability status is not live verification."
       }, 200, cors);
     }
 
