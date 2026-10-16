@@ -340,7 +340,18 @@ export default {
         }, 200, cors);
       } catch (error) {
         console.warn("central_chat_provider_error", { errorName: typeof error?.name === "string" ? error.name : "Error" });
-        return json({ error: "AI request failed. Check provider quota, network access, and model availability.", code: "AI_PROVIDER_UNAVAILABLE" }, 502, cors);
+        const errorMessage = typeof error?.message === "string" ? error.message : "";
+        const quotaExhausted = /(?:4006|quota|neuron|resource_exhausted|rate.?limit|too many requests|http.?429)/i.test(errorMessage);
+        if (needsLiveSearch && quotaExhausted && liveSources.length) {
+          const sourceFallback = "AI synthesis is temporarily unavailable because the model provider is quota-limited. These are the live search results retrieved for your question; review the source links directly before relying on them.\n\n" +
+            liveSources.map((source, index) => (index + 1) + ". " + source.title + "\n" + source.url + (source.content ? "\n" + source.content : "")).join("\n\n");
+          return json({
+            ok: true, answer: sourceFallback, reply: sourceFallback, provider: "tavily",
+            model: "tavily-source-fallback", sources: liveSources,
+            core: { intent: "current_information", webSearchExecuted: true, searchProvider: "tavily", sourceCount: liveSources.length, synthesisMode: "quota-fallback", aiSynthesisUnavailable: true, requiresTaskApproval: false, externalActionsPerformed: false }
+          }, 200, cors);
+        }
+        return json({ error: quotaExhausted ? "AI provider quota is exhausted; retry after reset or configure a backup provider." : "AI request failed. Check provider quota, network access, and model availability.", code: quotaExhausted ? "AI_QUOTA_EXHAUSTED" : "AI_PROVIDER_UNAVAILABLE" }, 502, cors);
       }
     }
 
