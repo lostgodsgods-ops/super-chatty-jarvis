@@ -157,6 +157,19 @@ export default {
     const url = new URL(request.url);
     const cors = corsHeaders(request, env);
 
+    // Serve the voice-first PWA from this same origin without weakening API authentication.
+    // The static asset binding points only at ../jarvis; API/auth routes continue through this handler.
+    if (env.ASSETS && (request.method === "GET" || request.method === "HEAD")) {
+      let assetPath = null;
+      if (url.pathname === "/" || url.pathname === "/index.html") assetPath = "/index.html";
+      else if (["/sw.js", "/manifest.webmanifest", "/icon.svg"].includes(url.pathname)) assetPath = url.pathname;
+      else if (url.pathname === "/jarvis" || url.pathname === "/jarvis/") assetPath = "/index.html";
+      else if (url.pathname.startsWith("/jarvis/")) assetPath = url.pathname.slice("/jarvis".length);
+      if (assetPath !== null) {
+        return env.ASSETS.fetch(new Request(new URL(assetPath, url.origin), request));
+      }
+    }
+
     if ((url.pathname === "/chat" || url.pathname === "/internal/chat") && request.method === "POST") {
       const expected = typeof env.SEARCH_BRIDGE_TOKEN === "string" ? env.SEARCH_BRIDGE_TOKEN.trim() : "";
       const authorization = request.headers.get("authorization") || "";
