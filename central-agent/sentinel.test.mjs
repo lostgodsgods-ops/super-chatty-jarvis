@@ -47,8 +47,8 @@ test("sentinel fails visibly when KV probe is unavailable and does not claim hea
 });
 test("sentinel archives bounded audit batches to R2 and marks records archived", async()=>{
   const DB=new FakeDB(), SESSIONS=new FakeKV(), objects=new Map();
-  const ARCHIVE={async put(key,value){objects.set(key,value)}};
-  await runSentinelCycle({DB,SESSIONS,ARCHIVE},{now:"2026-10-17T00:00:00.000Z"});
+  const JARVIS_ARCHIVE={async put(key,value){objects.set(key,value)}};
+  await runSentinelCycle({DB,SESSIONS,JARVIS_ARCHIVE},{now:"2026-10-17T00:00:00.000Z"});
   await runSentinelCycle({DB,SESSIONS,ARCHIVE},{now:"2026-10-17T00:15:00.000Z"});
   assert.equal(objects.size,1); assert.equal(DB.health[0].archived_at,"2026-10-17T00:15:00.000Z");
 });
