@@ -157,18 +157,33 @@ export default {
     const url = new URL(request.url);
     const cors = corsHeaders(request, env);
 
-    // Serve the voice-first PWA from this same origin without weakening API authentication.
-    // The static asset binding points only at ../jarvis; API/auth routes continue through this handler.
+    // Public PWA shell/assets must be served before protected API routes.
+    // Keep root requests on the original asset URL; rewrite only the optional /jarvis prefix.
     if (env.ASSETS && (request.method === "GET" || request.method === "HEAD")) {
-      let assetPath = null;
-      // Fetch the directory URL for the entry document. Cloudflare Assets canonicalizes
-      // /index.html to /; requesting /index.html here can create a redirect loop.
-      if (url.pathname === "/" || url.pathname === "/index.html") assetPath = "/";
-      else if (["/sw.js", "/manifest.webmanifest", "/icon.svg"].includes(url.pathname)) assetPath = url.pathname;
-      else if (url.pathname === "/jarvis" || url.pathname === "/jarvis/") assetPath = "/";
-      else if (url.pathname.startsWith("/jarvis/")) assetPath = url.pathname.slice("/jarvis".length);
-      if (assetPath !== null) {
-        return env.ASSETS.fetch(new Request(new URL(assetPath, url.origin), { method: request.method, headers: request.headers }));
+      const isPwaPath =
+        url.pathname === "/" ||
+        url.pathname === "/index.html" ||
+        url.pathname === "/sw.js" ||
+        url.pathname === "/manifest.webmanifest" ||
+        url.pathname === "/icon.svg" ||
+        url.pathname === "/jarvis" ||
+        url.pathname === "/jarvis/" ||
+        url.pathname.startsWith("/jarvis/");
+      if (isPwaPath) {
+        const assetPath = url.pathname.startsWith("/jarvis/")
+          ? url.pathname.slice("/jarvis".length)
+          : (url.pathname === "/jarvis" || url.pathname === "/jarvis/" ? "/" : url.pathname);
+        const assetRequest = assetPath === url.pathname
+          ? request
+          : new Request(new URL(assetPath, url.origin), { method: request.method, headers: request.headers });
+        const assetResponse = await env.ASSETS.fetch(assetRequest);
+        if (assetPath === "/sw.js") {
+          const headers = new Headers(assetResponse.headers);
+          headers.set("content-type", "application/javascript; charset=utf-8");
+          headers.set("cache-control", "no-cache");
+          return new Response(assetResponse.body, { status: assetResponse.status, statusText: assetResponse.statusText, headers });
+        }
+        return assetResponse;
       }
     }
 
