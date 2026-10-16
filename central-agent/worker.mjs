@@ -10,6 +10,7 @@ import { listMcpCapabilities, listVectorCapabilities, connectMcpAndListTools, ve
 import { createGoal, listGoals, transitionGoal, GoalError } from "./architecture/goal-lifecycle.mjs";
 import { requiresLiveSearch } from "./current-info-query.mjs";
 import { runBoundedResearchCycle } from "./research-agents.mjs";
+import { spawnAgents, listAgentDefinitions, listRecentAgentRuns } from "./agent-orchestrator.mjs";
 
 const VERSION = "1.3.0";
 const DEFAULT_WORKERS_AI_MODEL = "@cf/meta/llama-3.1-8b-instruct-fast";
@@ -819,16 +820,31 @@ export default {
     }
 
     if (url.pathname === "/agents" && request.method === "GET") {
-      return json({
-        leader: "super-chatty-central-agent",
-        agents: [
-          { id: "research", status: "planned", permissions: ["read-only research"], ownerApprovalRequiredToActivate: true },
-          { id: "development", status: "planned", permissions: ["propose code changes"], ownerApprovalRequiredToActivate: true },
-          { id: "integration", status: "planned", permissions: ["propose integrations"], ownerApprovalRequiredToActivate: true },
-          { id: "testing", status: "planned", permissions: ["run configured tests"], ownerApprovalRequiredToActivate: true }
-        ],
-        note: "Role catalogue only. No child agents are running or can be spawned by this endpoint. Activation and side effects require explicit, scoped owner approval and a separately tested executor."
-      }, 200, cors);
+      try {
+        const recentRuns = await listRecentAgentRuns(env.DB, Number(url.searchParams.get("limit")) || 10);
+        return json({
+          ok: true,
+          leader: "super-chatty-central-agent",
+          mode: "bounded-dynamic-agent-runners",
+          agents: listAgentDefinitions(),
+          recentRuns,
+          constraints: { maxConcurrent: 3, ownerSessionRequired: true, codeMutation: "proposal-only", arbitraryUrlFetch: false, externalSideEffects: "not executed by this endpoint" }
+        }, 200, cors);
+      } catch {
+        return json({ ok: false, error: "AGENT_REGISTRY_UNAVAILABLE" }, 503, cors);
+      }
+    }
+
+    if (url.pathname === "/agents" && request.method === "POST") {
+      if (!(request.headers.get("content-type") || "").toLowerCase().includes("application/json")) return json({ ok: false, error: "CONTENT_TYPE_JSON_REQUIRED" }, 415, cors);
+      let body;
+      try {
+        const raw = await request.text();
+        if (new TextEncoder().encode(raw).byteLength > 9000) return json({ ok: false, error: "REQUEST_TOO_LARGE" }, 413, cors);
+        body = JSON.parse(raw);
+      } catch { return json({ ok: false, error: "INVALID_JSON" }, 400, cors); }
+      const result = await spawnAgents(env, body);
+      return json(result, result.status || (result.ok ? 200 : 400), cors);
     }
 
     if (url.pathname === "/tasks" && request.method === "POST") {
