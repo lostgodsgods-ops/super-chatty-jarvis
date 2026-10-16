@@ -1,0 +1,15 @@
+{
+  "id": "./",
+  "name": "Super Chatty Jarvis",
+  "short_name": "Chatty Jarvis",
+  "description": "Voice-first AI command interface.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#08090d",
+  "theme_color": "#08090d",
+  "icons": [
+    { "src": "./icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
+  ]
+}
