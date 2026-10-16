@@ -876,12 +876,10 @@ export default {
         return json({ ok: false, error: "MEMORY_SCHEMA_UNAVAILABLE" }, 503, cors);
       }
       if (request.method === "GET") {
-        const sessionId = (url.searchParams.get("session_id") || "").trim();
-        if (sessionId && !/^[A-Za-z0-9_-]{8,128}$/.test(sessionId)) return json({ ok: false, error: "INVALID_SESSION_ID" }, 400, cors);
+        const sessionId = (url.searchParams.get("session_id") || "owner-global").trim();
+        if (!/^[A-Za-z0-9_-]{8,128}$/.test(sessionId)) return json({ ok: false, error: "INVALID_SESSION_ID" }, 400, cors);
         try {
-          const result = sessionId
-            ? await env.DB.prepare("SELECT session_id, memory_type, state_json, created_at, updated_at FROM conversation_memory WHERE owner_scope = ? AND session_id = ? ORDER BY updated_at DESC LIMIT 50").bind("owner", sessionId).all()
-            : await env.DB.prepare("SELECT session_id, memory_type, state_json, created_at, updated_at FROM conversation_memory WHERE owner_scope = ? ORDER BY updated_at DESC LIMIT 50").bind("owner").all();
+          const result = await env.DB.prepare("SELECT session_id, memory_type, state_json, created_at, updated_at FROM conversation_memory WHERE owner_scope = ? AND session_id = ? ORDER BY updated_at DESC LIMIT 50").bind("owner", sessionId).all();
           const memories = (result.results || []).map(row => {
             let state = null;
             try { state = JSON.parse(row.state_json); } catch {}
@@ -910,9 +908,9 @@ export default {
       if (new TextEncoder().encode(stateJson).byteLength > 8000) return json({ ok: false, error: "STATE_TOO_LARGE" }, 413, cors);
       const now = new Date().toISOString();
       try {
-        await env.DB.prepare("INSERT INTO conversation_memory (id, owner_scope, session_id, memory_type, state_json, created_at, updated_at) VALUES (?, 'owner', ?, ?, ?, ?, ?) ON CONFLICT(owner_scope, session_id, memory_type) DO UPDATE SET state_json = excluded.state_json, updated_at = excluded.updated_at")
-          .bind(crypto.randomUUID(), sessionId, memoryType, stateJson, now, now).run();
-        return json({ ok: true, session_id: sessionId, memory_type: memoryType, updated_at: now }, 200, cors);
+        await env.DB.prepare("INSERT INTO conversation_memory (id, owner_scope, session_id, memory_type, state_json, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?) ON CONFLICT(owner_scope, session_id, memory_type) DO UPDATE SET state_json = excluded.state_json, updated_at = excluded.updated_at")
+          .bind(crypto.randomUUID(), "owner", sessionId, memoryType, stateJson, now, now).run();
+        return json({ ok: true, saved: true, session_id: sessionId, memory_type: memoryType, updated_at: now }, 200, cors);
       } catch {
         return json({ ok: false, error: "MEMORY_WRITE_FAILED" }, 503, cors);
       }
