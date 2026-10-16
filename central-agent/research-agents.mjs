@@ -5,7 +5,7 @@
 export const RESEARCH_LIMITS = Object.freeze({ requestsPerTick: 3, maxItemsPerSource: 10, maxTextLength: 1200, timeoutMs: 7000, maxSignalsPerTick: 30 });
 const SOURCES = Object.freeze({
   github: "https://api.github.com/repos/lostgodsgods-ops/super-chatty-jarvis/commits?per_page=10",
-  hackerNews: "https://hacker-news.firebaseio.com/v0/topstories.json",
+  releases: "https://api.github.com/repos/lostgodsgods-ops/super-chatty-jarvis/releases?per_page=10",
   markets: "https://api.coingecko.com/api/v3/simple/price?ids=bitcoin,ethereum&vs_currencies=usd&include_24hr_change=true"
 });
 const POSITIVE = new Set(["advance","advanced","better","boost","breakthrough","growth","improve","improved","launch","launched","positive","release","released","success","successful","win"]);
@@ -64,7 +64,7 @@ export async function runBoundedResearchCycle(env, options = {}) {
   let itemsStored = 0, signalsStored = 0, errorCount = 0;
   const errors = [];
   await ensureResearchSchema(env.DB);
-  for (const [source, url] of [["github", SOURCES.github], ["hackerNews", SOURCES.hackerNews], ["markets", SOURCES.markets]]) {
+  for (const [source, url] of [["github", SOURCES.github], ["releases", SOURCES.releases], ["markets", SOURCES.markets]]) {
     try {
       const payload = await fetchSource(url);
       if (source === "github") {
