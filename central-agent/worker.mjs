@@ -264,10 +264,12 @@ export default {
           ? request
           : new Request(new URL(assetPath, url.origin), { method: request.method, headers: request.headers });
         const assetResponse = await env.ASSETS.fetch(assetRequest);
-        if (assetPath === "/sw.js") {
+        if (["/", "/index.html", "/sw.js", "/manifest.webmanifest"].includes(assetPath)) {
           const headers = new Headers(assetResponse.headers);
-          headers.set("content-type", "application/javascript; charset=utf-8");
-          headers.set("cache-control", "no-cache");
+          if (assetPath === "/sw.js") headers.set("content-type", "application/javascript; charset=utf-8");
+          headers.set("cache-control", "no-cache, must-revalidate");
+          headers.set("pragma", "no-cache");
+          headers.set("expires", "0");
           return new Response(assetResponse.body, { status: assetResponse.status, statusText: assetResponse.statusText, headers });
         }
         return assetResponse;
