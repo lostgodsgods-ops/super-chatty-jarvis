@@ -13,6 +13,9 @@ test("PWA dashboard includes live D1 telemetry, activity feed, owner session and
   assert.ok(html.includes("/research/status"));
   assert.ok(html.includes("/research/query"));
   assert.ok(html.includes("navigator.serviceWorker.register"));
+  assert.ok(html.includes("/api/memory"));
+  assert.ok(html.includes("restoreConversationMemory"));
+  assert.ok(html.includes("memory_type:\"conversation_state\""));
   assert.ok(html.includes('id="micBtn"'));
 });
 
