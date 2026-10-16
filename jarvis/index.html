@@ -599,7 +599,7 @@
           updateAgentHud("message", event.data, event.lastEventId);
         };
 
-        ["log","deploy","ci","status"].forEach((name) => state.events.addEventListener(name, (event) => {
+        ["log","deploy","ci","status","commit","deployment","search","tavily","tavily.result","research","scrape","agent.status","agent.started","agent.executing","task.started","task.executing","task.completed","task.failed","security","security.alert","health","heartbeat","sentinel.status","reactor.state","system.state","audit","error","alert"].forEach((name) => state.events.addEventListener(name, (event) => {
           let payload = event.data;
           try { const parsed = JSON.parse(event.data); payload = parsed.message || parsed.log || parsed.status || JSON.stringify(parsed); } catch {}
           log(payload, name === "deploy" ? "good" : "info", name.toUpperCase());
