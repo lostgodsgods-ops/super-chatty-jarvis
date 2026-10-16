@@ -857,6 +857,66 @@ export default {
       }
     }
 
+    if (url.pathname === "/api/memory") {
+      if (request.method !== "GET" && request.method !== "POST") {
+        return json({ ok: false, error: "METHOD_NOT_ALLOWED" }, 405, { allow: "GET, POST", ...cors });
+      }
+      const header = request.headers.get("authorization") || "";
+      const supplied = header.startsWith("Bearer ") ? header.slice(7).trim() : "";
+      const bridgeSecret = typeof env.BRIDGE_SECRET === "string" ? env.BRIDGE_SECRET.trim() : "";
+      const bridgeAuthorized = Boolean(bridgeSecret && equalSecret(supplied, bridgeSecret));
+      const ownerAuthorized = await authorized(request, env);
+      if (!bridgeAuthorized && !ownerAuthorized) return json({ ok: false, error: "Unauthorized" }, 401, cors);
+      if (!env.DB || typeof env.DB.prepare !== "function") return json({ ok: false, error: "MEMORY_STORAGE_UNAVAILABLE" }, 503, cors);
+      try {
+        await env.DB.prepare("CREATE TABLE IF NOT EXISTS conversation_memory (id TEXT PRIMARY KEY, owner_scope TEXT NOT NULL, session_id TEXT NOT NULL, memory_type TEXT NOT NULL, state_json TEXT NOT NULL, created_at TEXT NOT NULL, updated_at TEXT NOT NULL, UNIQUE(owner_scope, session_id, memory_type))").run();
+        await env.DB.prepare("CREATE INDEX IF NOT EXISTS idx_conversation_memory_session_updated ON conversation_memory(owner_scope, session_id, updated_at DESC)").run();
+      } catch {
+        return json({ ok: false, error: "MEMORY_SCHEMA_UNAVAILABLE" }, 503, cors);
+      }
+      if (request.method === "GET") {
+        const sessionId = (url.searchParams.get("session_id") || "").trim();
+        if (sessionId && !/^[A-Za-z0-9_-]{8,128}$/.test(sessionId)) return json({ ok: false, error: "INVALID_SESSION_ID" }, 400, cors);
+        try {
+          const result = sessionId
+            ? await env.DB.prepare("SELECT session_id, memory_type, state_json, created_at, updated_at FROM conversation_memory WHERE owner_scope = ? AND session_id = ? ORDER BY updated_at DESC LIMIT 50").bind("owner", sessionId).all()
+            : await env.DB.prepare("SELECT session_id, memory_type, state_json, created_at, updated_at FROM conversation_memory WHERE owner_scope = ? ORDER BY updated_at DESC LIMIT 50").bind("owner").all();
+          const memories = (result.results || []).map(row => {
+            let state = null;
+            try { state = JSON.parse(row.state_json); } catch {}
+            return { session_id: row.session_id, memory_type: row.memory_type, state, created_at: row.created_at, updated_at: row.updated_at };
+          });
+          return json({ ok: true, memories }, 200, cors);
+        } catch {
+          return json({ ok: false, error: "MEMORY_READ_FAILED" }, 503, cors);
+        }
+      }
+      if (!(request.headers.get("content-type") || "").toLowerCase().includes("application/json")) return json({ ok: false, error: "CONTENT_TYPE_JSON_REQUIRED" }, 415, cors);
+      let payload;
+      try {
+        const raw = await request.text();
+        if (new TextEncoder().encode(raw).byteLength > 12000) return json({ ok: false, error: "REQUEST_TOO_LARGE" }, 413, cors);
+        payload = JSON.parse(raw);
+      } catch {
+        return json({ ok: false, error: "INVALID_JSON" }, 400, cors);
+      }
+      const sessionId = typeof payload?.session_id === "string" ? payload.session_id.trim() : "";
+      const memoryType = typeof payload?.memory_type === "string" ? payload.memory_type.trim() : "conversation_state";
+      if (!/^[A-Za-z0-9_-]{8,128}$/.test(sessionId)) return json({ ok: false, error: "INVALID_SESSION_ID" }, 400, cors);
+      if (!/^[a-z][a-z0-9_-]{1,39}$/.test(memoryType)) return json({ ok: false, error: "INVALID_MEMORY_TYPE" }, 400, cors);
+      if (!payload.state || typeof payload.state !== "object" || Array.isArray(payload.state)) return json({ ok: false, error: "STATE_MUST_BE_OBJECT" }, 400, cors);
+      const stateJson = JSON.stringify(payload.state);
+      if (new TextEncoder().encode(stateJson).byteLength > 8000) return json({ ok: false, error: "STATE_TOO_LARGE" }, 413, cors);
+      const now = new Date().toISOString();
+      try {
+        await env.DB.prepare("INSERT INTO conversation_memory (id, owner_scope, session_id, memory_type, state_json, created_at, updated_at) VALUES (?, 'owner', ?, ?, ?, ?, ?) ON CONFLICT(owner_scope, session_id, memory_type) DO UPDATE SET state_json = excluded.state_json, updated_at = excluded.updated_at")
+          .bind(crypto.randomUUID(), sessionId, memoryType, stateJson, now, now).run();
+        return json({ ok: true, session_id: sessionId, memory_type: memoryType, updated_at: now }, 200, cors);
+      } catch {
+        return json({ ok: false, error: "MEMORY_WRITE_FAILED" }, 503, cors);
+      }
+    }
+
     if (url.pathname === "/auth/logout" && request.method === "POST") {
       const header = request.headers.get("authorization") || "";
       const supplied = header.startsWith("Bearer ") ? header.slice(7) : "";
