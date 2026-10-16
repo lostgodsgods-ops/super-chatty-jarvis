@@ -100,4 +100,5 @@ test("backup-provider quota/rate-limit failures degrade to the stable quota code
   assert.equal(result.status, 207);
   assert.equal(result.outcomes[0].error, "AI_QUOTA_EXHAUSTED");
   assert.equal(db.state.audits.length, 1);
+  assert.equal(db.state.memories.length, 1);
 });
