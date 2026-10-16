@@ -102,3 +102,21 @@ test("backup-provider quota/rate-limit failures degrade to the stable quota code
   assert.equal(db.state.audits.length, 1);
   assert.equal(db.state.memories.length, 1);
 });
+
+test("unavailable configured backup model does not turn quota exhaustion into a deployment crash", async (t) => {
+  const db = dbMock();
+  const originalFetch = globalThis.fetch;
+  t.after(() => { globalThis.fetch = originalFetch; });
+  globalThis.fetch = async () => new Response(JSON.stringify({ error: { message: "model not found" } }), { status: 404 });
+  const env = {
+    DB: db,
+    GEMINI_API_KEY: "test-only-not-a-real-key",
+    AI: { async run() { throw new Error("4006 daily free allocation exhausted"); } }
+  };
+  const result = await spawnAgents(env, { role: "testing", input: "backup model unavailable" });
+  assert.equal(result.ok, false);
+  assert.equal(result.status, 207);
+  assert.equal(result.outcomes[0].error, "AI_QUOTA_EXHAUSTED");
+  assert.equal(db.state.audits.length, 1);
+  assert.equal(db.state.memories.length, 1);
+});
