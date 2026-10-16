@@ -13,6 +13,7 @@ import { runBoundedResearchCycle } from "./research-agents.mjs";
 import { spawnAgents, listAgentDefinitions, listRecentAgentRuns } from "./agent-orchestrator.mjs";
 import { guardRequest } from "./edge-guard.mjs";
 import { runSentinelCycle, getSentinelStatus } from "./sentinel.mjs";
+import { publishEvent, listModules, eventStreamResponse } from "./event-bus.mjs";
 
 const VERSION = "1.4.0";
 const DEFAULT_WORKERS_AI_MODEL = "@cf/meta/llama-3.1-8b-instruct-fast";
@@ -232,7 +233,10 @@ export default {
     const cors = corsHeaders(request, env);
     try {
       const edgeDecision = await guardRequest(request, env);
-      if (edgeDecision) return json(edgeDecision.body, edgeDecision.status, { ...cors, ...edgeDecision.headers });
+      if (edgeDecision) {
+        await publishEvent(env, { type: "security.request.denied", source: "edge-guard", payload: { path: url.pathname, status: edgeDecision.status, code: edgeDecision.body?.code || "EDGE_GUARD_DENIED" } });
+        return json(edgeDecision.body, edgeDecision.status, { ...cors, ...edgeDecision.headers });
+      }
     } catch {
       const protectedPath = url.pathname.startsWith("/auth/") || url.pathname.startsWith("/api/") ||
         url.pathname === "/agents" || url.pathname === "/search" || url.pathname.startsWith("/research/") ||
@@ -653,12 +657,21 @@ export default {
 
     if (url.pathname === "/sentinel/run" && request.method === "POST") {
       const result = await runSentinelCycle(env);
+      await publishEvent(env, { type: result.ok ? "sentinel.completed" : "sentinel.degraded", source: "sentinel", payload: { ok: result.ok === true, status: result.status || (result.ok ? "healthy" : "degraded") } });
       return json(result, result.ok ? 200 : 503, cors);
     }
 
     if (url.pathname === "/sentinel/status" && request.method === "GET") {
       try { return json({ ok: true, runs: await getSentinelStatus(env.DB, Number(url.searchParams.get("limit")) || 10) }, 200, cors); }
       catch { return json({ ok: false, error: "SENTINEL_STATUS_UNAVAILABLE" }, 503, cors); }
+    }
+
+    if (url.pathname === "/api/events" && request.method === "GET") {
+      return eventStreamResponse(request, env, cors);
+    }
+
+    if (url.pathname === "/api/modules" && request.method === "GET") {
+      return json({ ok: true, registry: "central-event-bus", modules: listModules() }, 200, cors);
     }
 
     if (url.pathname === "/events" && request.method === "GET") {
@@ -927,7 +940,9 @@ export default {
         if (new TextEncoder().encode(raw).byteLength > 9000) return json({ ok: false, error: "REQUEST_TOO_LARGE" }, 413, cors);
         body = JSON.parse(raw);
       } catch { return json({ ok: false, error: "INVALID_JSON" }, 400, cors); }
+      await publishEvent(env, { type: "agent.execution.started", source: "agent-orchestrator", payload: { requested: Array.isArray(body?.tasks) ? Math.min(body.tasks.length, 3) : 1 } });
       const result = await spawnAgents(env, body);
+      await publishEvent(env, { type: result.ok ? "agent.execution.completed" : "agent.execution.degraded", source: "agent-orchestrator", payload: { ok: result.ok === true, status: result.status || (result.ok ? "completed" : "degraded"), runCount: Array.isArray(result.runs) ? result.runs.length : 0 } });
       return json(result, result.status || (result.ok ? 200 : 400), cors);
     }
 
@@ -935,6 +950,7 @@ export default {
       let body;
       try { body = await request.json(); } catch { return json({ error: "Expected JSON body." }, 400, cors); }
       const result = await enqueueKnowledgeTask(env, body?.query, body?.ownerApproval);
+      await publishEvent(env, { type: result.ok ? "knowledge.task.queued" : "knowledge.task.rejected", source: "task-queue", payload: { ok: result.ok === true, status: result.ok ? "queued" : "rejected" } });
       return json(result.ok ? result : { error: result.error }, result.status, cors);
     }
 
@@ -1031,9 +1047,11 @@ export default {
   async scheduled(controller, env, ctx) {
     const work = (async () => {
       const sentinel = await runSentinelCycle(env);
+      await publishEvent(env, { type: sentinel.ok ? "sentinel.completed" : "sentinel.degraded", source: "sentinel-cron", payload: { ok: sentinel.ok === true, status: sentinel.status || (sentinel.ok ? "healthy" : "degraded") } });
       const recovery = await recoverStaleKnowledgeTasks(env, 20);
       const processing = await processApprovedKnowledgeTasks(env, 3);
       const research = await runBoundedResearchCycle(env);
+      await publishEvent(env, { type: "scheduler.cycle.completed", source: "central-scheduler", payload: { sentinelOk: sentinel.ok === true, recoveredTasks: Number(recovery?.recovered || recovery?.count || 0), processedTasks: Number(processing?.processed || processing?.count || 0), researchOk: research?.ok !== false } });
       return { sentinel, recovery, processing, research };
     })();
     if (ctx && typeof ctx.waitUntil === "function") ctx.waitUntil(work);
