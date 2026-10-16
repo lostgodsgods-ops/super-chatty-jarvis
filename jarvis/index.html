@@ -81,6 +81,12 @@
         </div>
         <h1 class="core-title" id="coreHeading">Golden Neural Core</h1>
         <div class="core-state" id="coreState" role="status" aria-live="polite">Standby · tap the microphone to speak</div>
+        <div class="agent-hud-controls" aria-label="Reactor visual state preview">
+          <button type="button" data-hud-state="IDLE">IDLE</button>
+          <button type="button" data-hud-state="PROCESSING">PROCESSING</button>
+          <button type="button" data-hud-state="EXECUTING">EXECUTING</button>
+          <button type="button" data-hud-state="ALERT">ALERT</button>
+        </div>
         <div class="mini-metrics" aria-label="Local interface telemetry">
           <div class="metric"><strong id="micMetric">IDLE</strong><span>Voice input</span></div>
           <div class="metric"><strong id="audioMetric">0%</strong><span>Audio level</span></div>
@@ -485,34 +491,6 @@
       state.connected = false; status(els.pipelineStatus,"CI/CD: NOT CONNECTED","warn");
       els.streamStatus.textContent = "No live event stream";
     }
-    function connectEvents() {
-      disconnectEvents();
-      const raw = els.eventsUrl.value.trim();
-      if (!raw) {
-        els.streamStatus.textContent = "SSE endpoint not configured";
-        log("No SSE endpoint configured. Terminal shows local UI and health-check events only.","warn","STREAM");
-        toast("Add a real SSE endpoint to enable backend logs.");
-        return;
-      }
-      const url = safeUrl(raw);
-      if (!url) { log("SSE URL rejected: HTTPS is required.","error","STREAM"); toast("Use a valid HTTPS SSE URL."); return; }
-      if (!("EventSource" in window)) { log("This browser does not support EventSource.","error","STREAM"); return; }
-      try {
-        state.events = new EventSource(url.href, {withCredentials:false});
-        els.streamStatus.textContent = "Connecting to SSE…";
-        state.events.onopen = () => {
-          state.connected = true; els.streamStatus.textContent = "Live SSE connected";
-          status(els.pipelineStatus,"EVENTS: LIVE","ok"); log("Connected to configured SSE endpoint.","good","STREAM");
-        };
-        state.events.onmessage = (event) => {
-          let payload = event.data;
-          try {
-            const parsed = JSON.parse(event.data);
-            if (parsed && typeof parsed === "object") payload = parsed.message || parsed.log || parsed.event || JSON.stringify(parsed);
-          } catch {}
-          log(payload,"info","BACKEND");
-        };
-
     // Live agent HUD: update only from received SSE data or explicit local state controls.
     const hudState = { commits:0, searches:0, lastEventId:"" };
     function hudStatus(id, label, mode="pending") {
@@ -591,10 +569,41 @@
       setHudReactor(button.dataset.hudState,"Manual visual preview only; no task was executed.");
     }));
 
+
+    function connectEvents() {
+      disconnectEvents();
+      const raw = els.eventsUrl.value.trim();
+      if (!raw) {
+        els.streamStatus.textContent = "SSE endpoint not configured";
+        log("No SSE endpoint configured. Terminal shows local UI and health-check events only.","warn","STREAM");
+        toast("Add a real SSE endpoint to enable backend logs.");
+        return;
+      }
+      const url = safeUrl(raw);
+      if (!url) { log("SSE URL rejected: HTTPS is required.","error","STREAM"); toast("Use a valid HTTPS SSE URL."); return; }
+      if (!("EventSource" in window)) { log("This browser does not support EventSource.","error","STREAM"); return; }
+      try {
+        state.events = new EventSource(url.href, {withCredentials:false});
+        els.streamStatus.textContent = "Connecting to SSE…";
+        state.events.onopen = () => {
+          state.connected = true; els.streamStatus.textContent = "Live SSE connected";
+          status(els.pipelineStatus,"EVENTS: LIVE","ok"); log("Connected to configured SSE endpoint.","good","STREAM");
+        };
+        state.events.onmessage = (event) => {
+          let payload = event.data;
+          try {
+            const parsed = JSON.parse(event.data);
+            if (parsed && typeof parsed === "object") payload = parsed.message || parsed.log || parsed.event || JSON.stringify(parsed);
+          } catch {}
+          log(payload,"info","BACKEND");
+          updateAgentHud("message", event.data, event.lastEventId);
+        };
+
         ["log","deploy","ci","status"].forEach((name) => state.events.addEventListener(name, (event) => {
           let payload = event.data;
           try { const parsed = JSON.parse(event.data); payload = parsed.message || parsed.log || parsed.status || JSON.stringify(parsed); } catch {}
           log(payload, name === "deploy" ? "good" : "info", name.toUpperCase());
+          updateAgentHud(name, event.data, event.lastEventId);
         }));
         state.events.onerror = () => {
           state.connected = false; els.streamStatus.textContent = "SSE reconnecting / unavailable";
