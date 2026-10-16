@@ -11,8 +11,10 @@ import { createGoal, listGoals, transitionGoal, GoalError } from "./architecture
 import { requiresLiveSearch } from "./current-info-query.mjs";
 import { runBoundedResearchCycle } from "./research-agents.mjs";
 import { spawnAgents, listAgentDefinitions, listRecentAgentRuns } from "./agent-orchestrator.mjs";
+import { guardRequest } from "./edge-guard.mjs";
+import { runSentinelCycle, getSentinelStatus } from "./sentinel.mjs";
 
-const VERSION = "1.3.0";
+const VERSION = "1.4.0";
 const DEFAULT_WORKERS_AI_MODEL = "@cf/meta/llama-3.1-8b-instruct-fast";
 export const PASSWORD_ITERATIONS = 100000;
 const SESSION_TTL_SECONDS = 3600;
@@ -143,6 +145,50 @@ function corsHeaders(request, env) {
   };
 }
 
+function sentinelEventResponse(request, env) {
+  const encoder = new TextEncoder();
+  let cancelled = false;
+  const stream = new ReadableStream({
+    start(controller) {
+      const emit = (event, payload) => {
+        if (!cancelled) controller.enqueue(encoder.encode("event: " + event + "\\ndata: " + JSON.stringify(payload) + "\\n\\n"));
+      };
+      const run = async () => {
+        const seen = new Set();
+        for (let tick = 0; tick < 8 && !cancelled; tick++) {
+          try {
+            const result = await env.DB.prepare("SELECT id,status,metrics_json AS metricsJson,checked_at AS checkedAt FROM sentinel_health_audit ORDER BY checked_at DESC LIMIT 10").all();
+            for (const row of (result?.results || []).slice().reverse()) {
+              if (seen.has(row.id)) continue;
+              seen.add(row.id);
+              let metrics = null;
+              try { metrics = JSON.parse(row.metricsJson); } catch {}
+              emit("status", { id: row.id, status: row.status, checkedAt: row.checkedAt, metrics, message: "Sentinel " + row.status + " · " + row.checkedAt });
+            }
+          } catch {
+            emit("status", { status: "degraded", message: "Sentinel event read temporarily unavailable." });
+          }
+          if (tick < 7 && !cancelled) {
+            emit("heartbeat", { at: new Date().toISOString() });
+            await new Promise(resolve => setTimeout(resolve, 2500));
+          }
+        }
+        if (!cancelled) { try { controller.close(); } catch {} }
+      };
+      run().catch(() => { if (!cancelled) { try { controller.close(); } catch {} } });
+    },
+    cancel() { cancelled = true; }
+  });
+  return new Response(stream, { status: 200, headers: {
+    "content-type": "text/event-stream; charset=utf-8",
+    "cache-control": "no-cache, no-transform",
+    "connection": "keep-alive",
+    "x-accel-buffering": "no",
+    "access-control-allow-origin": corsHeaders(request, env)["access-control-allow-origin"] || "null",
+    "vary": "Origin"
+  }});
+}
+
 function ownerPage() {
   const html = `<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#07111f"><title>Super Chatty — Owner Access</title>
@@ -186,6 +232,15 @@ export default {
   async fetch(request, env) {
     const url = new URL(request.url);
     const cors = corsHeaders(request, env);
+    try {
+      const edgeDecision = await guardRequest(request, env);
+      if (edgeDecision) return json(edgeDecision.body, edgeDecision.status, { ...cors, ...edgeDecision.headers });
+    } catch {
+      const protectedPath = url.pathname.startsWith("/auth/") || url.pathname.startsWith("/api/") ||
+        url.pathname === "/agents" || url.pathname === "/search" || url.pathname.startsWith("/research/") ||
+        url.pathname === "/chat" || url.pathname.startsWith("/internal/");
+      if (protectedPath) return json({ error: "Defensive edge controls are temporarily unavailable." }, 503, cors);
+    }
 
     // Public PWA shell/assets must be served before protected API routes.
     // Keep root requests on the original asset URL; rewrite only the optional /jarvis prefix.
@@ -312,7 +367,11 @@ export default {
           durableTaskQueue: Boolean(env.DB && typeof env.DB.prepare === "function" && typeof env.DB.batch === "function"),
           childAgentExecution: false,
           externalToolExecution: false,
-          selfGrantedPermissions: false
+          selfGrantedPermissions: false,
+          sentinelMonitoring: true,
+          kvHotState: Boolean(env.SESSIONS),
+          r2ArchiveConfigured: Boolean(env.ARCHIVE),
+          realtimeOwnerEvents: true
         }
       }, 200, cors);
     }
@@ -580,6 +639,20 @@ export default {
     const memoryBridgeRoute = url.pathname === "/api/memory";
     if (!gatewayChatRoute && !memoryBridgeRoute && (!env.DB || !env.SESSIONS)) return json({ error: "Owner authentication storage is not configured." }, 503, cors);
     if (!gatewayChatRoute && !memoryBridgeRoute && !(await authorized(request, env))) return json({ error: "Unauthorized. Sign in with your Owner password." }, 401, cors);
+
+    if (url.pathname === "/sentinel/run" && request.method === "POST") {
+      const result = await runSentinelCycle(env);
+      return json(result, result.ok ? 200 : 503, cors);
+    }
+
+    if (url.pathname === "/sentinel/status" && request.method === "GET") {
+      try { return json({ ok: true, runs: await getSentinelStatus(env.DB, Number(url.searchParams.get("limit")) || 10) }, 200, cors); }
+      catch { return json({ ok: false, error: "SENTINEL_STATUS_UNAVAILABLE" }, 503, cors); }
+    }
+
+    if (url.pathname === "/events" && request.method === "GET") {
+      return sentinelEventResponse(request, env);
+    }
 
     if (url.pathname === "/auth/session" && request.method === "GET") {
       return json({ ok: true, authenticated: true, expiresIn: SESSION_TTL_SECONDS }, 200, cors);
@@ -946,10 +1019,11 @@ export default {
 
   async scheduled(controller, env, ctx) {
     const work = (async () => {
+      const sentinel = await runSentinelCycle(env);
       const recovery = await recoverStaleKnowledgeTasks(env, 20);
       const processing = await processApprovedKnowledgeTasks(env, 3);
       const research = await runBoundedResearchCycle(env);
-      return { recovery, processing, research };
+      return { sentinel, recovery, processing, research };
     })();
     if (ctx && typeof ctx.waitUntil === "function") ctx.waitUntil(work);
     else await work;
