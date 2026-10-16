@@ -92,3 +92,46 @@ test("persistent market HTTP 429 is retried and recorded as a transparent warnin
   assert.equal(db.auditRows[0].errorCount, 0);
   assert.deepEqual(db.auditRows[0].details.warnings, result.warnings);
 });
+
+test("rate-limited public sources are transparently degraded without fabricating data", async () => {
+  const db = createAuditDb();
+  const originalFetch = globalThis.fetch;
+  let marketCalls = 0;
+  globalThis.fetch = async url => {
+    if (url.includes("api.github.com/repos") && url.includes("/releases?")) {
+      return new Response(JSON.stringify({ message: "API rate limit exceeded" }), {
+        status: 403, headers: { "content-type": "application/json", "x-ratelimit-remaining": "0" }
+      });
+    }
+    if (url.includes("api.github.com/repos")) {
+      return new Response(JSON.stringify({ message: "API rate limit exceeded" }), {
+        status: 403, headers: { "content-type": "application/json", "x-ratelimit-remaining": "0" }
+      });
+    }
+    if (url.includes("api.coingecko.com")) {
+      marketCalls++;
+      return new Response(JSON.stringify({}), { status: 429, headers: { "content-type": "application/json" } });
+    }
+    throw new Error("Unexpected source URL");
+  };
+  try {
+    const result = await runBoundedResearchCycle(
+      { AUTONOMOUS_RESEARCH_ENABLED: "true", DB: db },
+      { sleep: async () => {} }
+    );
+    assert.equal(marketCalls, 3, "market 429 gets two bounded retries");
+    assert.equal(result.ok, true);
+    assert.equal(result.status, "completed_with_warnings");
+    assert.equal(result.errorCount, 0);
+    assert.deepEqual(result.warnings.map(w => [w.source, w.code, w.action]), [
+      ["github", "SOURCE_RATE_LIMITED_403", "source-rate-limited-skipped"],
+      ["releases", "SOURCE_RATE_LIMITED_403", "source-rate-limited-skipped"],
+      ["markets", "SOURCE_HTTP_429", "market-telemetry-skipped"]
+    ]);
+    assert.equal(db.auditRows[0].status, "completed_with_warnings");
+    assert.equal(db.auditRows[0].errorCount, 0);
+    assert.deepEqual(db.auditRows[0].details.warnings, result.warnings);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
