@@ -576,8 +576,9 @@ export default {
     }
 
     const gatewayChatRoute = request.method === "POST" && (url.pathname === "/chat" || url.pathname === "/internal/chat");
-    if (!gatewayChatRoute && (!env.DB || !env.SESSIONS)) return json({ error: "Owner authentication storage is not configured." }, 503, cors);
-    if (!gatewayChatRoute && !(await authorized(request, env))) return json({ error: "Unauthorized. Sign in with your Owner password." }, 401, cors);
+    const memoryBridgeRoute = url.pathname === "/api/memory";
+    if (!gatewayChatRoute && !memoryBridgeRoute && (!env.DB || !env.SESSIONS)) return json({ error: "Owner authentication storage is not configured." }, 503, cors);
+    if (!gatewayChatRoute && !memoryBridgeRoute && !(await authorized(request, env))) return json({ error: "Unauthorized. Sign in with your Owner password." }, 401, cors);
 
     if (url.pathname === "/auth/session" && request.method === "GET") {
       return json({ ok: true, authenticated: true, expiresIn: SESSION_TTL_SECONDS }, 200, cors);
