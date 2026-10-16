@@ -265,3 +265,28 @@ test("owner-authenticated research query returns sourced evidence and rejects an
     globalThis.fetch = originalFetch;
   }
 });
+
+test("authenticated research query retries upstream rate limits before returning evidence", async () => {
+  const e = env();
+  await call(e, "/auth/setup", { setupToken: "test-bootstrap-code", password: "a-long-memorable-password" });
+  const login = await call(e, "/auth/login", { password: "a-long-memorable-password" });
+  const { token } = await login.json();
+  const originalFetch = globalThis.fetch;
+  let calls = 0;
+  globalThis.fetch = async () => {
+    calls++;
+    if (calls < 3) return new Response(JSON.stringify({ error: "rate limited" }), { status: 429, headers: { "retry-after": "0", "content-type": "application/json" } });
+    return new Response(JSON.stringify({ results: [
+      { title: "Government source", url: "https://www.pib.gov.in/example", content: "Evidence excerpt" }
+    ] }), { status: 200, headers: { "content-type": "application/json" } });
+  };
+  try {
+    const response = await call(e, "/research/query", { query: "Kamala 1720 MW CCEA" }, token);
+    const payload = await response.json();
+    assert.equal(response.status, 200);
+    assert.equal(calls, 3);
+    assert.equal(payload.sourceCount, 1);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
