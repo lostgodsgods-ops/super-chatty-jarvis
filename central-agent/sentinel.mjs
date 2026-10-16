@@ -1,4 +1,4 @@
-const MAX_ARCHIVE_ROWS = 100;
+const MAX_STATUS_ROWS = 100;
 
 export async function ensureSentinelSchema(db) {
   await db.prepare(`CREATE TABLE IF NOT EXISTS sentinel_health_audit (
@@ -49,33 +49,12 @@ async function probeKV(kv) {
   });
 }
 
-async function archiveOldest(env, now) {
-  const archive = env.JARVIS_ARCHIVE || env.ARCHIVE;
-  if (!archive || typeof archive.put !== "function") return { configured: false, archivedRows: 0 };
-  const rows = await env.DB.prepare("SELECT id,status,metrics_json,checked_at FROM sentinel_health_audit WHERE archived_at IS NULL ORDER BY checked_at ASC LIMIT ?")
-    .bind(MAX_ARCHIVE_ROWS).all();
-  const batch = rows?.results || [];
-  if (!batch.length) return { configured: true, archivedRows: 0 };
-  const first = batch[0].id, last = batch[batch.length - 1].id;
-  const day = now.slice(0, 10);
-  const key = "sentinel/" + day + "/" + first + "-" + last + ".json";
-  await archive.put(key, JSON.stringify({ schemaVersion: 1, archivedAt: now, records: batch.map(row => ({
-    id: row.id, status: row.status, metrics: safeJson(row.metrics_json), checkedAt: row.checked_at
-  })) }), { httpMetadata: { contentType: "application/json" } });
-  const statements = batch.map(row => env.DB.prepare("UPDATE sentinel_health_audit SET archived_at = ? WHERE id = ? AND archived_at IS NULL").bind(now, row.id));
-  if (typeof env.DB.batch === "function") await env.DB.batch(statements);
-  else for (const statement of statements) await statement.run();
-  return { configured: true, archivedRows: batch.length, objectKey: key };
-}
-function safeJson(value) { try { return JSON.parse(value); } catch { return null; } }
-
 export async function runSentinelCycle(env, options = {}) {
   const now = options.now || new Date().toISOString();
   if (!env?.DB || typeof env.DB.prepare !== "function") {
     return { ok: false, status: "blocked", checkedAt: now, error: "D1_BINDING_UNAVAILABLE" };
   }
-  let schemaOk = false;
-  try { await ensureSentinelSchema(env.DB); schemaOk = true; }
+  try { await ensureSentinelSchema(env.DB); }
   catch { return { ok: false, status: "blocked", checkedAt: now, error: "SENTINEL_SCHEMA_UNAVAILABLE" }; }
 
   const [d1, kv] = await Promise.all([probeD1(env.DB), probeKV(env.SESSIONS)]);
@@ -83,17 +62,12 @@ export async function runSentinelCycle(env, options = {}) {
   if (!d1.ok) errors.push({ component: "d1", code: d1.error });
   if (!kv.ok) errors.push({ component: "kv", code: kv.error });
   const metrics = {
-    schemaOk, d1: { ok: d1.ok, latencyMs: d1.latencyMs, ...(d1.ok ? d1.value : { error: d1.error }) },
+    storageMode: "kv-d1-hybrid",
+    schemaOk: true,
+    d1: { ok: d1.ok, latencyMs: d1.latencyMs, ...(d1.ok ? d1.value : { error: d1.error }) },
     kv: { ok: kv.ok, latencyMs: kv.latencyMs, ...(kv.ok ? kv.value : { error: kv.error }) },
-    archive: { configured: Boolean(env.JARVIS_ARCHIVE || env.ARCHIVE), archivedRows: 0 },
     errors
   };
-  let archive = { configured: Boolean(env.JARVIS_ARCHIVE || env.ARCHIVE), archivedRows: 0 };
-  if (d1.ok && (env.JARVIS_ARCHIVE || env.ARCHIVE)) {
-    try { archive = await archiveOldest(env, now); }
-    catch { archive = { configured: true, archivedRows: 0, error: "ARCHIVE_WRITE_FAILED" }; errors.push({ component: "r2", code: "ARCHIVE_WRITE_FAILED" }); }
-  }
-  metrics.archive = archive;
   const status = errors.length ? "degraded" : "healthy";
   const record = { id: crypto.randomUUID(), status, metrics_json: JSON.stringify(metrics), checked_at: now };
   try {
@@ -109,6 +83,9 @@ export async function getSentinelStatus(db, limit = 10) {
   await ensureSentinelSchema(db);
   const result = await db.prepare("SELECT id,status,metrics_json AS metricsJson,checked_at AS checkedAt,archived_at AS archivedAt FROM sentinel_health_audit ORDER BY checked_at DESC LIMIT ?")
     .bind(Math.max(1, Math.min(20, Number(limit) || 10))).all();
-  return (result?.results || []).map(row => ({ id: row.id, status: row.status, checkedAt: row.checkedAt,
-    archivedAt: row.archivedAt || null, metrics: safeJson(row.metricsJson) }));
+  return (result?.results || []).map(row => ({
+    id: row.id, status: row.status, checkedAt: row.checkedAt,
+    archivedAt: row.archivedAt || null, metrics: safeJson(row.metricsJson)
+  }));
 }
+function safeJson(value) { try { return JSON.parse(value); } catch { return null; } }
