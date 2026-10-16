@@ -89,7 +89,7 @@ export async function listGoals(db, limit = 20) {
 /** Records a guarded lifecycle transition. This module never executes goal steps or compensating actions. */
 export async function transitionGoal(env, id, target, details = {}) {
   if (!env.DB || typeof env.DB.batch !== "function") throw new GoalError("GOAL_STORAGE_UNAVAILABLE", 503);
-  if (!/^[0-9a-f-]{36}$/i.test(id || "")) throw new GoalError("INVALID_GOAL_ID");
+  if (typeof id !== "string" || !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id)) throw new GoalError("INVALID_GOAL_ID");
   const transitions = {
     approved: new Set(["running", "cancelled"]),
     running: new Set(["completed", "failed", "rollback_requested", "cancelled"]),
@@ -103,16 +103,29 @@ export async function transitionGoal(env, id, target, details = {}) {
   const row = await env.DB.prepare("SELECT id,status,steps_json AS stepsJson,rollback_json AS rollbackJson,current_step AS currentStep,version FROM goals WHERE id = ?").bind(id).first();
   if (!row) throw new GoalError("GOAL_NOT_FOUND", 404);
   if (!transitions[row.status]?.has(target)) throw new GoalError("INVALID_GOAL_TRANSITION:" + row.status + "_TO_" + target, 409);
+  const steps = JSON.parse(row.stepsJson);
+  if (target === "completed" && (details.completedStepCount !== steps.length || typeof details.evidenceRef !== "string" || !cleanText(details.evidenceRef, 300))) {
+    throw new GoalError("COMPLETION_EVIDENCE_REQUIRED", 403);
+  }
+  if (target === "rolled_back" && (details.compensationVerified !== true || typeof details.evidenceRef !== "string" || !cleanText(details.evidenceRef, 300))) {
+    throw new GoalError("ROLLBACK_EVIDENCE_REQUIRED", 403);
+  }
   const now = new Date().toISOString();
-  const updated = await env.DB.prepare("UPDATE goals SET status = ?, updated_at = ?, error_code = ?, version = version + 1 WHERE id = ? AND status = ? AND version = ?")
-    .bind(target, now, target === "failed" ? cleanText(details.errorCode, 80) || "GOAL_STEP_FAILED" : null, id, row.status, row.version).run();
-  if (!updated?.meta || updated.meta.changes !== 1) throw new GoalError("GOAL_CONCURRENT_UPDATE", 409);
-  await audit(env.DB, id, "status_transition", { from: row.status, to: target, executionPerformed: false }, now).run();
+  const rollback = target === "rollback_requested"
+    ? JSON.stringify(JSON.parse(row.rollbackJson).map(item => ({ ...item, status: "pending_manual_compensation" })))
+    : row.rollbackJson;
+  const errorCode = target === "failed" ? cleanText(details.errorCode, 80) || "GOAL_STEP_FAILED" : null;
+  const results = await env.DB.batch([
+    env.DB.prepare("UPDATE goals SET status = ?, rollback_json = ?, updated_at = ?, error_code = ?, version = version + 1 WHERE id = ? AND status = ? AND version = ?")
+      .bind(target, rollback, now, errorCode, id, row.status, row.version),
+    env.DB.prepare("INSERT INTO goal_audit (id, goal_id, event_type, created_at, details_json) SELECT ?, ?, 'status_transition', ?, ? WHERE EXISTS (SELECT 1 FROM goals WHERE id = ? AND status = ? AND version = ?)")
+      .bind(crypto.randomUUID(), id, now, JSON.stringify({ from: row.status, to: target, executionPerformed: false, evidenceRef: typeof details.evidenceRef === "string" ? cleanText(details.evidenceRef, 300) : null }), id, target, row.version + 1)
+  ]);
+  if (!results?.[0]?.meta || results[0].meta.changes !== 1 || !results?.[1]?.meta || results[1].meta.changes !== 1) {
+    throw new GoalError("GOAL_CONCURRENT_UPDATE_OR_AUDIT_FAILURE", 409);
+  }
   if (target === "rollback_requested") {
-    const rollback = JSON.parse(row.rollbackJson).map(item => ({ ...item, status: "pending_manual_compensation" }));
-    await env.DB.prepare("UPDATE goals SET rollback_json = ?, updated_at = ?, version = version + 1 WHERE id = ?")
-      .bind(JSON.stringify(rollback), now, id).run();
-    return { id, status: target, rollbackPlan: rollback, compensationExecuted: false, message: "Rollback requested; compensating actions are recorded only and require a separately approved executor." };
+    return { id, status: target, rollbackPlan: JSON.parse(rollback), compensationExecuted: false, message: "Rollback requested; compensating actions are recorded only and require a separately approved executor." };
   }
   return { id, status: target, executionPerformed: false, message: "Lifecycle state updated; no external action was executed." };
 }
