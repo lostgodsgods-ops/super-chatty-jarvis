@@ -7,6 +7,10 @@ on:
       - main
     paths:
       - "central-agent/**"
+      - "jarvis/**"
+      - "src/worker.mjs"
+      - "central-agent/wrangler.jsonc"
+      - ".github/workflows/deploy-central-agent.yml"
 
 permissions:
   contents: read
