@@ -21,8 +21,9 @@ function memoryDb() {
         },
         async all() {
           if (sql.includes("FROM conversation_memory")) {
-            const owner = values[0], session = values[1], type = values[2];
-            return { results: [...rows.values()].filter(row => row.owner_scope === owner && row.session_id === session && (!type || row.memory_type === type)).map(row => ({ ...row })) };
+            const owner = values[0], session = sql.includes("AND session_id = ?") ? values[1] : null;
+            const type = sql.includes("AND memory_type = ?") ? values[2] : null;
+            return { results: [...rows.values()].filter(row => row.owner_scope === owner && (!session || row.session_id === session) && (!type || row.memory_type === type)).map(row => ({ ...row })) };
           }
           return { results: [] };
         }
@@ -52,7 +53,7 @@ test("memory bridge persists and retrieves owner conversation state", async () =
     state: { commandHistory: [{ command: "test", capturedAt: "2026-10-16T00:00:00.000Z" }], lastCommand: "test" }
   }), envFor(db));
   assert.equal(saved.status, 200);
-  assert.equal((await saved.json()).saved, true);
+  assert.equal((await saved.json()).ok, true);
   const restored = await worker.fetch(request("/api/memory", "GET", "valid-session"), envFor(db));
   const payload = await restored.json();
   assert.equal(restored.status, 200);
