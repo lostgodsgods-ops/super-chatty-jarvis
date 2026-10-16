@@ -5,6 +5,8 @@ import vm from "node:vm";
 
 const html = await readFile(new URL("../index.html", import.meta.url), "utf8");
 const jarvisHtml = await readFile(new URL("../jarvis/index.html", import.meta.url), "utf8");
+const serviceWorker = await readFile(new URL("../jarvis/sw.js", import.meta.url), "utf8");
+const centralWorker = await readFile(new URL("../central-agent/worker.mjs", import.meta.url), "utf8");
 const readme = await readFile(new URL("../README_HI.txt", import.meta.url), "utf8");
 const agentBrief = await readFile(new URL("../AI_AGENT_PROMPT.md", import.meta.url), "utf8");
 const deployWorkflow = await readFile(
@@ -94,6 +96,20 @@ test("NEXUS agent HUD is live-wired to the production SSE event bus", () => {
   assert.match(jarvisHtml, /updateAgentHud\("message", event\.data, event\.lastEventId\)/);
   assert.match(jarvisHtml, /security\.request\.denied/);
   assert.match(jarvisHtml, /parsed\.payload && typeof parsed\.payload==="object"/);
+});
+
+
+test("installed PWA force-updates stale shells and revalidates HTML assets", () => {
+  assert.match(serviceWorker, /CACHE_NAME\s*=\s*"super-chatty-jarvis-shell-v3"/, "shell cache must be version-bumped");
+  assert.match(serviceWorker, /self\.skipWaiting\(\)/, "new worker must activate without waiting for an old tab to close");
+  assert.match(serviceWorker, /self\.clients\.claim\(\)/, "new worker must claim open PWA clients");
+  assert.match(serviceWorker, /key !== CACHE_NAME.*caches\.delete\(key\)/s, "activation must delete older Super Chatty shell caches");
+  assert.match(serviceWorker, /fetch\(new Request\(request,\s*\{cache:\s*"no-store"\}\)\)/, "navigation must bypass stale browser HTTP cache");
+  assert.match(jarvisHtml, /application-version" content="NEXUS-2026\.10\.17"/, "frontend version must be bumped");
+  assert.match(jarvisHtml, /registration\.update\(\)/, "PWA must check for worker updates");
+  assert.match(jarvisHtml, /controllerchange/, "active sessions must detect the new worker controller");
+  assert.match(jarvisHtml, /location\.reload\(\)/, "active sessions must reload after a worker update");
+  assert.match(centralWorker, /headers\.set\("cache-control",\s*"no-cache, must-revalidate"\)/, "Worker must force revalidation for PWA HTML and update assets");
 });
 
 test("NEXUS PWA preserves owner-only telemetry and adds safe local visual intake", () => {
