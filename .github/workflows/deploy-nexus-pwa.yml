@@ -1,4 +1,4 @@
-name: Deploy NEXUS PWA
+name: Verify NEXUS PWA (Worker ASSETS)
 
 on:
   push:
@@ -8,14 +8,19 @@ on:
       - "jarvis/**"
       - "tests/static-site.test.mjs"
       - ".github/workflows/deploy-nexus-pwa.yml"
+      - "wrangler.jsonc"
   workflow_dispatch:
 
 permissions:
   contents: read
 
+concurrency:
+  group: nexus-pwa-worker-assets-verification
+  cancel-in-progress: false
+
 jobs:
-  deploy:
-    name: Test and deploy NEXUS static PWA
+  verify:
+    name: Test NEXUS PWA served by production Worker
     runs-on: ubuntu-latest
     steps:
       - name: Check out repository
@@ -29,37 +34,41 @@ jobs:
       - name: Run repository tests
         run: npm test
 
-      - name: Require Cloudflare deployment token
+      - name: Verify production Worker serves NEXUS assets
         shell: bash
         env:
-          CLOUDFLARE_PAGES_API_TOKEN: ${{ secrets.CLOUDFLARE_PAGES_API_TOKEN }}
+          PWA_URL: https://shrill-silence-164f.lostgodsgods.workers.dev
         run: |
-          if [[ -z "$CLOUDFLARE_PAGES_API_TOKEN" ]]; then
-            echo "::error::Deployment blocked: add repository Actions secret CLOUDFLARE_PAGES_API_TOKEN with Pages Edit permission."
-            exit 1
-          fi
+          set -euo pipefail
+          tmp="$(mktemp -d)"
+          trap 'rm -rf "$tmp"' EXIT
 
-      - name: Normalize deployment token
-        id: deployment-credentials
-        shell: bash
-        env:
-          CLOUDFLARE_PAGES_API_TOKEN: ${{ secrets.CLOUDFLARE_PAGES_API_TOKEN }}
-        run: |
-          token="$(printf '%s' "$CLOUDFLARE_PAGES_API_TOKEN" | tr -d '\r' | sed 's/^[[:space:]]*//; s/[[:space:]]*$//')"
-          if [[ "$token" =~ ^[Bb][Ee][Aa][Rr][Ee][Rr][[:space:]]+ ]]; then
-            token="$(printf '%s' "$token" | sed -E 's/^[Bb][Ee][Aa][Rr][Ee][Rr][[:space:]]+//')"
-          fi
-          if [[ -z "$token" || "$token" =~ [[:space:]] ]]; then
-            echo "::error::CLOUDFLARE_PAGES_API_TOKEN must be a raw Pages-enabled Cloudflare API token without internal whitespace."
-            exit 1
-          fi
-          echo "::add-mask::$token"
-          printf 'api_token=%s\n' "$token" >> "$GITHUB_OUTPUT"
+          fetch_asset() {
+            local path="$1" output="$2" headers="$3" expected_type="$4"
+            local status content_type
+            status="$(curl --silent --show-error --location --max-redirs 4 --max-time 20 -D "$headers" -o "$output" -w '%{http_code}' "$PWA_URL$path")"
+            test "$status" = "200" || { echo "::error::GET $path returned HTTP $status"; exit 1; }
+            content_type="$(awk 'BEGIN{IGNORECASE=1} /^content-type:/ {gsub("\\r",""); value=tolower($0)} END{print value}' "$headers" | tail -n 1)"
+            case "$content_type" in
+              *"$expected_type"*) ;;
+              *) echo "::error::GET $path had unexpected Content-Type: $content_type"; exit 1 ;;
+            esac
+          }
 
-      - name: Deploy static PWA to Cloudflare Pages
-        uses: cloudflare/wrangler-action@v3
-        with:
-          apiToken: ${{ steps.deployment-credentials.outputs.api_token }}
-          accountId: "6c0d1ab7b0d730f94359a89a77a0dcf2"
-          wranglerVersion: "4.149.0"
-          command: pages deploy jarvis --project-name super-chatty-jarvis-nexus --branch main
+          fetch_asset "/" "$tmp/index.html" "$tmp/root.headers" "text/html"
+          grep -Fq 'Super Chatty Jarvis · Neural Console' "$tmp/index.html"
+
+          fetch_asset "/sw.js" "$tmp/sw-root.js" "$tmp/sw-root.headers" "javascript"
+          grep -Fq 'super-chatty-jarvis-shell-v1' "$tmp/sw-root.js"
+
+          fetch_asset "/jarvis/sw.js" "$tmp/sw-subpath.js" "$tmp/sw-subpath.headers" "javascript"
+          grep -Fq 'super-chatty-jarvis-shell-v1' "$tmp/sw-subpath.js"
+
+          fetch_asset "/manifest.webmanifest" "$tmp/manifest.json" "$tmp/manifest.headers" "application/manifest+json"
+          node -e 'const m=require(process.argv[1]); if(m.name!=="Super Chatty Jarvis"||m.scope!=="./") throw Error("PWA manifest identity/scope mismatch");' "$tmp/manifest.json"
+
+          code="$(curl --silent --show-error --max-time 15 -o "$tmp/health.json" -w '%{http_code}' "$PWA_URL/health")"
+          test "$code" = "200" || { echo "::error::/health returned HTTP $code"; exit 1; }
+          node -e 'const h=require(process.argv[1]); if(h.ok!==true) throw Error("Worker health is not ok");' "$tmp/health.json"
+
+          echo '{"ok":true,"deploymentMode":"Worker ASSETS binding","rootHTML":"PASS","serviceWorker":"PASS","manifest":"PASS","health":"PASS"}'
