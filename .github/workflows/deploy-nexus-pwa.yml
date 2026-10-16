@@ -1,0 +1,48 @@
+name: Deploy NEXUS PWA
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "jarvis/**"
+      - "tests/static-site.test.mjs"
+      - ".github/workflows/deploy-nexus-pwa.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    name: Test and deploy NEXUS static PWA
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v5
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: "22"
+
+      - name: Run repository tests
+        run: npm test
+
+      - name: Require Cloudflare deployment token
+        shell: bash
+        env:
+          CLOUDFLARE_API_TOKEN: \${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: |
+          if [[ -z "$CLOUDFLARE_API_TOKEN" ]]; then
+            echo "::error::Deployment blocked: add Actions secret CLOUDFLARE_API_TOKEN."
+            exit 1
+          fi
+
+      - name: Deploy static PWA to Cloudflare Pages
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: \${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: "6c0d1ab7b0d730f94359a89a77a0dcf2"
+          wranglerVersion: "4.149.0"
+          command: pages deploy jarvis --project-name super-chatty-jarvis-nexus --branch main
