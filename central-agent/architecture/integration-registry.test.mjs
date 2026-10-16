@@ -84,3 +84,25 @@ test("missing vector credentials fail closed", async () => {
     record: { id: "smoke", values: [1] }
   }), e => e instanceof IntegrationError && e.code.startsWith("MISSING_CONFIGURATION:"));
 });
+
+
+test("Qdrant sends unsigned integer point IDs as JSON numbers", async () => {
+  const calls = [];
+  const result = await vectorUpsertQueryReadback("qdrant", {
+    QDRANT_URL: "https://qdrant.example", QDRANT_API_KEY: "test-key", QDRANT_COLLECTION: "memory"
+  }, { record: { id: "42", values: [0.1, 0.2] } }, async (url, init) => {
+    const body = JSON.parse(init.body);
+    calls.push({ url: String(url), body });
+    if (String(url).includes("/points?wait=true")) {
+      assert.equal(typeof body.points[0].id, "number");
+      return json({ result: { status: "completed" } });
+    }
+    if (String(url).endsWith("/points/retrieve")) {
+      assert.equal(typeof body.ids[0], "number");
+      return json({ result: [{ id: 42, vector: [0.1, 0.2] }] });
+    }
+    throw new Error("Unexpected endpoint");
+  });
+  assert.equal(result.readback, "PASS");
+  assert.equal(calls.length, 2);
+});
