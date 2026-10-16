@@ -224,6 +224,25 @@ jobs:
           console.log(JSON.stringify({ memoryBridge: "PASS", writeConfirmed: write.ok, readBackConfirmed: true }));
           NODE
 
+          node -e 'process.stdout.write(JSON.stringify({role:"testing",input:"Review a simple JSON API handler for input validation. Return a concise test plan; do not execute external actions."}))' > "$tmp/agent-request.json"
+          agent_code="$(curl --silent --show-error --max-time 25 -H "Authorization: Bearer $token" \
+            -H 'content-type: application/json' --data-binary "@$tmp/agent-request.json" \
+            -o "$tmp/agent-response.json" -w '%{http_code}' -X POST "$CENTRAL_AGENT_URL/agents")"
+          test "$agent_code" = "200" || { echo "::error::Agent runner returned HTTP $agent_code"; cat "$tmp/agent-response.json"; exit 1; }
+          agent_id="$(node -e 'const x=require(process.argv[1]); if(x.ok!==true||!x.outcomes?.[0]?.id||x.outcomes[0].status!=="completed") process.exit(1); process.stdout.write(x.outcomes[0].id)' "$tmp/agent-response.json")"
+          agent_session="agent-run-$agent_id"
+          agent_memory_code="$(curl --silent --show-error --max-time 20 -H "Authorization: Bearer $token" \
+            -o "$tmp/agent-memory.json" -w '%{http_code}' "$CENTRAL_AGENT_URL/api/memory?session_id=$agent_session")"
+          test "$agent_memory_code" = "200" || { echo "::error::Agent memory read failed: HTTP $agent_memory_code"; exit 1; }
+          node - "$tmp/agent-response.json" "$tmp/agent-memory.json" <<'NODE'
+          const fs = require("node:fs");
+          const run = JSON.parse(fs.readFileSync(process.argv[2], "utf8")).outcomes[0];
+          const memory = JSON.parse(fs.readFileSync(process.argv[3], "utf8"));
+          const saved = (memory.memories || []).find(item => item.memory_type === "agent_run" && item.state?.runId === run.id);
+          if (run.status !== "completed" || !saved) throw new Error("Dynamic agent run or durable memory verification failed.");
+          console.log(JSON.stringify({ dynamicAgent: "PASS", role: run.role, runId: run.id, durableMemory: "PASS" }));
+          NODE
+
           curl --silent --show-error --retry 2 --retry-all-errors --retry-delay 1 --max-time 20 \
             -X POST -H "Authorization: Bearer $token" -o /dev/null "$CENTRAL_AGENT_URL/auth/logout" || true
 
