@@ -46,7 +46,8 @@ test("sentinel fails visibly when KV probe is unavailable and does not claim hea
 });
 test("sentinel persists successive audit records in D1 without any archive binding", async()=>{
   const DB=new FakeDB(), SESSIONS=new FakeKV();
-  const first=await runSentinelCycle({DB,SESSIONS,JARVIS_ARCHIVE:{put(){throw new Error("must not be called")}},ARCHIVE:{put(){throw new Error("must not be called")}},{now:"2026-10-17T00:00:00.000Z"});
+  const unusedArchive={async put(){throw new Error("R2 binding must never be called")}};
+  const first=await runSentinelCycle({DB,SESSIONS,JARVIS_ARCHIVE:unusedArchive,ARCHIVE:unusedArchive},{now:"2026-10-17T00:00:00.000Z"});
   const second=await runSentinelCycle({DB,SESSIONS},{now:"2026-10-17T00:15:00.000Z"});
   assert.equal(first.ok,true); assert.equal(second.ok,true);
   assert.equal(DB.health.length,2);
