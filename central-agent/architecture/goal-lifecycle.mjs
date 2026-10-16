@@ -8,7 +8,7 @@ export class GoalError extends Error {
 }
 
 function cleanText(value, max) {
-  return typeof value === "string" ? value.replace(/[\\u0000-\\u001f\\u007f]/g, " ").replace(/\\s+/g, " ").trim().slice(0, max) : "";
+  return typeof value === "string" ? value.replace(/[\u0000-\u001f\u007f]/g, " ").replace(/\s+/g, " ").trim().slice(0, max) : "";
 }
 
 export function normalizeGoalPlan(input) {
