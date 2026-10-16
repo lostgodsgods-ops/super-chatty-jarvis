@@ -1,11 +1,11 @@
 "use strict";
-const CACHE_NAME = "super-chatty-jarvis-shell-v2";
+const CACHE_NAME = "super-chatty-jarvis-shell-v3";
 const SHELL = ["./", "./index.html", "./manifest.webmanifest", "./icon.svg"];
 self.addEventListener("install", (event) => {
   event.waitUntil((async () => {
     try {
       const cache = await caches.open(CACHE_NAME);
-      await cache.addAll(SHELL);
+      await cache.addAll(SHELL.map((path) => new Request(path, { cache: "reload" })));
     } catch (error) {
       // A failed optional cache must not prevent the service worker from installing.
     }
@@ -27,7 +27,7 @@ self.addEventListener("fetch", (event) => {
   if (request.mode === "navigate") {
     event.respondWith((async () => {
       try {
-        const response = await fetch(request);
+        const response = await fetch(new Request(request, { cache: "no-store" }));
         if (response.ok) {
           const cache = await caches.open(CACHE_NAME);
           cache.put("./index.html", response.clone()).catch(() => {});
@@ -36,6 +36,16 @@ self.addEventListener("fetch", (event) => {
       } catch {
         return (await caches.match(request)) || (await caches.match("./index.html")) || Response.error();
       }
+    })());
+    return;
+  }
+  if (url.pathname.endsWith("/sw.js") || url.pathname.endsWith("/manifest.webmanifest") || url.pathname.endsWith("/index.html")) {
+    event.respondWith((async () => {
+      try {
+        const response = await fetch(new Request(request, { cache: "no-store" }));
+        if (response.ok) return response;
+      } catch {}
+      return (await caches.match(request)) || Response.error();
     })());
     return;
   }
