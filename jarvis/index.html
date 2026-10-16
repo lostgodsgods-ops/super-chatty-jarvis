@@ -25,6 +25,39 @@
 @keyframes rotate{to{transform:rotate(360deg)}}@keyframes micPulse{0%,100%{box-shadow:0 0 0 0 #ff827a44}50%{box-shadow:0 0 0 9px #ff827a00}}@keyframes breathe{0%,100%{opacity:.65}50%{opacity:1}}@media(prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;scroll-behavior:auto!important}}
 @media(max-width:760px){.shell{padding-top:9px}.topbar{align-items:flex-start;flex-direction:column}.telemetry{justify-content:flex-start}.grid{grid-template-columns:1fr}.core-panel{min-height:420px}.core-wrap{width:min(70vw,270px);margin:15px auto}.side{display:grid;grid-template-columns:1fr}.terminal-panel{min-height:245px}.terminal{max-height:250px}.commandbar{gap:8px;padding:8px}.mic{width:48px;height:48px;flex-basis:48px}.send{padding:11px 10px}.mini-metrics{gap:17px}.dashboard-grid{grid-template-columns:1fr}.dashboard-grid .panel[style*="grid-column"]{grid-column:auto!important}.media-grid{grid-template-columns:1fr}.media-stage{min-height:135px}.brandname{letter-spacing:.06em}.db-stat{padding:11px 8px}.db-stat span{letter-spacing:.05em}}
 @media(min-width:761px) and (max-width:1000px){.grid{grid-template-columns:minmax(0,1fr) minmax(260px,.85fr)}.core-wrap{width:min(35vw,290px)}}
+
+/* Live agent HUD enhancement */
+.agent-army{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;margin:16px 0}
+.agent-hud{position:relative;min-width:0;overflow:hidden;padding:17px;border:1px solid rgba(83,232,255,.23);border-radius:18px;background:linear-gradient(145deg,rgba(12,38,55,.88),rgba(5,17,28,.78));box-shadow:inset 0 1px rgba(255,255,255,.035),0 12px 34px rgba(0,0,0,.2);backdrop-filter:blur(15px);-webkit-backdrop-filter:blur(15px)}
+.agent-hud:after{content:"";position:absolute;right:-34px;bottom:-48px;width:120px;height:100px;border-radius:50%;background:rgba(83,232,255,.08);filter:blur(22px);pointer-events:none}
+.agent-hud-head{display:flex;align-items:flex-start;justify-content:space-between;gap:8px}
+.agent-hud h2{margin:0;font-size:13px;letter-spacing:.02em}
+.agent-hud-sub{margin:5px 0 0;color:var(--muted);font-size:10px}
+.agent-hud-status{display:inline-flex;align-items:center;gap:6px;color:var(--amber);font-size:9px;font-weight:800;letter-spacing:.08em;white-space:nowrap}
+.agent-hud-status .agent-dot{width:7px;height:7px;border-radius:50%;background:var(--amber);box-shadow:0 0 10px currentColor}
+.agent-hud-status.live{color:var(--green)}.agent-hud-status.live .agent-dot{background:var(--green)}
+.agent-hud-status.alert{color:var(--red)}.agent-hud-status.alert .agent-dot{background:var(--red)}
+.agent-hud-metric{display:flex;align-items:baseline;gap:8px;margin-top:17px}
+.agent-hud-metric strong{font-size:25px;letter-spacing:-.04em}
+.agent-hud-metric span{color:var(--muted);font-size:10px}
+.agent-hud-track{height:4px;margin-top:10px;overflow:hidden;border-radius:8px;background:rgba(140,190,210,.12)}
+.agent-hud-fill{height:100%;width:8%;background:var(--cyan);transition:width .35s ease}
+.agent-hud-fill.amber{background:var(--amber)}.agent-hud-fill.green{background:var(--green)}
+.agent-hud-detail{position:relative;z-index:1;min-height:31px;margin:10px 0 0;color:#b7d0dc;font-size:10px;line-height:1.5;overflow-wrap:anywhere}
+.agent-hud-controls{display:flex;flex-wrap:wrap;gap:7px;margin-top:12px}
+.agent-hud-controls button{min-height:32px;padding:6px 9px;border-radius:9px;font-size:9px;letter-spacing:.06em}
+#coreWrap[data-reactor-state="IDLE"]{--reactor-color:#53e8ff}
+#coreWrap[data-reactor-state="PROCESSING"]{--reactor-color:#ffbd67}
+#coreWrap[data-reactor-state="EXECUTING"]{--reactor-color:#348bff}
+#coreWrap[data-reactor-state="ALERT"]{--reactor-color:#ff526e}
+#coreWrap[data-reactor-state] .ring{border-color:var(--reactor-color);box-shadow:0 0 18px color-mix(in srgb,var(--reactor-color),transparent 52%)}
+#coreWrap[data-reactor-state="PROCESSING"] .ring{animation-duration:2.2s}
+#coreWrap[data-reactor-state="EXECUTING"] .ring{animation-duration:3s}
+#coreWrap[data-reactor-state="ALERT"] .ring{animation-duration:1.1s}
+#coreWrap[data-reactor-state="ALERT"]{filter:drop-shadow(0 0 15px rgba(255,82,110,.2))}
+@media(max-width:760px){.agent-army{grid-template-columns:1fr}.agent-hud{padding:15px}.agent-hud-head{align-items:center}}
+@media(prefers-reduced-motion:reduce){#coreWrap[data-reactor-state] .ring{animation-duration:.01ms!important}}
+
 </style>
 </head>
 <body>
@@ -74,6 +107,28 @@
         </section>
       </aside>
     </div>
+
+
+  <section class="agent-army" aria-label="Live agent army HUD">
+    <article class="agent-hud">
+      <div class="agent-hud-head"><div><h2>Code Mutator Agent</h2><p class="agent-hud-sub">Commit and deployment telemetry</p></div><span class="agent-hud-status" id="hudCodeStatus"><i class="agent-dot"></i>AWAITING EVENTS</span></div>
+      <div class="agent-hud-metric"><strong id="hudCommitCount">0</strong><span>repository events</span></div>
+      <div class="agent-hud-track"><div class="agent-hud-fill" id="hudCodeFill"></div></div>
+      <p class="agent-hud-detail" id="hudCodeDetail">Waiting for a real commit, push, pull request or deployment event.</p>
+    </article>
+    <article class="agent-hud">
+      <div class="agent-hud-head"><div><h2>Tavily Global Scraper</h2><p class="agent-hud-sub">Search and research activity</p></div><span class="agent-hud-status" id="hudSearchStatus"><i class="agent-dot"></i>AWAITING EVENTS</span></div>
+      <div class="agent-hud-metric"><strong id="hudSearchCount">0</strong><span>research events</span></div>
+      <div class="agent-hud-track"><div class="agent-hud-fill amber" id="hudSearchFill"></div></div>
+      <p class="agent-hud-detail" id="hudSearchDetail">No live search telemetry received. This panel does not fabricate search activity.</p>
+    </article>
+    <article class="agent-hud">
+      <div class="agent-hud-head"><div><h2>24/7 Sentinel Grid</h2><p class="agent-hud-sub">Reported health and security</p></div><span class="agent-hud-status" id="hudSentinelStatus"><i class="agent-dot"></i>UNVERIFIED</span></div>
+      <div class="agent-hud-metric"><strong id="hudHealthValue">UNKNOWN</strong><span>backend-reported state</span></div>
+      <div class="agent-hud-track"><div class="agent-hud-fill green" id="hudSentinelFill"></div></div>
+      <p class="agent-hud-detail" id="hudSentinelDetail">Security status remains unverified until a real health or audit event arrives.</p>
+    </article>
+  </section>
 
   <section class="dashboard-grid" aria-label="Live system dashboard">
     <section class="panel dashboard-panel" aria-labelledby="telemetryTitle">
@@ -457,6 +512,85 @@
           } catch {}
           log(payload,"info","BACKEND");
         };
+
+    // Live agent HUD: update only from received SSE data or explicit local state controls.
+    const hudState = { commits:0, searches:0, lastEventId:"" };
+    function hudStatus(id, label, mode="pending") {
+      const el=$(id); if(!el) return;
+      el.className="agent-hud-status"+(mode==="live"?" live":mode==="alert"?" alert":"");
+      el.replaceChildren();
+      const dot=document.createElement("i"); dot.className="agent-dot";
+      el.append(dot,document.createTextNode(label));
+    }
+    function hudText(value, limit=260) {
+      if(value===undefined||value===null) return "";
+      if(typeof value==="string") return value.slice(0,limit);
+      try{return JSON.stringify(value).slice(0,limit)}catch{return "[unavailable]"}
+    }
+    function hudPayload(raw) {
+      try { const p=JSON.parse(raw); return p&&typeof p==="object"?p:{message:String(p)}; }
+      catch { return {message:String(raw||"")}; }
+    }
+    function updateAgentHud(eventType, raw, eventId="") {
+      const p=hudPayload(raw), type=String(p.type||p.event_type||p.event||eventType||"message").toLowerCase();
+      const message=hudText(p.message||p.summary||p.description||p.status||raw||type);
+      const id=eventId||p.id||p.event_id||"";
+      if(id) hudState.lastEventId=hudText(id,160);
+      if(/commit|push|deploy|pull_request|repository|code_mutat|workflow/.test(type)) {
+        hudState.commits++;
+        $("hudCommitCount").textContent=String(hudState.commits);
+        $("hudCodeFill").style.width=Math.min(100,12+hudState.commits*9)+"%";
+        $("hudCodeDetail").textContent=hudText(p.sha||p.commit||p.repository||message);
+        hudStatus("hudCodeStatus","LIVE EVENT","live");
+      }
+      if(/tavily|search|scrape|research|crawl|source_result/.test(type)) {
+        hudState.searches++;
+        $("hudSearchCount").textContent=String(hudState.searches);
+        $("hudSearchFill").style.width=Math.min(100,12+hudState.searches*9)+"%";
+        $("hudSearchDetail").textContent=hudText(p.query||p.url||p.source||message);
+        hudStatus("hudSearchStatus","LIVE EVENT","live");
+      }
+      if(/sentinel|security|health|heartbeat|audit/.test(type)) {
+        const health=String(p.health||p.security_status||p.status||"").toUpperCase();
+        if(/^(OK|HEALTHY|PASS|SECURE)$/.test(health)) {
+          $("hudHealthValue").textContent=health;
+          $("hudSentinelFill").style.width="100%";
+          $("hudSentinelDetail").textContent=message;
+          hudStatus("hudSentinelStatus","REPORTED HEALTHY","live");
+        } else if(/^(FAIL|ERROR|UNHEALTHY|BLOCKED|CRITICAL)$/.test(health)) {
+          $("hudHealthValue").textContent=health;
+          $("hudSentinelFill").style.width="18%";
+          $("hudSentinelDetail").textContent=message;
+          hudStatus("hudSentinelStatus","REPORTED ALERT","alert");
+          setHudReactor("ALERT","Backend reports security/health alert");
+        } else {
+          $("hudSentinelDetail").textContent=message;
+          hudStatus("hudSentinelStatus","EVENT RECEIVED","pending");
+        }
+      }
+      if(/reactor\.state|system\.state/.test(type)) setHudReactor(p.state||p.value||p.status||"IDLE",message);
+      else if(/task\.started|agent\.started|processing/.test(type)) setHudReactor("PROCESSING",message);
+      else if(/task\.executing|task\.completed|agent\.executing/.test(type)) setHudReactor("EXECUTING",message);
+      else if(/fatal|security_fail|critical_alert/.test(type)) setHudReactor("ALERT",message);
+    }
+    function setHudReactor(value, detail) {
+      const stateName=String(value||"IDLE").toUpperCase();
+      if(!["IDLE","PROCESSING","EXECUTING","ALERT"].includes(stateName)) return;
+      const coreWrap=$("coreWrap");
+      if(coreWrap) coreWrap.dataset.reactorState=stateName;
+      const labels={
+        IDLE:"Standby · awaiting an authorized task",
+        PROCESSING:"Processing · analyzing incoming information",
+        EXECUTING:"Executing · backend-reported task activity",
+        ALERT:"Alert · inspect event stream and security telemetry"
+      };
+      setCoreState(labels[stateName]);
+      if(detail) log("Reactor state: "+stateName+" · "+hudText(detail,180),stateName==="ALERT"?"error":"info","AGENT HUD");
+    }
+    document.querySelectorAll("[data-hud-state]").forEach(button=>button.addEventListener("click",()=>{
+      setHudReactor(button.dataset.hudState,"Manual visual preview only; no task was executed.");
+    }));
+
         ["log","deploy","ci","status"].forEach((name) => state.events.addEventListener(name, (event) => {
           let payload = event.data;
           try { const parsed = JSON.parse(event.data); payload = parsed.message || parsed.log || parsed.status || JSON.stringify(parsed); } catch {}
