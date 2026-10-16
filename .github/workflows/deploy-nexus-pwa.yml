@@ -32,7 +32,7 @@ jobs:
       - name: Require Cloudflare deployment token
         shell: bash
         env:
-          CLOUDFLARE_API_TOKEN: \${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
         run: |
           if [[ -z "$CLOUDFLARE_API_TOKEN" ]]; then
             echo "::error::Deployment blocked: add Actions secret CLOUDFLARE_API_TOKEN."
@@ -43,7 +43,7 @@ jobs:
         id: deployment-credentials
         shell: bash
         env:
-          CLOUDFLARE_API_TOKEN: \${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
         run: |
           token="$(printf '%s' "$CLOUDFLARE_API_TOKEN" | tr -d '\r' | sed 's/^[[:space:]]*//; s/[[:space:]]*$//')"
           if [[ "$token" =~ ^[Bb][Ee][Aa][Rr][Ee][Rr][[:space:]]+ ]]; then
@@ -59,7 +59,7 @@ jobs:
       - name: Deploy static PWA to Cloudflare Pages
         uses: cloudflare/wrangler-action@v3
         with:
-          apiToken: \${{ secrets.CLOUDFLARE_API_TOKEN }}
+          apiToken: ${{ steps.deployment-credentials.outputs.api_token }}
           accountId: "6c0d1ab7b0d730f94359a89a77a0dcf2"
           wranglerVersion: "4.149.0"
           command: pages deploy jarvis --project-name super-chatty-jarvis-nexus --branch main
