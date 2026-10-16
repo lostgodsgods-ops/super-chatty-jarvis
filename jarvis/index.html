@@ -94,6 +94,47 @@
         </section>
       </aside>
     </div>
+
+  <section class="dashboard-grid" aria-label="Live system dashboard">
+    <section class="panel dashboard-panel" aria-labelledby="telemetryTitle">
+      <div class="panel-head"><div class="panel-title" id="telemetryTitle">Live telemetry / D1 health</div><button class="tiny-btn" id="refreshTelemetry" type="button">Refresh</button></div>
+      <div class="panel-body">
+        <div class="db-stats" aria-label="Database record counts">
+          <div class="db-stat"><strong id="auditCount">—</strong><span>Audit runs</span></div>
+          <div class="db-stat"><strong id="observationCount">—</strong><span>Observations</span></div>
+          <div class="db-stat"><strong id="signalCount">—</strong><span>Signals</span></div>
+        </div>
+        <div class="run-summary"><strong id="lastRunStatus">Owner sign-in required</strong><span id="lastRunMeta">Telemetry is private.</span></div>
+        <div class="section-label" style="margin:12px 0 9px">Research agent activity</div>
+        <div class="research-feed" id="researchFeed" role="log" aria-live="polite"><div class="feed-item"><i class="feed-dot"></i><div><div class="feed-title">Telemetry locked</div><div class="feed-meta">Sign in with the owner password to load real D1 data.</div></div></div></div>
+        <p class="dashboard-note">Counts and activity are loaded from the authenticated Worker endpoint. No sample telemetry is presented as live data.</p>
+      </div>
+    </section>
+    <section class="panel dashboard-panel" aria-labelledby="ownerTitle">
+      <div class="panel-head"><div class="panel-title" id="ownerTitle">Owner security / session</div><span class="status warn" id="ownerBadge"><i class="dot"></i><span>LOCKED</span></span></div>
+      <div class="panel-body">
+        <form id="ownerLoginForm" class="owner-grid">
+          <label class="field-label" for="ownerPassword">Owner password</label>
+          <input class="text-input" id="ownerPassword" type="password" autocomplete="current-password" minlength="12" maxlength="256" placeholder="Enter owner password" required>
+          <div class="owner-actions"><button class="action-btn" id="ownerLogin" type="submit">Verify session</button><button class="action-btn secondary" id="ownerLogout" type="button" disabled>Sign out</button></div>
+        </form>
+        <div class="owner-status warn" id="ownerSessionStatus" role="status" aria-live="polite">Locked. Session tokens are held in page memory only and cleared on sign-out or reload.</div>
+        <p class="dashboard-note">This is the existing owner-password session, not a WebAuthn passkey. No secret is embedded in the PWA or stored in browser storage.</p>
+      </div>
+    </section>
+    <section class="panel dashboard-panel" aria-labelledby="factSearchTitle" style="grid-column:1/-1">
+      <div class="panel-head"><div class="panel-title" id="factSearchTitle">Live knowledge / evidence lookup</div><span class="status warn" id="researchSearchStatus"><i class="dot"></i><span>OWNER SESSION REQUIRED</span></span></div>
+      <div class="panel-body">
+        <form id="factSearchForm">
+          <label class="field-label" for="factQuery">Research question</label>
+          <input class="text-input" id="factQuery" type="search" maxlength="400" placeholder="e.g. Kamala Hydro Electric Project 1720 MW CCEA approval" required>
+          <div class="owner-actions"><button class="action-btn" id="researchSearchBtn" type="submit" disabled>Search evidence</button></div>
+        </form>
+        <div class="research-results" id="sourceResults" aria-live="polite"><div class="feed-item"><i class="feed-dot"></i><div><div class="feed-title">No search performed</div><div class="feed-meta">Sign in first. Results include source links and evidence excerpts; search results alone are not proof.</div></div></div></div>
+        <p class="dashboard-note">Rate limits are retried a bounded number of times. If the provider remains unavailable, the interface shows an error instead of inventing a result.</p>
+      </div>
+    </section>
+  </section>
   </main>
 
   <section class="commandbar" aria-label="Voice command">
