@@ -34,7 +34,7 @@ test("memory bridge rejects unauthenticated requests before reading or writing D
   assert.equal(databaseTouched, false);
 });
 
-test("unknown routes return a safe not-found response", async () => {
+test("unknown routes fail closed when Owner authentication storage is unavailable", async () => {
   const response = await worker.fetch(new Request("https://example.test/unknown"), {});
-  assert.equal(response.status, 404);
+  assert.equal(response.status, 503);
 });
