@@ -2,11 +2,16 @@
   "name": "super-chatty-jarvis-public-site",
   "version": "0.1.0",
   "private": true,
-  "description": "Static project profile and safety smoke tests for Super Chatty Jarvis",
+  "description": "Static project profile and staging passkey security tests for Super Chatty Jarvis",
   "scripts": {
-    "test": "node --test"
+    "test": "node --test",
+    "test:passkey": "node --test test/passkey-security.test.mjs",
+    "check:passkey-worker": "node --check staging/worker.mjs"
+  },
+  "dependencies": {
+    "@simplewebauthn/server": "14.0.3"
   },
   "engines": {
-    "node": ">=20"
+    "node": ">=22"
   }
 }
