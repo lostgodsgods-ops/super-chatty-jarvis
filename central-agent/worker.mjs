@@ -646,7 +646,10 @@ export default {
     const gatewayChatRoute = request.method === "POST" && (url.pathname === "/chat" || url.pathname === "/internal/chat");
     const memoryBridgeRoute = url.pathname === "/api/memory";
     if (!gatewayChatRoute && !memoryBridgeRoute && (!env.DB || !env.SESSIONS)) return json({ error: "Owner authentication storage is not configured." }, 503, cors);
-    if (!gatewayChatRoute && !memoryBridgeRoute && !(await authorized(request, env))) return json({ error: "Unauthorized. Sign in with your Owner password." }, 401, cors);
+    if (!gatewayChatRoute && !memoryBridgeRoute && !(await authorized(request, env))) {
+      await publishEvent(env, { type: "security.auth.denied", source: "owner-auth", payload: { path: url.pathname, method: request.method } });
+      return json({ error: "Unauthorized. Sign in with your Owner password." }, 401, cors);
+    }
 
     if (url.pathname === "/sentinel/run" && request.method === "POST") {
       const result = await runSentinelCycle(env);
