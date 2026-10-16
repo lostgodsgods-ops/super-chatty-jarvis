@@ -88,6 +88,11 @@ export default {
       if (!(request.headers.get("content-type") || "").toLowerCase().includes("application/json")) {
         return json({ ok: false, error: "Content-Type must be application/json" }, 415);
       }
+
+      // Short-circuit disabled chat before reading/parsing the body or touching the provider secret.
+      if (env.CHAT_API_ENABLED !== "true") {
+        return json({ ok: false, error: "AI chat is not configured" }, 503);
+      }
       const declaredLength = Number(request.headers.get("content-length") || "0");
       if (declaredLength > 12000) {
         return json({ ok: false, error: "Request too large" }, 413);
@@ -132,8 +137,15 @@ export default {
         return json({ ok: false, error: "Message must be 1–4000 characters" }, 400);
       }
 
+      // Provider selection is server-side. Never accept provider names or credentials from request bodies.
+      const provider = String(env.CHAT_PROVIDER || "openai").toLowerCase();
+      if (provider !== "openai" && provider !== "gemini") {
+        return json({ ok: false, error: "AI provider is not supported" }, 503);
+      }
+      const apiKey = provider === "gemini" ? env.GEMINI_API_KEY : env.OPENAI_API_KEY;
+
       // Disabled by default to prevent unexpected provider costs until the owner configures it.
-      if (env.CHAT_API_ENABLED !== "true" || !env.OPENAI_API_KEY) {
+      if (!apiKey) {
         return json({ ok: false, error: "AI chat is not configured" }, 503);
       }
 
@@ -155,21 +167,83 @@ export default {
         return json({ ok: false, error: "Rate limit exceeded. Try again later." }, 429);
       }
 
-      const model = env.OPENAI_MODEL || "gpt-4o-mini";
+      const systemPrompt = "You are Super Chatty Jarvis, a helpful assistant. Be clear and honest about your capabilities. Do not claim access to accounts, devices, files, or tools unless the current conversation actually provides it. Require explicit human approval for sensitive external actions.";
       try {
+        if (provider === "gemini") {
+          const model = env.GEMINI_MODEL || "gemini-3.8-flash";
+          const upstream = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`, {
+            method: "POST",
+            headers: {
+              "content-type": "application/json",
+              "x-goog-api-key": apiKey,
+            },
+            body: JSON.stringify({
+              systemInstruction: { parts: [{ text: systemPrompt }] },
+              contents: [{ role: "user", parts: [{ text: message }] }],
+              generationConfig: { maxOutputTokens: 700 },
+            }),
+            signal: AbortSignal.timeout(15000),
+          });
+          if (!upstream.ok) {
+            // Staging diagnostics: expose only Google's status/code/message, never request headers or credentials.
+            const providerBody = await upstream.json().catch(() => ({}));
+            const providerError = providerBody?.error || {};
+            const providerMessage = typeof providerError.message === "string"
+              ? providerError.message.slice(0, 240)
+              : "No provider error message";
+            console.error("Gemini upstream failure", JSON.stringify({
+              httpStatus: upstream.status,
+              status: typeof providerError.status === "string" ? providerError.status : "unknown",
+              code: typeof providerError.code === "number" ? providerError.code : upstream.status,
+              message: providerMessage,
+            }));
+            const providerStatus = upstream.status;
+            const mappedStatus = [429, 503, 504].includes(providerStatus) ? providerStatus : 502;
+            const publicError = providerStatus === 429
+              ? "Gemini API quota or rate limit exceeded"
+              : providerStatus === 503
+                ? "Gemini API is temporarily overloaded"
+                : providerStatus === 504
+                  ? "Gemini API timed out"
+                  : "AI provider request failed";
+            return json({
+              ok: false,
+              error: publicError,
+              diagnostic: {
+                providerStatus,
+                providerCode: typeof providerError.code === "number" ? providerError.code : providerStatus,
+                providerErrorStatus: typeof providerError.status === "string" ? providerError.status : "unknown",
+                providerMessage,
+              },
+            }, mappedStatus);
+          }
+          let result;
+          try {
+            result = await upstream.json();
+          } catch {
+            return json({ ok: false, error: "Invalid AI provider response" }, 502);
+          }
+          const parts = result?.candidates?.[0]?.content?.parts;
+          const reply = Array.isArray(parts)
+            ? parts.map(part => typeof part?.text === "string" ? part.text : "").join("").trim()
+            : "";
+          if (!reply) {
+            return json({ ok: false, error: "AI provider returned no reply" }, 502);
+          }
+          return json({ ok: true, reply, model });
+        }
+
+        const model = env.OPENAI_MODEL || "gpt-4o-mini";
         const upstream = await fetch("https://api.openai.com/v1/chat/completions", {
           method: "POST",
           headers: {
             "content-type": "application/json",
-            authorization: `Bearer ${env.OPENAI_API_KEY}`,
+            authorization: `Bearer ${apiKey}`,
           },
           body: JSON.stringify({
             model,
             messages: [
-              {
-                role: "system",
-                content: "You are Super Chatty Jarvis, a helpful assistant. Be clear and honest about your capabilities. Do not claim access to accounts, devices, files, or tools unless the current conversation actually provides it. Require explicit human approval for sensitive external actions.",
-              },
+              { role: "system", content: systemPrompt },
               { role: "user", content: message },
             ],
             max_tokens: 700,
@@ -197,6 +271,7 @@ export default {
         }
         return json({ ok: false, error: "AI provider request failed" }, 502);
       }
+
     }
 
     if (url.pathname === "/" || url.pathname === "/index.html") {

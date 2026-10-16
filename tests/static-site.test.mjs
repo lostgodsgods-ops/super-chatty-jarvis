@@ -66,8 +66,9 @@ test("Worker config defines the same fail-closed chat rate limiter used by the h
 test("Cloudflare deployment is main-only and uses a private token plus explicit account ID", () => {
   assert.match(deployWorkflow, /branches:\s*\n\s+- main/);
   assert.match(deployWorkflow, /CLOUDFLARE_API_TOKEN/);
-  assert.match(deployWorkflow, /accountId:\s*"6c0d1ab7b0d730f94359a89a77a0dcf2"/);
-  assert.doesNotMatch(deployWorkflow, /secrets\.CLOUDFLARE_ACCOUNT_ID/);
+  assert.match(deployWorkflow, /accountId:\s*\$\{\{\s*secrets\.CLOUDFLARE_ACCOUNT_ID\s*\|\|\s*vars\.CLOUDFLARE_ACCOUNT_ID\s*\|\|\s*'6c0d1ab7b0d730f94359a89a77a0dcf2'\s*\}\}/);
+  assert.match(deployWorkflow, /CLOUDFLARE_ACCOUNT_ID/);
+  assert.match(deployWorkflow, /scoped Cloudflare API Token/i);
   assert.match(deployWorkflow, /Require deployment credentials/);
   assert.match(deployWorkflow, /exit 1/);
   assert.match(deployWorkflow, /::error::Deployment blocked/);

@@ -1,0 +1,91 @@
+name: Gemini direct API smoke test
+
+on:
+  push:
+    branches:
+      - fix/cloudflare-token-config
+    paths:
+      - ".github/workflows/gemini-api-direct-test.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  gemini-api:
+    name: Verify Gemini API key and collect feedback
+    if: github.ref == 'refs/heads/fix/cloudflare-token-config'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Require Gemini secret
+        shell: bash
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+        run: |
+          [[ -n "$GEMINI_API_KEY" ]] || { echo "::error::GEMINI_API_KEY repository secret is missing."; exit 1; }
+          echo "Gemini secret is present; value will not be printed."
+
+      - name: Call Gemini API directly
+        shell: bash
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+        run: |
+          node --input-type=module <<'NODE'
+          import fs from 'node:fs/promises';
+
+          const endpoint = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent';
+          const prompt = [
+            'You are reviewing the Super Chatty Jarvis integration design. Facts provided: its intended backend uses a Cloudflare Worker, selects the AI provider server-side, stores provider credentials as secrets, requires an explicit enable flag, and applies request rate limiting before calling a model.',
+            'Give a short readiness verdict, three practical engineering improvements, one security caution, and the next validation step. Do not claim to have inspected the repository or live systems. Do not ask for or include secrets.'
+          ].join(' ');
+
+          const response = await fetch(endpoint, {
+            method: 'POST',
+            headers: {
+              'content-type': 'application/json',
+              'x-goog-api-key': process.env.GEMINI_API_KEY
+            },
+            body: JSON.stringify({
+              systemInstruction: { parts: [{ text: 'Be honest about what is and is not verified. Give actionable technical feedback.' }] },
+              contents: [{ role: 'user', parts: [{ text: prompt }] }],
+              generationConfig: { maxOutputTokens: 650 }
+            }),
+            signal: AbortSignal.timeout(25000)
+          });
+
+          const data = await response.json().catch(() => ({}));
+          if (!response.ok) {
+            const apiMessage = typeof data?.error?.message === 'string' ? data.error.message.slice(0, 300) : 'No safe error detail returned';
+            console.error('Gemini direct API test FAILED. HTTP:', response.status, 'Reason:', apiMessage);
+            process.exit(1);
+          }
+
+          const parts = data?.candidates?.[0]?.content?.parts;
+          const reply = Array.isArray(parts)
+            ? parts.map(part => typeof part?.text === 'string' ? part.text : '').join('').trim()
+            : '';
+          if (!reply) {
+            console.error('Gemini direct API test FAILED: response had no text candidate.');
+            process.exit(1);
+          }
+
+          const summary = [
+            '## Gemini direct API test',
+            '',
+            '- Result: **PASS**',
+            '- Endpoint: Google Gemini `generateContent`',
+            '- HTTP status: ' + response.status,
+            '- Model requested: `gemini-3.8-flash`',
+            '- Reply length: ' + reply.length + ' characters',
+            '',
+            '### Gemini feedback',
+            '',
+            reply.slice(0, 5000),
+            '',
+            '> This verifies a direct API call using the GitHub Actions secret. It does not by itself verify the Cloudflare Worker deployment.'
+          ].join('\n');
+          await fs.appendFile(process.env.GITHUB_STEP_SUMMARY, summary + '\n');
+          console.log('Gemini direct API test PASS. Model: gemini-3.8-flash. Reply length:', reply.length);
+          console.log('Feedback was written to the run summary. The API key was not printed.');
+          NODE
