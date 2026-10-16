@@ -102,10 +102,28 @@ async function getCredentials(env) {
   return env.DB.prepare("SELECT salt, password_hash FROM owner_credentials WHERE id = 1").first();
 }
 
+function readSessionCookie(request) {
+  const cookieHeader = request.headers.get("cookie") || "";
+  for (const part of cookieHeader.split(";")) {
+    const separator = part.indexOf("=");
+    if (separator < 0) continue;
+    if (part.slice(0, separator).trim() === "__Host-sc_session") {
+      return part.slice(separator + 1).trim();
+    }
+  }
+  return "";
+}
+
+function sessionCookie(token, maxAge = SESSION_TTL_SECONDS) {
+  return "__Host-sc_session=" + (token || "") +
+    "; Path=/; Max-Age=" + maxAge + "; Secure; HttpOnly; SameSite=Strict";
+}
+
 async function authorized(request, env) {
   if (!env.SESSIONS) return false;
   const header = request.headers.get("authorization") || "";
-  const supplied = header.startsWith("Bearer ") ? header.slice(7) : "";
+  const bearer = header.startsWith("Bearer ") ? header.slice(7) : "";
+  const supplied = bearer || readSessionCookie(request);
   if (!supplied || supplied.length > 256) return false;
   const key = "session:" + await sha256Hex(supplied);
   return (await env.SESSIONS.get(key)) === "active";
@@ -643,7 +661,11 @@ export default {
         if (!equalSecret(candidate, credentials.password_hash)) return json({ error: "Invalid password." }, 401, cors);
         const token = base64url(crypto.getRandomValues(new Uint8Array(32)));
         await env.SESSIONS.put("session:" + await sha256Hex(token), "active", { expirationTtl: SESSION_TTL_SECONDS });
-        return json({ ok: true, token, expiresIn: SESSION_TTL_SECONDS }, 200, cors);
+        // HttpOnly cookie lets the owner session survive PWA reloads without browser JS storage.
+        return json({ ok: true, token, expiresIn: SESSION_TTL_SECONDS }, 200, {
+          ...cors,
+          "set-cookie": sessionCookie(token)
+        });
       } catch {
         return json({ error: "Owner login is temporarily unavailable." }, 503, cors);
       }
@@ -1038,9 +1060,10 @@ export default {
 
     if (url.pathname === "/auth/logout" && request.method === "POST") {
       const header = request.headers.get("authorization") || "";
-      const supplied = header.startsWith("Bearer ") ? header.slice(7) : "";
-      if (supplied) await env.SESSIONS.delete("session:" + await sha256Hex(supplied));
-      return json({ ok: true }, 200, cors);
+      const bearer = header.startsWith("Bearer ") ? header.slice(7) : "";
+      const supplied = bearer || readSessionCookie(request);
+      if (supplied && env.SESSIONS) await env.SESSIONS.delete("session:" + await sha256Hex(supplied));
+      return json({ ok: true }, 200, { ...cors, "set-cookie": sessionCookie("", 0) });
     }
 
     return json({ error: "Not found" }, 404, cors);
