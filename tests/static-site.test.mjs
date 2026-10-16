@@ -85,7 +85,8 @@ test("Cloudflare deployment is main-only and uses a private token plus explicit 
 
 
 test("NEXUS agent HUD is live-wired to the production SSE event bus", () => {
-  for (const text of ["Code Mutator Agent", "Tavily Global Scraper", "24/7 Sentinel Grid", "hudCommitCount", "hudSearchCount", "hudHealthValue", "data-hud-state=\\"PROCESSING\\""]) {
+  for (const text of ["Code Mutator Agent", "Tavily Global Scraper", "24/7 Sentinel Grid", "hudCommitCount", "hudSearchCount", "hudHealthValue"]) {
+  assert.match(jarvisHtml, /data-hud-state="PROCESSING"/);
     assert.ok(jarvisHtml.includes(text), "missing agent HUD feature: " + text);
   }
   assert.match(jarvisHtml, /id="eventsUrl"[^>]+value="https:\\/\\/shrill-silence-164f\\.lostgodsgods\\.workers\\.dev\\/api\\/events"/);
