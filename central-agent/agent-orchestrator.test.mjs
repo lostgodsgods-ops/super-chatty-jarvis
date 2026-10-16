@@ -49,3 +49,38 @@ test("code mutator is proposal-only and never writes repository files", async ()
   assert.equal(result.outcomes[0].mode, "proposal-only");
   assert.equal(result.outcomes[0].result.summary, "proposed");
 });
+
+test("Workers AI quota exhaustion falls back to configured Gemini and persists successful run", async (t) => {
+  const db = dbMock();
+  const originalFetch = globalThis.fetch;
+  t.after(() => { globalThis.fetch = originalFetch; });
+  globalThis.fetch = async (url, options) => {
+    assert.match(String(url), /generativelanguage\.googleapis\.com/);
+    assert.equal(options.method, "POST");
+    return new Response(JSON.stringify({ candidates: [{ content: { parts: [{ text: JSON.stringify({ testCases: ["fallback"], notExecuted: true }) }] } }] }), {
+      status: 200, headers: { "content-type": "application/json" }
+    });
+  };
+  const env = {
+    DB: db,
+    GEMINI_API_KEY: "test-only-not-a-real-key",
+    AI: { async run() { throw new Error('4006: you have used up your daily free allocation of 10,000 neurons'); } }
+  };
+  const result = await spawnAgents(env, { role: "testing", input: "check quota fallback" });
+  assert.equal(result.ok, true);
+  assert.equal(result.outcomes[0].status, "completed");
+  assert.deepEqual(result.outcomes[0].result.testCases, ["fallback"]);
+  assert.equal(db.state.audits.length, 1);
+  assert.equal(db.state.tasks[0].status, "completed");
+});
+
+test("Workers AI quota exhaustion without a backup route returns a stable quota code", async () => {
+  const db = dbMock();
+  const env = { DB: db, AI: { async run() { throw new Error("4006 daily free allocation exhausted"); } } };
+  const result = await spawnAgents(env, { role: "testing", input: "quota fallback unavailable" });
+  assert.equal(result.ok, false);
+  assert.equal(result.status, 207);
+  assert.equal(result.outcomes[0].error, "AI_QUOTA_EXHAUSTED");
+  assert.equal(db.state.audits.length, 1);
+  assert.equal(JSON.parse(db.state.audits[0].details).errorCode, "AI_QUOTA_EXHAUSTED");
+});
