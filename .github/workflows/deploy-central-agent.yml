@@ -59,6 +59,24 @@ jobs:
           set -euo pipefail
           npx --yes wrangler@4 deploy --config central-agent/wrangler.jsonc
 
+      - name: Verify public PWA asset routing and service-worker script
+        shell: bash
+        env:
+          PWA_URL: https://shrill-silence-164f.lostgodsgods.workers.dev
+        run: |
+          set -euo pipefail
+          tmp="$(mktemp -d)"
+          trap 'rm -rf "$tmp"' EXIT
+          curl --fail --silent --show-error --max-time 15 "$PWA_URL/" -o "$tmp/index.html"
+          grep -Fq 'Super Chatty Jarvis · Neural Console' "$tmp/index.html"
+          curl --fail --silent --show-error --max-time 15 "$PWA_URL/sw.js" -o "$tmp/sw-root.js"
+          grep -Fq 'super-chatty-jarvis-shell-v1' "$tmp/sw-root.js"
+          curl --fail --silent --show-error --max-time 15 "$PWA_URL/jarvis/sw.js" -o "$tmp/sw-subpath.js"
+          grep -Fq 'super-chatty-jarvis-shell-v1' "$tmp/sw-subpath.js"
+          curl --fail --silent --show-error --max-time 15 "$PWA_URL/manifest.webmanifest" -o "$tmp/manifest.json"
+          node -e 'const m=require(process.argv[1]); if(m.name!=="Super Chatty Jarvis"||m.scope!=="./") throw Error("PWA manifest identity/scope mismatch");' "$tmp/manifest.json"
+          echo "PWA asset routing PASS: root index, root sw.js, /jarvis/sw.js, and manifest verified."
+
       - name: Configure Worker runtime secrets in one operation
         shell: bash
         env:
