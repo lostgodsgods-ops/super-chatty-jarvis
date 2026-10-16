@@ -1,8 +1,10 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
+import vm from "node:vm";
 
 const html = await readFile(new URL("../index.html", import.meta.url), "utf8");
+const jarvisHtml = await readFile(new URL("../jarvis/index.html", import.meta.url), "utf8");
 const readme = await readFile(new URL("../README_HI.txt", import.meta.url), "utf8");
 const agentBrief = await readFile(new URL("../AI_AGENT_PROMPT.md", import.meta.url), "utf8");
 const deployWorkflow = await readFile(
@@ -74,4 +76,22 @@ test("Cloudflare deployment is main-only and uses a private token plus explicit 
   assert.doesNotMatch(deployWorkflow, /Deployment skipped/);
   assert.ok(deployWorkflow.indexOf("run: npm test") < deployWorkflow.indexOf("Require deployment credentials"));
   assert.ok(deployWorkflow.indexOf("run: npm test") < deployWorkflow.indexOf("Deploy Worker"));
+});
+
+
+test("NEXUS PWA preserves owner-only telemetry and adds safe local visual intake", () => {
+  for (const id of ["particleMesh", "auditCount", "observationCount", "signalCount", "researchFeed", "ownerLoginForm", "mediaPicker", "cameraStart", "cameraCapture", "cameraStop"]) {
+    assert.match(jarvisHtml, new RegExp("id=[\\"']" + id + "[\\"']"), "missing NEXUS control: " + id);
+  }
+  for (const route of ["/auth/login", "/auth/session", "/auth/logout", "/research/status", "/research/query"]) {
+    assert.ok(jarvisHtml.includes(route), "existing backend route was changed or removed: " + route);
+  }
+  assert.match(jarvisHtml, /getUserMedia\(\{video:/, "camera access must be implemented");
+  assert.match(jarvisHtml, /addEventListener\("click",startCamera\)/, "camera permission must be initiated by a user click");
+  assert.match(jarvisHtml, /not transmitted to the Worker or analytical core/i, "local-only media boundary must be visible");
+  assert.match(jarvisHtml, /backdrop-filter:\s*blur/i, "glassmorphism styles are missing");
+  assert.match(jarvisHtml, /requestAnimationFrame\(draw\)/, "animated particle mesh is missing");
+  const scripts = [...jarvisHtml.matchAll(/<script[^>]*>([\s\S]*?)<\/script>/g)].map((match) => match[1]);
+  assert.equal(scripts.length, 1, "expected one self-contained application script");
+  assert.doesNotThrow(() => new vm.Script(scripts[0]), "PWA JavaScript must parse");
 });
