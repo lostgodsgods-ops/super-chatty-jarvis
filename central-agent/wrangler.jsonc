@@ -37,6 +37,7 @@
     }
   ],
   "vars": {
-    "ALLOWED_ORIGINS": "https://super-chatty-jarvis-site.lostgodsgods.workers.dev"
+    "ALLOWED_ORIGINS": "https://super-chatty-jarvis-site.lostgodsgods.workers.dev",
+    "AUTONOMOUS_RESEARCH_ENABLED": "true"
   }
 }
