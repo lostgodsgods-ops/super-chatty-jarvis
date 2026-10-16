@@ -52,6 +52,21 @@ async function fetchJson(url) {
   if (!response.ok) throw new Error("SOURCE_HTTP_" + response.status);
   return response.json();
 }
+
+async function fetchSourceWithRetry(fetchSource, url, options = {}) {
+  const maxRetries = url === SOURCES.markets ? 2 : 0;
+  const sleep = options.sleep || (ms => new Promise(resolve => setTimeout(resolve, ms)));
+  for (let attempt = 0; ; attempt++) {
+    try {
+      return await fetchSource(url);
+    } catch (error) {
+      const code = safeText(error?.message, 80);
+      if (code !== "SOURCE_HTTP_429" || attempt >= maxRetries) throw error;
+      // Bounded exponential backoff: 250 ms, then 500 ms. Never spin indefinitely.
+      await sleep(250 * (2 ** attempt));
+    }
+  }
+}
 async function ensureResearchSchema(db) {
   await db.prepare("CREATE TABLE IF NOT EXISTS research_observations (id TEXT PRIMARY KEY, source TEXT NOT NULL, external_id TEXT NOT NULL, title TEXT NOT NULL, url TEXT NOT NULL DEFAULT '', sentiment_score REAL NOT NULL, sentiment_label TEXT NOT NULL, confidence REAL NOT NULL, observed_at TEXT NOT NULL, UNIQUE(source, external_id))").run();
   await db.prepare("CREATE TABLE IF NOT EXISTS research_signals (id TEXT PRIMARY KEY, source TEXT NOT NULL, subject TEXT NOT NULL, metric TEXT NOT NULL, value REAL NOT NULL, details_json TEXT NOT NULL, observed_at TEXT NOT NULL)").run();
@@ -63,11 +78,11 @@ export async function runBoundedResearchCycle(env, options = {}) {
   const startedAt = new Date().toISOString(), fetchSource = options.fetchSource || fetchJson;
   const sourceCalls = RESEARCH_LIMITS.requestsPerTick;
   let itemsStored = 0, signalsStored = 0, errorCount = 0;
-  const errors = [];
+  const errors = [], warnings = [];
   await ensureResearchSchema(env.DB);
   for (const [source, url] of [["github", SOURCES.github], ["releases", SOURCES.releases], ["markets", SOURCES.markets]]) {
     try {
-      const payload = await fetchSource(url);
+      const payload = await fetchSourceWithRetry(fetchSource, url, options);
       if (source === "github") {
         const rows = (Array.isArray(payload) ? payload : []).slice(0, RESEARCH_LIMITS.maxItemsPerSource).map(item => normalizeResearchItem("github", item)).filter(Boolean);
         for (const row of rows) {
@@ -89,9 +104,20 @@ export async function runBoundedResearchCycle(env, options = {}) {
           signalsStored++;
         }
       }
-    } catch (error) { errorCount++; errors.push({ source, code: safeText(error?.message, 80) || "SOURCE_ERROR" }); }
+    } catch (error) {
+      const code = safeText(error?.message, 80) || "SOURCE_ERROR";
+      if (source === "markets" && code === "SOURCE_HTTP_429") {
+        // A rate-limited optional market feed is degraded, not a coordinator failure.
+        // Keep the limitation visible in the audit details; never fabricate market data.
+        warnings.push({ source, code, action: "market-telemetry-skipped" });
+      } else {
+        errorCount++;
+        errors.push({ source, code });
+      }
+    }
   }
   const completedAt = new Date().toISOString();
-  await env.DB.prepare("INSERT INTO agent_run_audit (id,agent_id,status,source_count,item_count,error_count,started_at,completed_at,details_json) VALUES (?,?,?,?,?,?,?,?,?)").bind(crypto.randomUUID(), "bounded-research-coordinator", errorCount ? (errorCount === sourceCalls ? "failed" : "partial") : "completed", sourceCalls, itemsStored, errorCount, startedAt, completedAt, JSON.stringify({ budget: RESEARCH_LIMITS, errors })).run();
-  return { ok: errorCount < sourceCalls, enabled: true, status: errorCount ? "partial" : "completed", sourceCalls, itemsStored, signalsStored, errorCount, errors };
+  const status = errorCount ? (errorCount === sourceCalls ? "failed" : "partial") : warnings.length ? "completed_with_warnings" : "completed";
+  await env.DB.prepare("INSERT INTO agent_run_audit (id,agent_id,status,source_count,item_count,error_count,started_at,completed_at,details_json) VALUES (?,?,?,?,?,?,?,?,?)").bind(crypto.randomUUID(), "bounded-research-coordinator", status, sourceCalls, itemsStored, errorCount, startedAt, completedAt, JSON.stringify({ budget: RESEARCH_LIMITS, errors, warnings })).run();
+  return { ok: errorCount === 0, enabled: true, status, sourceCalls, itemsStored, signalsStored, errorCount, errors, warnings };
 }

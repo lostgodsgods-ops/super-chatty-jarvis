@@ -37,3 +37,58 @@ test("enabled research fails closed when D1 is unavailable", async () => {
   assert.equal(result.status, "blocked");
   assert.equal(result.reason, "D1_UNAVAILABLE");
 });
+
+function createAuditDb() {
+  const db = {
+    auditRows: [],
+    prepare(sql) {
+      const statement = {
+        values: [],
+        bind(...values) { this.values = values; return this; },
+        async run() {
+          if (sql.startsWith("INSERT INTO agent_run_audit")) {
+            db.auditRows.push({
+              status: this.values[2],
+              sourceCount: this.values[3],
+              itemCount: this.values[4],
+              errorCount: this.values[5],
+              details: JSON.parse(this.values[8])
+            });
+          }
+          return { meta: { changes: 1 } };
+        }
+      };
+      return statement;
+    },
+    async batch() { return []; }
+  };
+  return db;
+}
+
+test("persistent market HTTP 429 is retried and recorded as a transparent warning, not a partial failure", async () => {
+  const db = createAuditDb();
+  let marketCalls = 0;
+  const result = await runBoundedResearchCycle(
+    { AUTONOMOUS_RESEARCH_ENABLED: "true", DB: db },
+    {
+      sleep: async () => {},
+      fetchSource: async url => {
+        if (url.includes("api.github.com/repos")) return [];
+        if (url.includes("api.coingecko.com")) {
+          marketCalls++;
+          throw new Error("SOURCE_HTTP_429");
+        }
+        return [];
+      }
+    }
+  );
+  assert.equal(marketCalls, 3, "market source gets the initial attempt plus two bounded retries");
+  assert.equal(result.ok, true);
+  assert.equal(result.status, "completed_with_warnings");
+  assert.equal(result.errorCount, 0);
+  assert.deepEqual(result.warnings, [{ source: "markets", code: "SOURCE_HTTP_429", action: "market-telemetry-skipped" }]);
+  assert.equal(db.auditRows.length, 1);
+  assert.equal(db.auditRows[0].status, "completed_with_warnings");
+  assert.equal(db.auditRows[0].errorCount, 0);
+  assert.deepEqual(db.auditRows[0].details.warnings, result.warnings);
+});
