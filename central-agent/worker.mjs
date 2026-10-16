@@ -779,7 +779,8 @@ export default {
     const work = (async () => {
       const recovery = await recoverStaleKnowledgeTasks(env, 20);
       const processing = await processApprovedKnowledgeTasks(env, 3);
-      return { recovery, processing };
+      const research = await runBoundedResearchCycle(env);
+      return { recovery, processing, research };
     })();
     if (ctx && typeof ctx.waitUntil === "function") ctx.waitUntil(work);
     else await work;
