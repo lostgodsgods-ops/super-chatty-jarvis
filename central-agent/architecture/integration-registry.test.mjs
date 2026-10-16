@@ -112,9 +112,9 @@ test("MCP Streamable HTTP SSE responses are parsed safely", async () => {
     MCP_GITHUB_URL: "https://mcp.example/mcp", MCP_GITHUB_TOKEN: "test-token"
   }, async (_url, init) => {
     const body = JSON.parse(init.body);
-    if (body.method === "initialize") return new Response('event: message\\ndata: {"jsonrpc":"2.0","id":1,"result":{"protocolVersion":"2025-03-26","serverInfo":{"name":"sse-mock","version":"1"},"capabilities":{}}}\\n\\n', { status: 200, headers: { "content-type": "text/event-stream" } });
+    if (body.method === "initialize") return new Response('event: message\ndata: {"jsonrpc":"2.0","id":1,"result":{"protocolVersion":"2025-03-26","serverInfo":{"name":"sse-mock","version":"1"},"capabilities":{}}}\n\n', { status: 200, headers: { "content-type": "text/event-stream" } });
     if (body.method === "notifications/initialized") return new Response(null, { status: 202 });
-    if (body.method === "tools/list") return new Response('data: {"jsonrpc":"2.0","id":2,"result":{"tools":[{"name":"safe_read"}]}}\\n\\n', { status: 200, headers: { "content-type": "text/event-stream" } });
+    if (body.method === "tools/list") return new Response('data: {"jsonrpc":"2.0","id":2,"result":{"tools":[{"name":"safe_read"}]}}\n\n', { status: 200, headers: { "content-type": "text/event-stream" } });
     throw new Error("Unexpected method");
   });
   assert.equal(result.tools[0].name, "safe_read");
