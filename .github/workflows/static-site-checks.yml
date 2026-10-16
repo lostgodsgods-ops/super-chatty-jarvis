@@ -20,7 +20,9 @@ jobs:
         uses: actions/setup-node@v5
         with:
           node-version: "22"
-      - name: Run static site tests
+      - name: Install test dependencies
+        run: npm install --ignore-scripts --no-audit --no-fund
+      - name: Run static site and passkey tests
         run: npm test
       - name: Run Central Agent policy and owner-auth tests
         run: node --test central-agent/policy.test.mjs central-agent/owner-auth.test.mjs

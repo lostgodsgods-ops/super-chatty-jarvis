@@ -1,0 +1,43 @@
+{
+  "$schema": "../node_modules/wrangler/config-schema.json",
+  "name": "super-chatty-passkey-staging",
+  "main": "worker.mjs",
+  "compatibility_date": "2026-10-14",
+  "compatibility_flags": ["nodejs_compat"],
+  "workers_dev": true,
+  "ai": {
+    "binding": "AI"
+  },
+  "vars": {
+    "CHAT_API_ENABLED": "true",
+    "CHAT_MODEL": "@cf/meta/llama-3.1-8b-instruct",
+    "RP_ID": "super-chatty-passkey-staging.lostgodsgods.workers.dev",
+    "RP_NAME": "Super Chatty Jarvis",
+    "ALLOWED_ORIGIN": "https://super-chatty-passkey-staging.lostgodsgods.workers.dev"
+  },
+  "ratelimits": [
+    {
+      "name": "AUTH_RATE_LIMITER",
+      "namespace_id": "483021",
+      "simple": { "limit": 10, "period": 60 }
+    },
+    {
+      "name": "BOOTSTRAP_RATE_LIMITER",
+      "namespace_id": "483022",
+      "simple": { "limit": 5, "period": 60 }
+    }
+  ],
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "super-chatty-passkey-staging",
+      "database_id": "b705aa4e-a9fa-4592-ba4c-7a59cc55e12b"
+    }
+  ],
+  "kv_namespaces": [
+    {
+      "binding": "SESSIONS",
+      "id": "6d190e133b754bac8960ce2492a83705"
+    }
+  ]
+}
