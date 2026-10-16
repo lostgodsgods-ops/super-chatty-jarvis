@@ -39,6 +39,23 @@ jobs:
             exit 1
           fi
 
+      - name: Normalize deployment token
+        id: deployment-credentials
+        shell: bash
+        env:
+          CLOUDFLARE_API_TOKEN: \${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: |
+          token="$(printf '%s' "$CLOUDFLARE_API_TOKEN" | tr -d '\r' | sed 's/^[[:space:]]*//; s/[[:space:]]*$//')"
+          if [[ "$token" =~ ^[Bb][Ee][Aa][Rr][Ee][Rr][[:space:]]+ ]]; then
+            token="$(printf '%s' "$token" | sed -E 's/^[Bb][Ee][Aa][Rr][Ee][Rr][[:space:]]+//')"
+          fi
+          if [[ -z "$token" || "$token" =~ [[:space:]] ]]; then
+            echo "::error::CLOUDFLARE_API_TOKEN must be a raw Cloudflare API token without internal whitespace."
+            exit 1
+          fi
+          echo "::add-mask::$token"
+          printf 'api_token=%s\n' "$token" >> "$GITHUB_OUTPUT"
+
       - name: Deploy static PWA to Cloudflare Pages
         uses: cloudflare/wrangler-action@v3
         with:
