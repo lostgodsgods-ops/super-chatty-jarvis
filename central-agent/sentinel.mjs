@@ -50,7 +50,8 @@ async function probeKV(kv) {
 }
 
 async function archiveOldest(env, now) {
-  if (!env.ARCHIVE || typeof env.ARCHIVE.put !== "function") return { configured: false, archivedRows: 0 };
+  const archive = env.JARVIS_ARCHIVE || env.ARCHIVE;
+  if (!archive || typeof archive.put !== "function") return { configured: false, archivedRows: 0 };
   const rows = await env.DB.prepare("SELECT id,status,metrics_json,checked_at FROM sentinel_health_audit WHERE archived_at IS NULL ORDER BY checked_at ASC LIMIT ?")
     .bind(MAX_ARCHIVE_ROWS).all();
   const batch = rows?.results || [];
@@ -58,7 +59,7 @@ async function archiveOldest(env, now) {
   const first = batch[0].id, last = batch[batch.length - 1].id;
   const day = now.slice(0, 10);
   const key = "sentinel/" + day + "/" + first + "-" + last + ".json";
-  await env.ARCHIVE.put(key, JSON.stringify({ schemaVersion: 1, archivedAt: now, records: batch.map(row => ({
+  await archive.put(key, JSON.stringify({ schemaVersion: 1, archivedAt: now, records: batch.map(row => ({
     id: row.id, status: row.status, metrics: safeJson(row.metrics_json), checkedAt: row.checked_at
   })) }), { httpMetadata: { contentType: "application/json" } });
   const statements = batch.map(row => env.DB.prepare("UPDATE sentinel_health_audit SET archived_at = ? WHERE id = ? AND archived_at IS NULL").bind(now, row.id));
@@ -84,11 +85,11 @@ export async function runSentinelCycle(env, options = {}) {
   const metrics = {
     schemaOk, d1: { ok: d1.ok, latencyMs: d1.latencyMs, ...(d1.ok ? d1.value : { error: d1.error }) },
     kv: { ok: kv.ok, latencyMs: kv.latencyMs, ...(kv.ok ? kv.value : { error: kv.error }) },
-    archive: { configured: Boolean(env.ARCHIVE), archivedRows: 0 },
+    archive: { configured: Boolean(env.JARVIS_ARCHIVE || env.ARCHIVE), archivedRows: 0 },
     errors
   };
-  let archive = { configured: Boolean(env.ARCHIVE), archivedRows: 0 };
-  if (d1.ok && env.ARCHIVE) {
+  let archive = { configured: Boolean(env.JARVIS_ARCHIVE || env.ARCHIVE), archivedRows: 0 };
+  if (d1.ok && (env.JARVIS_ARCHIVE || env.ARCHIVE)) {
     try { archive = await archiveOldest(env, now); }
     catch { archive = { configured: true, archivedRows: 0, error: "ARCHIVE_WRITE_FAILED" }; errors.push({ component: "r2", code: "ARCHIVE_WRITE_FAILED" }); }
   }
