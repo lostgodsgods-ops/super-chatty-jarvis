@@ -6,6 +6,8 @@ on:
       - main
     paths:
       - "src/**"
+      - "central-agent/**"
+      - "migrations/**"
       - "wrangler.jsonc"
       - "package.json"
   workflow_dispatch:
