@@ -621,6 +621,15 @@ export default {
           !/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(approval.nonce)) {
         return json({ error: "Explicit action-scoped owner approval for this exact vector ID is required." }, 403, cors);
       }
+      if (!env.DB || typeof env.DB.prepare !== "function") return json({ error: "OWNER_APPROVAL_STORE_UNAVAILABLE" }, 503, cors);
+      try {
+        await env.DB.prepare("CREATE TABLE IF NOT EXISTS integration_approvals (nonce TEXT PRIMARY KEY, action TEXT NOT NULL, resource_id TEXT NOT NULL, created_at TEXT NOT NULL)").run();
+        await env.DB.prepare("INSERT INTO integration_approvals (nonce, action, resource_id, created_at) VALUES (?, 'vector_roundtrip', ?, ?)")
+          .bind(approval.nonce, String(body.record.id), new Date().toISOString()).run();
+      } catch (error) {
+        if (String(error?.message || "").toLowerCase().includes("unique")) return json({ error: "OWNER_APPROVAL_NONCE_REPLAY" }, 409, cors);
+        return json({ error: "OWNER_APPROVAL_STORE_UNAVAILABLE" }, 503, cors);
+      }
       try {
         const result = await vectorUpsertQueryReadback(body?.backendId, env, { record: body?.record, namespace: body?.namespace });
         return json(result, 200, cors);
