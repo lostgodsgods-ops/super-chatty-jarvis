@@ -169,7 +169,7 @@
       refreshTelemetry:$("refreshTelemetry"), factSearchForm:$("factSearchForm"), factQuery:$("factQuery"),
       researchSearchBtn:$("researchSearchBtn"), researchSearchStatus:$("researchSearchStatus"), sourceResults:$("sourceResults")
     };
-    const state = { events:null, recognition:null, listening:false, audioContext:null, analyser:null, mediaStream:null, raf:0, eventsCount:0, connected:false, started:Date.now(), healthTimer:0, toastTimer:0, ownerToken:"", telemetryTimer:0, researchBusy:false };
+    const state = { events:null, recognition:null, listening:false, audioContext:null, analyser:null, mediaStream:null, raf:0, eventsCount:0, connected:false, started:Date.now(), healthTimer:0, toastTimer:0, ownerToken:"", telemetryTimer:0, researchBusy:false, memoryHistory:[] };
     const time = () => new Date().toLocaleTimeString([], {hour12:false});
     function log(message, type="info", source="UI") {
       const row = document.createElement("div"); row.className = "log";
@@ -233,6 +233,23 @@
       }
       if (!response.ok) throw new Error(payload.error || ("Request failed: HTTP " + response.status));
       return payload;
+    }
+    async function restoreConversationMemory() {
+      if (!state.ownerToken) return;
+      try {
+        const data = await ownerFetch("/api/memory");
+        const saved = (Array.isArray(data.memories) ? data.memories : []).find(item => item.memory_type === "conversation_state");
+        const history = saved && saved.state && Array.isArray(saved.state.commandHistory) ? saved.state.commandHistory : [];
+        state.memoryHistory = history.filter(item => item && typeof item.command === "string").slice(-20);
+        if (saved) {
+          log("Restored " + state.memoryHistory.length + " owner-memory command record(s) from D1.","good","MEMORY");
+          if (saved.state.lastCommand) setCoreState("Memory restored · latest command available");
+        } else {
+          log("No prior owner conversation state found in D1.","info","MEMORY");
+        }
+      } catch (error) {
+        log("Owner memory restore unavailable: " + (error.message || "unknown error"),"warn","MEMORY");
+      }
     }
     function setOwnerStatus(message, kind="warn") {
       els.ownerSessionStatus.className = "owner-status " + kind;
@@ -320,7 +337,7 @@
         els.ownerPassword.value = ""; els.ownerLogout.disabled = false; els.ownerLogin.disabled = false; els.researchSearchBtn.disabled = false;
         status(els.ownerBadge,"OWNER VERIFIED","ok"); status(els.researchSearchStatus,"SESSION VERIFIED","ok");
         setOwnerStatus("Owner session verified. Token is memory-only and expires server-side.","ok");
-        await refreshTelemetry(); clearInterval(state.telemetryTimer); state.telemetryTimer = setInterval(refreshTelemetry,30000);
+        await restoreConversationMemory(); await refreshTelemetry(); clearInterval(state.telemetryTimer); state.telemetryTimer = setInterval(refreshTelemetry,30000);
         toast("Owner session verified.");
       } catch (error) {
         state.ownerToken = ""; els.ownerLogin.disabled = false;
@@ -484,13 +501,33 @@
       };
       try { recognition.start(); } catch(err) { log("Could not start voice recognition: "+err.message,"error","VOICE"); }
     }
-    function submitCommand() {
+    async function submitCommand() {
       const command = els.commandInput.value.trim();
       if (!command) { toast("Speak or type a command first."); els.commandInput.focus(); return; }
       log("Command drafted: " + command,"info","OWNER");
-      setCoreState("Command captured locally · no command API configured");
-      toast("Command captured locally. Connect a secured command API before execution.");
-      els.privacyNote.textContent="Not sent to a backend. Add an authenticated command API before enabling execution.";
+      setCoreState("Command captured · not executed");
+      if (!state.ownerToken) {
+        toast("Command kept local. Sign in to save it to owner memory.");
+        els.privacyNote.textContent="Not sent or saved remotely. Sign in to enable owner memory.";
+        return;
+      }
+      state.memoryHistory.push({ command: command.slice(0, 1000), capturedAt: new Date().toISOString() });
+      state.memoryHistory = state.memoryHistory.slice(-20);
+      try {
+        await ownerFetch("/api/memory", { method:"POST", body:JSON.stringify({
+          session_id:"owner-global", memory_type:"conversation_state",
+          state:{ commandHistory:state.memoryHistory, lastCommand:command.slice(0,1000), updatedAt:new Date().toISOString() }
+        })});
+        els.commandInput.value = "";
+        toast("Owner memory saved. Command was not executed.");
+        els.privacyNote.textContent="Command state saved to D1 owner memory. No command or external action was executed.";
+        log("Conversation state persisted to D1; command remains unexecuted.","good","MEMORY");
+      } catch(error) {
+        state.memoryHistory.pop();
+        toast("Memory save failed: " + (error.message || "storage unavailable"));
+        els.privacyNote.textContent="Memory write failed; the command was not executed.";
+        log("D1 memory write failed: " + (error.message || "unknown error"),"error","MEMORY");
+      }
     }
 
     // NEXUS visual intake: user-initiated camera only; media is previewed locally.
