@@ -237,3 +237,31 @@ test("PBKDF2 iteration count stays within the Cloudflare Workers Web Crypto limi
   assert.ok(PASSWORD_ITERATIONS <= 100000, "Cloudflare Workers rejects PBKDF2 iterations above 100000");
   assert.ok(PASSWORD_ITERATIONS >= 100000, "Use the highest iteration count supported by Cloudflare Workers");
 });
+
+test("owner-authenticated research query returns sourced evidence and rejects anonymous requests", async () => {
+  const e = env();
+  await call(e, "/auth/setup", { setupToken: "test-bootstrap-code", password: "a-long-memorable-password" });
+  const anonymous = await call(e, "/research/query", { query: "Kamala Hydro Electric Project 1720 MW CCEA" });
+  assert.equal(anonymous.status, 401);
+
+  const login = await call(e, "/auth/login", { password: "a-long-memorable-password" });
+  const { token } = await login.json();
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async (url, options = {}) => {
+    assert.equal(String(url), "https://api.tavily.com/search");
+    assert.equal(options.method, "POST");
+    return new Response(JSON.stringify({ results: [
+      { title: "Official CCEA release", url: "https://www.pib.gov.in/PressReleasePage.aspx?PRID=2250042", content: "CCEA approved the 1720 MW Kamala Hydro Electric Project on 8 April 2026.", published_date: "2026-04-08" }
+    ] }), { status: 200, headers: { "content-type": "application/json" } });
+  };
+  try {
+    const response = await call(e, "/research/query", { query: "Kamala Hydro Electric Project 1720 MW CCEA" }, token);
+    assert.equal(response.status, 200);
+    const payload = await response.json();
+    assert.equal(payload.ok, true);
+    assert.equal(payload.sourceCount, 1);
+    assert.equal(payload.sources[0].url, "https://www.pib.gov.in/PressReleasePage.aspx?PRID=2250042");
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
