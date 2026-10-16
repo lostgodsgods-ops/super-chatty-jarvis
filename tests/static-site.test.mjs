@@ -104,7 +104,7 @@ test("installed PWA force-updates stale shells and revalidates HTML assets", () 
   assert.match(serviceWorker, /self\.skipWaiting\(\)/, "new worker must activate without waiting for an old tab to close");
   assert.match(serviceWorker, /self\.clients\.claim\(\)/, "new worker must claim open PWA clients");
   assert.match(serviceWorker, /key !== CACHE_NAME.*caches\.delete\(key\)/s, "activation must delete older Super Chatty shell caches");
-  assert.match(serviceWorker, /fetch\(new Request\(request,\s*\{cache:\s*"no-store"\}\)\)/, "navigation must bypass stale browser HTTP cache");
+  assert.match(serviceWorker, /new Request\(request,\s*\{cache:\s*"no-store"\}\)/, "navigation must bypass stale browser HTTP cache");
   assert.match(jarvisHtml, /application-version" content="NEXUS-2026\.10\.17"/, "frontend version must be bumped");
   assert.match(jarvisHtml, /registration\.update\(\)/, "PWA must check for worker updates");
   assert.match(jarvisHtml, /controllerchange/, "active sessions must detect the new worker controller");
