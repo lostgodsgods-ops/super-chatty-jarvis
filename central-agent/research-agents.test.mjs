@@ -48,7 +48,7 @@ function createAuditDb() {
         bind(...values) { this.values = values; return this; },
         async run() {
           if (sql.startsWith("INSERT INTO agent_run_audit")) {
-            thisDb.auditRows.push({
+            db.auditRows.push({
               status: this.values[2],
               sourceCount: this.values[3],
               itemCount: this.values[4],
@@ -63,8 +63,8 @@ function createAuditDb() {
     },
     async batch() { return []; }
   };
-  var thisDb;
 }
+
 test("persistent market HTTP 429 is retried and recorded as a transparent warning, not a partial failure", async () => {
   const db = createAuditDb();
   let marketCalls = 0;
