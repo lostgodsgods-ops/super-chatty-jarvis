@@ -120,10 +120,12 @@ export async function vectorUpsertQueryReadback(backendId, env = {}, input, fetc
     if (!/^(?:[0-9]+|[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12})$/i.test(record.id)) throw new IntegrationError("QDRANT_ID_MUST_BE_UUID_OR_UNSIGNED_INTEGER", 400);
     const collection = encodeURIComponent(required(env, c.collection));
     if (!/^[A-Za-z0-9._-]{1,255}$/.test(env[c.collection])) throw new IntegrationError("INVALID_COLLECTION", 400);
-    const id = record.id;
+    // Qdrant requires unsigned integer point IDs to be JSON numbers.
+    const id = /^[0-9]+$/.test(record.id) ? Number(record.id) : record.id;
+    if (typeof id === "number" && !Number.isSafeInteger(id)) throw new IntegrationError("QDRANT_INTEGER_ID_OUT_OF_RANGE", 400);
     await request(base + "/collections/" + collection + "/points?wait=true", { method: "PUT", headers: bearer(key), body: JSON.stringify({ points: [{ id, vector: record.values, payload: record.metadata || {} }] }) }, fetchImpl);
     const read = await request(base + "/collections/" + collection + "/points/retrieve", { method: "POST", headers: bearer(key), body: JSON.stringify({ ids: [id], with_vector: true }) }, fetchImpl);
-    const found = read.data?.result?.find(p => String(p.id) === id);
+    const found = read.data?.result?.find(p => String(p.id) === record.id);
     if (!found || !sameVector(found.vector, record.values)) throw new IntegrationError("VECTOR_READBACK_MISMATCH", 502);
   } else {
     const upsertRpc = required(env, c.upsert), queryRpc = required(env, c.query), getRpc = required(env, c.get);
