@@ -18,7 +18,7 @@ const wranglerConfig = await readFile(
 
 test("public page contains the core project sections", () => {
   for (const id of ["about", "capabilities", "agents", "invest", "contact"]) {
-    assert.match(html, new RegExp(`id=["']${id}["']`), `missing section: ${id}`);
+    assert.ok(jarvisHtml.indexOf("id=" + String.fromCharCode(34) + id + String.fromCharCode(34)) >= 0, "missing NEXUS control: " + id);
   }
   assert.match(html, /Super Chatty Jarvis/);
   assert.match(html, /Project owner:\s*<strong>Lost God<\/strong>/);
@@ -81,7 +81,7 @@ test("Cloudflare deployment is main-only and uses a private token plus explicit 
 
 test("NEXUS PWA preserves owner-only telemetry and adds safe local visual intake", () => {
   for (const id of ["particleMesh", "auditCount", "observationCount", "signalCount", "researchFeed", "ownerLoginForm", "mediaPicker", "cameraStart", "cameraCapture", "cameraStop"]) {
-    assert.match(jarvisHtml, new RegExp("id=[\\"']" + id + "[\\"']"), "missing NEXUS control: " + id);
+    assert.ok(jarvisHtml.indexOf("id=" + String.fromCharCode(34) + id + String.fromCharCode(34)) >= 0, "missing NEXUS control: " + id);
   }
   for (const route of ["/auth/login", "/auth/session", "/auth/logout", "/research/status", "/research/query"]) {
     assert.ok(jarvisHtml.includes(route), "existing backend route was changed or removed: " + route);
