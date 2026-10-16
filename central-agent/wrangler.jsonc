@@ -36,12 +36,6 @@
       "id": "272afa11c15d44bd82be38c034049564"
     }
   ],
-  "r2_buckets": [
-    {
-      "binding": "ARCHIVE",
-      "bucket_name": "super-chatty-jarvis-archive"
-    }
-  ],
   "vars": {
     "ALLOWED_ORIGINS": "https://super-chatty-jarvis-site.lostgodsgods.workers.dev",
     "AUTONOMOUS_RESEARCH_ENABLED": "true"
