@@ -1,9 +1,31 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
-  "name": "super-chatty-jarvis-site",
+  "name": "shrill-silence-164f",
   "main": "src/worker.mjs",
   "compatibility_date": "2026-10-12",
   "workers_dev": true,
+  "assets": {
+    "directory": "./jarvis",
+    "binding": "ASSETS",
+    "run_worker_first": ["/api/*", "/health", "/github-check"]
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "super-chatty-owner-auth",
+      "database_id": "cb1a54a2-eafe-4e02-8187-90c9e471edc0",
+      "migrations_dir": "migrations"
+    }
+  ],
+  "kv_namespaces": [
+    {
+      "binding": "SESSIONS",
+      "id": "272afa11c15d44bd82be38c034049564"
+    }
+  ],
+  "ai": {
+    "binding": "AI"
+  },
   "ratelimits": [
     {
       "name": "CHAT_RATE_LIMITER",
