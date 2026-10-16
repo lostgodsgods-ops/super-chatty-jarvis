@@ -284,9 +284,11 @@
       const base = workerBaseUrl();
       if (!base) throw new Error("Enter a valid Worker health URL first.");
       if (!state.ownerToken) throw new Error("Owner session required. Sign in first.");
-      const headers = { ...(options.headers || {}), authorization: "Bearer " + state.ownerToken };
+      const headers = { ...(options.headers || {}) };
+      // A resumed cookie session is HttpOnly; never copy it into JS or browser storage.
+      if (state.ownerToken !== "cookie-session") headers.authorization = "Bearer " + state.ownerToken;
       if (options.body && !headers["content-type"]) headers["content-type"] = "application/json";
-      const response = await fetch(base + path, { ...options, headers, cache: "no-store" });
+      const response = await fetch(base + path, { ...options, headers, credentials: "same-origin", cache: "no-store" });
       const payload = await response.json().catch(() => ({}));
       if (response.status === 401) {
         clearOwnerSession("Session expired or rejected. Sign in again.");
@@ -383,6 +385,32 @@
       }
       addFeedItem(els.sourceResults,"Evidence review required","Open the source and verify that it directly supports the claim.","warn");
     }
+    async function resumeOwnerSession() {
+      const base = workerBaseUrl();
+      if (!base) return;
+      try {
+        const response = await fetch(base + "/auth/session", { method: "GET", credentials: "same-origin", cache: "no-store", headers: { Accept: "application/json" } });
+        if (!response.ok) return;
+        const session = await response.json().catch(() => ({}));
+        if (session.authenticated !== true) return;
+        state.ownerToken = "cookie-session";
+        els.ownerLogout.disabled = false;
+        els.ownerLogin.disabled = false;
+        els.researchSearchBtn.disabled = false;
+        status(els.ownerBadge, "OWNER VERIFIED", "ok");
+        status(els.researchSearchStatus, "SESSION RESTORED", "ok");
+        setOwnerStatus("Owner session restored securely from the HttpOnly cookie. No token is exposed to page JavaScript.", "ok");
+        log("Owner session resumed after reload using the secure session cookie.", "good", "SECURITY");
+        await restoreConversationMemory();
+        await refreshTelemetry();
+        clearInterval(state.telemetryTimer);
+        state.telemetryTimer = setInterval(refreshTelemetry, 30000);
+        connectSentinelEvents();
+      } catch (error) {
+        log("Owner session resume unavailable: " + (error.message || "request failed"), "warn", "SECURITY");
+      }
+    }
+
     async function signInOwner(event) {
       event.preventDefault();
       const base = workerBaseUrl(), password = els.ownerPassword.value;
@@ -409,7 +437,12 @@
     }
     async function signOutOwner() {
       const base = workerBaseUrl(), token = state.ownerToken;
-      try { if (base && token) await fetch(base + "/auth/logout",{method:"POST",headers:{authorization:"Bearer "+token},cache:"no-store"}); } catch {}
+      try {
+        if (base && token) {
+          const headers = token === "cookie-session" ? {} : { authorization: "Bearer " + token };
+          await fetch(base + "/auth/logout", { method: "POST", headers, credentials: "same-origin", cache: "no-store" });
+        }
+      } catch {}
       clearOwnerSession(); log("Owner session cleared from this page.","warn","SECURITY");
     }
     async function searchEvidence(event) {
@@ -444,7 +477,8 @@
           try {
             const response = await fetch(base + "/api/events", {
               method: "GET", cache: "no-store", signal: controller.signal,
-              headers: { authorization: "Bearer " + state.ownerToken, accept: "text/event-stream" }
+              headers: { ...(state.ownerToken === "cookie-session" ? {} : { authorization: "Bearer " + state.ownerToken }), accept: "text/event-stream" },
+              credentials: "same-origin"
             });
             if (response.status === 401) { clearOwnerSession("Owner session expired; sign in again."); return; }
             if (!response.ok || !response.body) throw new Error("SSE HTTP " + response.status);
@@ -899,6 +933,7 @@
     log("Voice command execution is disabled until a secured command API is configured.","warn","SECURITY");
     checkHealth();
     connectEvents();
+    resumeOwnerSession();
   })();
   </script>
 </body>
