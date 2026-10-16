@@ -4,7 +4,7 @@
  * No Gemini integration. Secrets are read only from Worker bindings.
  */
 import { describePolicy } from "./policy.mjs";
-import { enqueueKnowledgeTask, listKnowledgeTasks, getKnowledgeResults, processApprovedKnowledgeTasks } from "./task-queue.mjs";
+import { enqueueKnowledgeTask, listKnowledgeTasks, getKnowledgeResults, processApprovedKnowledgeTasks, recoverStaleKnowledgeTasks } from "./task-queue.mjs";
 import { listProviderCapabilities } from "./architecture/provider-router.mjs";
 import { listMcpCapabilities, listVectorCapabilities, connectMcpAndListTools, vectorUpsertQueryReadback, IntegrationError } from "./architecture/integration-registry.mjs";
 import { createGoal, listGoals, transitionGoal, GoalError } from "./architecture/goal-lifecycle.mjs";
@@ -724,7 +724,11 @@ export default {
   },
 
   async scheduled(controller, env, ctx) {
-    const work = processApprovedKnowledgeTasks(env, 3);
+    const work = (async () => {
+      const recovery = await recoverStaleKnowledgeTasks(env, 20);
+      const processing = await processApprovedKnowledgeTasks(env, 3);
+      return { recovery, processing };
+    })();
     if (ctx && typeof ctx.waitUntil === "function") ctx.waitUntil(work);
     else await work;
   }
