@@ -74,6 +74,97 @@ export default {
       }
     }
 
+    if (url.pathname === "/api/memory") {
+      if (method !== "GET" && method !== "POST") {
+        const response = json({ ok: false, error: "Method not allowed" }, 405);
+        response.headers.set("allow", "GET, POST");
+        return response;
+      }
+      // This endpoint is server-to-server only. Never place BRIDGE_SECRET in browser code.
+      const auth = request.headers.get("authorization") || "";
+      const expected = typeof env.BRIDGE_SECRET === "string" ? env.BRIDGE_SECRET : "";
+      if (!expected || !auth.startsWith("Bearer ") || auth.slice(7) !== expected) {
+        return json({ ok: false, error: "Unauthorized" }, 401);
+      }
+      if (!env.DB || typeof env.DB.prepare !== "function") {
+        return json({ ok: false, error: "Memory storage unavailable" }, 503);
+      }
+      try {
+        await env.DB.prepare(`CREATE TABLE IF NOT EXISTS conversation_memory (
+          id TEXT PRIMARY KEY,
+          owner_scope TEXT NOT NULL,
+          session_id TEXT NOT NULL,
+          memory_type TEXT NOT NULL,
+          state_json TEXT NOT NULL,
+          created_at TEXT NOT NULL,
+          updated_at TEXT NOT NULL,
+          UNIQUE(owner_scope, session_id, memory_type)
+        )`).run();
+      } catch {
+        return json({ ok: false, error: "Memory schema unavailable" }, 503);
+      }
+
+      if (method === "GET") {
+        const sessionId = (url.searchParams.get("session_id") || "").trim();
+        if (!/^[A-Za-z0-9_-]{8,128}$/.test(sessionId)) {
+          return json({ ok: false, error: "Valid session_id is required" }, 400);
+        }
+        try {
+          const result = await env.DB.prepare(
+            "SELECT session_id, memory_type, state_json, created_at, updated_at FROM conversation_memory WHERE owner_scope = ? AND session_id = ? ORDER BY updated_at DESC LIMIT 50"
+          ).bind("owner", sessionId).all();
+          const memories = (result.results || []).map((row) => {
+            let state = null;
+            try { state = JSON.parse(row.state_json); } catch { state = null; }
+            return { session_id: row.session_id, memory_type: row.memory_type, state, created_at: row.created_at, updated_at: row.updated_at };
+          });
+          return json({ ok: true, memories });
+        } catch {
+          return json({ ok: false, error: "Memory read failed" }, 503);
+        }
+      }
+
+      const contentType = (request.headers.get("content-type") || "").toLowerCase();
+      if (!contentType.includes("application/json")) {
+        return json({ ok: false, error: "Content-Type must be application/json" }, 415);
+      }
+      let payload;
+      try {
+        const raw = await request.text();
+        if (new TextEncoder().encode(raw).byteLength > 12000) {
+          return json({ ok: false, error: "Request too large" }, 413);
+        }
+        payload = JSON.parse(raw);
+      } catch {
+        return json({ ok: false, error: "Invalid JSON or request body" }, 400);
+      }
+      const sessionId = typeof payload?.session_id === "string" ? payload.session_id.trim() : "";
+      const memoryType = typeof payload?.memory_type === "string" ? payload.memory_type.trim() : "conversation_state";
+      if (!/^[A-Za-z0-9_-]{8,128}$/.test(sessionId)) {
+        return json({ ok: false, error: "Valid session_id is required" }, 400);
+      }
+      if (!/^[a-z][a-z0-9_-]{1,39}$/.test(memoryType)) {
+        return json({ ok: false, error: "Invalid memory_type" }, 400);
+      }
+      if (!payload || typeof payload.state !== "object" || payload.state === null || Array.isArray(payload.state)) {
+        return json({ ok: false, error: "state must be a JSON object" }, 400);
+      }
+      const stateJson = JSON.stringify(payload.state);
+      if (new TextEncoder().encode(stateJson).byteLength > 8000) {
+        return json({ ok: false, error: "state exceeds 8000 bytes" }, 413);
+      }
+      const now = new Date().toISOString();
+      const id = crypto.randomUUID();
+      try {
+        await env.DB.prepare(
+          "INSERT INTO conversation_memory (id, owner_scope, session_id, memory_type, state_json, created_at, updated_at) VALUES (?, 'owner', ?, ?, ?, ?, ?) ON CONFLICT(owner_scope, session_id, memory_type) DO UPDATE SET state_json = excluded.state_json, updated_at = excluded.updated_at"
+        ).bind(id, sessionId, memoryType, stateJson, now, now).run();
+        return json({ ok: true, session_id: sessionId, memory_type: memoryType, updated_at: now });
+      } catch {
+        return json({ ok: false, error: "Memory write failed" }, 503);
+      }
+    }
+
     if (url.pathname === "/api/chat") {
       if (method !== "POST") {
         const response = json({ ok: false, error: "Method not allowed" }, 405);
