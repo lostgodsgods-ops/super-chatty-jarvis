@@ -1,0 +1,30 @@
+name: Passkey staging security tests
+
+on:
+  push:
+    branches:
+      - staging/passkey-webauthn
+  pull_request:
+    branches:
+      - main
+      - staging/passkey-webauthn
+
+permissions:
+  contents: read
+
+jobs:
+  security-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Install WebAuthn verification dependency
+        run: npm install --ignore-scripts --no-audit --no-fund
+      - name: Check staging Worker syntax
+        run: npm run check:passkey-worker
+      - name: Bundle staging Worker without deploying
+        run: npm run build:passkey-staging
+      - name: Run passkey security tests
+        run: npm test

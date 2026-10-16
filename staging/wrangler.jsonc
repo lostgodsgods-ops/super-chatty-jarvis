@@ -1,0 +1,26 @@
+{
+  "$schema": "../node_modules/wrangler/config-schema.json",
+  "name": "super-chatty-passkey-staging",
+  "main": "worker.mjs",
+  "compatibility_date": "2026-10-14",
+  "compatibility_flags": ["nodejs_compat"],
+  "workers_dev": true,
+  "vars": {
+    "RP_ID": "super-chatty-passkey-staging.lostgodsgods.workers.dev",
+    "RP_NAME": "Super Chatty Jarvis",
+    "ALLOWED_ORIGIN": "https://super-chatty-passkey-staging.lostgodsgods.workers.dev"
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "super-chatty-passkey-staging",
+      "database_id": "b705aa4e-a9fa-4592-ba4c-7a59cc55e12b"
+    }
+  ],
+  "kv_namespaces": [
+    {
+      "binding": "SESSIONS",
+      "id": "6d190e133b754bac8960ce2492a83705"
+    }
+  ]
+}
