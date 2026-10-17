@@ -4,6 +4,7 @@
  * No Gemini integration. Secrets are read only from Worker bindings.
  */
 import { describePolicy } from "./policy.mjs";
+import { buildRedQueenStatus } from "./architecture/red-queen-registry.mjs";
 import { randomChallenge, verifyRegistration, verifyAssertion } from "./webauthn.mjs";
 import { enqueueKnowledgeTask, listKnowledgeTasks, getKnowledgeResults, processApprovedKnowledgeTasks, recoverStaleKnowledgeTasks } from "./task-queue.mjs";
 import { listProviderCapabilities } from "./architecture/provider-router.mjs";
@@ -1309,6 +1310,20 @@ export default {
 
     if (url.pathname === "/policy" && request.method === "GET") {
       return json({ policy: describePolicy() }, 200, cors);
+    }
+
+    if (url.pathname === "/api/red-queen/status") {
+      if (request.method !== "GET") {
+        return json({ ok: false, error: "METHOD_NOT_ALLOWED" }, 405, { allow: "GET", ...cors });
+      }
+      if (!(await authorized(request, env))) return json({ ok: false, error: "Unauthorized" }, 401, cors);
+      const audit = await publishEvent(env, {
+        type: "red_queen.status.read",
+        source: "central-agent",
+        payload: { path: url.pathname, authenticated: true, mode: "read-only" }
+      });
+      if (!audit?.ok) return json({ ok: false, error: "AUDIT_STORAGE_UNAVAILABLE" }, 503, cors);
+      return json({ ok: true, registry: buildRedQueenStatus(env), audit: { recorded: true, eventId: audit.id } }, 200, cors);
     }
 
     if (url.pathname === "/architecture/status" && request.method === "GET") {
