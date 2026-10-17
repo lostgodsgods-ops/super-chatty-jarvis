@@ -27,7 +27,7 @@ The existing GitHub Actions deployment workflow targets `main` and deploys `src/
 1. Merge the reviewed PWA change into `main`.
 2. In GitHub, open **Actions** and verify the static-site checks and Cloudflare deployment workflow are green.
 3. Open the production PWA over HTTPS. Confirm the installed app launches without the browser tab bar using Chrome's **Install app** or **Add to Home screen** option, where available.
-4. On a browser that exposes `beforeinstallprompt`, verify **INSTALL APP NOW** opens the native install dialog from one tap. If the event is unavailable, verify the banner explains the Chrome menu fallback; the browser does not permit websites to force the native dialog.
+4. On a browser that exposes `beforeinstallprompt`, verify **INSTALL APP NOW** opens the native install dialog from one tap. If the event is unavailable, verify the banner explains that Chrome has not yet confirmed install eligibility; the site does not pretend it can force a native prompt.
 5. Verify an unauthenticated launch shows **OWNER SESSION REQUIRED** and does not issue health, D1 telemetry, or SSE requests.
 6. Sign in with the owner password or registered passkey; verify health/telemetry/SSE only begin after the session is confirmed.
 7. Reload the installed PWA and verify session restoration only if the secure session cookie remains valid.
@@ -36,7 +36,7 @@ The existing GitHub Actions deployment workflow targets `main` and deploys `src/
 
 - [ ] Android Chrome install launches in standalone display mode.
 - [ ] When `beforeinstallprompt` fires, **INSTALL APP NOW** opens Chrome's native install prompt from a user tap.
-- [ ] When `beforeinstallprompt` does not fire, the install banner gives an accurate manual-install fallback.
+- [ ] When `beforeinstallprompt` does not fire, the install banner reports that native prompt eligibility is unavailable without claiming installation succeeded.
 - [ ] New install shows the configured app icon and splash background.
 - [ ] No health request, D1 telemetry request, or SSE request occurs before session verification.
 - [ ] Invalid/expired session leaves telemetry and SSE locked.
