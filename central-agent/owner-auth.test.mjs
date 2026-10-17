@@ -9,16 +9,16 @@ import worker, { parseSetupToken, PASSWORD_ITERATIONS } from "./worker.mjs";
 import { base64url, fromBase64url } from "./webauthn.mjs";
 
 class FakeKV {
-  constructor() { this.values = new Map(); }
+  constructor() { this.values = new Map(); this.failSessionWritesOnly = false; }
   async get(key) { return this.values.get(key) ?? null; }
-  async put(key, value) { this.values.set(key, value); }
+  async put(key, value) { if (this.failSessionWritesOnly && key.startsWith("session:")) throw new Error("KV daily write quota exhausted"); this.values.set(key, value); }
   async delete(key) { this.values.delete(key); }
   async list({ prefix = "" } = {}) {
     return { keys: [...this.values.keys()].filter(name => name.startsWith(prefix)).map(name => ({ name })) };
   }
 }
 class FakeDB {
-  constructor() { this.row = null; this.passkeys = []; }
+  constructor() { this.row = null; this.passkeys = []; this.sessions = new Map(); }
   prepare(sql) {
     const db = this;
     const statement = {
@@ -26,6 +26,7 @@ class FakeDB {
       bind(...params) { this.params = params; return this; },
       async first() {
         if (sql.includes("SELECT salt")) return db.row ? { salt: db.row.salt, password_hash: db.row.password_hash } : null;
+        if (sql.includes("SELECT status, expires_at FROM owner_sessions")) return db.sessions.get(this.params[0]) || null;
         return null;
       },
       async all() {
@@ -46,6 +47,12 @@ class FakeDB {
           db.row.password_hash = this.params[1];
           return { meta: { changes: 1 } };
         }
+        if (sql.includes("INSERT INTO owner_sessions")) {
+          db.sessions.set(this.params[0], { token_hash: this.params[0], expires_at: this.params[1], status: "active" });
+          return { meta: { changes: 1 } };
+        }
+        if (sql.includes("DELETE FROM owner_sessions WHERE token_hash")) return { meta: { changes: db.sessions.delete(this.params[0]) ? 1 : 0 } };
+        if (sql.includes("DELETE FROM owner_sessions")) { const changes = db.sessions.size; db.sessions.clear(); return { meta: { changes } }; }
         return { meta: { changes: 0 } };
       }
     };
@@ -91,6 +98,22 @@ test("owner password can be used to log in, and login creates a session", async 
   const payload = await login.json();
   assert.equal(typeof payload.token, "string");
   assert.ok(payload.token.length > 20);
+});
+
+
+test("owner login falls back to expiring D1 sessions when KV session writes hit the daily quota", async () => {
+  const e = env();
+  await call(e, "/auth/setup", { setupToken: "test-bootstrap-code", password: "a-long-memorable-password" });
+  e.SESSIONS.failSessionWritesOnly = true;
+  const login = await call(e, "/auth/login", { password: "a-long-memorable-password" });
+  assert.equal(login.status, 200);
+  const { token } = await login.json();
+  assert.equal(e.DB.sessions.size, 1);
+  assert.equal((await call(e, "/policy", undefined, token)).status, 200);
+  const logout = await call(e, "/auth/logout", {}, token);
+  assert.equal(logout.status, 200);
+  assert.equal((await call(e, "/policy", undefined, token)).status, 401);
+  assert.equal(e.DB.sessions.size, 0);
 });
 
 test("first-time setup is one-time and fails closed without storage or bootstrap token", async () => {
