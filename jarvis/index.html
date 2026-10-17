@@ -675,6 +675,7 @@ body{background:radial-gradient(ellipse at 50% 38%,#50330f45 0,transparent 35%),
         const optionsResponse = await fetch(base + "/auth/biometric/login/options", { method:"POST", credentials:"include", headers:{Accept:"application/json"}, cache:"no-store" });
         const options = await optionsResponse.json().catch(() => ({}));
         if (!optionsResponse.ok) throw new Error(options.error || "Passkey sign-in is not configured.");
+        assertPasskeyOrigin(options, false);
         const credential = await navigator.credentials.get({ publicKey: {
           challenge: decodeB64url(options.challenge), rpId: options.rpId, timeout: options.timeout,
           userVerification: options.userVerification,
