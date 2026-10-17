@@ -205,6 +205,21 @@ test("Tavily provider errors return a generic error without leaking response bod
 });
 
 
+test("logout is idempotent without a session and revokes an authenticated session", async () => {
+  const e = env();
+  const anonymousLogout = await call(e, "/auth/logout", {});
+  assert.equal(anonymousLogout.status, 200);
+  assert.deepEqual(await anonymousLogout.json(), { ok: true });
+  assert.match(anonymousLogout.headers.get("set-cookie") || "", /Max-Age=0/);
+
+  const token = await ownerToken(e);
+  assert.equal((await call(e, "/auth/session", undefined, token)).status, 200);
+  const logout = await call(e, "/auth/logout", {}, token);
+  assert.equal(logout.status, 200);
+  assert.deepEqual(await logout.json(), { ok: true });
+  assert.equal((await call(e, "/auth/session", undefined, token)).status, 401);
+});
+
 test("owner session endpoint reports only the current bearer session", async () => {
   const e = env();
   const token = await ownerToken(e);
