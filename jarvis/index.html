@@ -714,48 +714,6 @@
         return;
       }
       connectSentinelEvents();
-      return;
-      disconnectEvents();
-      const raw = els.eventsUrl.value.trim();
-      if (!raw) {
-        els.streamStatus.textContent = "SSE endpoint not configured";
-        log("No SSE endpoint configured. Terminal shows local UI and health-check events only.","warn","STREAM");
-        toast("Add a real SSE endpoint to enable backend logs.");
-        return;
-      }
-      const url = safeUrl(raw);
-      if (!url) { log("SSE URL rejected: HTTPS is required.","error","STREAM"); toast("Use a valid HTTPS SSE URL."); return; }
-      if (!("EventSource" in window)) { log("This browser does not support EventSource.","error","STREAM"); return; }
-      try {
-        state.events = new EventSource(url.href, {withCredentials:false});
-        els.streamStatus.textContent = "Connecting to SSE…";
-        state.events.onopen = () => {
-          state.connected = true; els.streamStatus.textContent = "Live SSE connected";
-          status(els.pipelineStatus,"EVENTS: LIVE","ok"); log("Connected to configured SSE endpoint.","good","STREAM");
-        };
-        state.events.onmessage = (event) => {
-          let payload = event.data;
-          try {
-            const parsed = JSON.parse(event.data);
-            if (parsed && typeof parsed === "object") payload = parsed.message || parsed.log || parsed.event || JSON.stringify(parsed);
-          } catch {}
-          log(payload,"info","BACKEND");
-          updateAgentHud("message", event.data, event.lastEventId);
-        };
-
-        ["log","deploy","ci","status","commit","deployment","search","tavily","tavily.result","research","scrape","agent.status","agent.started","agent.executing","agent.execution.started","agent.execution.completed","task.started","task.enqueued","task.executing","task.completed","task.failed","security","security.alert","security.request.denied","security.auth.denied","health","heartbeat","sentinel.status","sentinel.completed","sentinel.degraded","scheduler.cycle.completed","reactor.state","system.state","audit","error","alert","bus.degraded"].forEach((name) => state.events.addEventListener(name, (event) => {
-          let payload = event.data;
-          try { const parsed = JSON.parse(event.data); payload = parsed.message || parsed.log || parsed.status || JSON.stringify(parsed); } catch {}
-          log(payload, name === "deploy" ? "good" : "info", name.toUpperCase());
-          updateAgentHud(name, event.data, event.lastEventId);
-        }));
-        state.events.onerror = () => {
-          state.connected = false; els.streamStatus.textContent = "SSE reconnecting / unavailable";
-          status(els.pipelineStatus,"EVENTS: RECONNECTING","warn");
-        };
-      } catch (err) {
-        log("Unable to open SSE: " + err.message,"error","STREAM");
-      }
     }
     async function connect() {
       if (!state.ownerToken) { toast("Sign in with the owner password or passkey before connecting."); return; }
