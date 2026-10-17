@@ -71,6 +71,47 @@
 .install-banner[hidden]{display:none!important}
 @media(max-width:520px){.install-banner{align-items:stretch;flex-wrap:wrap;gap:9px;padding:11px}.install-copy{flex-basis:calc(100% - 2px)}.install-app-btn{flex:1}.install-dismiss{min-width:42px}}
 
+
+/* Immersive HUD v6: gold-first core, compact voice control, side drawer, cinematic viewer */
+:root{--cyan:#f7c96d;--cyan2:#fff0bd;--line:rgba(255,203,103,.26);--glow:0 0 32px rgba(255,190,75,.13)}
+body{background:radial-gradient(ellipse at 50% 38%,#50330f45 0,transparent 35%),radial-gradient(ellipse at 50% 0%,#0b3446 0,transparent 42%),linear-gradient(145deg,#04080e,#07111b 56%,#050b12)}
+.shell{padding-bottom:calc(115px + var(--safe-bottom))}
+.grid{grid-template-columns:minmax(0,1fr)}
+.core-panel{min-height:calc(100svh - 190px);border-color:#ffce7855;background:radial-gradient(ellipse at 50% 48%,#b8792024,transparent 57%),linear-gradient(150deg,#071b2aee,#06101bee)}
+.core-wrap{width:min(82vw,520px);margin:clamp(8px,2vh,24px) auto}
+.core{background:radial-gradient(circle at 34% 25%,#fffce9 0,#ffe5a0 8%,#dca13e 24%,#80501d 45%,#21180d 72%);border-color:#fff0bdbb;box-shadow:0 0 28px #ffc85d88,0 0 95px #ffb72c40,inset -13px -18px 28px #0009,inset 6px 7px 20px #fff5c055}
+.core:before{border-color:#ffd78a8a;box-shadow:0 0 42px #ffca541f}
+.core-glyph{color:#fff8d9;text-shadow:0 0 22px #ffd477}
+.ring{border-color:#ffd47a70;box-shadow:inset 0 0 35px #ffd47a0a,0 0 32px #ffd47a0b}
+.ring.r2{border-color:#ffe9b266}.ring.r3{border-color:#fff0bd45}
+.core-title{color:#ffe6a6}
+.agent-hud-controls{opacity:.45;transform:scale(.88);transform-origin:center}
+.commandbar{width:auto;max-width:none;left:50%;bottom:calc(18px + var(--safe-bottom));transform:translateX(-50%);padding:8px;border-radius:50%;background:#080f19ed;border-color:#ffcf7880;box-shadow:0 0 35px #ffb72c30}
+.command-content,.commandbar .send{display:none!important}
+.commandbar .mic{width:78px;height:78px;min-height:78px;border-radius:50%;border:1px solid #fff0bd;background:radial-gradient(circle at 35% 25%,#fff1c6,#e4a83f 48%,#53300b);color:#1b1205;font-size:30px;box-shadow:0 0 28px #ffc75c75,0 0 80px #ffc75c22}
+.commandbar .mic.listening{animation:goldPulse .85s ease-in-out infinite alternate}
+@keyframes goldPulse{from{transform:scale(1);box-shadow:0 0 25px #ffc75c65}to{transform:scale(1.07);box-shadow:0 0 58px #ffc75cbb}}
+.hud-fab{position:fixed;z-index:25;top:50%;right:10px;transform:translateY(-50%);width:44px;height:86px;border:1px solid #ffd47a80;border-radius:16px;background:linear-gradient(180deg,#2b1d0def,#091521f5);color:#ffe8ad;box-shadow:0 0 24px #ffbd6722;display:grid;place-items:center;font-size:18px}
+.hud-drawer{position:fixed;z-index:40;top:10px;right:10px;bottom:10px;width:min(440px,calc(100vw - 20px));display:flex;flex-direction:column;border:1px solid #ffd47a66;border-radius:20px;background:rgba(4,12,20,.97);backdrop-filter:blur(24px);box-shadow:0 0 60px #000b,0 0 35px #ffbd6715;padding:14px;transform:translateX(calc(100% + 25px));transition:transform .28s ease}
+.hud-drawer.open{transform:translateX(0)}
+.hud-drawer-head{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:4px 0 12px;border-bottom:1px solid #ffd47a26}
+.hud-drawer-title{color:#ffe8ad;font-weight:900;letter-spacing:.13em;font-size:11px;text-transform:uppercase}
+.hud-btn{border:1px solid #ffd47a44;border-radius:10px;background:#ffd47a0c;color:#ffe8ad;padding:9px 11px;min-height:38px;font-weight:800;font-size:11px}
+.hud-url{width:100%;margin:12px 0 8px;background:#06101a;border:1px solid #ffd47a35;border-radius:10px;color:#f7fbff;padding:12px;min-height:44px}
+.hud-article{width:100%;flex:1;min-height:180px;border:1px solid #ffd47a28;border-radius:12px;background:#07101a;color:#edf5ff;padding:12px;resize:vertical;line-height:1.6}
+.hud-drawer-actions{display:flex;flex-wrap:wrap;gap:8px;padding-top:10px}
+.hud-hint{color:#9eb1c2;font-size:11px;margin:9px 0}
+.cinema{position:fixed;inset:0;z-index:60;background:radial-gradient(ellipse at center,#2c1c0b 0,#03070d 68%);display:none;flex-direction:column;padding:12px;gap:10px}
+.cinema.open{display:flex}
+.cinema-head{display:flex;align-items:center;justify-content:space-between;gap:12px;color:#ffe8ad;font-size:11px;font-weight:900;letter-spacing:.12em;text-transform:uppercase}
+.cinema-stage{flex:1;min-height:0;display:grid;place-items:center;border:1px solid #ffd47a30;border-radius:16px;background:#02060be8;overflow:auto}
+.cinema-stage img,.cinema-stage video,.cinema-stage iframe{width:100%;height:100%;max-height:100%;object-fit:contain;border:0}
+.cinema-stage iframe{background:#fff}
+.cinema-caption{font-size:11px;color:#b7c6d4;overflow-wrap:anywhere}
+@media(min-width:1000px){.core-panel{min-height:calc(100svh - 180px)}.core-wrap{width:min(54vw,520px)}}
+@media(max-width:520px){.core-panel{min-height:calc(100svh - 165px);padding:12px 8px}.core-wrap{width:min(86vw,430px)}.hud-fab{right:5px;width:38px;height:76px}.hud-drawer{top:6px;right:6px;bottom:6px;width:calc(100vw - 12px)}}
+@media(prefers-reduced-motion:reduce){.hud-drawer,.commandbar .mic.listening{transition:none;animation:none}}
+
 </style>
 </head>
 <body>
@@ -233,6 +274,29 @@
     <button class="send" id="sendBtn" type="button">SEND ↗</button>
   </section>
   <div class="toast hidden" id="toast" role="status" aria-live="polite"></div>
+
+  <button class="hud-fab" id="quickChatToggle" type="button" aria-label="Open binocular quick chat and article viewer" title="Quick chat / articles">◉<br>▤</button>
+  <aside class="hud-drawer" id="quickChatDrawer" aria-label="Quick chat and article viewer" aria-hidden="true">
+    <div class="hud-drawer-head"><div class="hud-drawer-title">Binocular quick-chat / viewer</div><button class="hud-btn" id="quickChatClose" type="button" aria-label="Close quick chat">CLOSE ×</button></div>
+    <p class="hud-hint">Draft text locally, copy snippets, or preview a public article URL in cinematic mode. External pages may block embedded viewing.</p>
+    <label class="field-label" for="articleUrl">Article / media URL</label>
+    <input class="hud-url" id="articleUrl" type="url" inputmode="url" placeholder="https://example.com/article" autocomplete="url">
+    <label class="field-label" for="quickChatText">Quick-chat / notes</label>
+    <textarea class="hud-article" id="quickChatText" rows="8" placeholder="Speak using the main mic, or paste a text snippet here…"></textarea>
+    <div class="hud-drawer-actions">
+      <button class="hud-btn" id="quickChatSend" type="button">SEND TO CHAT</button>
+      <button class="hud-btn" id="quickChatCopy" type="button">COPY TEXT</button>
+      <button class="hud-btn" id="quickChatPaste" type="button">PASTE</button>
+      <button class="hud-btn" id="articleOpen" type="button">CINEMATIC VIEW</button>
+    </div>
+    <p class="hud-hint" id="drawerStatus" role="status" aria-live="polite">Text remains local unless you explicitly send it.</p>
+  </aside>
+  <section class="cinema" id="cinemaOverlay" aria-label="Cinematic media viewer" aria-hidden="true">
+    <div class="cinema-head"><span id="cinemaTitle">IMMERSIVE VIEW</span><button class="hud-btn" id="cinemaClose" type="button">EXIT VIEW ×</button></div>
+    <div class="cinema-stage" id="cinemaStage"><div class="hud-hint">Choose a media item or open an article URL.</div></div>
+    <div class="cinema-caption" id="cinemaCaption">The Golden Neural Core remains active behind this view.</div>
+  </section>
+
 
   <script>
   (() => {
@@ -1027,6 +1091,38 @@
     ["dragleave","drop"].forEach(name=>mediaEls.mediaDrop.addEventListener(name,event=>{event.preventDefault();mediaEls.mediaDrop.classList.remove("dragover");}));
     mediaEls.mediaDrop.addEventListener("drop",event=>acceptMedia(event.dataTransfer && event.dataTransfer.files));
     window.addEventListener("pagehide",()=>{stopCamera();revokeMediaUrls();},{once:true});
+
+
+    // Immersive drawer and cinematic viewer. URL previews are sandboxed and never execute page scripts.
+    const drawer = $("quickChatDrawer"), drawerToggle = $("quickChatToggle"), drawerClose = $("quickChatClose");
+    const quickText = $("quickChatText"), articleUrl = $("articleUrl"), drawerStatus = $("drawerStatus");
+    const cinema = $("cinemaOverlay"), cinemaStage = $("cinemaStage"), cinemaTitle = $("cinemaTitle"), cinemaCaption = $("cinemaCaption");
+    function openDrawer(){drawer.classList.add("open");drawer.setAttribute("aria-hidden","false");drawerToggle.setAttribute("aria-expanded","true");}
+    function closeDrawer(){drawer.classList.remove("open");drawer.setAttribute("aria-hidden","true");drawerToggle.setAttribute("aria-expanded","false");}
+    function openCinema(title,node,caption="Preview is displayed locally; remote pages may restrict embedding."){cinemaStage.replaceChildren();cinemaStage.append(node);cinemaTitle.textContent=title.slice(0,120);cinemaCaption.textContent=caption;cinema.classList.add("open");cinema.setAttribute("aria-hidden","false");document.body.style.overflow="hidden";}
+    function closeCinema(){cinema.classList.remove("open");cinema.setAttribute("aria-hidden","true");cinemaStage.replaceChildren();document.body.style.overflow="";}
+    drawerToggle.addEventListener("click",()=>drawer.classList.contains("open")?closeDrawer():openDrawer());
+    drawerClose.addEventListener("click",closeDrawer);$("cinemaClose").addEventListener("click",closeCinema);
+    $("quickChatSend").addEventListener("click",()=>{const value=quickText.value.trim();if(!value){drawerStatus.textContent="Add text before sending.";return;}els.commandInput.value=value;closeDrawer();submitCommand();});
+    $("quickChatCopy").addEventListener("click",async()=>{try{await navigator.clipboard.writeText(quickText.value);drawerStatus.textContent="Text copied to clipboard.";}catch{quickText.focus();quickText.select();drawerStatus.textContent="Clipboard access blocked; text selected for manual copy.";}});
+    $("quickChatPaste").addEventListener("click",async()=>{try{quickText.value=await navigator.clipboard.readText();drawerStatus.textContent="Clipboard text pasted locally.";}catch{drawerStatus.textContent="Clipboard permission blocked. Long-press the text area and choose Paste.";}});
+    $("articleOpen").addEventListener("click",()=>{const raw=articleUrl.value.trim();if(!raw){drawerStatus.textContent="Enter a public HTTPS article URL first.";return;}let url;try{url=new URL(raw);if(url.protocol!=="https:")throw new Error();}catch{drawerStatus.textContent="Use a valid HTTPS URL.";return;}const frame=document.createElement("iframe");frame.title="Sandboxed article preview";frame.referrerPolicy="no-referrer";frame.sandbox="allow-forms allow-popups";frame.src=url.href;openCinema("ARTICLE / MEDIA VIEW",frame,"Sandboxed remote preview. Some sites block iframes; use the source site directly if it does not render.");closeDrawer();});
+    $("mediaItems").addEventListener("click",event=>{const media=event.target.closest("img,video");if(!media)return;const clone=media.cloneNode(true);clone.controls=true;clone.style.objectFit="contain";openCinema("LOCAL MEDIA PREVIEW",clone,"Local file preview only; no upload or external transmission occurs.");});
+    document.addEventListener("keydown",event=>{if(event.key==="Escape"){closeCinema();closeDrawer();}});
+    function lockOwnerOnBackground(reason="App backgrounded; owner verification required.") {
+      const token=state.ownerToken,base=workerBaseUrl();
+      state.ownerToken="";state.memoryHistory=[];clearOwnerSession(reason);
+      try{if(state.recognition)state.recognition.abort();}catch{}
+      state.listening=false;state.micBtn?.classList?.remove("listening");
+      if(state.mediaStream){state.mediaStream.getTracks().forEach(track=>track.stop());state.mediaStream=null;}
+      stopAudioMeter().catch(()=>{});disconnectEvents();clearInterval(state.healthTimer);state.healthTimer=0;
+      if(base)fetch(base+"/auth/logout",{method:"POST",headers:token&&token!=="cookie-session"?{authorization:"Bearer "+token}:{},credentials:"include",cache:"no-store",keepalive:true}).catch(()=>{});
+      log("Session locked on "+reason,"warn","SECURITY");
+    }
+    let backgroundLockTriggered=false;
+    document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="hidden"){backgroundLockTriggered=true;lockOwnerOnBackground("app hidden / screen lock");}else if(backgroundLockTriggered){backgroundLockTriggered=false;setOwnerStatus("Locked after backgrounding. Re-verify with password or registered passkey.","warn");}});
+    window.addEventListener("pagehide",()=>lockOwnerOnBackground("page hidden or closed"));
+    document.addEventListener("freeze",()=>lockOwnerOnBackground("page frozen"));
 
     // Lightweight animated particle mesh; capped for phone GPUs and disabled for reduced motion.
     (function initParticleMesh(){
