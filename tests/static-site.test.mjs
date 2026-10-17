@@ -96,7 +96,7 @@ test("NEXUS agent HUD is live-wired to the production SSE event bus", () => {
   assert.match(jarvisHtml, /resumeOwnerSession\(\);\s*\}\)\(\);/, "session restore must run at startup");
   assert.doesNotMatch(jarvisHtml, /checkHealth\(\);\s*connectEvents\(\);\s*resumeOwnerSession\(\);/, "health checks and SSE must not start before owner session verification");
   assert.match(jarvisHtml, /updateAgentHud\(eventName, dataLine, ""\)/, "authenticated SSE events must update the agent HUD");
-  assert.match(jarvisHtml, /security\.request\.denied/);
+  assert.match(centralWorker, /security\.request\.denied/);
   assert.match(jarvisHtml, /parsed\.payload && typeof parsed\.payload==="object"/);
 });
 
