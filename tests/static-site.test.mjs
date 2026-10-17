@@ -102,12 +102,12 @@ test("NEXUS agent HUD is live-wired to the production SSE event bus", () => {
 
 
 test("installed PWA force-updates stale shells and revalidates HTML assets", () => {
-  assert.match(serviceWorker, /CACHE_NAME\s*=\s*"super-chatty-jarvis-shell-v4"/, "shell cache must be version-bumped");
+  assert.match(serviceWorker, /CACHE_NAME\s*=\s*"super-chatty-jarvis-shell-v5"/, "shell cache must be version-bumped for the install UX release");
   assert.match(serviceWorker, /self\.skipWaiting\(\)/, "new worker must activate without waiting for an old tab to close");
   assert.match(serviceWorker, /self\.clients\.claim\(\)/, "new worker must claim open PWA clients");
   assert.match(serviceWorker, /key !== CACHE_NAME.*caches\.delete\(key\)/s, "activation must delete older Super Chatty shell caches");
   assert.match(serviceWorker, /new Request\(request,\s*\{\s*cache:\s*"no-store"\s*\}\)/, "navigation must bypass stale browser HTTP cache");
-  assert.match(jarvisHtml, /application-version" content="NEXUS-2026\.10\.17-PWA4"/, "frontend version must be bumped");
+  assert.match(jarvisHtml, /application-version" content="NEXUS-2026\.10\.17-PWA5"/, "frontend version must be bumped");
   assert.match(jarvisHtml, /registration\.update\(\)/, "PWA must check for worker updates");
   assert.match(jarvisHtml, /controllerchange/, "active sessions must detect the new worker controller");
   assert.match(jarvisHtml, /location\.reload\(\)/, "active sessions must reload after a worker update");
@@ -165,7 +165,8 @@ test("PWA exposes real WebAuthn passkey sign-in and authenticated registration c
 
 test("standalone install metadata advertises app-window behavior and a branded launch surface", () => {
   assert.equal(manifest.display, "standalone");
-  assert.deepEqual(manifest.display_override, ["standalone", "minimal-ui"]);
+  assert.deepEqual(manifest.display_override, ["standalone"]);
+  assert.doesNotMatch(JSON.stringify(manifest.display_override), /minimal-ui/);
   assert.equal(manifest.start_url, "./");
   assert.equal(manifest.scope, "./");
   assert.equal(manifest.background_color, "#08090d");
@@ -173,6 +174,18 @@ test("standalone install metadata advertises app-window behavior and a branded l
   assert.ok(manifest.icons.some(icon => icon.src === "./icon.svg" && icon.purpose.includes("maskable")));
   assert.match(jarvisHtml, /name="mobile-web-app-capable" content="yes"/);
   assert.match(jarvisHtml, /name="apple-mobile-web-app-capable" content="yes"/);
+});
+
+test("PWA provides a direct native install prompt and a safe fallback", () => {
+  assert.match(jarvisHtml, /id="installBanner"/, "install banner must be present in the first-screen UI");
+  assert.match(jarvisHtml, /id="installAppBtn"[^>]*>INSTALL APP NOW</, "install button must be prominent and directly tappable");
+  assert.match(jarvisHtml, /beforeinstallprompt/, "Chrome install prompt event must be captured");
+  assert.match(jarvisHtml, /event\.preventDefault\(\)/, "browser prompt must be deferred until the user taps the button");
+  assert.match(jarvisHtml, /installEvent\.prompt\(\)/, "button must invoke the native prompt from a user gesture");
+  assert.match(jarvisHtml, /appinstalled/, "successful installation must be detected");
+  assert.match(jarvisHtml, /Native install prompt is unavailable/, "unsupported browsers need a truthful fallback");
+  assert.match(jarvisHtml, /display-mode:\s*standalone/, "installed standalone mode must be detected");
+  assert.match(serviceWorker, /CACHE_NAME\s*=\s*"super-chatty-jarvis-shell-v5"/, "install UX release must invalidate old shell cache");
 });
 
 test("owner gate prevents health checks and SSE from starting before session verification", () => {
