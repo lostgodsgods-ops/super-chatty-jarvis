@@ -34,6 +34,20 @@ async function probeD1(db) {
   });
 }
 
+async function probeKV(kv) {
+  if (!kv || typeof kv.get !== "function") {
+    return { checked: false, reason: "KV binding unavailable; non-critical" };
+  }
+  const result = await timed(async () => {
+    // Read-only sentinel key: do not consume KV write quota or mutate user data.
+    await kv.get("__internal_sentinel_readiness_probe__");
+    return { operation: "read-only-get" };
+  });
+  return result.ok
+    ? { checked: true, ok: true, latencyMs: result.latencyMs, operation: result.value.operation }
+    : { checked: true, ok: false, latencyMs: result.latencyMs, error: result.error, operation: "read-only-get" };
+}
+
 export async function runSentinelCycle(env, options = {}) {
   const now = options.now || new Date().toISOString();
   if (!env?.DB || typeof env.DB.prepare !== "function") {
@@ -42,15 +56,16 @@ export async function runSentinelCycle(env, options = {}) {
   try { await ensureSentinelSchema(env.DB); }
   catch { return { ok: false, status: "blocked", checkedAt: now, error: "SENTINEL_SCHEMA_UNAVAILABLE" }; }
 
-  // Sentinel readiness is D1-backed. KV is a best-effort session cache and must
-  // never fail the health probe because of write quotas or transient KV errors.
+  // D1 is authoritative for readiness. KV is checked read-only for diagnostics;
+  // KV failure is reported accurately but does not change application readiness.
   const d1 = await probeD1(env.DB);
+  const kv = await probeKV(env.SESSIONS);
   const errors = d1.ok ? [] : [{ component: "d1", code: d1.error }];
   const metrics = {
     storageMode: "d1-authoritative",
     schemaOk: true,
     d1: { ok: d1.ok, latencyMs: d1.latencyMs, ...(d1.ok ? d1.value : { error: d1.error }) },
-    kv: { checked: false, reason: "KV is non-critical and excluded from readiness" },
+    kv,
     errors
   };
   const status = errors.length ? "degraded" : "healthy";
