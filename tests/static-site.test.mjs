@@ -171,6 +171,10 @@ test("standalone install metadata advertises app-window behavior and a branded l
   assert.equal(manifest.background_color, "#08090d");
   assert.equal(manifest.theme_color, "#08090d");
   assert.ok(manifest.icons.some(icon => icon.src === "./icon.svg" && icon.purpose.includes("maskable")));
+  assert.ok(manifest.icons.some(icon => icon.src === "./icon-192.png" && icon.sizes === "192x192" && icon.type === "image/png"));
+  assert.ok(manifest.icons.some(icon => icon.src === "./icon-512.png" && icon.sizes === "512x512" && icon.type === "image/png"));
+  assert.match(serviceWorker, /icon-192\.png/);
+  assert.match(serviceWorker, /icon-512\.png/);
   assert.match(jarvisHtml, /name="mobile-web-app-capable" content="yes"/);
   assert.match(jarvisHtml, /name="apple-mobile-web-app-capable" content="yes"/);
 });
