@@ -314,6 +314,7 @@ test("owner chat performs Tavily live search for current questions and exposes c
   assert.match(apiChat, /requiresLiveSearch\(message\)/);
   assert.match(apiChat, /fetchTavilyWithRetry\(searchQuery, env\)/);
   assert.match(apiChat, /rankTavilyResults\(searchQuery/);
+  assert.match(apiChat, /directWebSearchFallback/);
   assert.match(apiChat, /LIVE_SEARCH_NOT_CONFIGURED/);
   assert.match(apiChat, /No stale-model fallback was used/);
   assert.match(apiChat, /WebAuthn passkey registration and assertion verification/);
