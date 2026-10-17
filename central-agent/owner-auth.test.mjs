@@ -210,7 +210,7 @@ test("Tavily search validates query and sends bounded requests with source URLs"
     const sent = JSON.parse(requestOptions.body);
     assert.equal(sent.query, "Cloudflare Workers");
     assert.equal(sent.search_depth, "advanced");
-    assert.equal(sent.max_results, 5);
+    assert.equal(sent.max_results, 8);
     assert.equal(sent.include_raw_content, false);
     const payload = await response.json();
     assert.equal(payload.provider, "tavily");
@@ -538,4 +538,15 @@ test("PWA exposes one-time recovery controls without persisting recovery codes o
   assert.ok(html.includes('"/auth/recovery/login"'));
   assert.ok(html.includes('"/auth/recovery/codes"'));
   assert.ok(html.includes('els.ownerRecoveryCodes.textContent = "";'));
+});
+
+
+test("passkey registration sends its challenge and binds challenge consumption to the same origin", async () => {
+  const html = await readFile(new URL("../jarvis/index.html", import.meta.url), "utf8");
+  const workerSource = await readFile(new URL("./worker.mjs", import.meta.url), "utf8");
+  const webauthnSource = await readFile(new URL("./webauthn.mjs", import.meta.url), "utf8");
+  assert.ok(html.includes("type: credential.type, challenge: options.challenge"), "registration verify payload must include the issued challenge");
+  assert.ok(workerSource.includes('sha256Hex(sessionToken + "\\n" + parsedOrigin.origin)'), "registration challenge must be bound to session and exact origin");
+  assert.ok(workerSource.includes("origin mismatch, or already used"), "origin-bound challenge failure should be explicit");
+  assert.ok(webauthnSource.includes("Submitted credential ID does not match attested credential ID"), "submitted credential ID must match attested ID");
 });

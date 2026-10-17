@@ -100,6 +100,11 @@ export async function verifyRegistration(body, expectedChallenge, expectedOrigin
   const idStart = 55, keyStart = idStart + credentialLength;
   if (!credentialLength || keyStart >= authData.length) throw new Error("Credential ID is missing");
   const credentialId = authData.slice(idStart, keyStart);
+  const parsedCredentialId = base64url(credentialId);
+  const submittedCredentialId = typeof body.rawId === "string" ? body.rawId : (typeof body.id === "string" ? body.id : "");
+  if (!submittedCredentialId || submittedCredentialId !== parsedCredentialId) {
+    throw new Error("Submitted credential ID does not match attested credential ID");
+  }
   const cose = decodeCbor(authData, keyStart).value;
   if (!(cose instanceof Map) || cose.get(1) !== 2 || cose.get(3) !== -7 || cose.get(-1) !== 1 ||
       !(cose.get(-2) instanceof Uint8Array) || !(cose.get(-3) instanceof Uint8Array)) {

@@ -704,7 +704,7 @@ body{background:radial-gradient(ellipse at 50% 38%,#50330f45 0,transparent 35%),
         }});
         if (!credential) throw new Error("The device did not create a passkey.");
         const registration = {
-          id: credential.id, rawId: encodeB64url(credential.rawId), type: credential.type,
+          id: credential.id, rawId: encodeB64url(credential.rawId), type: credential.type, challenge: options.challenge,
           response: {
             clientDataJSON: encodeB64url(credential.response.clientDataJSON),
             attestationObject: encodeB64url(credential.response.attestationObject)
@@ -1003,8 +1003,18 @@ body{background:radial-gradient(ellipse at 50% 38%,#50330f45 0,transparent 35%),
       return /[\\u0900-\\u097F]/.test(els.commandInput.value || "") ? "hi-IN" : "en-IN";
     }
     function interruptSpeechOutput() {
+      state.speechGeneration = (state.speechGeneration || 0) + 1;
       if ("speechSynthesis" in window) window.speechSynthesis.cancel();
-      state.speaking = false;
+      state.speaking = false; state.currentSpeechText = "";
+      if (state.handsFree && state.ownerToken && !state.chatBusy) setTimeout(() => startListening(), 80);
+    }
+    function transcriptLooksLikeTtsEcho(transcript) {
+      const spoken = String(state.currentSpeechText || "").toLocaleLowerCase().match(/[\p{L}\p{N}]{3,}/gu) || [];
+      const heard = String(transcript || "").toLocaleLowerCase().match(/[\p{L}\p{N}]{3,}/gu) || [];
+      if (!spoken.length || !heard.length) return false;
+      const words = new Set(spoken);
+      const overlap = heard.filter(word => words.has(word)).length / heard.length;
+      return overlap >= 0.8;
     }
     function speakText(text, onEnd) {
       if (!("speechSynthesis" in window) || typeof SpeechSynthesisUtterance === "undefined") {
@@ -1012,11 +1022,20 @@ body{background:radial-gradient(ellipse at 50% 38%,#50330f45 0,transparent 35%),
         return false;
       }
       try {
+        state.speechGeneration = (state.speechGeneration || 0) + 1;
+        const generation = state.speechGeneration;
         window.speechSynthesis.cancel();
         const utterance = new SpeechSynthesisUtterance(String(text).slice(0, 3000));
-        utterance.lang = speechLanguage(); utterance.rate = 1.02; utterance.pitch = 1;
-        utterance.onend = utterance.onerror = () => { state.speaking = false; if (typeof onEnd === "function") onEnd(); };
-        state.speaking = true; window.speechSynthesis.speak(utterance); return true;
+        state.currentSpeechText = utterance.text;
+        utterance.lang = speechLanguage(); utterance.rate = 1.0; utterance.pitch = 1;
+        utterance.onend = utterance.onerror = () => {
+          if (generation !== state.speechGeneration) return;
+          state.speaking = false; state.currentSpeechText = "";
+          if (typeof onEnd === "function") onEnd();
+        };
+        state.speaking = true; window.speechSynthesis.speak(utterance);
+        if (state.handsFree && state.ownerToken) setTimeout(() => startListening(), 180);
+        return true;
       } catch (error) {
         state.speaking = false; log("Speech output unavailable: " + (error?.message || String(error)), "warn", "VOICE");
         if (typeof onEnd === "function") onEnd(); return false;
@@ -1062,23 +1081,29 @@ body{background:radial-gradient(ellipse at 50% 38%,#50330f45 0,transparent 35%),
       await startListening();
     }
     async function startListening() {
-      if (!state.handsFree || !state.ownerToken || state.listening || state.chatBusy || state.speaking) return;
+      if (!state.handsFree || !state.ownerToken || state.listening || state.chatBusy) return;
       const Recognition = speechApi();
       if (!Recognition) { stopHandsFree("Speech recognition is unavailable."); return; }
       const recognition = new Recognition();
       recognition.lang = "en-IN"; recognition.continuous = false; recognition.interimResults = true; recognition.maxAlternatives = 1;
       state.recognition = recognition;
       recognition.onstart = () => {
-        // Barge-in: once the microphone starts, immediately stop spoken output.
-        if ("speechSynthesis" in window) window.speechSynthesis.cancel();
-        state.speaking = false;
+        // Keep recognition active during TTS so the owner can barge in.
+        // TTS is cancelled only when incoming speech differs from the current spoken reply.
         state.listening = true; els.handsFreeBtn.classList.add("listening"); els.micMetric.textContent = "LIVE";
         els.voiceLabel.textContent = "LISTENING · LOSS GODS"; setCoreState("Hands-free listening · speak naturally");
         els.privacyNote.textContent = "Microphone active. Audio recognition may be processed by your browser provider.";
       };
       recognition.onresult = event => {
         let finalText = "";
-        for (let i = event.resultIndex; i < event.results.length; i++) if (event.results[i].isFinal) finalText += event.results[i][0].transcript;
+        for (let i = event.resultIndex; i < event.results.length; i++) {
+          const result = event.results[i];
+          const transcript = String(result?.[0]?.transcript || "").trim();
+          if (!transcript) continue;
+          if (state.speaking && transcriptLooksLikeTtsEcho(transcript)) continue;
+          if (state.speaking) interruptSpeechOutput();
+          if (result.isFinal) finalText += (finalText ? " " : "") + transcript;
+        }
         if (finalText.trim()) {
           els.commandInput.value = finalText.trim(); log("Loss Gods voice input captured.", "good", "VOICE");
           submitCommand("voice").catch(error => log("Voice reply failed: " + (error?.message || String(error)), "error", "VOICE"));
@@ -1094,7 +1119,7 @@ body{background:radial-gradient(ellipse at 50% 38%,#50330f45 0,transparent 35%),
       recognition.onend = () => {
         state.listening = false; els.handsFreeBtn.classList.remove("listening");
         els.micMetric.textContent = state.handsFree ? "READY" : "IDLE";
-        if (state.handsFree && state.ownerToken && !state.chatBusy && !state.speaking) setTimeout(() => startListening(), 350);
+        if (state.handsFree && state.ownerToken && !state.chatBusy) setTimeout(() => startListening(), 180);
       };
       try { recognition.start(); }
       catch (error) { log("Could not start speech recognition: " + (error?.message || String(error)), "error", "VOICE"); stopHandsFree("Speech recognition could not start."); }
