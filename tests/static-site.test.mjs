@@ -200,3 +200,16 @@ test("one-click install button invokes the native prompt only after browser elig
   assert.match(jarvisHtml, /application-version" content="NEXUS-2026\.10\.17-PWA5"/, "the PWA version must be bumped");
   assert.match(serviceWorker, /CACHE_NAME\s*=\s*"super-chatty-jarvis-shell-v5"/, "the shell cache must be invalidated for this release");
 });
+
+
+test("PWA install assets and standalone metadata are internally consistent", () => {
+  const manifest = JSON.parse(manifestContent);
+  assert.equal(manifest.display, "standalone");
+  assert.deepEqual(manifest.display_override, ["standalone"]);
+  assert.ok(manifest.icons.some((icon) => icon.src === "./icon-192.png" && icon.sizes === "192x192" && icon.type === "image/png"));
+  assert.ok(manifest.icons.some((icon) => icon.src === "./icon-512.png" && icon.sizes === "512x512" && icon.type === "image/png"));
+  assert.match(jarvisHtml, /rel="icon" href="\.\/icon-192\.png" type="image\/png" sizes="192x192"/);
+  assert.match(jarvisHtml, /rel="apple-touch-icon" href="\.\/icon-192\.png"/);
+  assert.match(serviceWorker, /"\.\/icon-192\.png"/);
+  assert.match(serviceWorker, /"\.\/icon-512\.png"/);
+});
