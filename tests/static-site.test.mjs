@@ -326,7 +326,7 @@ test("owner chat performs Tavily live search for current questions and exposes c
   assert.match(apiChat, /fetchTavilyWithRetry\(searchQuery, env\)/);
   assert.match(apiChat, /rankTavilyResults\(searchQuery/);
   assert.match(centralWorker, /directWebSearchFallback/);
-  assert.match(apiChat, /LIVE_SEARCH_NOT_CONFIGURED/);
+  assert.match(apiChat, /direct DuckDuckGo HTML search/);
   assert.match(apiChat, /No stale-model fallback was used/);
   assert.match(apiChat, /WebAuthn passkey registration and assertion verification/);
   assert.match(apiChat, /speech barge-in cancels speech synthesis/);
