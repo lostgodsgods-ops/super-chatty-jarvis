@@ -6,6 +6,7 @@ import { readFile } from "node:fs/promises";
 // Cloudflare Workers provide Web Crypto globally; make the same API explicit in Node tests.
 Object.defineProperty(globalThis, "crypto", { value: webcrypto, configurable: true, writable: true });
 import worker, { parseSetupToken, PASSWORD_ITERATIONS } from "./worker.mjs";
+import { base64url, fromBase64url } from "./webauthn.mjs";
 
 class FakeKV {
   constructor() { this.values = new Map(); }
@@ -61,6 +62,13 @@ async function call(envObj, path, body, token) {
     body: body === undefined ? undefined : JSON.stringify(body)
   }), envObj);
 }
+
+test("WebAuthn base64url encoding is URL-safe and round-trips bytes", () => {
+  const bytes = Uint8Array.from([251, 255, 255]);
+  const encoded = base64url(bytes);
+  assert.equal(encoded, "-___");
+  assert.deepEqual([...fromBase64url(encoded)], [...bytes]);
+});
 
 test("owner setup requires the one-time setup token and a memorable but strong password", async () => {
   const e = env();
