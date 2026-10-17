@@ -538,30 +538,20 @@ body{background:radial-gradient(ellipse at 50% 38%,#50330f45 0,transparent 35%),
       addFeedItem(els.sourceResults,"Evidence review required","Open the source and verify that it directly supports the claim.","warn");
     }
     async function resumeOwnerSession() {
+      // Never restore an authenticated state from a cookie on page startup.
+      // A reload/background transition must require a fresh password or WebAuthn ceremony.
       const base = workerBaseUrl();
+      clearOwnerSession("Locked on app start. Re-verify with the master password or registered passkey.");
       if (!base) return;
       try {
-        const response = await fetch(base + "/auth/session", { method: "GET", credentials: "include", cache: "no-store", headers: { Accept: "application/json" } });
-        if (!response.ok) return;
-        const session = await response.json().catch(() => ({}));
-        if (session.authenticated !== true) return;
-        state.ownerToken = "cookie-session";
-        els.ownerLogout.disabled = false;
-        els.ownerLogin.disabled = false;
-        els.ownerPasskeyRegister.disabled = false;
-        els.researchSearchBtn.disabled = false;
-        status(els.ownerBadge, "OWNER VERIFIED", "ok");
-        status(els.researchSearchStatus, "SESSION RESTORED", "ok");
-        setOwnerStatus("Owner session restored securely from the HttpOnly cookie. No token is exposed to page JavaScript.", "ok");
-        log("Owner session resumed after reload using the secure session cookie.", "good", "SECURITY");
-        await checkHealth();
-        await restoreConversationMemory();
-        await refreshTelemetry();
-        clearInterval(state.telemetryTimer);
-        state.telemetryTimer = setInterval(refreshTelemetry, 30000);
-        connectSentinelEvents();
+        await fetch(base + "/auth/logout", {
+          method: "POST", credentials: "include", cache: "no-store", keepalive: true,
+          headers: { Accept: "application/json" }
+        });
+        log("Any previous cookie-backed session was revoked at startup; fresh verification is required.", "good", "SECURITY");
       } catch (error) {
-        log("Owner session resume unavailable: " + (error.message || "request failed"), "warn", "SECURITY");
+        // Fail closed locally even if network revocation cannot complete.
+        log("Startup cookie revocation could not be confirmed; local access remains locked: " + (error.message || "network error"), "warn", "SECURITY");
       }
     }
 
