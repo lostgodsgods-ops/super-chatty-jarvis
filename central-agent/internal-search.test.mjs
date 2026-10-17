@@ -57,6 +57,8 @@ test("internal Tavily search uses the server-side key, returns real source shape
     assert.equal(upstreamUrl, "https://api.tavily.com/search");
     assert.equal(upstreamOptions.headers.authorization, "Bearer test-tavily-key");
     assert.equal(JSON.parse(upstreamOptions.body).query, "Cloudflare Workers documentation");
+    assert.equal(JSON.parse(upstreamOptions.body).search_depth, "basic");
+    assert.equal(JSON.parse(upstreamOptions.body).max_results, 5);
     assert.equal(JSON.stringify(body).includes("test-tavily-key"), false);
   } finally {
     globalThis.fetch = originalFetch;
