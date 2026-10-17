@@ -7,13 +7,19 @@
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="application-version" content="NEXUS-2026.10.17-PWA4">
+  <meta name="application-version" content="NEXUS-2026.10.17-PWA5">
   <meta name="description" content="Super Chatty Jarvis — voice-first AI command interface.">
   <meta name="color-scheme" content="dark">
   <title>Super Chatty Jarvis · Neural Console</title>
   <link rel="manifest" href="./manifest.webmanifest">
   <link rel="icon" href="./icon.svg" type="image/svg+xml">
   <style>
+.pwa-install-panel{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:15px 16px;border:1px solid #53e8ff9c;border-radius:17px;background:linear-gradient(115deg,rgba(8,45,62,.98),rgba(5,17,28,.96));box-shadow:0 0 30px #53e8ff16,inset 0 1px #ffffff0d}
+.pwa-install-copy{min-width:0}.pwa-install-title{font-size:13px;font-weight:900;letter-spacing:.06em;color:#d9fbff}.pwa-install-desc{margin-top:4px;font-size:11px;line-height:1.5;color:#a8c5d2}.pwa-install-status{margin-top:6px;font-size:10px;color:#ffcf8c}.pwa-install-status.ready{color:#6fffd0}.pwa-install-status.error{color:#ff9aaa}
+.install-app-btn{flex:0 0 auto;min-height:48px;padding:12px 15px;border:1px solid #b7f8ff;border-radius:12px;background:linear-gradient(110deg,#c2fbff,#37c9e7);color:#03131d;font-size:11px;font-weight:950;letter-spacing:.035em;box-shadow:0 0 22px #53e8ff32}
+.install-app-btn:disabled{opacity:.62;cursor:wait}
+.pwa-install-panel[hidden]{display:none!important}
+@media(max-width:600px){.pwa-install-panel{align-items:stretch;flex-direction:column;gap:10px;padding:13px}.install-app-btn{width:100%;min-height:50px;font-size:12px}}
 :root{color-scheme:dark;--bg:#050b12;--panel:rgba(7,19,31,.76);--panel2:rgba(10,28,43,.68);--line:rgba(64,225,255,.25);--cyan:#53e8ff;--cyan2:#b7f8ff;--amber:#ffbd67;--gold:#ffd99b;--muted:#8aa6b7;--text:#e9fbff;--green:#6fffd0;--red:#ff788e;--safe-bottom:env(safe-area-inset-bottom,0px);--glow:0 0 28px rgba(54,220,255,.12)}
 *{box-sizing:border-box}html{min-height:100%;background:var(--bg);scroll-behavior:smooth}body{margin:0;min-height:100vh;color:var(--text);font:14px/1.5 ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:radial-gradient(ellipse at 50% 0%,#0b3446 0,transparent 42%),radial-gradient(ellipse at 90% 40%,#33220f33 0,transparent 35%),linear-gradient(145deg,#04080e,#07111b 56%,#050b12);overflow-x:hidden}
 #particleMesh{position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:0;opacity:.55}button,input{font:inherit}button{color:inherit;cursor:pointer;touch-action:manipulation}button:focus-visible,input:focus-visible{outline:2px solid var(--cyan);outline-offset:3px}a{color:var(--cyan)}.shell{position:relative;z-index:1;width:min(1440px,100%);min-height:100vh;margin:auto;padding:clamp(10px,2.2vw,26px) clamp(10px,2.5vw,30px) calc(105px + var(--safe-bottom));display:flex;flex-direction:column;gap:16px}
@@ -66,6 +72,14 @@
 <body>
   <canvas id="particleMesh" aria-hidden="true"></canvas>
   <main class="shell">
+    <section class="pwa-install-panel" id="installPanel" aria-labelledby="installTitle">
+      <div class="pwa-install-copy">
+        <div class="pwa-install-title" id="installTitle">SUPER CHATTY · SECURE APP INSTALL</div>
+        <div class="pwa-install-desc">Install the app directly from this screen. Your owner session remains locked until you authenticate.</div>
+        <div class="pwa-install-status" id="installStatus" role="status" aria-live="polite">Checking whether this browser can offer the native install prompt…</div>
+      </div>
+      <button class="install-app-btn" id="installAppBtn" type="button">INSTALL SUPER CHATTY APP</button>
+    </section>
     <header class="topbar">
       <div class="brand"><div class="brandmark" aria-hidden="true">✦</div><div class="brandname">SUPER <span>CHATTY</span> / JARVIS</div></div>
       <div class="telemetry" aria-label="System status">
@@ -232,9 +246,71 @@
       ownerLoginForm:$("ownerLoginForm"), ownerPassword:$("ownerPassword"), ownerLogin:$("ownerLogin"),
       ownerLogout:$("ownerLogout"), ownerBadge:$("ownerBadge"), ownerSessionStatus:$("ownerSessionStatus"),
       refreshTelemetry:$("refreshTelemetry"), factSearchForm:$("factSearchForm"), factQuery:$("factQuery"),
-      researchSearchBtn:$("researchSearchBtn"), researchSearchStatus:$("researchSearchStatus"), sourceResults:$("sourceResults")
+      researchSearchBtn:$("researchSearchBtn"), researchSearchStatus:$("researchSearchStatus"), sourceResults:$("sourceResults"),
+      installPanel:$("installPanel"), installAppBtn:$("installAppBtn"), installStatus:$("installStatus")
     };
     const state = { events:null, recognition:null, listening:false, audioContext:null, analyser:null, mediaStream:null, raf:0, eventsCount:0, connected:false, started:Date.now(), healthTimer:0, toastTimer:0, ownerToken:"", telemetryTimer:0, researchBusy:false, memoryHistory:[] };
+    let installPrompt = null;
+    const standaloneMode = () => window.matchMedia("(display-mode: standalone)").matches || window.navigator.standalone === true;
+    function setInstallStatus(message, kind = "info") {
+      els.installStatus.textContent = message;
+      els.installStatus.className = "pwa-install-status" + (kind === "ready" ? " ready" : kind === "error" ? " error" : "");
+    }
+    if (standaloneMode()) {
+      els.installPanel.hidden = true;
+    } else {
+      window.addEventListener("beforeinstallprompt", (event) => {
+        event.preventDefault();
+        installPrompt = event;
+        els.installAppBtn.disabled = false;
+        setInstallStatus("Ready — tap the button to open Chrome’s native install dialog.", "ready");
+        log("Browser confirmed PWA install eligibility; direct install button is ready.", "good", "PWA");
+      });
+      els.installAppBtn.addEventListener("click", async () => {
+        if (standaloneMode()) {
+          els.installPanel.hidden = true;
+          setInstallStatus("Super Chatty is already running as an installed app.");
+          return;
+        }
+        if (!installPrompt) {
+          setInstallStatus("Chrome has not offered the native install prompt yet. Keep this page online in Chrome on HTTPS; this button will activate when the browser signals install eligibility.");
+          log("Native install prompt is not currently available from this browser.", "warn", "PWA");
+          return;
+        }
+        const promptEvent = installPrompt;
+        installPrompt = null;
+        els.installAppBtn.disabled = true;
+        try {
+          await promptEvent.prompt();
+          const choice = await promptEvent.userChoice;
+          if (choice && choice.outcome === "accepted") {
+            setInstallStatus("Install accepted. Complete any remaining confirmation shown by Android.", "ready");
+            log("User accepted the native PWA installation prompt.", "good", "PWA");
+          } else {
+            setInstallStatus("Installation was dismissed. Tap INSTALL SUPER CHATTY APP again when Chrome offers the prompt.");
+            log("User dismissed the native PWA installation prompt.", "warn", "PWA");
+          }
+        } catch (error) {
+          setInstallStatus("Chrome could not open the native install dialog: " + (error.message || "prompt unavailable"), "error");
+          log("Native install prompt failed: " + (error.message || "prompt unavailable"), "warn", "PWA");
+        } finally {
+          els.installAppBtn.disabled = false;
+        }
+      });
+      window.addEventListener("appinstalled", () => {
+        installPrompt = null;
+        els.installPanel.hidden = true;
+        setInstallStatus("Super Chatty was installed successfully.", "ready");
+        log("The browser confirmed Super Chatty installation.", "good", "PWA");
+      });
+      const standaloneQuery = window.matchMedia("(display-mode: standalone)");
+      if (standaloneQuery.addEventListener) {
+        standaloneQuery.addEventListener("change", (event) => {
+          if (event.matches) els.installPanel.hidden = true;
+        });
+      }
+      setInstallStatus("Waiting for Chrome to confirm that this app can be installed.");
+    }
     const time = () => new Date().toLocaleTimeString([], {hour12:false});
     function log(message, type="info", source="UI") {
       const row = document.createElement("div"); row.className = "log";
