@@ -74,3 +74,39 @@ test("intel cron uses fixed repository endpoint and writes proposal-only telemet
   assert.equal(result.telemetry.repository.open_issues_count, 2);
   assert.ok(writes.some(write => /intel_snapshots/.test(write.sql)));
 });
+
+test("intel cron reads aggregate D1 sessions and hashes allowlisted API JSON without storing values", async () => {
+  const writes = [];
+  const db = {
+    prepare(sql) {
+      return {
+        bind(...values) {
+          return {
+            first: async () => ({ activeSessionCount: 7 }),
+            run: async () => { writes.push({ sql, values }); return { success: true }; }
+          };
+        },
+        first: async () => ({ activeSessionCount: 7 }),
+        run: async () => ({ success: true })
+      };
+    }
+  };
+  const result = await runIntelCycle({
+    DB: db,
+    GITHUB_REPOSITORY: "lostgodsgods-ops/super-chatty-jarvis",
+    INTEL_API_ENDPOINTS_JSON: '["https://status.example.com/api/status"]',
+    INTEL_API_ALLOWED_HOSTS: "status.example.com"
+  }, {
+    fetchImpl: async (url) => {
+      if (String(url).includes("api.github.com")) return json({ full_name: "lostgodsgods-ops/super-chatty-jarvis", pushed_at: "2026-10-17T00:00:00Z" });
+      assert.equal(String(url), "https://status.example.com/api/status");
+      return json({ service: "healthy", privateDetail: "must-not-be-stored" });
+    },
+    now: "2026-10-17T00:00:00.000Z"
+  });
+  assert.equal(result.telemetry.d1SessionLedger.activeSessionCount, 7);
+  assert.equal(result.telemetry.approvedApiEndpoints[0].ok, true);
+  assert.deepEqual(result.telemetry.approvedApiEndpoints[0].topLevelKeys, ["service", "privateDetail"]);
+  assert.equal(JSON.stringify(result.telemetry.approvedApiEndpoints).includes("must-not-be-stored"), false);
+  assert.equal(result.upgradeExecution, false);
+});
