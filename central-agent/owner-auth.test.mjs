@@ -18,7 +18,7 @@ class FakeKV {
   }
 }
 class FakeDB {
-  constructor() { this.row = null; this.passkeys = []; this.sessions = new Map(); this.webauthnChallenges = new Map(); this.recoveryCodes = new Map(); }
+  constructor() { this.row = null; this.passkeys = []; this.sessions = new Map(); this.webauthnChallenges = new Map(); this.recoveryCodes = new Map(); this.identity = null; }
   async batch(statements) { const snapshot = new Map(this.recoveryCodes); try { const results = []; for (const statement of statements) results.push(await statement.run()); return results; } catch (error) { this.recoveryCodes = snapshot; throw error; } }
   prepare(sql) {
     const db = this;
@@ -26,6 +26,7 @@ class FakeDB {
       params: [],
       bind(...params) { this.params = params; return this; },
       async first() {
+        if (sql.includes("SELECT owner_key, display_name FROM owner_identity")) return db.identity;
         if (sql.includes("SELECT salt")) return db.row ? { salt: db.row.salt, password_hash: db.row.password_hash } : null;
         if (sql.includes("SELECT status, expires_at FROM owner_sessions")) return db.sessions.get(this.params[0]) || null;
         if (sql.includes("SELECT challenge FROM owner_webauthn_challenges")) return [...db.webauthnChallenges.values()].find(row => row.session_hash === this.params[0] && row.purpose === this.params[1] && row.expires_at > this.params[2]) || null;
@@ -41,6 +42,7 @@ class FakeDB {
         return { results: [] };
       },
       async run() {
+        if (sql.includes("INSERT OR IGNORE INTO owner_identity")) { if (!db.identity) db.identity = { owner_key: this.params[0], display_name: this.params[1] }; return { meta: { changes: 1 } }; }
         if (sql.includes("INSERT INTO owner_credentials")) {
           if (db.row) return { meta: { changes: 0 } };
           db.row = { id: 1, salt: this.params[0], password_hash: this.params[1], created_at: this.params[2] };
@@ -519,4 +521,11 @@ test("passkey recovery endpoints do not depend on KV being present", async () =>
   assert.equal(options.status, 200);
   const login = await call(e, "/auth/recovery/login", { code: "A".repeat(48) });
   assert.notEqual(login.status, 503, "invalid codes should be rejected without requiring KV");
+});
+
+
+test("successful owner authentication seeds and validates the stable Loss Gods identity in D1", async () => {
+  const e = env();
+  await ownerToken(e);
+  assert.deepEqual(e.DB.identity, { owner_key: "loss-gods", display_name: "Loss Gods" });
 });
