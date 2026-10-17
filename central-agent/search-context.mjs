@@ -11,8 +11,8 @@ export function buildTavilyQuery(message) {
   let query = message.normalize("NFKC").replace(FILLER, " ").replace(/\s+/g, " ").trim();
   query = query.replace(/^(?:(?:hey|hi)\s+)?(?:chatty|jarvis)[,!:;\s]+/i, "");
   query = query.replace(/^(?:can you|could you|would you|please)\s+/i, "");
-  query = query.replace(/^(?:please\\s+)?(?:search(?: the web)? for|look up|find(?: me)?(?: the)?|tell me about|give me information about|what is the latest on)\\s+/i, "");
-  query = query.replace(/^[,;:\\s]+|[,;:\\s]+$/g, "").replace(/\\s+/g, " ").trim().replace(/^(?:the|a|an)\\s+/i, "");
+  query = query.replace(/^(?:please\s+)?(?:search(?: the web)? for|look up|find(?: me)?(?: the)?|tell me about|give me information about|what is the latest on)\s+/i, "");
+  query = query.replace(/^[,;:\s]+|[,;:\s]+$/g, "").replace(/\s+/g, " ").trim().replace(/^(?:the|a|an)\s+/i, "");
   return query.slice(0, 400);
 }
 
