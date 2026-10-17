@@ -22,7 +22,7 @@
 .grid{display:grid;grid-template-columns:minmax(0,1.12fr) minmax(285px,.88fr);gap:16px;flex:1}.panel{border:1px solid var(--line);border-radius:20px;background:linear-gradient(145deg,var(--panel),rgba(5,12,21,.83));backdrop-filter:blur(20px);box-shadow:var(--glow),inset 0 1px #ffffff08;min-width:0;overflow:hidden}.core-panel{min-height:540px;display:flex;flex-direction:column;align-items:center;justify-content:center;position:relative;padding:26px 16px;background:radial-gradient(ellipse at 50% 50%,#0a526233,transparent 54%),linear-gradient(150deg,#071b2aee,#06101bee)}.core-panel:before{content:"";position:absolute;inset:14px;border:1px solid #53e8ff13;border-radius:15px;pointer-events:none}.section-label{font-size:10px;text-transform:uppercase;letter-spacing:.2em;color:var(--cyan);font-weight:850;text-align:center}.core-wrap{position:relative;width:min(66vw,340px);aspect-ratio:1;display:grid;place-items:center;margin:22px auto 15px;isolation:isolate}.ring{position:absolute;inset:3%;border:1px solid #53e8ff65;border-radius:50%;box-shadow:inset 0 0 35px #53e8ff0a,0 0 32px #53e8ff0b;animation:rotate 26s linear infinite}.ring.r2{inset:12%;border-style:dashed;border-color:#ffbd6766;animation:rotate 38s linear infinite reverse}.ring.r3{inset:22%;border-color:#b7f8ff3a;animation:rotate 15s linear infinite}.ring:before,.ring:after{content:"";position:absolute;width:7px;height:7px;background:var(--cyan2);border-radius:50%;box-shadow:0 0 15px var(--cyan);top:12%;left:18%}.ring:after{top:auto;left:auto;bottom:18%;right:11%;background:var(--amber);box-shadow:0 0 14px var(--amber);width:5px;height:5px}.core{position:relative;width:43%;aspect-ratio:1;border-radius:50%;display:grid;place-items:center;background:radial-gradient(circle at 34% 25%,#e6ffff 0,#80f4ff 7%,#19a7ce 22%,#11506d 44%,#071927 70%);border:1px solid #a6f8ffc9;box-shadow:0 0 20px #45e9ff6b,0 0 70px #00d9ff2d,inset -13px -18px 28px #0009,inset 6px 7px 20px #e4ffff38;transition:transform .08s linear,box-shadow .12s linear;z-index:2}.core:before{content:"";position:absolute;inset:-18%;border-radius:50%;border:1px solid #53e8ff5c;box-shadow:0 0 32px #53e8ff18}.core:after{content:"";position:absolute;inset:16%;border-radius:50%;background:radial-gradient(circle at 30% 25%,#fff9d9aa,transparent 32%);mix-blend-mode:screen}.core-glyph{z-index:3;color:#e8ffff;font-size:clamp(25px,6vw,42px);text-shadow:0 0 18px #9df8ff;user-select:none}.wave{position:absolute;inset:0;width:100%;height:100%;z-index:1;opacity:.88;filter:drop-shadow(0 0 5px #53e8ff)}.core-title{font-size:13px;font-weight:850;letter-spacing:.25em;text-transform:uppercase;color:var(--cyan2);text-align:center}.core-state{margin-top:6px;color:var(--muted);font-size:12px;text-align:center;max-width:90%}.mini-metrics{display:flex;justify-content:center;gap:clamp(14px,4vw,28px);margin-top:21px}.metric{text-align:center}.metric strong{display:block;font-size:13px;color:var(--amber);font-variant-numeric:tabular-nums}.metric span{font-size:9px;letter-spacing:.12em;color:var(--muted);text-transform:uppercase}
 .side{display:flex;flex-direction:column;gap:16px}.terminal-panel{display:flex;flex-direction:column;min-height:330px;flex:1}.panel-head{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:14px 16px;border-bottom:1px solid #53e8ff1c;background:linear-gradient(90deg,#53e8ff07,transparent)}.panel-title{font-size:10px;font-weight:850;letter-spacing:.15em;text-transform:uppercase;color:var(--cyan2)}.tiny-btn{border:1px solid #53e8ff35;background:#53e8ff08;color:var(--cyan2);border-radius:9px;padding:7px 10px;font-size:10px;min-height:32px}.terminal{padding:14px;overflow:auto;flex:1;max-height:390px;font:11px/1.8 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;overflow-wrap:anywhere}.log{display:grid;grid-template-columns:57px 1fr;gap:8px;margin-bottom:5px}.logtime{color:#5e8498}.logline{color:#b4cedb}.logline.good{color:var(--green)}.logline.warn{color:var(--amber)}.logline.error{color:var(--red)}.logline.info{color:var(--cyan)}.terminal-foot{padding:10px 14px;border-top:1px solid #53e8ff1c;color:var(--muted);font-size:10px;display:flex;justify-content:space-between;gap:8px}
 .connection-panel{padding:15px}.connection-panel p{margin:8px 0 13px;color:var(--muted);font-size:12px}.field-label{display:block;color:var(--muted);font-size:10px;text-transform:uppercase;letter-spacing:.1em;margin:11px 0 6px}.text-input{width:100%;min-width:0;border:1px solid #53e8ff29;border-radius:11px;background:#030a11c9;padding:11px 12px;color:var(--text);font-size:12px;min-height:42px}.text-input:focus{border-color:#53e8ff9c;box-shadow:0 0 0 3px #53e8ff12}.action-row{display:flex;gap:8px;margin-top:11px}.action-btn{border:1px solid #53e8ff70;background:linear-gradient(110deg,#53e8ff1a,#53e8ff08);border-radius:10px;padding:10px 13px;font-size:11px;font-weight:850;color:var(--cyan2);min-height:40px}.action-btn.secondary{border-color:#ffffff21;background:#ffffff06;color:var(--text)}.action-btn:disabled{opacity:.42;cursor:not-allowed}.connect-state{font-size:10px;color:var(--muted);margin-top:9px;overflow-wrap:anywhere}
-.commandbar{position:fixed;z-index:10;left:50%;transform:translateX(-50%);bottom:calc(12px + var(--safe-bottom));width:min(1180px,calc(100% - 22px));border:1px solid #53e8ff6b;border-radius:18px;background:rgba(3,13,22,.95);box-shadow:0 12px 50px #0009,0 0 30px #53e8ff12;backdrop-filter:blur(24px);padding:10px;display:flex;align-items:center;gap:11px}.mic{flex:0 0 52px;width:52px;height:52px;border:1px solid #b4faff;border-radius:15px;background:linear-gradient(145deg,#b9faff,#1c9dbb);color:#03131d;font-size:21px;box-shadow:0 0 24px #53e8ff35}.mic.listening{animation:micPulse 1.2s ease-in-out infinite;background:linear-gradient(145deg,#ffb0a0,#c13d36);border-color:#ffc0b9;color:#280907}.command-content{flex:1;min-width:0}.command-label{font-size:9px;text-transform:uppercase;letter-spacing:.15em;font-weight:850;color:var(--cyan)}.command-text{width:100%;border:0;background:transparent;outline:0;color:var(--text);font-size:13px;padding:4px 0}.command-text::placeholder{color:#66818f}.send{border:1px solid #ffbd6755;background:#ffbd6710;color:var(--gold);border-radius:11px;padding:12px 14px;font-size:11px;font-weight:850;min-height:44px}.privacy{font-size:9px;color:var(--muted);margin-top:2px}
+.chat-reply{width:min(760px,92%);max-height:140px;overflow:auto;margin:7px auto 0;padding:10px 13px;border:1px solid #53e8ff24;border-radius:12px;background:#03101ab8;color:#d8f7ff;font-size:12px;line-height:1.6;white-space:pre-wrap;overflow-wrap:anywhere;text-align:left}.owner-brand-tag{display:block;margin-top:2px;color:var(--amber);font-size:9px;letter-spacing:.13em;font-weight:800}.hands-free-toggle{flex:0 0 auto;min-width:112px;white-space:nowrap}.commandbar{position:fixed;z-index:10;left:50%;transform:translateX(-50%);bottom:calc(12px + var(--safe-bottom));width:min(1180px,calc(100% - 22px));border:1px solid #53e8ff6b;border-radius:18px;background:rgba(3,13,22,.95);box-shadow:0 12px 50px #0009,0 0 30px #53e8ff12;backdrop-filter:blur(24px);padding:10px;display:flex;align-items:center;gap:11px}.mic{flex:0 0 52px;width:52px;height:52px;border:1px solid #b4faff;border-radius:15px;background:linear-gradient(145deg,#b9faff,#1c9dbb);color:#03131d;font-size:21px;box-shadow:0 0 24px #53e8ff35}.mic.listening{animation:micPulse 1.2s ease-in-out infinite;background:linear-gradient(145deg,#ffb0a0,#c13d36);border-color:#ffc0b9;color:#280907}.command-content{flex:1;min-width:0}.command-label{font-size:9px;text-transform:uppercase;letter-spacing:.15em;font-weight:850;color:var(--cyan)}.command-text{width:100%;border:0;background:transparent;outline:0;color:var(--text);font-size:13px;padding:4px 0}.command-text::placeholder{color:#66818f}.send{border:1px solid #ffbd6755;background:#ffbd6710;color:var(--gold);border-radius:11px;padding:12px 14px;font-size:11px;font-weight:850;min-height:44px}.privacy{font-size:9px;color:var(--muted);margin-top:2px}
 .sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}.toast{position:fixed;top:85px;left:50%;transform:translateX(-50%);z-index:20;background:#071a27;border:1px solid var(--line);border-radius:12px;padding:11px 15px;color:var(--text);font-size:12px;box-shadow:0 8px 28px #0008;max-width:90vw}.hidden{display:none!important}
 .dashboard-grid{display:grid;grid-template-columns:1.1fr .9fr;gap:16px;margin-top:2px}.dashboard-panel{padding:0;overflow:hidden}.dashboard-panel .panel-body{padding:15px}.db-stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}.db-stat{border:1px solid #53e8ff24;border-radius:13px;padding:13px 11px;background:linear-gradient(145deg,#53e8ff0b,#ffffff02);min-width:0}.db-stat strong{display:block;font-size:clamp(20px,3vw,29px);line-height:1.2;color:var(--cyan);font-variant-numeric:tabular-nums}.db-stat span{display:block;margin-top:6px;font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}.run-summary{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin:12px 0;padding:11px 12px;border:1px solid #53e8ff20;border-radius:11px;background:#53e8ff04}.run-summary strong{font-size:12px}.run-summary span{font-size:11px;color:var(--muted)}.research-feed,.research-results{display:flex;flex-direction:column;gap:9px;max-height:280px;overflow:auto}.feed-item{display:grid;grid-template-columns:9px minmax(0,1fr);gap:9px;padding:10px;border:1px solid #53e8ff17;border-radius:11px;background:#53e8ff04}.feed-dot{width:7px;height:7px;margin-top:6px;border-radius:50%;background:var(--cyan);box-shadow:0 0 10px currentColor}.feed-item.warn .feed-dot{background:var(--amber)}.feed-item.error .feed-dot{background:var(--red)}.feed-title{font-size:11px;font-weight:750;overflow-wrap:anywhere}.feed-meta{font-size:10px;color:var(--muted);margin-top:3px;overflow-wrap:anywhere}.owner-grid{display:grid;grid-template-columns:1fr;gap:9px}.owner-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}.owner-status{margin:10px 0;padding:11px;border:1px solid #53e8ff1c;border-radius:10px;color:var(--muted);font-size:11px;overflow-wrap:anywhere}.owner-status.ok{border-color:#6fffd04a;color:var(--green)}.owner-status.warn{border-color:#ffbd674a;color:var(--amber)}.owner-status.bad{border-color:#ff788e4a;color:var(--red)}.source-card{border:1px solid #53e8ff20;border-radius:13px;padding:13px;background:#53e8ff04;min-width:0}.source-card a{font-size:12px;font-weight:750;overflow-wrap:anywhere}.source-card p{font-size:11px;line-height:1.6;color:#c4dce7;margin:7px 0 0;overflow-wrap:anywhere}.source-meta{font-size:10px;color:var(--muted);margin-top:6px}.dashboard-note{font-size:10px;color:var(--muted);margin:10px 0 0;line-height:1.6}.dashboard-grid .panel-head{min-height:50px}
 .media-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px}.media-controls{display:flex;gap:8px;flex-wrap:wrap}.media-stage{position:relative;min-height:160px;border:1px dashed #53e8ff45;border-radius:14px;background:radial-gradient(ellipse at center,#0b3040aa,#030a11);display:grid;place-items:center;overflow:hidden}.media-stage video,.media-stage img{display:block;width:100%;max-height:360px;object-fit:contain;background:#02060a}.media-stage canvas{max-width:100%;height:auto}.media-empty{padding:22px;text-align:center;color:var(--muted);font-size:11px}.media-items{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:9px;margin-top:10px}.media-thumb{border:1px solid #53e8ff24;border-radius:10px;overflow:hidden;background:#020a12;min-width:0}.media-thumb img,.media-thumb video{display:block;width:100%;height:90px;object-fit:cover}.media-thumb span{display:block;padding:7px;font-size:10px;color:var(--muted);overflow-wrap:anywhere}.media-status{font-size:10px;color:var(--muted);margin-top:9px}.media-drop.dragover{border-color:var(--cyan);box-shadow:inset 0 0 0 2px #53e8ff22;background:#53e8ff0c}
@@ -137,7 +137,7 @@ body{background:radial-gradient(ellipse at 50% 38%,#50330f45 0,transparent 35%),
   </section>
   <main class="shell">
     <header class="topbar">
-      <div class="brand"><div class="brandmark" aria-hidden="true">✦</div><div class="brandname">SUPER <span>CHATTY</span> / JARVIS</div></div>
+      <div class="brand"><div class="brandmark" aria-hidden="true">✦</div><div class="brandname">SUPER <span>CHATTY</span> / JARVIS<small class="owner-brand-tag">OWNER · LOSS GODS</small></div></div>
       <div class="telemetry" aria-label="System status">
         <span class="status warn" id="workerStatus"><i class="dot"></i><span>CF: CHECKING</span></span>
         <span class="status warn" id="pipelineStatus"><i class="dot"></i><span>CI/CD: NOT CONNECTED</span></span>
@@ -153,7 +153,7 @@ body{background:radial-gradient(ellipse at 50% 38%,#50330f45 0,transparent 35%),
           <div class="core" id="core"><span class="core-glyph" aria-hidden="true">✦</span></div>
         </div>
         <h1 class="core-title" id="coreHeading">Golden Neural Core</h1>
-        <div class="core-state" id="coreState" role="status" aria-live="polite">Standby · tap the microphone to speak</div>
+        <div class="core-state" id="coreState" role="status" aria-live="polite">Standby · unlock Owner session, then enable hands-free voice</div><div class="chat-reply hidden" id="chatReply" role="status" aria-live="polite"></div>
         <div class="agent-hud-controls" aria-label="Reactor visual state preview">
           <button type="button" data-hud-state="IDLE">IDLE</button>
           <button type="button" data-hud-state="PROCESSING">PROCESSING</button>
@@ -274,14 +274,14 @@ body{background:radial-gradient(ellipse at 50% 38%,#50330f45 0,transparent 35%),
   </section>
   </main>
 
-  <section class="commandbar" aria-label="Voice command">
-    <button class="mic" id="micBtn" type="button" aria-label="Start voice input" title="Start voice input">🎙</button>
+  <section class="commandbar" aria-label="Voice-first conversation">
     <div class="command-content">
-      <div class="command-label" id="voiceLabel">Voice command</div>
-      <label class="sr-only" for="commandInput">Voice command text</label>
-      <input class="command-text" id="commandInput" type="text" placeholder="Tap mic to speak, or type a command…" autocomplete="off">
-      <div class="privacy" id="privacyNote">Voice input requires browser support and microphone permission.</div>
+      <div class="command-label" id="voiceLabel">CHAT WITH CHATTY · OWNER: LOSS GODS</div>
+      <label class="sr-only" for="commandInput">Message Chatty</label>
+      <input class="command-text" id="commandInput" type="text" placeholder="Speak hands-free or type a message…" autocomplete="off">
+      <div class="privacy" id="privacyNote">Hands-free listening is off. Unlock Owner session and enable it when ready.</div>
     </div>
+    <button class="action-btn secondary hands-free-toggle" id="handsFreeBtn" type="button" aria-pressed="false">HANDS-FREE OFF</button>
     <button class="send" id="sendBtn" type="button">SEND ↗</button>
   </section>
   <div class="toast hidden" id="toast" role="status" aria-live="polite"></div>
@@ -366,7 +366,7 @@ body{background:radial-gradient(ellipse at 50% 38%,#50330f45 0,transparent 35%),
       micMetric:$("micMetric"), audioMetric:$("audioMetric"), uptimeMetric:$("uptimeMetric"), wave:$("wave"),
       terminal:$("terminal"), streamStatus:$("streamStatus"), logCount:$("logCount"), workerUrl:$("workerUrl"),
       eventsUrl:$("eventsUrl"), connectBtn:$("connectBtn"), disconnectBtn:$("disconnectBtn"), connectState:$("connectState"),
-      micBtn:$("micBtn"), voiceLabel:$("voiceLabel"), commandInput:$("commandInput"), sendBtn:$("sendBtn"),
+      handsFreeBtn:$("handsFreeBtn"), chatReply:$("chatReply"), voiceLabel:$("voiceLabel"), commandInput:$("commandInput"), sendBtn:$("sendBtn"),
       privacyNote:$("privacyNote"), toast:$("toast"),
       auditCount:$("auditCount"), observationCount:$("observationCount"), signalCount:$("signalCount"),
       lastRunStatus:$("lastRunStatus"), lastRunMeta:$("lastRunMeta"), researchFeed:$("researchFeed"),
@@ -377,13 +377,13 @@ body{background:radial-gradient(ellipse at 50% 38%,#50330f45 0,transparent 35%),
       refreshTelemetry:$("refreshTelemetry"), factSearchForm:$("factSearchForm"), factQuery:$("factQuery"),
       researchSearchBtn:$("researchSearchBtn"), researchSearchStatus:$("researchSearchStatus"), sourceResults:$("sourceResults")
     };
-    const state = { events:null, recognition:null, listening:false, audioContext:null, analyser:null, mediaStream:null, raf:0, eventsCount:0, connected:false, started:Date.now(), healthTimer:0, toastTimer:0, ownerToken:"", telemetryTimer:0, researchBusy:false, memoryHistory:[] };
+    const state = { events:null, recognition:null, listening:false, handsFree:false, speaking:false, chatBusy:false, audioContext:null, analyser:null, mediaStream:null, raf:0, eventsCount:0, connected:false, started:Date.now(), healthTimer:0, toastTimer:0, ownerToken:"", telemetryTimer:0, researchBusy:false, memoryHistory:[] };
     const time = () => new Date().toLocaleTimeString([], {hour12:false});
     function log(message, type="info", source="UI") {
       const row = document.createElement("div"); row.className = "log";
       const stamp = document.createElement("span"); stamp.className = "logtime"; stamp.textContent = time();
       const line = document.createElement("span"); line.className = "logline " + type;
-      line.textContent = "[" + source + "] " + String(message).slice(0,500);
+      line.textContent = "[Loss Gods · " + source + "] " + String(message).slice(0,500);
       row.append(stamp,line); els.terminal.append(row); els.eventsCount++;
       while (els.terminal.children.length > 160) els.terminal.firstElementChild.remove();
       els.logCount.textContent = els.eventsCount + " events";
@@ -471,6 +471,7 @@ body{background:radial-gradient(ellipse at 50% 38%,#50330f45 0,transparent 35%),
       els.ownerSessionStatus.textContent = message;
     }
     function clearOwnerSession(message="Signed out. Session token cleared from memory.") {
+      stopHandsFree("Owner session locked.");
       state.ownerToken = "";
       disconnectEvents();
       clearInterval(state.telemetryTimer); state.telemetryTimer = 0;
@@ -599,7 +600,8 @@ body{background:radial-gradient(ellipse at 50% 38%,#50330f45 0,transparent 35%),
       state.telemetryTimer = setInterval(() => {
         if (state.ownerToken) refreshTelemetry().catch(error => log("Telemetry refresh failed: " + (error?.message || String(error)), "warn", "TELEMETRY"));
       }, 30000);
-      toast("Owner session verified; live sync requested.");
+      toast("Owner session verified. Welcome, Loss Gods.");
+      speakGreeting();
     }
     async function signInPasskey() {
       const base = workerBaseUrl();
@@ -958,68 +960,129 @@ body{background:radial-gradient(ellipse at 50% 38%,#50330f45 0,transparent 35%),
       }
     }
     function speechApi() { return window.SpeechRecognition || window.webkitSpeechRecognition || null; }
-    async function startListening() {
-      if (state.listening) { if(state.recognition) state.recognition.stop(); return; }
-      const SpeechRecognition = speechApi();
-      if (!SpeechRecognition) {
-        toast("Speech recognition is not supported here. Type your command instead.");
-        log("SpeechRecognition API unavailable; text input remains available.","warn","VOICE");
-        return;
+    function speechLanguage() {
+      return /[\\u0900-\\u097F]/.test(els.commandInput.value || "") ? "hi-IN" : "en-IN";
+    }
+    function speakText(text, onEnd) {
+      if (!("speechSynthesis" in window) || typeof SpeechSynthesisUtterance === "undefined") {
+        if (typeof onEnd === "function") onEnd();
+        return false;
       }
-      const recognition = new SpeechRecognition();
-      recognition.lang = "en-IN"; recognition.continuous = false; recognition.interimResults = true; recognition.maxAlternatives = 1;
+      try {
+        window.speechSynthesis.cancel();
+        const utterance = new SpeechSynthesisUtterance(String(text).slice(0, 3000));
+        utterance.lang = speechLanguage(); utterance.rate = 1.02; utterance.pitch = 1;
+        utterance.onend = utterance.onerror = () => { state.speaking = false; if (typeof onEnd === "function") onEnd(); };
+        state.speaking = true; window.speechSynthesis.speak(utterance); return true;
+      } catch (error) {
+        state.speaking = false; log("Speech output unavailable: " + (error?.message || String(error)), "warn", "VOICE");
+        if (typeof onEnd === "function") onEnd(); return false;
+      }
+    }
+    function speakGreeting() {
+      speakText("Welcome, Loss Gods. Super Chatty Jarvis is ready. Hands-free listening stays off until you enable it.");
+    }
+    function stopHandsFree(reason = "Hands-free voice stopped.") {
+      state.handsFree = false; state.listening = false;
+      try { if (state.recognition) state.recognition.abort(); } catch {}
+      state.recognition = null;
+      if ("speechSynthesis" in window) window.speechSynthesis.cancel();
+      state.speaking = false;
+      els.handsFreeBtn.setAttribute("aria-pressed", "false");
+      els.handsFreeBtn.textContent = "HANDS-FREE OFF";
+      els.handsFreeBtn.classList.remove("listening");
+      els.micMetric.textContent = "READY";
+      if (!state.ownerToken) els.voiceLabel.textContent = "CHAT WITH CHATTY · OWNER: LOSS GODS";
+      els.privacyNote.textContent = reason + " Microphone is not being monitored.";
+    }
+    async function startHandsFree() {
+      if (!state.ownerToken) {
+        toast("Hands-free voice requires an unlocked Owner session.");
+        els.privacyNote.textContent = "Sign in first. The microphone stays off while locked."; return;
+      }
+      if (state.handsFree) { stopHandsFree("Hands-free listening stopped by Loss Gods."); return; }
+      if (!speechApi()) {
+        toast("This browser does not support SpeechRecognition. Type a message instead.");
+        log("SpeechRecognition API unavailable; text chat remains available.", "warn", "VOICE"); return;
+      }
+      state.handsFree = true;
+      els.handsFreeBtn.setAttribute("aria-pressed", "true"); els.handsFreeBtn.textContent = "HANDS-FREE ON";
+      els.privacyNote.textContent = "Hands-free listening is active while Owner is unlocked. Browser speech recognition may process audio.";
+      log("Loss Gods enabled hands-free listening.", "good", "VOICE");
+      await startListening();
+    }
+    async function startListening() {
+      if (!state.handsFree || !state.ownerToken || state.listening || state.chatBusy || state.speaking) return;
+      const Recognition = speechApi();
+      if (!Recognition) { stopHandsFree("Speech recognition is unavailable."); return; }
+      const recognition = new Recognition();
+      recognition.lang = "en-IN"; recognition.continuous = false; recognition.interimResults = false; recognition.maxAlternatives = 1;
       state.recognition = recognition;
       recognition.onstart = () => {
-        state.listening = true; els.micBtn.classList.add("listening"); els.micBtn.setAttribute("aria-label","Stop voice input");
-        els.micMetric.textContent="LIVE"; els.voiceLabel.textContent="Listening…"; setCoreState("Listening · speak clearly");
-        els.privacyNote.textContent="Speech recognition may be processed by your browser provider.";
-        log("Voice recognition started.","good","VOICE"); startAudioMeter();
+        state.listening = true; els.handsFreeBtn.classList.add("listening"); els.micMetric.textContent = "LIVE";
+        els.voiceLabel.textContent = "LISTENING · LOSS GODS"; setCoreState("Hands-free listening · speak naturally");
+        els.privacyNote.textContent = "Microphone active. Audio recognition may be processed by your browser provider.";
       };
-      recognition.onresult = (event) => {
-        let finalText = "", interim = "";
-        for(let i=event.resultIndex;i<event.results.length;i++){const text=event.results[i][0].transcript;if(event.results[i].isFinal)finalText+=text;else interim+=text;}
-        els.commandInput.value = finalText || interim;
-        if(finalText) { setCoreState("Voice captured · review and send"); log("Voice transcript captured; not sent automatically.","good","VOICE"); }
+      recognition.onresult = event => {
+        let finalText = "";
+        for (let i = event.resultIndex; i < event.results.length; i++) if (event.results[i].isFinal) finalText += event.results[i][0].transcript;
+        if (finalText.trim()) {
+          els.commandInput.value = finalText.trim(); log("Loss Gods voice input captured.", "good", "VOICE");
+          submitCommand("voice").catch(error => log("Voice reply failed: " + (error?.message || String(error)), "error", "VOICE"));
+        }
       };
-      recognition.onerror = (event) => {
-        log("Speech recognition error: " + event.error,"warn","VOICE");
-        toast(event.error === "not-allowed" ? "Microphone permission was denied." : "Voice input failed: " + event.error);
+      recognition.onerror = event => {
+        log("Speech recognition error: " + event.error, "warn", "VOICE");
+        if (["not-allowed", "service-not-allowed", "audio-capture"].includes(event.error)) {
+          stopHandsFree("Microphone permission or speech service is unavailable.");
+          toast(event.error === "not-allowed" ? "Microphone permission was denied." : "Voice service unavailable. Hands-free was stopped.");
+        }
       };
-      recognition.onend = async () => {
-        state.listening = false; els.micBtn.classList.remove("listening"); els.micBtn.setAttribute("aria-label","Start voice input");
-        els.micMetric.textContent="READY"; els.voiceLabel.textContent="Voice command"; await stopAudioMeter();
-        if (els.commandInput.value.trim()) setCoreState("Transcript ready · tap Send to submit");
-        else setCoreState("Standby · tap the microphone to speak");
+      recognition.onend = () => {
+        state.listening = false; els.handsFreeBtn.classList.remove("listening");
+        els.micMetric.textContent = state.handsFree ? "READY" : "IDLE";
+        if (state.handsFree && state.ownerToken && !state.chatBusy && !state.speaking) setTimeout(() => startListening(), 350);
       };
-      try { recognition.start(); } catch(err) { log("Could not start voice recognition: "+err.message,"error","VOICE"); }
+      try { recognition.start(); }
+      catch (error) { log("Could not start speech recognition: " + (error?.message || String(error)), "error", "VOICE"); stopHandsFree("Speech recognition could not start."); }
     }
-    async function submitCommand() {
+    async function submitCommand(source = "text") {
       const command = els.commandInput.value.trim();
-      if (!command) { toast("Speak or type a command first."); els.commandInput.focus(); return; }
-      log("Command drafted: " + command,"info","OWNER");
-      setCoreState("Command captured · not executed");
+      if (!command) { toast("Say or type a message first."); if (source === "text") els.commandInput.focus(); return; }
       if (!state.ownerToken) {
-        toast("Command kept local. Sign in to save it to owner memory.");
-        els.privacyNote.textContent="Not sent or saved remotely. Sign in to enable owner memory.";
-        return;
+        toast("Unlock the Owner session before sending a message.");
+        els.privacyNote.textContent = "Message remains local. No microphone or remote chat is available while locked."; return;
       }
-      state.memoryHistory.push({ command: command.slice(0, 1000), capturedAt: new Date().toISOString() });
-      state.memoryHistory = state.memoryHistory.slice(-20);
+      if (state.chatBusy) return;
+      state.chatBusy = true; els.sendBtn.disabled = true; setCoreState("Chatty is thinking · Loss Gods");
+      log("Loss Gods message received.", "info", source === "voice" ? "VOICE" : "CHAT");
       try {
-        await ownerFetch("/api/memory", { method:"POST", body:JSON.stringify({
-          session_id:"owner-global", memory_type:"conversation_state",
-          state:{ commandHistory:state.memoryHistory, lastCommand:command.slice(0,1000), updatedAt:new Date().toISOString() }
-        })});
-        els.commandInput.value = "";
-        toast("Owner memory saved. Command was not executed.");
-        els.privacyNote.textContent="Command state saved to D1 owner memory. No command or external action was executed.";
-        log("Conversation state persisted to D1; command remains unexecuted.","good","MEMORY");
-      } catch(error) {
-        state.memoryHistory.pop();
-        toast("Memory save failed: " + (error.message || "storage unavailable"));
-        els.privacyNote.textContent="Memory write failed; the command was not executed.";
-        log("D1 memory write failed: " + (error.message || "unknown error"),"error","MEMORY");
-      }
+        const payload = await ownerFetch("/api/chat", { method: "POST", body: JSON.stringify({ message: command.slice(0, 8000), language: speechLanguage() }) });
+        if (typeof payload.reply !== "string" || !payload.reply.trim()) throw new Error("Chat service returned an empty reply.");
+        const reply = payload.reply.trim();
+        els.chatReply.textContent = "CHATTY · LOSS GODS\\n" + reply; els.chatReply.classList.remove("hidden");
+        addFeedItem(els.researchFeed, "Chatty · Loss Gods", reply, "info"); els.commandInput.value = "";
+        setCoreState("Reply ready · Loss Gods"); els.privacyNote.textContent = "AI reply received from the authenticated Worker. No external action was executed.";
+        log("Chatty replied to Loss Gods.", "good", "CHAT");
+        try {
+          state.memoryHistory.push({ command: command.slice(0, 1000), reply: reply.slice(0, 1000), capturedAt: new Date().toISOString() });
+          state.memoryHistory = state.memoryHistory.slice(-20);
+          await ownerFetch("/api/memory", { method: "POST", body: JSON.stringify({
+            session_id: "owner-global", memory_type: "conversation_state",
+            state: { commandHistory: state.memoryHistory, lastCommand: command.slice(0, 1000), lastReply: reply.slice(0, 1000), updatedAt: new Date().toISOString() }
+          }) });
+        } catch (memoryError) { log("Chat reply succeeded; optional memory save failed: " + (memoryError?.message || String(memoryError)), "warn", "MEMORY"); }
+        state.chatBusy = false;
+        if (state.handsFree || source === "voice") {
+          const spoken = speakText(reply, () => { if (state.handsFree && state.ownerToken) startListening(); });
+          if (!spoken && state.handsFree && state.ownerToken) startListening();
+        } else toast("Chatty replied. Enable hands-free to hear responses aloud.");
+      } catch (error) {
+        state.chatBusy = false; const message = error?.message || "Chat service unavailable.";
+        setCoreState("Chat unavailable · Loss Gods"); els.privacyNote.textContent = message; toast(message);
+        log("Chat request failed: " + message, "error", "CHAT");
+        if (state.handsFree && state.ownerToken) startListening();
+      } finally { els.sendBtn.disabled = false; }
     }
 
     // NEXUS visual intake: user-initiated camera only; media is previewed locally.
@@ -1133,7 +1196,7 @@ body{background:radial-gradient(ellipse at 50% 38%,#50330f45 0,transparent 35%),
       const token=state.ownerToken,base=workerBaseUrl();
       state.ownerToken="";state.memoryHistory=[];clearOwnerSession(reason);
       try{if(state.recognition)state.recognition.abort();}catch{}
-      state.listening=false;state.micBtn?.classList?.remove("listening");
+      stopHandsFree("App backgrounded. Voice session stopped.");
       if(state.mediaStream){state.mediaStream.getTracks().forEach(track=>track.stop());state.mediaStream=null;}
       stopAudioMeter().catch(()=>{});disconnectEvents();clearInterval(state.healthTimer);state.healthTimer=0;
       if(base)fetch(base+"/auth/logout",{method:"POST",headers:token&&token!=="cookie-session"?{authorization:"Bearer "+token}:{},credentials:"include",cache:"no-store",keepalive:true}).catch(()=>{});
@@ -1181,7 +1244,7 @@ body{background:radial-gradient(ellipse at 50% 38%,#50330f45 0,transparent 35%),
     els.ownerLogout.addEventListener("click",signOutOwner);
     els.refreshTelemetry.addEventListener("click",refreshTelemetry);
     els.factSearchForm.addEventListener("submit",searchEvidence);
-    els.micBtn.addEventListener("click",startListening);
+    els.handsFreeBtn.addEventListener("click", startHandsFree);
     els.sendBtn.addEventListener("click",submitCommand);
     els.commandInput.addEventListener("keydown",event=>{if(event.key==="Enter"){event.preventDefault();submitCommand();}});
     els.connectBtn.addEventListener("click",connect);
