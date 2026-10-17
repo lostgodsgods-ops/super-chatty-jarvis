@@ -132,20 +132,26 @@ test("NEXUS PWA preserves owner-only telemetry and adds safe local visual intake
 });
 
 
-test("owner session survives PWA reloads through a Secure HttpOnly cookie, never JS storage", () => {
-  assert.match(centralWorker, /function readSessionCookie\(request\)/);
+test("owner session locks on reload/background and never auto-restores from a cookie", () => {
+  assert.match(centralWorker, /function readSessionCookie\\(request\\)/);
   assert.match(centralWorker, /__Host-sc_session/);
   assert.match(centralWorker, /access-control-allow-credentials": "true"/);
   assert.match(centralWorker, /Secure; HttpOnly; SameSite=Strict/);
-  assert.match(centralWorker, /set-cookie": sessionCookie\(token\)/);
-  assert.match(centralWorker, /set-cookie": sessionCookie\("", 0\)/);
-  assert.match(jarvisHtml, /async function resumeOwnerSession\(\)/);
-  assert.match(jarvisHtml, /credentials:\s*"include"/);
-  assert.match(jarvisHtml, /state\.ownerToken = "cookie-session"/);
-  assert.match(jarvisHtml, /resumeOwnerSession\(\);/);
-  assert.match(jarvisHtml, /token === "cookie-session" \? \{\} : \{ authorization:/);
-  assert.doesNotMatch(jarvisHtml, /localStorage\.setItem\([^\n]*(?:token|session)/i);
-  assert.doesNotMatch(jarvisHtml, /sessionStorage\.setItem\([^\n]*(?:token|session)/i);
+  assert.match(centralWorker, /set-cookie": sessionCookie\\(token\\)/);
+  assert.match(centralWorker, /set-cookie": sessionCookie\\("", 0\\)/);
+  assert.match(jarvisHtml, /async function resumeOwnerSession\\(\\)/);
+  assert.match(jarvisHtml, /credentials:\\s*"include"/);
+  const resumeStart = jarvisHtml.indexOf("async function resumeOwnerSession()");
+  const resumeEnd = jarvisHtml.indexOf("function decodeB64url", resumeStart);
+  const resumeBody = jarvisHtml.slice(resumeStart, resumeEnd);
+  assert.match(resumeBody, /method:\\s*"POST"/, "startup must revoke any cookie-backed session");
+  assert.doesNotMatch(resumeBody, /state\\.ownerToken\\s*=\\s*"cookie-session"/, "reload must not restore a cookie session");
+  assert.match(jarvisHtml, /document\\.addEventListener\\("visibilitychange"/);
+  assert.match(jarvisHtml, /lockOwnerOnBackground/);
+  assert.match(jarvisHtml, /resumeOwnerSession\\(\\);/);
+  assert.match(jarvisHtml, /token === "cookie-session" \\? \\{\\} : \\{ authorization:/);
+  assert.doesNotMatch(jarvisHtml, /localStorage\\.setItem\\([^\\n]*(?:token|session)/i);
+  assert.doesNotMatch(jarvisHtml, /sessionStorage\\.setItem\\([^\\n]*(?:token|session)/i);
 });
 
 test("PWA exposes real WebAuthn passkey sign-in and authenticated registration controls", () => {
