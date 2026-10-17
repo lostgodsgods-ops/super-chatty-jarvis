@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import worker from "./worker.mjs";
+import worker, { parseDuckDuckGoHtml } from "./worker.mjs";
 
 test("internal Tavily search rejects missing or incorrect gateway tokens", async () => {
   const response = await worker.fetch(new Request("https://agent.example/internal/search", {
@@ -65,35 +65,83 @@ test("internal Tavily search uses the server-side key, returns real source shape
   }
 });
 
-test("internal Tavily search fails closed when its private provider key is missing", async () => {
-  const response = await worker.fetch(new Request("https://agent.example/internal/search", {
-    method: "POST",
-    headers: { "content-type": "application/json", authorization: "Bearer correct-token" },
-    body: JSON.stringify({ query: "Cloudflare Workers" })
-  }), { SEARCH_BRIDGE_TOKEN: "correct-token" });
-  assert.equal(response.status, 503);
-  assert.equal((await response.json()).error, "Search provider is not configured.");
+test("DuckDuckGo HTML parser extracts safe, decoded result URLs and relevant text", () => {
+  const html = `
+    <div class="result">
+      <a rel="nofollow" class="result__a" href="https://example.com/cloudflare?x=1&amp;y=2">Cloudflare Workers &amp; Durable Objects</a>
+      <a class="result__snippet">Official documentation for <b>Cloudflare Workers</b>.</a>
+    </div>
+    <div class="result">
+      <a class="result__a" href="javascript:alert(1)">Unsafe result</a>
+    </div>`;
+  const results = parseDuckDuckGoHtml(html, "Cloudflare Workers");
+  assert.equal(results.length, 1);
+  assert.equal(results[0].title, "Cloudflare Workers & Durable Objects");
+  assert.equal(results[0].url, "https://example.com/cloudflare/?x=1&y=2");
+  assert.match(results[0].content, /Official documentation for Cloudflare Workers/);
 });
 
-test("internal Tavily search reports plan exhaustion without leaking provider diagnostics or retrying", async () => {
+test("internal search falls back to direct DuckDuckGo when Tavily key is missing", async () => {
   const originalFetch = globalThis.fetch;
-  let calls = 0;
-  globalThis.fetch = async () => {
-    calls++;
-    return new Response(JSON.stringify({ detail: { error: "private account limit detail" } }), { status: 432 });
+  let requestedUrl = "";
+  globalThis.fetch = async url => {
+    requestedUrl = String(url);
+    assert.match(requestedUrl, /^https:\/\/html\.duckduckgo\.com\/html\//);
+    return new Response(`
+      <div class="result">
+        <a class="result__a" href="https://developers.cloudflare.com/workers/">Cloudflare Workers documentation</a>
+        <a class="result__snippet">Official Cloudflare Workers documentation and guides.</a>
+      </div>`, { status: 200, headers: { "content-type": "text/html" } });
+  };
+  try {
+    const response = await worker.fetch(new Request("https://agent.example/internal/search", {
+      method: "POST",
+      headers: { "content-type": "application/json", authorization: "Bearer correct-token" },
+      body: JSON.stringify({ query: "Cloudflare Workers documentation" })
+    }), {
+      SEARCH_BRIDGE_TOKEN: "correct-token",
+      AI: { run: async () => ({ response: "Cloudflare Workers documentation is available." }) }
+    });
+    const body = await response.json();
+    assert.equal(response.status, 200, JSON.stringify(body));
+    assert.equal(body.provider, "duckduckgo-html");
+    assert.equal(body.core.searchProvider, "duckduckgo-html");
+    assert.equal(body.core.webSearchExecuted, true);
+    assert.equal(body.sources.length, 1);
+    assert.equal(body.sources[0].url, "https://developers.cloudflare.com/workers/");
+    assert.match(requestedUrl, /Cloudflare/);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test("Tavily HTTP 432 falls back to direct web search without retrying the quota-limited provider", async () => {
+  const originalFetch = globalThis.fetch;
+  const requests = [];
+  globalThis.fetch = async (url) => {
+    requests.push(String(url));
+    if (String(url) === "https://api.tavily.com/search") {
+      return new Response(JSON.stringify({ detail: { error: "private account limit detail" } }), { status: 432 });
+    }
+    assert.match(String(url), /^https:\/\/html\.duckduckgo\.com\/html\//);
+    return new Response(`
+      <div class="result">
+        <a class="result__a" href="https://developers.cloudflare.com/workers/">Cloudflare Workers official docs</a>
+        <a class="result__snippet">Cloudflare Workers official documentation.</a>
+      </div>`, { status: 200, headers: { "content-type": "text/html" } });
   };
   try {
     const response = await worker.fetch(new Request("https://agent.example/internal/search", {
       method: "POST",
       headers: { "content-type": "application/json", authorization: "Bearer correct-token" },
       body: JSON.stringify({ query: "Cloudflare Workers health checks" })
-    }), { SEARCH_BRIDGE_TOKEN: "correct-token", SEARCH_API_KEY: "test-tavily-key" });
+    }), { SEARCH_BRIDGE_TOKEN: "correct-token", SEARCH_API_KEY: "test-tavily-key", AI: { run: async () => ({ response: "Official Cloudflare Workers docs cover health checks." }) } });
     const body = await response.json();
-    assert.equal(response.status, 503);
-    assert.equal(body.code, "LIVE_SEARCH_PLAN_LIMIT_EXCEEDED");
-    assert.match(body.error, /plan usage limit is exhausted/i);
+    assert.equal(response.status, 200, JSON.stringify(body));
+    assert.equal(body.provider, "duckduckgo-html");
+    assert.equal(body.core.searchProvider, "duckduckgo-html");
+    assert.equal(requests.filter(url => url === "https://api.tavily.com/search").length, 1, "HTTP 432 must not retry Tavily");
     assert.equal(JSON.stringify(body).includes("private account limit detail"), false);
-    assert.equal(calls, 1, "a plan-limit response must not be retried");
   } finally {
     globalThis.fetch = originalFetch;
   }
@@ -278,18 +326,28 @@ test("active /chat and /internal/chat routes search Tavily before AI for current
   }
 });
 
-test("active current-information chat fails closed when Tavily is not configured", async () => {
+test("active current-information chat uses direct web search when Tavily is not configured", async () => {
   let aiCalls = 0;
-  const response = await worker.fetch(new Request("https://agent.example/chat", {
-    method: "POST",
-    headers: { "content-type": "application/json", authorization: "Bearer correct-token" },
-    body: JSON.stringify({ message: "What is the latest news today?", language: "en-IN" })
-  }), {
-    SEARCH_BRIDGE_TOKEN: "correct-token",
-    AI: { run: async () => { aiCalls++; return { response: "must not answer from stale memory" }; } }
-  });
-  const body = await response.json();
-  assert.equal(response.status, 503);
-  assert.equal(body.code, "LIVE_SEARCH_NOT_CONFIGURED");
-  assert.equal(aiCalls, 0);
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async () => new Response(`
+    <div class="result">
+      <a class="result__a" href="https://example.com/latest-news">Latest news official update</a>
+      <a class="result__snippet">A current news update from the official source.</a>
+    </div>`, { status: 200, headers: { "content-type": "text/html" } });
+  try {
+    const response = await worker.fetch(new Request("https://agent.example/chat", {
+      method: "POST",
+      headers: { "content-type": "application/json", authorization: "Bearer correct-token" },
+      body: JSON.stringify({ message: "What is the latest news today?", language: "en-IN" })
+    }), {
+      SEARCH_BRIDGE_TOKEN: "correct-token",
+      AI: { run: async () => { aiCalls++; return { response: "The live result reports a current news update." }; } }
+    });
+    const body = await response.json();
+    assert.equal(response.status, 200, JSON.stringify(body));
+    assert.equal(body.core.searchProvider, "duckduckgo-html");
+    assert.equal(body.core.webSearchExecuted, true);
+    assert.equal(body.sources.length, 1);
+    assert.equal(aiCalls, 1);
+  } finally { globalThis.fetch = originalFetch; }
 });
