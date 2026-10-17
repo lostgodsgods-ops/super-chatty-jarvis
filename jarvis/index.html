@@ -1009,8 +1009,8 @@ body{background:radial-gradient(ellipse at 50% 38%,#50330f45 0,transparent 35%),
       if (state.handsFree && state.ownerToken && !state.chatBusy) setTimeout(() => startListening(), 80);
     }
     function transcriptLooksLikeTtsEcho(transcript) {
-      const spoken = String(state.currentSpeechText || "").toLocaleLowerCase().match(/[\\p{L}\\p{N}]{3,}/gu) || [];
-      const heard = String(transcript || "").toLocaleLowerCase().match(/[\\p{L}\\p{N}]{3,}/gu) || [];
+      const spoken = String(state.currentSpeechText || "").toLocaleLowerCase().match(/[\p{L}\p{N}]{3,}/gu) || [];
+      const heard = String(transcript || "").toLocaleLowerCase().match(/[\p{L}\p{N}]{3,}/gu) || [];
       if (spoken.length < 3 || heard.length < 3) return false;
       const words = new Set(spoken);
       const overlap = heard.filter(word => words.has(word)).length / heard.length;
