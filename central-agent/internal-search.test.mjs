@@ -115,6 +115,37 @@ test("internal search falls back to direct DuckDuckGo when Tavily key is missing
   }
 });
 
+test("direct search falls back to the structured Wikipedia API when DuckDuckGo is blocked", async () => {
+  const originalFetch = globalThis.fetch;
+  const urls = [];
+  globalThis.fetch = async url => {
+    urls.push(String(url));
+    if (String(url).startsWith("https://html.duckduckgo.com/html/")) {
+      return new Response("rate limited", { status: 429 });
+    }
+    assert.match(String(url), /^https:\/\/en\.wikipedia\.org\/w\/api\.php/);
+    return new Response(JSON.stringify({ query: { search: [
+      { title: "Cloudflare Workers", pageid: 12345, snippet: "A serverless execution environment for developers." }
+    ] } }), { status: 200, headers: { "content-type": "application/json" } });
+  };
+  try {
+    const response = await worker.fetch(new Request("https://agent.example/internal/search", {
+      method: "POST",
+      headers: { "content-type": "application/json", authorization: "Bearer correct-token" },
+      body: JSON.stringify({ query: "Cloudflare Workers" })
+    }), {
+      SEARCH_BRIDGE_TOKEN: "correct-token",
+      AI: { run: async () => ({ response: "The source describes Cloudflare Workers." }) }
+    });
+    const body = await response.json();
+    assert.equal(response.status, 200, JSON.stringify(body));
+    assert.equal(body.provider, "wikipedia-api");
+    assert.equal(body.core.searchProvider, "wikipedia-api");
+    assert.equal(body.sources[0].url, "https://en.wikipedia.org/?curid=12345");
+    assert.equal(urls.length, 2);
+  } finally { globalThis.fetch = originalFetch; }
+});
+
 test("Tavily HTTP 432 falls back to direct web search without retrying the quota-limited provider", async () => {
   const originalFetch = globalThis.fetch;
   const requests = [];
