@@ -112,6 +112,17 @@ body{background:radial-gradient(ellipse at 50% 38%,#50330f45 0,transparent 35%),
 @media(max-width:520px){.core-panel{min-height:calc(100svh - 165px);padding:12px 8px}.core-wrap{width:min(86vw,430px)}.hud-fab{right:5px;width:38px;height:76px}.hud-drawer{top:6px;right:6px;bottom:6px;width:calc(100vw - 12px)}}
 @media(prefers-reduced-motion:reduce){.hud-drawer,.commandbar .mic.listening{transition:none;animation:none}}
 
+
+.cinema-layout{flex:1;min-height:0;display:grid;grid-template-columns:minmax(0,1.45fr) minmax(150px,.55fr);gap:10px}
+.cinema-core-dock{min-width:0;border:1px solid #ffd47a30;border-radius:16px;background:radial-gradient(ellipse at 50% 30%,#d8943024,transparent 62%),#06101a;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:12px;text-align:center;gap:8px}
+.cinema-core-dock strong{font-size:10px;letter-spacing:.12em;color:#ffe8ad}
+.cinema-core-dock>span{font-size:9px;letter-spacing:.1em;color:#8aa6b7}
+.cinema-core-dock p{font-size:10px;color:#c4d1dd;overflow-wrap:anywhere}
+.cinema-core-wrap{position:relative;width:min(22vw,220px);aspect-ratio:1;display:grid;place-items:center}
+.cinema-core-wrap .ring{position:absolute}
+.cinema-core-orb{width:43%;aspect-ratio:1;border-radius:50%;display:grid;place-items:center;color:#fff8d9;font-size:24px;background:radial-gradient(circle at 34% 25%,#fffce9 0,#ffe5a0 8%,#dca13e 24%,#80501d 45%,#21180d 72%);border:1px solid #fff0bd;box-shadow:0 0 28px #ffc85d88,0 0 65px #ffb72c40}
+@media(max-width:600px){.cinema-layout{grid-template-columns:1fr;grid-template-rows:minmax(0,1fr) auto}.cinema-core-dock{min-height:118px;display:grid;grid-template-columns:100px 1fr;grid-template-rows:auto auto auto;justify-items:start;text-align:left;column-gap:12px}.cinema-core-wrap{width:95px;grid-row:1/4;grid-column:1}.cinema-core-dock strong,.cinema-core-dock>span,.cinema-core-dock p{grid-column:2;margin:0}.cinema-stage{min-height:35vh}}
+
 </style>
 </head>
 <body>
@@ -293,8 +304,8 @@ body{background:radial-gradient(ellipse at 50% 38%,#50330f45 0,transparent 35%),
   </aside>
   <section class="cinema" id="cinemaOverlay" aria-label="Cinematic media viewer" aria-hidden="true">
     <div class="cinema-head"><span id="cinemaTitle">IMMERSIVE VIEW</span><button class="hud-btn" id="cinemaClose" type="button">EXIT VIEW ×</button></div>
-    <div class="cinema-stage" id="cinemaStage"><div class="hud-hint">Choose a media item or open an article URL.</div></div>
-    <div class="cinema-caption" id="cinemaCaption">The Golden Neural Core remains active behind this view.</div>
+    <div class="cinema-layout"><div class="cinema-stage" id="cinemaStage"><div class="hud-hint">Choose a media item or open an article URL.</div></div><aside class="cinema-core-dock" aria-label="Golden Neural Core monitor"><div class="cinema-core-wrap"><div class="ring"></div><div class="ring r2"></div><div class="ring r3"></div><div class="cinema-core-orb">✦</div></div><strong>GOLDEN NEURAL CORE</strong><span>MONITORING · LIVE HUD</span><p id="cinemaCoreState">Standby monitoring</p></aside></div>
+    <div class="cinema-caption" id="cinemaCaption">The Golden Neural Core remains visible alongside this media view.</div>
   </section>
 
 
