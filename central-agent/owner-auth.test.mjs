@@ -351,4 +351,9 @@ test("PWA exposes the golden neural core, quick-chat drawer, cinematic viewer, a
   assert.ok(html.includes("lockOwnerOnBackground"));
   assert.ok(html.includes('sandbox="allow-forms allow-popups"'));
   assert.ok(html.includes('document.addEventListener("visibilitychange"'));
+  const resumeStart = html.indexOf("async function resumeOwnerSession()");
+  const resumeEnd = html.indexOf("function decodeB64url", resumeStart);
+  const resumeBody = html.slice(resumeStart, resumeEnd);
+  assert.ok(resumeBody.includes('method: "POST"'), "startup must revoke any cookie-backed session");
+  assert.equal(resumeBody.includes('state.ownerToken = "cookie-session"'), false, "startup must not restore a cookie session");
 });
