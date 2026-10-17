@@ -354,6 +354,9 @@ test("voice barge-in has an RMS onset path, separate native TTS cancellation, an
   assert.match(jarvisHtml, /state\.turnId/);
   assert.match(jarvisHtml, /turnId !== state\.turnId/);
   assert.match(jarvisHtml, /state\.chatController\.abort\(\)/);
+  assert.match(jarvisHtml, /function adaptSpeechTone\\(/);
+  assert.match(jarvisHtml, /speakText\\(reply,[\\s\\S]{0,150}turnLanguage\\)/);
+  assert.match(jarvisHtml, /turnLanguage = speechLanguage\\(\\)/);
 });
 
 test("capability ingestion is wired to an authenticated route and remains metadata-only", () => {
