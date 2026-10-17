@@ -10,6 +10,7 @@ import { listProviderCapabilities } from "./architecture/provider-router.mjs";
 import { listMcpCapabilities, listVectorCapabilities, connectMcpAndListTools, vectorUpsertQueryReadback, IntegrationError } from "./architecture/integration-registry.mjs";
 import { createGoal, listGoals, transitionGoal, GoalError } from "./architecture/goal-lifecycle.mjs";
 import { requiresLiveSearch } from "./current-info-query.mjs";
+import { buildTavilyQuery, rankTavilyResults } from "./search-context.mjs";
 import { runBoundedResearchCycle } from "./research-agents.mjs";
 import { spawnAgents, listAgentDefinitions, listRecentAgentRuns } from "./agent-orchestrator.mjs";
 import { guardRequest } from "./edge-guard.mjs";
@@ -30,7 +31,7 @@ async function fetchTavilyWithRetry(query, env) {
       response = await fetch(endpoint, {
         method: "POST",
         headers: { authorization: "Bearer " + env.SEARCH_API_KEY, "content-type": "application/json", accept: "application/json" },
-        body: JSON.stringify({ query: query.slice(0, 400), search_depth: "basic", max_results: 5, include_answer: false, include_raw_content: false }),
+        body: JSON.stringify({ query: buildTavilyQuery(query) || query.slice(0, 400), search_depth: "advanced", max_results: 8, include_answer: false, include_raw_content: false }),
         signal: AbortSignal.timeout(8000)
       });
     } catch {
@@ -473,9 +474,10 @@ export default {
       let liveSources = [];
       if (needsLiveSearch) {
         if (!env.SEARCH_API_KEY) return json({ error: "Live search is required for this question but is not configured. No stale-model fallback was used.", code: "LIVE_SEARCH_NOT_CONFIGURED" }, 503, cors);
+        const searchQuery = buildTavilyQuery(message) || message.slice(0, 400);
         let searchResponse;
         try {
-          searchResponse = await fetchTavilyWithRetry(message.slice(0, 400), env);
+          searchResponse = await fetchTavilyWithRetry(searchQuery, env);
         } catch {
           return json({ error: "Live search failed. No stale-model fallback was used.", code: "LIVE_SEARCH_NETWORK_ERROR" }, 502, cors);
         }
@@ -488,16 +490,9 @@ export default {
         try { searchPayload = await searchResponse.json(); } catch {
           return json({ error: "Live search returned invalid data. No stale-model fallback was used.", code: "LIVE_SEARCH_INVALID_RESPONSE" }, 502, cors);
         }
-        liveSources = (Array.isArray(searchPayload?.results) ? searchPayload.results : []).map(item => {
-          let sourceUrl = "";
-          try { const parsed = new URL(item?.url); if (parsed.protocol === "https:" || parsed.protocol === "http:") sourceUrl = parsed.toString(); } catch {}
-          return {
-            title: typeof item?.title === "string" ? item.title.slice(0, 240) : "",
-            url: sourceUrl,
-            content: typeof item?.content === "string" ? item.content.slice(0, 1200) : "",
-            publishedDate: typeof item?.published_date === "string" ? item.published_date.slice(0, 80) : null
-          };
-        }).filter(item => item.title && item.url).slice(0, 5);
+        liveSources = rankTavilyResults(searchQuery, searchPayload?.results).map(item => ({
+          title: item.title, url: item.url, content: item.content, publishedDate: item.publishedDate
+        }));
         if (!liveSources.length) return json({
           ok: true, provider: "tavily", answer: "Live search returned no usable sources, so I cannot verify a current answer.", reply: "Live search returned no usable sources, so I cannot verify a current answer.",
           model: "tavily-search", sources: [], core: { intent: "current_information", webSearchExecuted: true, searchProvider: "tavily", sourceCount: 0, externalActionsPerformed: false }
@@ -584,9 +579,10 @@ export default {
 
       let body;
       try { body = await request.json(); } catch { return json({ error: "Expected JSON body." }, 400, cors); }
-      const query = typeof body.query === "string" ? body.query.trim() : "";
+      const rawQuery = typeof body.query === "string" ? body.query.trim() : "";
       const language = ["hi-IN", "en-IN", "en-US"].includes(body.language) ? body.language : "en-IN";
-      if (!query || query.length > 400) return json({ error: "query must contain 1–400 characters." }, 400, cors);
+      if (!rawQuery || rawQuery.length > 400) return json({ error: "query must contain 1–400 characters." }, 400, cors);
+      const query = buildTavilyQuery(rawQuery) || rawQuery;
 
       let providerResponse;
       try {
@@ -606,20 +602,10 @@ export default {
       try { payload = await providerResponse.json(); }
       catch { return json({ error: "Live search provider returned invalid JSON.", code: "SEARCH_PROVIDER_INVALID_JSON" }, 502, cors); }
 
-      const results = (Array.isArray(payload?.results) ? payload.results : []).map(item => {
-        let sourceUrl = "";
-        try {
-          const parsed = new URL(item?.url);
-          if (parsed.protocol === "https:" || parsed.protocol === "http:") sourceUrl = parsed.toString();
-        } catch {}
-        return {
-          title: typeof item?.title === "string" ? item.title.slice(0, 240) : "",
-          url: sourceUrl,
-          content: typeof item?.content === "string" ? item.content.slice(0, 900) : "",
-          score: Number.isFinite(item?.score) ? item.score : null,
-          publishedDate: typeof item?.published_date === "string" ? item.published_date : null
-        };
-      }).filter(item => item.title && item.url).slice(0, 5);
+      const results = rankTavilyResults(query, payload?.results).map(item => ({
+        title: item.title, url: item.url, content: item.content.slice(0, 900),
+        score: item.score, publishedDate: item.publishedDate
+      }));
 
       const sources = results.map(item => ({ title: item.title, url: item.url, description: item.content }));
       if (!sources.length) {
@@ -1113,9 +1099,9 @@ export default {
             "accept": "application/json"
           },
           body: JSON.stringify({
-            query,
-            search_depth: searchDepth,
-            max_results: 5,
+            query: buildTavilyQuery(query) || query,
+            search_depth: searchDepth === "advanced" ? "advanced" : "advanced",
+            max_results: 8,
             include_answer: false,
             include_raw_content: false
           }),
@@ -1126,13 +1112,10 @@ export default {
           return json({ error: "Search provider request failed." }, 502, cors);
         }
         const payload = await response.json();
-        const results = Array.isArray(payload?.results) ? payload.results.slice(0, 5).map(item => ({
-          title: typeof item?.title === "string" ? item.title.slice(0, 300) : "",
-          url: typeof item?.url === "string" && /^https?:\/\//i.test(item.url) ? item.url : "",
-          content: typeof item?.content === "string" ? item.content.slice(0, 2000) : "",
-          score: Number.isFinite(item?.score) ? item.score : null,
-          publishedDate: typeof item?.published_date === "string" ? item.published_date : null
-        })).filter(item => item.url) : [];
+        const results = rankTavilyResults(query, payload?.results).map(item => ({
+          title: item.title, url: item.url, content: item.content.slice(0, 2000),
+          score: item.score, publishedDate: item.publishedDate
+        }));
         return json({ ok: true, provider: "tavily", query, results }, 200, cors);
       } catch {
         return json({ error: "Search provider is temporarily unavailable." }, 502, cors);
