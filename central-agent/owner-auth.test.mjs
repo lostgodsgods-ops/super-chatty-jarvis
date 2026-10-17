@@ -210,7 +210,7 @@ test("Tavily search validates query and sends bounded requests with source URLs"
     const sent = JSON.parse(requestOptions.body);
     assert.equal(sent.query, "Cloudflare Workers");
     assert.equal(sent.search_depth, "advanced");
-    assert.equal(sent.max_results, 5);
+    assert.equal(sent.max_results, 8);
     assert.equal(sent.include_raw_content, false);
     const payload = await response.json();
     assert.equal(payload.provider, "tavily");
