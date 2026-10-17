@@ -69,6 +69,9 @@ jobs:
 
           fetch_asset "/manifest.webmanifest" "$tmp/manifest.json" "$tmp/manifest.headers" "application/manifest+json"
           node -e 'const m=require(process.argv[1]); if(m.name!=="Super Chatty Jarvis"||m.scope!=="./") throw Error("PWA manifest identity/scope mismatch");' "$tmp/manifest.json"
+          fetch_asset "/icon-192.png" "$tmp/icon-192.png" "$tmp/icon-192.headers" "image/png"
+          fetch_asset "/icon-512.png" "$tmp/icon-512.png" "$tmp/icon-512.headers" "image/png"
+          node -e 'const m=require(process.argv[1]); for(const [size,name] of [[192,"icon-192.png"],[512,"icon-512.png"]]) if(!m.icons.some(i=>i.src==="./"+name&&i.sizes===size+"x"+size&&i.type==="image/png")) throw Error("Missing install icon: "+name);' "$tmp/manifest.json"
 
           code="$(curl --silent --show-error --max-time 15 -o "$tmp/health.json" -w '%{http_code}' "$PWA_URL/health")"
           test "$code" = "200" || { echo "::error::/health returned HTTP $code"; exit 1; }
