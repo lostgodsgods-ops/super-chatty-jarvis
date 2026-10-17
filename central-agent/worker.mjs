@@ -638,7 +638,7 @@ export default {
             liveSources.map((source, index) => (index + 1) + ". " + source.title + "\n" + source.url + (source.content ? "\n" + source.content : "")).join("\n\n");
           return json({
             ok: true, answer: sourceFallback, reply: sourceFallback, provider: searchProvider,
-            model: "tavily-source-fallback", sources: liveSources,
+            model: searchProvider + "-source-fallback", sources: liveSources,
             core: { intent: "current_information", webSearchExecuted: true, searchProvider, sourceCount: liveSources.length, synthesisMode: "quota-fallback", aiSynthesisUnavailable: true, requiresTaskApproval: false, externalActionsPerformed: false }
           }, 200, cors);
         }
@@ -814,6 +814,7 @@ export default {
           code: searchResponse.status === 429 ? "LIVE_SEARCH_RATE_LIMITED" : "LIVE_SEARCH_PROVIDER_ERROR",
           retryAfter: searchResponse.headers.get("retry-after") || null
         }, 502, cors);
+        searchProvider = searchResponse.headers.get("x-search-provider") || "tavily";
         let searchPayload;
         try { searchPayload = await searchResponse.json(); } catch {
           return json({ error: "Live search returned invalid data. No stale-model fallback was used.", code: "LIVE_SEARCH_INVALID_RESPONSE" }, 502, cors);
@@ -936,7 +937,7 @@ export default {
         if (!["https:", "http:"].includes(parsedOrigin.protocol) || (parsedOrigin.protocol !== "https:" && !["localhost", "127.0.0.1"].includes(parsedOrigin.hostname))) return json({ error: "WebAuthn requires a secure origin." }, 400, cors);
         await storeWebAuthnChallenge(env, challenge, purpose, parsedOrigin.origin);
         const rpId = parsedOrigin.hostname;
-        return json({ challenge, rpId, timeout: 300000, userVerification: "required",
+        return json({ challenge, rpId, origin: parsedOrigin.origin, timeout: 300000, userVerification: "required",
           allowCredentials: [] }, 200, cors);
       } catch {
         return json({ error: "Unable to prepare passkey sign-in." }, 503, cors);
@@ -1047,7 +1048,7 @@ export default {
           : "";
         if (!reply) return json({ error: "AI provider returned no reply.", code: "AI_PROVIDER_EMPTY_RESPONSE" }, 502, cors);
         return json({
-          ok: true, reply, answer: reply, provider: needsLiveSearch ? "tavily+workers-ai" : "workers-ai", model,
+          ok: true, reply, answer: reply, provider: needsLiveSearch ? searchProvider + "+workers-ai" : "workers-ai", model,
           ...(needsLiveSearch ? { sources: liveSources } : {}),
           core: { intent: needsLiveSearch ? "current_information" : "chat", webSearchExecuted: needsLiveSearch, searchProvider: needsLiveSearch ? searchProvider : null, sourceCount: liveSources.length, requiresTaskApproval: false, externalActionsPerformed: false }
         }, 200, cors);
@@ -1099,7 +1100,7 @@ export default {
         const sessionHash = await sha256Hex(sessionToken + "\n" + parsedOrigin.origin);
         await storeWebAuthnChallenge(env, challenge, "register", sessionHash);
         const rpId = parsedOrigin.hostname;
-        return json({ challenge, rp: { id: rpId, name: "Super Chatty Jarvis" },
+        return json({ challenge, origin: parsedOrigin.origin, rp: { id: rpId, name: "Super Chatty Jarvis" },
           user: { id: base64url(new TextEncoder().encode(OWNER_IDENTITY.key + "-super-chatty-owner-v1")), name: OWNER_IDENTITY.key, displayName: OWNER_IDENTITY.displayName },
           pubKeyCredParams: [{ type: "public-key", alg: -7 }], timeout: 300000, attestation: "none",
           authenticatorSelection: { authenticatorAttachment: "platform", residentKey: "required", userVerification: "required" },
@@ -1235,7 +1236,7 @@ export default {
         service: "super-chatty-central-agent",
         layers: [
           { id: "classical-policy", status: "implemented" },
-          { id: "retrieval-memory", status: "partial", activeProvider: "tavily", durableStore: "D1" },
+          { id: "retrieval-memory", status: "partial", activeProvider: "tavily-with-duckduckgo-fallback", durableStore: "D1" },
           { id: "model-inference", status: env.AI ? "configured" : "not_configured" },
           { id: "model-adapters", status: "registry_available" },
           { id: "bounded-orchestration", status: "partial", cron: "*/15 * * * *", maxTasksPerTick: 3 },
