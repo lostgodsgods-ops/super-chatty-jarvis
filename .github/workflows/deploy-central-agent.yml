@@ -165,6 +165,64 @@ jobs:
           set -euo pipefail
           node central-agent/patch-passkey-staging.mjs
 
+      - name: Verify authenticated Tavily chat and WebAuthn challenge generation
+        shell: bash
+        env:
+          OWNER_PASSWORD: ${{ secrets.CENTRAL_AGENT_OWNER_PASSWORD }}
+          CENTRAL_AGENT_URL: https://shrill-silence-164f.lostgodsgods.workers.dev
+        run: |
+          set -euo pipefail
+          umask 077
+          tmp="$(mktemp -d)"
+          trap 'rm -rf "$tmp"' EXIT
+          test -n "$OWNER_PASSWORD" || { echo "::error::Missing CENTRAL_AGENT_OWNER_PASSWORD"; exit 1; }
+
+          unauth_code="$(curl --silent --show-error --max-time 20 -H 'content-type: application/json' \
+            -d '{"message":"What is the latest news about NASA Artemis today?"}' \
+            -o "$tmp/unauth-chat.json" -w '%{http_code}' "$CENTRAL_AGENT_URL/api/chat")"
+          test "$unauth_code" = "401" || { echo "::error::Unauthenticated /api/chat should return HTTP 401, got $unauth_code"; cat "$tmp/unauth-chat.json"; exit 1; }
+
+          node -e 'process.stdout.write(JSON.stringify({password:process.env.OWNER_PASSWORD}))' > "$tmp/login.json"
+          login_code="$(curl --silent --show-error --max-time 20 -H 'content-type: application/json' \
+            --data-binary "@$tmp/login.json" -o "$tmp/login-response.json" -w '%{http_code}' "$CENTRAL_AGENT_URL/auth/login")"
+          test "$login_code" = "200" || { echo "::error::Owner login failed: HTTP $login_code"; exit 1; }
+          token="$(node -e 'const x=require(process.argv[1]); if(typeof x.token!=="string"||!x.token) process.exit(1); process.stdout.write(x.token)' "$tmp/login-response.json")"
+
+          node -e 'process.stdout.write(JSON.stringify({message:"What is the latest news about NASA Artemis today?",language:"en-US"}))' > "$tmp/chat-request.json"
+          chat_code="$(curl --silent --show-error --max-time 35 -H "Authorization: Bearer $token" -H 'content-type: application/json' \
+            --data-binary "@$tmp/chat-request.json" -o "$tmp/chat-response.json" -w '%{http_code}' "$CENTRAL_AGENT_URL/api/chat")"
+          test "$chat_code" = "200" || { echo "::error::Authenticated live-search chat failed: HTTP $chat_code"; cat "$tmp/chat-response.json"; exit 1; }
+          node - "$tmp/chat-response.json" <<'NODE'
+          const fs=require("node:fs");
+          const x=JSON.parse(fs.readFileSync(process.argv[2],"utf8"));
+          if(x.ok!==true||x.provider!=="tavily+workers-ai"||x.core?.webSearchExecuted!==true||
+             x.core?.searchProvider!=="tavily"||!Array.isArray(x.sources)||x.sources.length<1||
+             !x.sources.every(s=>typeof s.url==="string"&&/^https?:\/\//.test(s.url))) {
+            throw new Error("Live chat did not return a valid Tavily-backed answer with source URLs.");
+          }
+          console.log(JSON.stringify({authenticatedChat:"PASS",provider:x.provider,liveSearch:"PASS",sourceCount:x.sources.length,sourceUrlsValid:true}));
+          NODE
+
+          node -e 'process.stdout.write(JSON.stringify({}))' > "$tmp/passkey-request.json"
+          passkey_code="$(curl --silent --show-error --max-time 20 -X POST -H "Authorization: Bearer $token" \
+            -H 'Origin: https://shrill-silence-164f.lostgodsgods.workers.dev' -H 'content-type: application/json' \
+            --data-binary "@$tmp/passkey-request.json" -o "$tmp/passkey-options.json" -w '%{http_code}' \
+            "$CENTRAL_AGENT_URL/auth/passkey/register/options")"
+          test "$passkey_code" = "200" || { echo "::error::Passkey registration challenge options failed: HTTP $passkey_code"; cat "$tmp/passkey-options.json"; exit 1; }
+          node - "$tmp/passkey-options.json" <<'NODE'
+          const fs=require("node:fs");
+          const x=JSON.parse(fs.readFileSync(process.argv[2],"utf8"));
+          if(typeof x.challenge!=="string"||x.challenge.length<20||x.rp?.id!=="shrill-silence-164f.lostgodsgods.workers.dev"||
+             x.user?.name!=="loss-gods"||!Array.isArray(x.pubKeyCredParams)) {
+            throw new Error("WebAuthn registration options failed challenge/origin/RP schema verification.");
+          }
+          console.log(JSON.stringify({passkeyChallenge:"PASS",originBinding:"PASS",rpId:x.rp.id}));
+          NODE
+
+          echo "Authenticated Tavily chat and WebAuthn challenge checks PASS."
+          curl --silent --show-error --max-time 20 -X POST -H "Authorization: Bearer $token" \
+            -o /dev/null "$CENTRAL_AGENT_URL/auth/logout" || true
+
       - name: Verify authenticated research telemetry
         shell: bash
         env:
