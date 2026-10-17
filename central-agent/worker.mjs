@@ -883,8 +883,9 @@ export default {
       let liveSources = [];
       if (needsLiveSearch) {
         if (!env.SEARCH_API_KEY) return json({ error: "Live search is required for this question but is not configured. No stale-model fallback was used.", code: "LIVE_SEARCH_NOT_CONFIGURED" }, 503, cors);
+        const searchQuery = buildTavilyQuery(message) || message.slice(0, 400);
         let searchResponse;
-        try { searchResponse = await fetchTavilyWithRetry(message.slice(0, 400), env); }
+        try { searchResponse = await fetchTavilyWithRetry(searchQuery, env); }
         catch {
           return json({ error: "Live search failed. No stale-model fallback was used.", code: "LIVE_SEARCH_NETWORK_ERROR" }, 502, cors);
         }
@@ -896,16 +897,9 @@ export default {
         let searchPayload;
         try { searchPayload = await searchResponse.json(); }
         catch { return json({ error: "Live search returned invalid data. No stale-model fallback was used.", code: "LIVE_SEARCH_INVALID_RESPONSE" }, 502, cors); }
-        liveSources = (Array.isArray(searchPayload?.results) ? searchPayload.results : []).map(item => {
-          let sourceUrl = "";
-          try { const parsed = new URL(item?.url); if (parsed.protocol === "https:" || parsed.protocol === "http:") sourceUrl = parsed.toString(); } catch {}
-          return {
-            title: typeof item?.title === "string" ? item.title.slice(0, 240) : "",
-            url: sourceUrl,
-            content: typeof item?.content === "string" ? item.content.slice(0, 1200) : "",
-            publishedDate: typeof item?.published_date === "string" ? item.published_date.slice(0, 80) : null
-          };
-        }).filter(item => item.title && item.url).slice(0, 5);
+        liveSources = rankTavilyResults(searchQuery, searchPayload?.results).map(item => ({
+          title: item.title, url: item.url, content: item.content, publishedDate: item.publishedDate
+        }));
         if (!liveSources.length) return json({
           ok: true, provider: "tavily",
           reply: "Live search returned no usable sources, so I cannot verify a current answer.",
