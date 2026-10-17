@@ -17,6 +17,7 @@ import { runSentinelCycle, getSentinelStatus } from "./sentinel.mjs";
 import { publishEvent, listModules, eventStreamResponse } from "./event-bus.mjs";
 
 const VERSION = "1.4.0";
+const OWNER_IDENTITY = Object.freeze({ key: "loss-gods", displayName: "Loss Gods" });
 const DEFAULT_WORKERS_AI_MODEL = "@cf/meta/llama-3.1-8b-instruct-fast";
 export const PASSWORD_ITERATIONS = 100000;
 const SESSION_TTL_SECONDS = 3600;
@@ -177,7 +178,21 @@ async function consumeOwnerRecoveryCode(env, code) {
   return row?.code_hash === codeHash;
 }
 
+async function ensureOwnerIdentity(env) {
+  if (!env.DB || typeof env.DB.prepare !== "function") throw new Error("OWNER_IDENTITY_D1_UNAVAILABLE");
+  await env.DB.prepare("CREATE TABLE IF NOT EXISTS owner_identity (id INTEGER PRIMARY KEY CHECK (id = 1), owner_key TEXT NOT NULL CHECK (owner_key = 'loss-gods'), display_name TEXT NOT NULL CHECK (display_name = 'Loss Gods'), created_at TEXT NOT NULL)").run();
+  const existing = await env.DB.prepare("SELECT owner_key, display_name FROM owner_identity WHERE id = 1").first();
+  if (existing && (existing.owner_key !== OWNER_IDENTITY.key || existing.display_name !== OWNER_IDENTITY.displayName)) {
+    throw new Error("OWNER_IDENTITY_MISMATCH");
+  }
+  if (!existing) {
+    await env.DB.prepare("INSERT OR IGNORE INTO owner_identity (id, owner_key, display_name, created_at) VALUES (1, ?, ?, ?)")
+      .bind(OWNER_IDENTITY.key, OWNER_IDENTITY.displayName, new Date().toISOString()).run();
+  }
+}
+
 async function storeOwnerSession(env, token) {
+  await ensureOwnerIdentity(env);
   const tokenHash = await sha256Hex(token);
   await ensureOwnerSessionSchema(env);
   await env.DB.prepare("INSERT INTO owner_sessions (token_hash, status, expires_at, created_at) VALUES (?, 'active', ?, ?) ON CONFLICT(token_hash) DO UPDATE SET status = 'active', expires_at = excluded.expires_at")
@@ -945,7 +960,7 @@ export default {
         const ceremonyOrigin = request.headers.get("origin") || new URL(request.url).origin;
         const rpId = new URL(ceremonyOrigin).hostname;
         return json({ challenge, rp: { id: rpId, name: "Super Chatty Jarvis" },
-          user: { id: base64url(new TextEncoder().encode("loss-gods-super-chatty-owner-v1")), name: "loss-gods", displayName: "Loss Gods" },
+          user: { id: base64url(new TextEncoder().encode(OWNER_IDENTITY.key + "-super-chatty-owner-v1")), name: OWNER_IDENTITY.key, displayName: OWNER_IDENTITY.displayName },
           pubKeyCredParams: [{ type: "public-key", alg: -7 }], timeout: 300000, attestation: "none",
           authenticatorSelection: { authenticatorAttachment: "platform", residentKey: "required", userVerification: "required" },
           excludeCredentials: (await env.DB.prepare("SELECT credential_id FROM owner_passkeys").all())?.results?.map(item => ({ type: "public-key", id: item.credential_id })) || []
