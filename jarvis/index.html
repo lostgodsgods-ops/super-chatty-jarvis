@@ -182,7 +182,7 @@
         </form>
         <div class="owner-actions" style="margin-top:10px"><button class="action-btn secondary" id="ownerPasskeyRegister" type="button" disabled>Register fingerprint / passkey</button><button class="action-btn secondary" id="ownerSetupOpen" type="button">Setup / reset password</button></div>
         <div class="owner-status warn" id="ownerSessionStatus" role="status" aria-live="polite">Locked. Sign in with the owner password, then register a device passkey. Session tokens are not stored in browser storage.</div>
-        <p class="dashboard-note">Passkeys use the device's supported screen-lock / biometric prompt. The operating system controls whether fingerprint, face, or PIN is used; the website cannot force a fingerprint scan.</p>
+        <p class="dashboard-note">Passkey and device-biometric sign-in use separate login routes. Android/browser chooses whether to verify with fingerprint, face, or screen-lock PIN; a website cannot force face-only or fingerprint-only verification.</p>
       </div>
     </section>
     <section class="panel dashboard-panel" aria-labelledby="factSearchTitle" style="grid-column:1/-1">
@@ -555,6 +555,41 @@
         setOwnerStatus(error.message || "Passkey sign-in failed.", "bad");
         status(els.ownerBadge, "LOCKED", "bad");
       } finally { els.ownerPasskeyLogin.disabled = false; }
+    }
+    async function signInBiometric() {
+      const base = workerBaseUrl();
+      if (!base) { setOwnerStatus("Enter a valid Worker health URL first.", "bad"); return; }
+      if (!window.PublicKeyCredential || !navigator.credentials) {
+        setOwnerStatus("This browser does not support WebAuthn passkeys.", "bad"); return;
+      }
+      els.ownerBiometricLogin.disabled = true;
+      try {
+        const optionsResponse = await fetch(base + "/auth/biometric/login/options", { method:"POST", credentials:"include", headers:{Accept:"application/json"}, cache:"no-store" });
+        const options = await optionsResponse.json().catch(() => ({}));
+        if (!optionsResponse.ok) throw new Error(options.error || "Passkey sign-in is not configured.");
+        const credential = await navigator.credentials.get({ publicKey: {
+          challenge: decodeB64url(options.challenge), rpId: options.rpId, timeout: options.timeout,
+          userVerification: options.userVerification,
+          allowCredentials: (options.allowCredentials || []).map(item => ({ type:item.type, id:decodeB64url(item.id), transports:item.transports }))
+        }});
+        if (!credential) throw new Error("No passkey assertion was returned.");
+        const assertion = {
+          id: credential.id, rawId: encodeB64url(credential.rawId), type: credential.type, challenge: options.challenge,
+          response: {
+            authenticatorData: encodeB64url(credential.response.authenticatorData),
+            clientDataJSON: encodeB64url(credential.response.clientDataJSON),
+            signature: encodeB64url(credential.response.signature),
+            userHandle: credential.response.userHandle ? encodeB64url(credential.response.userHandle) : null
+          }
+        };
+        const verified = await fetch(base + "/auth/biometric/login/verify", { method:"POST", credentials:"include", headers:{"content-type":"application/json",Accept:"application/json"}, body:JSON.stringify(assertion), cache:"no-store" });
+        const payload = await verified.json().catch(() => ({}));
+        if (!verified.ok || !payload.token) throw new Error(payload.error || "Passkey verification failed.");
+        await activateOwnerSession(payload.token, "device biometric / screen lock");
+      } catch (error) {
+        setOwnerStatus(error.message || "Passkey sign-in failed.", "bad");
+        status(els.ownerBadge, "LOCKED", "bad");
+      } finally { els.ownerBiometricLogin.disabled = false; }
     }
     async function registerDevicePasskey() {
       const base = workerBaseUrl();
@@ -1024,6 +1059,7 @@
 
     els.ownerLoginForm.addEventListener("submit",signInOwner);
     els.ownerPasskeyLogin.addEventListener("click", signInPasskey);
+    els.ownerBiometricLogin.addEventListener("click", signInBiometric);
     els.ownerPasskeyRegister.addEventListener("click", registerDevicePasskey);
     els.ownerSetupOpen.addEventListener("click", () => { const base = workerBaseUrl(); if (base) window.open(base + "/owner", "_blank", "noopener,noreferrer"); else setOwnerStatus("Enter a valid Worker URL first.", "warn"); });
     els.ownerLogout.addEventListener("click",signOutOwner);
