@@ -382,7 +382,9 @@ test("password, passkey, and device-biometric option routes remain independently
   const passkeyOptions = await passkeyResponse.json();
   const biometricOptions = await biometricResponse.json();
   assert.equal(passkeyOptions.userVerification, "required");
+  assert.equal(passkeyOptions.origin, "https://central.example.test");
   assert.equal(biometricOptions.userVerification, "required");
+  assert.equal(biometricOptions.origin, "https://central.example.test");
   assert.deepEqual(passkeyOptions.allowCredentials, [], "discoverable passkeys should work across synced devices");
   assert.deepEqual(biometricOptions.allowCredentials, [], "device verification should use discoverable credentials");
   assert.ok([...e.DB.webauthnChallenges.values()].some(row => row.purpose === "login"));
