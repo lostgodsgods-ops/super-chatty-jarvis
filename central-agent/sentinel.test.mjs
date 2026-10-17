@@ -30,19 +30,20 @@ class FakeDB {
   }
   async batch(stmts) { for(const s of stmts) await s.run(); return []; }
 }
-test("sentinel verifies D1 and KV and persists a healthy audit record", async()=>{
+test("sentinel verifies D1 without KV writes and persists a healthy audit record", async()=>{
   const DB=new FakeDB(), SESSIONS=new FakeKV();
   const result=await runSentinelCycle({DB,SESSIONS},{now:"2026-10-17T00:00:00.000Z"});
   assert.equal(result.ok,true); assert.equal(result.status,"healthy");
   assert.equal(DB.health.length,1); assert.equal(JSON.parse(DB.health[0].metrics_json).d1.estimatedBytes,40960);
-  assert.equal(JSON.parse(DB.health[0].metrics_json).storageMode,"kv-d1-hybrid");
+  assert.equal(JSON.parse(DB.health[0].metrics_json).storageMode,"d1-authoritative");
+  assert.equal(JSON.parse(DB.health[0].metrics_json).kv.checked,false);
   assert.equal((await getSentinelStatus(DB))[0].status,"healthy");
 });
-test("sentinel fails visibly when KV probe is unavailable and does not claim healthy", async()=>{
+test("sentinel remains healthy when KV is unavailable because KV is not a readiness dependency", async()=>{
   const DB=new FakeDB();
   const result=await runSentinelCycle({DB},{now:"2026-10-17T00:00:00.000Z"});
-  assert.equal(result.ok,false); assert.equal(result.status,"degraded");
-  assert.equal(result.metrics.kv.error,"KV_BINDING_UNAVAILABLE");
+  assert.equal(result.ok,true); assert.equal(result.status,"healthy");
+  assert.equal(result.metrics.kv.checked,false);
 });
 test("sentinel persists successive audit records in D1 without any archive binding", async()=>{
   const DB=new FakeDB(), SESSIONS=new FakeKV();
@@ -51,7 +52,7 @@ test("sentinel persists successive audit records in D1 without any archive bindi
   const second=await runSentinelCycle({DB,SESSIONS},{now:"2026-10-17T00:15:00.000Z"});
   assert.equal(first.ok,true); assert.equal(second.ok,true);
   assert.equal(DB.health.length,2);
-  assert.equal(JSON.parse(DB.health[0].metrics_json).storageMode,"kv-d1-hybrid");
+  assert.equal(JSON.parse(DB.health[0].metrics_json).storageMode,"d1-authoritative");
   assert.equal("archive" in JSON.parse(DB.health[0].metrics_json),false);
   assert.equal((await getSentinelStatus(DB,10)).length,2);
 });

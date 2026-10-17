@@ -34,21 +34,6 @@ async function probeD1(db) {
   });
 }
 
-async function probeKV(kv) {
-  if (!kv || typeof kv.put !== "function" || typeof kv.get !== "function" || typeof kv.delete !== "function") {
-    return { ok: false, latencyMs: 0, error: "KV_BINDING_UNAVAILABLE" };
-  }
-  return timed(async () => {
-    const key = "sentinel:probe:" + crypto.randomUUID();
-    const value = crypto.randomUUID();
-    await kv.put(key, value, { expirationTtl: 60 });
-    const readback = await kv.get(key);
-    await kv.delete(key);
-    if (readback !== value) throw new Error("KV_READBACK_MISMATCH");
-    return { readbackVerified: true };
-  });
-}
-
 export async function runSentinelCycle(env, options = {}) {
   const now = options.now || new Date().toISOString();
   if (!env?.DB || typeof env.DB.prepare !== "function") {
@@ -57,15 +42,15 @@ export async function runSentinelCycle(env, options = {}) {
   try { await ensureSentinelSchema(env.DB); }
   catch { return { ok: false, status: "blocked", checkedAt: now, error: "SENTINEL_SCHEMA_UNAVAILABLE" }; }
 
-  const [d1, kv] = await Promise.all([probeD1(env.DB), probeKV(env.SESSIONS)]);
-  const errors = [];
-  if (!d1.ok) errors.push({ component: "d1", code: d1.error });
-  if (!kv.ok) errors.push({ component: "kv", code: kv.error });
+  // Sentinel readiness is D1-backed. KV is a best-effort session cache and must
+  // never fail the health probe because of write quotas or transient KV errors.
+  const d1 = await probeD1(env.DB);
+  const errors = d1.ok ? [] : [{ component: "d1", code: d1.error }];
   const metrics = {
-    storageMode: "kv-d1-hybrid",
+    storageMode: "d1-authoritative",
     schemaOk: true,
     d1: { ok: d1.ok, latencyMs: d1.latencyMs, ...(d1.ok ? d1.value : { error: d1.error }) },
-    kv: { ok: kv.ok, latencyMs: kv.latencyMs, ...(kv.ok ? kv.value : { error: kv.error }) },
+    kv: { checked: false, reason: "KV is non-critical and excluded from readiness" },
     errors
   };
   const status = errors.length ? "degraded" : "healthy";
