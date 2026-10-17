@@ -1096,7 +1096,7 @@ export default {
       });
       // Fail closed: do not report a successful assessment if its audit record failed.
       if (!audit.ok) return json({ error: "Mission audit storage unavailable.", code: "MISSION_AUDIT_UNAVAILABLE" }, 503, cors);
-      return json({ ...assessment, audit: { recorded: true } }, 200, cors);
+      return json({ ...assessment, sideEffectsExecuted: false, audit: { recorded: true } }, 200, cors);
     }
 
     if (url.pathname === "/api/chat" && request.method === "POST") {
