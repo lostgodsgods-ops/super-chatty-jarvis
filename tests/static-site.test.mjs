@@ -172,18 +172,24 @@ test("standalone install metadata advertises app-window behavior and a branded l
   assert.equal(manifest.background_color, "#08090d");
   assert.equal(manifest.theme_color, "#08090d");
   assert.ok(manifest.icons.some(icon => icon.src === "./icon.svg" && icon.purpose.includes("maskable")));
+  assert.ok(manifest.icons.some(icon => icon.src === "./icon-192.png" && icon.sizes === "192x192" && icon.type === "image/png"));
+  assert.ok(manifest.icons.some(icon => icon.src === "./icon-512.png" && icon.sizes === "512x512" && icon.type === "image/png"));
+  assert.match(serviceWorker, /icon-192\.png/);
+  assert.match(serviceWorker, /icon-512\.png/);
+  assert.match(jarvisHtml, /apple-touch-icon/);
   assert.match(jarvisHtml, /name="mobile-web-app-capable" content="yes"/);
   assert.match(jarvisHtml, /name="apple-mobile-web-app-capable" content="yes"/);
 });
 
 test("PWA provides a direct native install prompt and a safe fallback", () => {
   assert.match(jarvisHtml, /id="installBanner"/, "install banner must be present in the first-screen UI");
-  assert.match(jarvisHtml, /id="installAppBtn"[^>]*>INSTALL APP NOW</, "install button must be prominent and directly tappable");
+  assert.match(jarvisHtml, /id="installAppBtn"[^>]*>INSTALL SUPER CHATTY APP</, "install button must be prominent and directly tappable");
   assert.match(jarvisHtml, /beforeinstallprompt/, "Chrome install prompt event must be captured");
   assert.match(jarvisHtml, /event\.preventDefault\(\)/, "browser prompt must be deferred until the user taps the button");
   assert.match(jarvisHtml, /installEvent\.prompt\(\)/, "button must invoke the native prompt from a user gesture");
   assert.match(jarvisHtml, /appinstalled/, "successful installation must be detected");
-  assert.match(jarvisHtml, /Native install prompt is unavailable/, "unsupported browsers need a truthful fallback");
+  assert.match(jarvisHtml, /Chrome has not offered the native install prompt yet/, "unsupported browsers need a truthful fallback");
+  assert.doesNotMatch(jarvisHtml, /if \(!deferredInstallPrompt\)[\s\S]{0,350}menu and choose Install app/i, "the install button must not direct users to a manual menu workaround");
   assert.match(jarvisHtml, /display-mode:\s*standalone/, "installed standalone mode must be detected");
   assert.match(serviceWorker, /CACHE_NAME\s*=\s*"super-chatty-jarvis-shell-v5"/, "install UX release must invalidate old shell cache");
 });
