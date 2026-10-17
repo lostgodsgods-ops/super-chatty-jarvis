@@ -17,9 +17,7 @@ import { guardRequest } from "./edge-guard.mjs";
 import { runSentinelCycle, getSentinelStatus } from "./sentinel.mjs";
 import { publishEvent, listModules, eventStreamResponse } from "./event-bus.mjs";
 import { runIntelCycle } from "./intel-cron.mjs";
-import { handleCapabilityIngest } from "./architecture/capability-api.mjs";
 import { ingestCapabilitySpec, CapabilityIngestionError } from "./architecture/capability-ingestion.mjs";
-import { runIntelCycle } from "./intel-cron.mjs";
 
 const VERSION = "1.4.0";
 const OWNER_IDENTITY = Object.freeze({ key: "loss-gods", displayName: "Loss Gods" });
@@ -1061,9 +1059,6 @@ export default {
       }
     }
 
-    if (url.pathname === "/api/capabilities/ingest") {
-      return handleCapabilityIngest(request, env);
-    }
 
     if (url.pathname === "/api/chat" && request.method === "POST") {
       if (!(await authorized(request, env))) return json({ error: "Owner session required." }, 401, cors);
