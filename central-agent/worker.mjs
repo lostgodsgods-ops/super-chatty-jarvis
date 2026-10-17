@@ -780,7 +780,7 @@ export default {
         provider: searchProvider,
         query,
         reply,
-        model: synthesisFailure ? "tavily-source-fallback" : model,
+        model: synthesisFailure ? searchProvider + "-source-fallback" : model,
         sources,
         results,
         core: {
