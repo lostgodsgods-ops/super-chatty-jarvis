@@ -120,14 +120,65 @@ function sessionCookie(token, maxAge = SESSION_TTL_SECONDS) {
     "; Path=/; Max-Age=" + maxAge + "; Secure; HttpOnly; SameSite=Strict";
 }
 
+async function ensureOwnerSessionSchema(env) {
+  if (!env.DB || typeof env.DB.prepare !== "function") throw new Error("OWNER_SESSION_D1_UNAVAILABLE");
+  await env.DB.prepare("CREATE TABLE IF NOT EXISTS owner_sessions (token_hash TEXT PRIMARY KEY, status TEXT NOT NULL, expires_at INTEGER NOT NULL, created_at TEXT NOT NULL)").run();
+}
+
+async function storeOwnerSession(env, token) {
+  const tokenHash = await sha256Hex(token);
+  await ensureOwnerSessionSchema(env);
+  await env.DB.prepare("INSERT INTO owner_sessions (token_hash, status, expires_at, created_at) VALUES (?, 'active', ?, ?) ON CONFLICT(token_hash) DO UPDATE SET status = 'active', expires_at = excluded.expires_at")
+    .bind(tokenHash, Date.now() + SESSION_TTL_SECONDS * 1000, new Date().toISOString()).run();
+  // D1 is the authoritative session ledger. KV is only a fast cache; daily KV
+  // write exhaustion must not strand the owner outside the application.
+  try {
+    if (env.SESSIONS && typeof env.SESSIONS.put === "function") {
+      await env.SESSIONS.put("session:" + tokenHash, "active", { expirationTtl: SESSION_TTL_SECONDS });
+    }
+  } catch {
+    // D1 already committed the expiring, hashed session. Authorization remains safe.
+  }
+}
+
+async function revokeOwnerSession(env, token) {
+  if (!token || typeof token !== "string" || token.length > 256) return;
+  const tokenHash = await sha256Hex(token);
+  try {
+    await ensureOwnerSessionSchema(env);
+    await env.DB.prepare("INSERT INTO owner_sessions (token_hash, status, expires_at, created_at) VALUES (?, 'revoked', ?, ?) ON CONFLICT(token_hash) DO UPDATE SET status = 'revoked', expires_at = excluded.expires_at")
+      .bind(tokenHash, Date.now() + SESSION_TTL_SECONDS * 1000, new Date().toISOString()).run();
+  } catch {
+    // Continue to revoke the KV copy when D1 is temporarily unavailable.
+  }
+  try {
+    if (env.SESSIONS && typeof env.SESSIONS.delete === "function") {
+      await env.SESSIONS.delete("session:" + tokenHash);
+    }
+  } catch {
+    // The D1 revocation marker blocks any still-readable KV cache entry.
+  }
+}
+
 async function authorized(request, env) {
-  if (!env.SESSIONS) return false;
   const header = request.headers.get("authorization") || "";
   const bearer = header.startsWith("Bearer ") ? header.slice(7) : "";
   const supplied = bearer || readSessionCookie(request);
   if (!supplied || supplied.length > 256) return false;
-  const key = "session:" + await sha256Hex(supplied);
-  return (await env.SESSIONS.get(key)) === "active";
+  const tokenHash = await sha256Hex(supplied);
+  // Consult D1 first so revocation markers override a stale KV cache entry.
+  try {
+    const row = await env.DB.prepare("SELECT status, expires_at FROM owner_sessions WHERE token_hash = ?").bind(tokenHash).first();
+    if (row) return row.status === "active" && Number(row.expires_at) > Date.now();
+  } catch {
+    // Older KV-only sessions remain readable during migration; D1-backed sessions
+    // fail closed if their authoritative record cannot be read.
+  }
+  try {
+    return Boolean(env.SESSIONS && await env.SESSIONS.get("session:" + tokenHash) === "active");
+  } catch {
+    return false;
+  }
 }
 
 
@@ -689,7 +740,7 @@ export default {
         const candidate = await derivePasswordHash(password, credentials.salt);
         if (!equalSecret(candidate, credentials.password_hash)) return json({ error: "Invalid password." }, 401, cors);
         const token = base64url(crypto.getRandomValues(new Uint8Array(32)));
-        await env.SESSIONS.put("session:" + await sha256Hex(token), "active", { expirationTtl: SESSION_TTL_SECONDS });
+        await storeOwnerSession(env, token);
         // HttpOnly cookie lets the owner session survive PWA reloads without browser JS storage.
         return json({ ok: true, token, expiresIn: SESSION_TTL_SECONDS }, 200, {
           ...cors,
@@ -739,7 +790,7 @@ export default {
         const result = await verifyAssertion(body, challenge, origin, new URL(origin).hostname, stored);
         await env.DB.prepare("UPDATE owner_passkeys SET sign_count = ? WHERE credential_id = ?").bind(result.signCount, result.credentialId).run();
         const token = base64url(crypto.getRandomValues(new Uint8Array(32)));
-        await env.SESSIONS.put("session:" + await sha256Hex(token), "active", { expirationTtl: SESSION_TTL_SECONDS });
+        await storeOwnerSession(env, token);
         return json({ ok: true, token, expiresIn: SESSION_TTL_SECONDS, method: "webauthn-passkey" }, 200, { ...cors, "set-cookie": sessionCookie(token) });
       } catch {
         return json({ error: "Passkey verification failed. Use your owner password or register the device passkey again." }, 401, cors);
@@ -880,11 +931,17 @@ export default {
         const result = await env.DB.prepare("UPDATE owner_credentials SET salt = ?, password_hash = ? WHERE id = 1")
           .bind(salt, passwordHash).run();
         if (!result?.meta || result.meta.changes !== 1) return json({ error: "Unable to update owner password." }, 503, cors);
-        // Revoke all active sessions after a credential change.
-        if (typeof env.SESSIONS.list === "function") {
-          const listed = await env.SESSIONS.list({ prefix: "session:" });
-          for (const key of (listed?.keys || [])) await env.SESSIONS.delete(key.name);
-        }
+        // Revoke D1-ledger sessions first; KV cleanup is best-effort because
+        // the free-tier daily write quota can be exhausted.
+        try { await env.DB.prepare("UPDATE owner_sessions SET status = 'revoked' WHERE status = 'active'").run(); } catch {}
+        try {
+          if (typeof env.SESSIONS.list === "function") {
+            const listed = await env.SESSIONS.list({ prefix: "session:" });
+            for (const key of (listed?.keys || [])) {
+              try { await env.SESSIONS.delete(key.name); } catch {}
+            }
+          }
+        } catch {}
         return json({ ok: true, message: "Owner password updated. Please sign in again." }, 200, cors);
       } catch {
         return json({ error: "Owner password update is temporarily unavailable." }, 503, cors);
@@ -1218,7 +1275,7 @@ export default {
       const header = request.headers.get("authorization") || "";
       const bearer = header.startsWith("Bearer ") ? header.slice(7) : "";
       const supplied = bearer || readSessionCookie(request);
-      if (supplied && env.SESSIONS) await env.SESSIONS.delete("session:" + await sha256Hex(supplied));
+      if (supplied) await revokeOwnerSession(env, supplied);
       return json({ ok: true }, 200, { ...cors, "set-cookie": sessionCookie("", 0) });
     }
 
