@@ -304,3 +304,20 @@ test("PWA event counter increments numeric state and never reads an undefined DO
   assert.match(jarvisHtml, /els\.logCount\.textContent\s*=\s*state\.eventsCount\s*\+\s*" events"/);
   assert.doesNotMatch(jarvisHtml, /els\.eventsCount\+\+/);
 });
+
+
+test("owner chat performs Tavily live search for current questions and exposes capability boundaries", () => {
+  const apiChatStart = centralWorker.indexOf('if (url.pathname === "/api/chat" && request.method === "POST")');
+  const recoveryStart = centralWorker.indexOf('if (url.pathname === "/auth/recovery/codes" && request.method === "POST")', apiChatStart);
+  assert.ok(apiChatStart >= 0 && recoveryStart > apiChatStart, "owner chat route should exist");
+  const apiChat = centralWorker.slice(apiChatStart, recoveryStart);
+  assert.match(apiChat, /requiresLiveSearch\(message\)/);
+  assert.match(apiChat, /fetchTavilyWithRetry\(message\.slice\(0, 400\), env\)/);
+  assert.match(apiChat, /LIVE_SEARCH_NOT_CONFIGURED/);
+  assert.match(apiChat, /No stale-model fallback was used/);
+  assert.match(apiChat, /WebAuthn passkey registration and assertion verification/);
+  assert.match(apiChat, /speech barge-in cancels speech synthesis/);
+  assert.match(apiChat, /D1 persists configured owner credentials/);
+  assert.match(apiChat, /Bounded multi-agent research and task loops/);
+  assert.match(apiChat, /webSearchExecuted: needsLiveSearch/);
+});
