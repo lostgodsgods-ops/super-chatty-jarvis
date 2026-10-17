@@ -86,7 +86,7 @@ test("GET /auth/session accepts a valid active owner session", async () => {
   assert.equal((await response.json()).authenticated, true);
 });
 
-test("a reused WebAuthn login challenge is rejected with 403", async () => {
+test("a reused WebAuthn login challenge is rejected with 401", async () => {
   const challenge = "server-issued-single-use-challenge";
   const DB = new FakeDB({
     challenge: {
@@ -102,7 +102,7 @@ test("a reused WebAuthn login challenge is rejected with 403", async () => {
   const first = await worker.fetch(makeRequest(), env(DB));
   assert.equal(first.status, 401, "first request consumes the challenge then fails unknown credential");
   const replay = await worker.fetch(makeRequest(), env(DB));
-  assert.equal(replay.status, 403, "the consumed challenge cannot be used a second time");
+  assert.equal(replay.status, 401, "the consumed challenge cannot be used a second time");
 });
 
 test("a missing WebAuthn signature is rejected with 401", async () => {
