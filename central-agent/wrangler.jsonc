@@ -38,6 +38,9 @@
   ],
   "vars": {
     "ALLOWED_ORIGINS": "https://super-chatty-jarvis-site.lostgodsgods.workers.dev",
-    "AUTONOMOUS_RESEARCH_ENABLED": "true"
+    "AUTONOMOUS_RESEARCH_ENABLED": "true",
+    "INTEL_CRON_ENABLED": "true",
+    "GITHUB_REPOSITORY": "lostgodsgods-ops/super-chatty-jarvis",
+    "CAPABILITY_SPEC_HOSTS": ""
   }
 }
