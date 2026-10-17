@@ -18,7 +18,8 @@ class FakeKV {
   }
 }
 class FakeDB {
-  constructor() { this.row = null; this.passkeys = []; this.sessions = new Map(); this.webauthnChallenges = new Map(); }
+  constructor() { this.row = null; this.passkeys = []; this.sessions = new Map(); this.webauthnChallenges = new Map(); this.recoveryCodes = new Map(); }
+  async batch(statements) { const snapshot = new Map(this.recoveryCodes); try { const results = []; for (const statement of statements) results.push(await statement.run()); return results; } catch (error) { this.recoveryCodes = snapshot; throw error; } }
   prepare(sql) {
     const db = this;
     const statement = {
@@ -28,6 +29,8 @@ class FakeDB {
         if (sql.includes("SELECT salt")) return db.row ? { salt: db.row.salt, password_hash: db.row.password_hash } : null;
         if (sql.includes("SELECT status, expires_at FROM owner_sessions")) return db.sessions.get(this.params[0]) || null;
         if (sql.includes("SELECT challenge FROM owner_webauthn_challenges")) return [...db.webauthnChallenges.values()].find(row => row.session_hash === this.params[0] && row.purpose === this.params[1] && row.expires_at > this.params[2]) || null;
+        if (sql.includes("UPDATE owner_recovery_codes") && sql.includes("RETURNING")) { const row = db.recoveryCodes.get(this.params[1]); if (!row || row.used_at !== null) return null; row.used_at = this.params[0]; return { code_hash: this.params[1] }; }
+        if (sql.includes("SELECT code_hash FROM owner_recovery_codes")) { const row = db.recoveryCodes.get(this.params[0]); return row && row.used_at === null ? { code_hash: this.params[0] } : null; }
         return null;
       },
       async all() {
@@ -48,6 +51,8 @@ class FakeDB {
           db.row.password_hash = this.params[1];
           return { meta: { changes: 1 } };
         }
+        if (sql.includes("INSERT INTO owner_recovery_codes")) { db.recoveryCodes.set(this.params[0], { code_hash: this.params[0], created_at: this.params[1], used_at: null }); return { meta: { changes: 1 } }; }
+        if (sql.includes("DELETE FROM owner_recovery_codes")) { if (sql.includes("NOT IN")) { const keep = new Set(this.params); for (const key of db.recoveryCodes.keys()) if (!keep.has(key)) db.recoveryCodes.delete(key); } else db.recoveryCodes.clear(); return { meta: { changes: 1 } }; }
         if (sql.includes("INSERT INTO owner_webauthn_challenges")) { db.webauthnChallenges.set(this.params[0], { challenge: this.params[0], purpose: this.params[1], session_hash: this.params[2], expires_at: this.params[3] }); return { meta: { changes: 1 } }; }
         if (sql.includes("DELETE FROM owner_webauthn_challenges")) { const found = [...db.webauthnChallenges.values()].find(row => row.challenge === this.params[0] && row.purpose === this.params[1] && row.expires_at > this.params[2] && (this.params[3] == null || row.session_hash === this.params[3])); if (found) db.webauthnChallenges.delete(found.challenge); return { meta: { changes: found ? 1 : 0 }, results: found ? [found] : [] }; }
         if (sql.includes("INSERT INTO owner_sessions")) {
@@ -469,4 +474,33 @@ test("passkey registration uses the immutable Loss Gods owner label and a discov
   const row = [...e.DB.webauthnChallenges.values()].find(item => item.purpose === "register");
   assert.ok(row?.challenge === options.challenge);
   assert.ok(row?.session_hash);
+});
+
+
+test("owner recovery codes are one-time, hashed in D1, and can restore a session without password or email", async () => {
+  const e = env();
+  const token = await ownerToken(e);
+  const issued = await call(e, "/auth/recovery/codes", {}, token);
+  assert.equal(issued.status, 200);
+  const payload = await issued.json();
+  assert.equal(payload.codes.length, 8);
+  assert.equal(e.DB.recoveryCodes.size, 8);
+  assert.equal([...e.DB.recoveryCodes.keys()].includes(payload.codes[0]), false, "raw recovery codes must not be stored");
+  const login = await call(e, "/auth/recovery/login", { code: payload.codes[0] });
+  assert.equal(login.status, 200);
+  const recovered = await login.json();
+  assert.ok(recovered.token);
+  assert.equal((await call(e, "/policy", undefined, recovered.token)).status, 200);
+  const replay = await call(e, "/auth/recovery/login", { code: payload.codes[0] });
+  assert.equal(replay.status, 401);
+});
+
+test("recovery-code rotation invalidates the previous unused set", async () => {
+  const e = env();
+  const token = await ownerToken(e);
+  const first = await (await call(e, "/auth/recovery/codes", {}, token)).json();
+  const second = await (await call(e, "/auth/recovery/codes", {}, token)).json();
+  assert.equal(e.DB.recoveryCodes.size, 8);
+  assert.equal((await call(e, "/auth/recovery/login", { code: first.codes[0] })).status, 401);
+  assert.equal((await call(e, "/auth/recovery/login", { code: second.codes[0] })).status, 200);
 });
