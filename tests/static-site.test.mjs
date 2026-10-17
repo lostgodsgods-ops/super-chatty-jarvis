@@ -339,3 +339,29 @@ test("owner chat performs Tavily live search for current questions and exposes c
   assert.match(apiChat, /Bounded multi-agent research and task loops/);
   assert.match(apiChat, /webSearchExecuted: needsLiveSearch/);
 });
+
+
+test("voice barge-in has an RMS onset path, separate native TTS cancellation, and stale-turn protection", () => {
+  assert.match(jarvisHtml, /function startBargeInMonitor\(/);
+  assert.match(jarvisHtml, /getByteTimeDomainData\(/);
+  assert.match(jarvisHtml, /Math\.sqrt\(sum\s*\/\s*data\.length\)/);
+  assert.match(jarvisHtml, /window\.speechSynthesis\.cancel\(\)/);
+  assert.match(jarvisHtml, /state\.turnId/);
+  assert.match(jarvisHtml, /turnId !== state\.turnId/);
+  assert.match(jarvisHtml, /state\.chatController\.abort\(\)/);
+});
+
+test("capability ingestion is wired to an authenticated route and remains metadata-only", () => {
+  assert.match(centralWorker, /url\.pathname === "\/api\/capabilities\/ingest"/);
+  assert.match(centralWorker, /ingestCapabilitySpec\(specUrl, env\)/);
+  assert.match(centralWorker, /executionEnabled:\s*false/);
+  assert.match(centralWorker, /CAPABILITY_SPEC_HOSTS/);
+  assert.match(centralWorker, /redirect:\s*"error"/);
+});
+
+test("scheduled intel is proposal-only and never self-deploys or self-grants", () => {
+  assert.match(centralWorker, /runIntelCycle\(env\)/);
+  assert.match(centralWorker, /upgradeExecution:\s*false/);
+  assert.match(centralWorker, /INTEL_CRON_ENABLED/);
+  assert.match(wranglerConfig, /"GITHUB_REPOSITORY":\s*"lostgodsgods-ops\/super-chatty-jarvis"/);
+});
