@@ -233,3 +233,25 @@ test("PWA install icons and standalone asset paths are consistent", () => {
   assert.match(serviceWorker, /"\.\/icon-192\.png"/);
   assert.match(serviceWorker, /"\.\/icon-512\.png"/);
 });
+
+test("verified owner login is not downgraded by optional dashboard initialization errors", () => {
+  const start = jarvisHtml.indexOf("async function activateOwnerSession(token, methodLabel)");
+  const end = jarvisHtml.indexOf("async function signInPasskey()", start);
+  assert.ok(start >= 0 && end > start, "owner activation function must exist");
+  const body = jarvisHtml.slice(start, end);
+  assert.match(body, /session\.authenticated !== true/);
+  assert.match(body, /try\s*\{\s*await checkHealth\(\)/);
+  assert.match(body, /try\s*\{\s*await refreshTelemetry\(\)/);
+  assert.match(body, /try\s*\{\s*connectSentinelEvents\(\)/);
+  assert.match(jarvisHtml, /credentials:\s*"include"/);
+});
+
+test("owner login backend keeps password validation strict and returns a token only after hash match", () => {
+  const start = centralWorker.indexOf('if (url.pathname === "/auth/login"');
+  const end = centralWorker.indexOf('if ((url.pathname === "/auth/passkey/login/options"', start);
+  const body = centralWorker.slice(start, end);
+  assert.match(body, /derivePasswordHash\(password, credentials\.salt\)/);
+  assert.match(body, /equalSecret\(candidate, credentials\.password_hash\)/);
+  assert.match(body, /Invalid password\./);
+  assert.ok(body.indexOf("equalSecret(candidate, credentials.password_hash)") < body.indexOf("const token ="));
+});
