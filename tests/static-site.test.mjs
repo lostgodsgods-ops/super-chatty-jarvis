@@ -165,7 +165,8 @@ test("PWA exposes real WebAuthn passkey sign-in and authenticated registration c
 
 test("standalone install metadata advertises app-window behavior and a branded launch surface", () => {
   assert.equal(manifest.display, "standalone");
-  assert.deepEqual(manifest.display_override, ["standalone"]);\n  assert.doesNotMatch(JSON.stringify(manifest.display_override), /minimal-ui/);
+  assert.deepEqual(manifest.display_override, ["standalone"]);
+  assert.doesNotMatch(JSON.stringify(manifest.display_override), /minimal-ui/);
   assert.equal(manifest.start_url, "./");
   assert.equal(manifest.scope, "./");
   assert.equal(manifest.background_color, "#08090d");
@@ -183,7 +184,7 @@ test("PWA provides a direct native install prompt and a safe fallback", () => {
   assert.match(jarvisHtml, /deferredInstallPrompt\.prompt\(\)/, "button must invoke the native prompt from a user gesture");
   assert.match(jarvisHtml, /appinstalled/, "successful installation must be detected");
   assert.match(jarvisHtml, /Native install prompt is unavailable/, "unsupported browsers need a truthful fallback");
-  assert.match(jarvisHtml, /display-mode:\\s*standalone/, "installed standalone mode must be detected");
+  assert.match(jarvisHtml, /display-mode:\s*standalone/, "installed standalone mode must be detected");
   assert.match(serviceWorker, /CACHE_NAME\s*=\s*"super-chatty-jarvis-shell-v5"/, "install UX release must invalidate old shell cache");
 });
 
