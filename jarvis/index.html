@@ -1049,7 +1049,7 @@ body{background:radial-gradient(ellipse at 50% 38%,#50330f45 0,transparent 35%),
           // RMS only cancels active TTS and never submits a command by itself.
           if (state.speaking && hotFrames >= 4) {
             hotFrames = 0;
-            interruptSpeechOutput("rms-onset");
+            interruptSpeechOutput();
           }
           state.bargeInRaf = requestAnimationFrame(sample);
         };
@@ -1067,14 +1067,14 @@ body{background:radial-gradient(ellipse at 50% 38%,#50330f45 0,transparent 35%),
       if (state.bargeInContext) { try { await state.bargeInContext.close(); } catch {} }
       state.bargeInContext = null;
     }
-    function interruptSpeechOutput(reason = "transcript") {
+    function interruptSpeechOutput() {
       state.speechGeneration = (state.speechGeneration || 0) + 1;
       state.turnId++;
       if (state.chatController) { state.chatController.abort(); state.chatController = null; }
       state.chatBusy = false; els.sendBtn.disabled = false;
       if ("speechSynthesis" in window) window.speechSynthesis.cancel();
       state.speaking = false; state.currentSpeechText = "";
-      log("Speech output interrupted (" + reason + ").", "info", "VOICE");
+      log("Speech output interrupted by owner speech.", "info", "VOICE");
       if (state.handsFree && state.ownerToken && !state.chatBusy) setTimeout(() => startListening(), 80);
     }
     function transcriptLooksLikeTtsEcho(transcript) {
