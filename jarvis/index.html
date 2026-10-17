@@ -568,8 +568,15 @@ body{background:radial-gradient(ellipse at 50% 38%,#50330f45 0,transparent 35%),
     }
     async function activateOwnerSession(token, methodLabel) {
       state.ownerToken = token;
-      const session = await ownerFetch("/auth/session");
-      if (session.authenticated !== true) throw new Error("Owner session verification failed.");
+      // Authentication is decided only by the server session check. Optional dashboard
+      // modules must not turn a valid password into a misleading sign-in failure.
+      try {
+        const session = await ownerFetch("/auth/session");
+        if (session.authenticated !== true) throw new Error("Owner session verification failed.");
+      } catch (error) {
+        state.ownerToken = "";
+        throw error;
+      }
       els.ownerPassword.value = "";
       els.ownerLogout.disabled = false;
       els.ownerLogin.disabled = false;
@@ -578,12 +585,20 @@ body{background:radial-gradient(ellipse at 50% 38%,#50330f45 0,transparent 35%),
       status(els.ownerBadge,"OWNER VERIFIED","ok");
       status(els.researchSearchStatus,"SESSION VERIFIED","ok");
       setOwnerStatus("Owner session verified with " + methodLabel + ". Register a device passkey for future sign-ins.", "ok");
-      await checkHealth();
-      await restoreConversationMemory();
-      await refreshTelemetry();
+      const optionalSteps = [
+        ["health check", () => checkHealth()],
+        ["conversation memory restore", () => restoreConversationMemory()],
+        ["telemetry refresh", () => refreshTelemetry()],
+        ["event bus connection", () => connectSentinelEvents()]
+      ];
+      for (const [label, action] of optionalSteps) {
+        try { await action(); }
+        catch (error) { log("Owner signed in; optional " + label + " unavailable: " + (error?.message || String(error)), "warn", "AUTH"); }
+      }
       clearInterval(state.telemetryTimer);
-      state.telemetryTimer = setInterval(refreshTelemetry, 30000);
-      connectSentinelEvents();
+      state.telemetryTimer = setInterval(() => {
+        if (state.ownerToken) refreshTelemetry().catch(error => log("Telemetry refresh failed: " + (error?.message || String(error)), "warn", "TELEMETRY"));
+      }, 30000);
       toast("Owner session verified; live sync requested.");
     }
     async function signInPasskey() {
@@ -696,13 +711,17 @@ body{background:radial-gradient(ellipse at 50% 38%,#50330f45 0,transparent 35%),
       if (!password) { setOwnerStatus("Owner password is required.","warn"); return; }
       els.ownerLogin.disabled = true; setOwnerStatus("Verifying owner credentials and session…","warn");
       try {
-        const response = await fetch(base + "/auth/login",{method:"POST",headers:{"content-type":"application/json",Accept:"application/json"},body:JSON.stringify({password}),cache:"no-store"});
+        const response = await fetch(base + "/auth/login",{method:"POST",credentials:"include",headers:{"content-type":"application/json",Accept:"application/json"},body:JSON.stringify({password}),cache:"no-store"});
         const payload = await response.json().catch(() => ({}));
         if (!response.ok || typeof payload.token !== "string" || !payload.token) throw new Error(payload.error || ("Owner login failed: HTTP " + response.status));
         await activateOwnerSession(payload.token, "owner password");
       } catch (error) {
         state.ownerToken = ""; els.ownerLogin.disabled = false;
-        setOwnerStatus(error.message || "Owner authentication failed.","bad"); status(els.ownerBadge,"LOCKED","bad");
+        const message = error instanceof ReferenceError
+          ? "Sign-in script error: " + error.message
+          : (error.message || "Owner authentication failed.");
+        setOwnerStatus(message,"bad"); status(els.ownerBadge,"LOCKED","bad");
+        log("Owner sign-in failed: " + message,"error","AUTH");
       }
     }
     async function signOutOwner() {
