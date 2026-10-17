@@ -48,9 +48,10 @@ class FakeDB {
           return { meta: { changes: 1 } };
         }
         if (sql.includes("INSERT INTO owner_sessions")) {
-          db.sessions.set(this.params[0], { token_hash: this.params[0], expires_at: this.params[1], status: "active" });
+          db.sessions.set(this.params[0], { token_hash: this.params[0], expires_at: this.params[1], status: sql.includes("'revoked'") ? "revoked" : "active" });
           return { meta: { changes: 1 } };
         }
+        if (sql.includes("UPDATE owner_sessions SET status = 'revoked'")) { for (const row of db.sessions.values()) if (row.status === "active") row.status = "revoked"; return { meta: { changes: 1 } }; }
         if (sql.includes("DELETE FROM owner_sessions WHERE token_hash")) return { meta: { changes: db.sessions.delete(this.params[0]) ? 1 : 0 } };
         if (sql.includes("DELETE FROM owner_sessions")) { const changes = db.sessions.size; db.sessions.clear(); return { meta: { changes } }; }
         return { meta: { changes: 0 } };
@@ -113,7 +114,7 @@ test("owner login falls back to expiring D1 sessions when KV session writes hit 
   const logout = await call(e, "/auth/logout", {}, token);
   assert.equal(logout.status, 200);
   assert.equal((await call(e, "/policy", undefined, token)).status, 401);
-  assert.equal(e.DB.sessions.size, 0);
+  assert.equal([...e.DB.sessions.values()][0]?.status, "revoked");
 });
 
 test("first-time setup is one-time and fails closed without storage or bootstrap token", async () => {
