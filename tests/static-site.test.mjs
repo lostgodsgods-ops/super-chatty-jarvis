@@ -286,6 +286,6 @@ test("voice-first console replaces manual mic clutter with explicit owner-only h
 
 test("PWA event counter increments numeric state and never reads an undefined DOM property", () => {
   assert.match(jarvisHtml, /state\.eventsCount\+\+/);
-  assert.match(jarvisHtml, /state\.logCount\.textContent\s*=\s*state\.eventsCount\s*\+\s*" events"/);
+  assert.match(jarvisHtml, /els\.logCount\.textContent\s*=\s*state\.eventsCount\s*\+\s*" events"/);
   assert.doesNotMatch(jarvisHtml, /els\.eventsCount\+\+/);
 });
