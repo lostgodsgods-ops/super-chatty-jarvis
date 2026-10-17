@@ -22,3 +22,12 @@ test("requests without a source IP are not globally rate-limited",async()=>{
  const result=await guardRequest(new Request("https://example.test/api/memory"),{SESSIONS:new FakeKV()});
  assert.equal(result,null);
 });
+
+test("rate-limit KV write exhaustion degrades non-credential routes without bypassing owner auth",async()=>{
+ const kv=new FakeKV();
+ kv.put=async(key,value)=>{ if(String(key).startsWith("edge:rate:")) throw new Error("KV write quota exhausted"); kv.values.set(key,String(value)); };
+ const env={SESSIONS:kv};
+ assert.equal(await guardRequest(request("/api/chat"),env,1800000),null);
+ assert.equal(await guardRequest(request("/auth/session"),env,1800001),null);
+ await assert.rejects(()=>guardRequest(request("/auth/login"),env,1800002),/KV write quota exhausted/);
+});
