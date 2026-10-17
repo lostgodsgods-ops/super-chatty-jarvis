@@ -75,6 +75,31 @@ test("internal Tavily search fails closed when its private provider key is missi
   assert.equal((await response.json()).error, "Search provider is not configured.");
 });
 
+test("internal Tavily search reports plan exhaustion without leaking provider diagnostics or retrying", async () => {
+  const originalFetch = globalThis.fetch;
+  let calls = 0;
+  globalThis.fetch = async () => {
+    calls++;
+    return new Response(JSON.stringify({ detail: { error: "private account limit detail" } }), { status: 432 });
+  };
+  try {
+    const response = await worker.fetch(new Request("https://agent.example/internal/search", {
+      method: "POST",
+      headers: { "content-type": "application/json", authorization: "Bearer correct-token" },
+      body: JSON.stringify({ query: "Cloudflare Workers health checks" })
+    }), { SEARCH_BRIDGE_TOKEN: "correct-token", SEARCH_API_KEY: "test-tavily-key" });
+    const body = await response.json();
+    assert.equal(response.status, 503);
+    assert.equal(body.code, "LIVE_SEARCH_PLAN_LIMIT_EXCEEDED");
+    assert.match(body.error, /plan usage limit is exhausted/i);
+    assert.equal(JSON.stringify(body).includes("private account limit detail"), false);
+    assert.equal(calls, 1, "a plan-limit response must not be retried");
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+
 test("health reports gateway search and durable queue readiness without exposing secrets", async () => {
   const response = await worker.fetch(new Request("https://agent.example/health"), {
     SEARCH_BRIDGE_TOKEN: "gateway-test-token",

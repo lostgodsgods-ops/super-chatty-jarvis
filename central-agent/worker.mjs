@@ -51,6 +51,29 @@ async function fetchTavilyWithRetry(query, env) {
 
 
 
+export function classifyTavilyFailure(status) {
+  if (status === 429) return {
+    status: 429,
+    code: "LIVE_SEARCH_RATE_LIMITED",
+    error: "Live search is rate-limited. Retry later; no unsourced answer was generated."
+  };
+  if (status === 432) return {
+    status: 503,
+    code: "LIVE_SEARCH_PLAN_LIMIT_EXCEEDED",
+    error: "Tavily's configured plan usage limit is exhausted. Live search is unavailable; no unsourced answer was generated."
+  };
+  if (status === 433) return {
+    status: 503,
+    code: "LIVE_SEARCH_PAYGO_LIMIT_EXCEEDED",
+    error: "Tavily's configured pay-as-you-go limit is exhausted. Live search is unavailable; no unsourced answer was generated."
+  };
+  return {
+    status: 502,
+    code: "LIVE_SEARCH_PROVIDER_ERROR",
+    error: "Live search provider failed. No stale-model fallback was used."
+  };
+}
+
 export function parseSetupToken(hash) {
   if (typeof hash !== "string" || !hash.startsWith("#")) return "";
   try { return new URLSearchParams(hash.slice(1)).get("setup") || ""; }
@@ -481,11 +504,10 @@ export default {
         } catch {
           return json({ error: "Live search failed. No stale-model fallback was used.", code: "LIVE_SEARCH_NETWORK_ERROR" }, 502, cors);
         }
-        if (!searchResponse.ok) return json({
-          error: "Live search provider failed. No stale-model fallback was used.",
-          code: searchResponse.status === 429 ? "LIVE_SEARCH_RATE_LIMITED" : "LIVE_SEARCH_PROVIDER_ERROR",
-          retryAfter: searchResponse.headers.get("retry-after") || null
-        }, 502, cors);
+        if (!searchResponse.ok) {
+          const failure = classifyTavilyFailure(searchResponse.status);
+          return json({ error: failure.error, code: failure.code, retryAfter: searchResponse.headers.get("retry-after") || null }, failure.status, cors);
+        }
         let searchPayload;
         try { searchPayload = await searchResponse.json(); } catch {
           return json({ error: "Live search returned invalid data. No stale-model fallback was used.", code: "LIVE_SEARCH_INVALID_RESPONSE" }, 502, cors);
@@ -594,8 +616,9 @@ export default {
         return json({ error: "Live search provider could not be reached after bounded retries.", code: "SEARCH_PROVIDER_NETWORK_ERROR" }, 502, cors);
       }
       if (!providerResponse.ok) {
-        console.warn("internal_search_provider_http_error", { status: providerResponse.status });
-        return json({ error: "Live search provider returned HTTP " + providerResponse.status + ".", code: "SEARCH_PROVIDER_HTTP_ERROR" }, 502, cors);
+        const failure = classifyTavilyFailure(providerResponse.status);
+        console.warn("internal_search_provider_http_error", { status: providerResponse.status, code: failure.code });
+        return json({ error: failure.error, code: failure.code, retryAfter: providerResponse.headers.get("retry-after") || null }, failure.status, cors);
       }
 
       let payload;
@@ -1113,7 +1136,8 @@ export default {
         });
         if (!response.ok) {
           // Never forward provider response bodies, which may contain diagnostic details.
-          return json({ error: "Search provider request failed." }, 502, cors);
+          const failure = classifyTavilyFailure(response.status);
+          return json({ error: failure.error, code: failure.code, retryAfter: response.headers.get("retry-after") || null }, failure.status, cors);
         }
         const payload = await response.json();
         const results = rankTavilyResults(query, payload?.results).map(item => ({
@@ -1235,11 +1259,10 @@ export default {
       } catch {
         return json({ error: "Live search is temporarily unavailable. No unsourced answer was generated.", code: "LIVE_SEARCH_NETWORK_ERROR" }, 502, cors);
       }
-      if (!response.ok) return json({
-        error: response.status === 429 ? "Live search is rate-limited. Retry later; no unsourced answer was generated." : "Live search provider failed. No unsourced answer was generated.",
-        code: response.status === 429 ? "LIVE_SEARCH_RATE_LIMITED" : "LIVE_SEARCH_PROVIDER_ERROR",
-        retryAfter: response.headers.get("retry-after") || null
-      }, 502, cors);
+      if (!response.ok) {
+        const failure = classifyTavilyFailure(response.status);
+        return json({ error: failure.error, code: failure.code, retryAfter: response.headers.get("retry-after") || null }, failure.status, cors);
+      }
       let payload;
       try { payload = await response.json(); } catch {
         return json({ error: "Live search returned invalid data. No unsourced answer was generated.", code: "LIVE_SEARCH_INVALID_RESPONSE" }, 502, cors);

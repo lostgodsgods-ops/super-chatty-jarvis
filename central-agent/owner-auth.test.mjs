@@ -5,7 +5,7 @@ import { readFile } from "node:fs/promises";
 
 // Cloudflare Workers provide Web Crypto globally; make the same API explicit in Node tests.
 Object.defineProperty(globalThis, "crypto", { value: webcrypto, configurable: true, writable: true });
-import worker, { parseSetupToken, PASSWORD_ITERATIONS } from "./worker.mjs";
+import worker, { parseSetupToken, PASSWORD_ITERATIONS, classifyTavilyFailure } from "./worker.mjs";
 import { base64url, fromBase64url } from "./webauthn.mjs";
 
 class FakeKV {
@@ -549,4 +549,18 @@ test("passkey registration sends its challenge and binds challenge consumption t
   assert.ok(workerSource.includes('sha256Hex(sessionToken + "\\n" + parsedOrigin.origin)'), "registration challenge must be bound to session and exact origin");
   assert.ok(workerSource.includes("origin mismatch, or already used"), "origin-bound challenge failure should be explicit");
   assert.ok(webauthnSource.includes("Submitted credential ID does not match attested credential ID"), "submitted credential ID must match attested ID");
+});
+
+
+test("Tavily plan and pay-as-you-go limits are explicit and never treated as transient network failures", () => {
+  const plan = classifyTavilyFailure(432);
+  assert.equal(plan.status, 503);
+  assert.equal(plan.code, "LIVE_SEARCH_PLAN_LIMIT_EXCEEDED");
+  assert.match(plan.error, /plan usage limit is exhausted/i);
+  const paygo = classifyTavilyFailure(433);
+  assert.equal(paygo.status, 503);
+  assert.equal(paygo.code, "LIVE_SEARCH_PAYGO_LIMIT_EXCEEDED");
+  assert.match(paygo.error, /pay-as-you-go limit is exhausted/i);
+  assert.equal(classifyTavilyFailure(429).status, 429);
+  assert.equal(classifyTavilyFailure(500).status, 502);
 });
