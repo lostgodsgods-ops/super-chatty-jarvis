@@ -195,8 +195,8 @@ jobs:
           node - "$tmp/chat-response.json" <<'NODE'
           const fs=require("node:fs");
           const x=JSON.parse(fs.readFileSync(process.argv[2],"utf8"));
-          if(x.ok!==true||!["tavily+workers-ai","duckduckgo-html+workers-ai"].includes(x.provider)||x.core?.webSearchExecuted!==true||
-             !["tavily","duckduckgo-html"].includes(x.core?.searchProvider)||!Array.isArray(x.sources)||x.sources.length<1||
+          if(x.ok!==true||!["tavily+workers-ai","duckduckgo-html+workers-ai","wikipedia-api+workers-ai"].includes(x.provider)||x.core?.webSearchExecuted!==true||
+             !["tavily","duckduckgo-html","wikipedia-api"].includes(x.core?.searchProvider)||!Array.isArray(x.sources)||x.sources.length<1||
              !x.sources.every(s=>typeof s.url==="string"&&/^https?:\/\//.test(s.url))) {
             throw new Error("Live chat did not return a valid live-web answer with source URLs.");
           }
