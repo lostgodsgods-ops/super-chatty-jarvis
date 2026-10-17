@@ -96,5 +96,5 @@ test("authenticated request cannot enable live mission execution even when appro
   assert.equal(body.status, "HUMAN_REVIEW_REQUIRED");
   assert.equal(body.reason, "LIVE_EXECUTION_DISABLED");
   assert.equal(body.sideEffectsExecuted, false);
-  assert.ok(events.some(event => event.type === "mission.request.assessed"));
+  assert.ok(events.some(event => event.type === "mission.request.rejected"));
 });
