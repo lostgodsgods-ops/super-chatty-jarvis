@@ -1073,7 +1073,7 @@ body{background:radial-gradient(ellipse at 50% 38%,#50330f45 0,transparent 35%),
           state.memoryHistory.push({ command: command.slice(0, 1000), reply: reply.slice(0, 1000), capturedAt: new Date().toISOString() });
           state.memoryHistory = state.memoryHistory.slice(-20);
           await ownerFetch("/api/memory", { method: "POST", body: JSON.stringify({
-            session_id: "owner-global", memory_type: "conversation_state",
+            session_id: "owner-global", memory_type:"conversation_state",
             state: { commandHistory: state.memoryHistory, lastCommand: command.slice(0, 1000), lastReply: reply.slice(0, 1000), updatedAt: new Date().toISOString() }
           }) });
         } catch (memoryError) { log("Chat reply succeeded; optional memory save failed: " + (memoryError?.message || String(memoryError)), "warn", "MEMORY"); }
