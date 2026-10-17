@@ -77,7 +77,7 @@ test("DuckDuckGo HTML parser extracts safe, decoded result URLs and relevant tex
   const results = parseDuckDuckGoHtml(html, "Cloudflare Workers");
   assert.equal(results.length, 1);
   assert.equal(results[0].title, "Cloudflare Workers & Durable Objects");
-  assert.equal(results[0].url, "https://example.com/cloudflare/?x=1&y=2");
+  assert.equal(results[0].url, "https://example.com/cloudflare?x=1&y=2");
   assert.match(results[0].content, /Official documentation for Cloudflare Workers/);
 });
 
