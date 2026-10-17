@@ -67,11 +67,11 @@ test("GET /auth/session rejects missing credentials with 401", async () => {
   assert.equal((await response.json()).authenticated, undefined);
 });
 
-test("GET /auth/session rejects an unknown/non-owner token with 403", async () => {
+test("GET /auth/session rejects an unknown/non-owner token with 401", async () => {
   const response = await worker.fetch(request("/auth/session", {
     headers: { authorization: "Bearer not-a-valid-owner-session" }
   }), env(new FakeDB()));
-  assert.equal(response.status, 403);
+  assert.equal(response.status, 401);
 });
 
 test("GET /auth/session accepts a valid active owner session", async () => {
