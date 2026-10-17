@@ -49,6 +49,17 @@ export async function guardRequest(request, env, nowMs = Date.now()) {
     await recordEvent(env, "rate_limit", ipHash, path, { count, windowSeconds: WINDOW_SECONDS }, now);
     return { status: 429, body: { error: "Rate limit exceeded. Retry after the current minute." }, headers: { "retry-after": String(WINDOW_SECONDS - Math.floor((nowMs / 1000) % WINDOW_SECONDS)), "cache-control": "no-store" } };
   }
-  await kv.put(rateKey, String(count + 1), { expirationTtl: WINDOW_SECONDS + 5 });
+  try {
+    await kv.put(rateKey, String(count + 1), { expirationTtl: WINDOW_SECONDS + 5 });
+  } catch (error) {
+    // The rate-limit counter is a defense-in-depth control, not authentication.
+    // If KV writes are quota-limited, keep credential-changing routes fail-closed,
+    // but allow other routes to reach their own auth/policy checks instead of taking
+    // the entire application offline. The IP blocklist read above still applies.
+    const credentialMutation = request.method === "POST" &&
+      path.startsWith("/auth/") &&
+      !["/auth/logout", "/auth/status", "/auth/session"].includes(path);
+    if (credentialMutation) throw error;
+  }
   return null;
 }
