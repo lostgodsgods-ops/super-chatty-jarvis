@@ -23,11 +23,28 @@ test("requests without a source IP are not globally rate-limited",async()=>{
  assert.equal(result,null);
 });
 
-test("rate-limit KV write exhaustion degrades non-credential routes without bypassing owner auth",async()=>{
+class FakeRateLimitDB {
+ constructor(){this.rows=new Map()}
+ prepare(sql){
+  if(sql.startsWith("CREATE TABLE IF NOT EXISTS edge_rate_limits")) return {run:async()=>({success:true})};
+  return {bind:(key,window)=>({first:async()=>{
+   const previous=this.rows.get(key);
+   const request_count=previous&&previous.window===window?previous.request_count+1:1;
+   this.rows.set(key,{window,request_count});
+   return {request_count};
+  }})};
+ }
+}
+test("rate-limit KV write exhaustion falls back to D1 for credential routes",async()=>{
  const kv=new FakeKV();
  kv.put=async(key,value)=>{ if(String(key).startsWith("edge:rate:")) throw new Error("KV write quota exhausted"); kv.values.set(key,String(value)); };
- const env={SESSIONS:kv};
+ const env={SESSIONS:kv,DB:new FakeRateLimitDB()};
  assert.equal(await guardRequest(request("/api/chat"),env,1800000),null);
  assert.equal(await guardRequest(request("/auth/session"),env,1800001),null);
- await assert.rejects(()=>guardRequest(new Request("https://example.test/auth/login",{method:"POST",headers:{"cf-connecting-ip":"192.0.2.4"}}),env,1800002),/KV write quota exhausted/);
+ const loginRequest=()=>new Request("https://example.test/auth/login",{method:"POST",headers:{"cf-connecting-ip":"192.0.2.4"}});
+ for(let i=0;i<12;i++) assert.equal(await guardRequest(loginRequest(),env,1800002+i),null);
+ const limited=await guardRequest(loginRequest(),env,1800015);
+ assert.equal(limited.status,429);
+ assert.equal(limited.headers["retry-after"]!==undefined,true);
+ await assert.rejects(()=>guardRequest(loginRequest(),{SESSIONS:kv},1800016),/KV write quota exhausted/);
 });
