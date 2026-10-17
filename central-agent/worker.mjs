@@ -1241,11 +1241,10 @@ export default {
     }
 
     if (url.pathname === "/auth/session" && request.method === "GET") {
-      const authorization = request.headers.get("authorization") || "";
-      const bearer = authorization.startsWith("Bearer ") ? authorization.slice(7).trim() : "";
-      const supplied = bearer || readSessionCookie(request);
+      // Missing, expired, revoked, and unknown credentials all mean the caller
+      // is unauthenticated. Reserve 403 for authenticated callers lacking access.
       if (!(await authorized(request, env))) {
-        return json({ error: "Owner session required." }, supplied ? 403 : 401, cors);
+        return json({ error: "Owner session required." }, 401, cors);
       }
       return json({ ok: true, authenticated: true, expiresIn: SESSION_TTL_SECONDS }, 200, cors);
     }
