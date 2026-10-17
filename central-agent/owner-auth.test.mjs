@@ -316,3 +316,18 @@ test("password, passkey, and device-biometric option routes remain independently
   assert.ok([...e.SESSIONS.values.keys()].some(key => key.startsWith("webauthn:login:")));
   assert.ok([...e.SESSIONS.values.keys()].some(key => key.startsWith("webauthn:biometric:")));
 });
+
+
+test("owner page exposes independent password, passkey, and biometric sign-in tabs", async () => {
+  const response = await call(env(), "/owner");
+  assert.equal(response.status, 200);
+  const html = await response.text();
+  for (const id of ["passwordTab", "passkeyTab", "biometricTab", "passwordPanel", "passkeyPanel", "biometricPanel", "passkeyLoginButton", "biometricLoginButton", "registerPasskeyButton"]) {
+    assert.ok(html.includes('id="' + id + '"'), "missing owner auth control: " + id);
+  }
+  assert.ok(html.includes("/auth/passkey/login/options"));
+  assert.ok(html.includes("/auth/biometric/login/options"));
+  assert.ok(html.includes('function selectAuthTab(selected)'));
+  assert.ok(html.includes('You can change your password here') || html.includes('Change your password here'));
+  assert.doesNotMatch(html, /localStorage|sessionStorage/);
+});
