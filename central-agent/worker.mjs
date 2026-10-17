@@ -18,6 +18,7 @@ import { runSentinelCycle, getSentinelStatus } from "./sentinel.mjs";
 import { publishEvent, listModules, eventStreamResponse } from "./event-bus.mjs";
 import { runIntelCycle } from "./intel-cron.mjs";
 import { ingestCapabilitySpec, CapabilityIngestionError } from "./architecture/capability-ingestion.mjs";
+import { assessMissionRequest } from "./architecture/mission-grid.mjs";
 
 const VERSION = "1.4.0";
 const OWNER_IDENTITY = Object.freeze({ key: "loss-gods", displayName: "Loss Gods" });
@@ -1059,6 +1060,44 @@ export default {
       }
     }
 
+
+    if (url.pathname === "/api/mission/assess" && request.method === "POST") {
+      // The shared owner-session gate above runs before this route. This endpoint
+      // assesses planning/simulation requests only; it never invokes a physical executor.
+      let body;
+      try { body = await request.json(); }
+      catch {
+        const audit = await publishEvent(env, {
+          type: "mission.request.rejected",
+          source: "mission-grid",
+          payload: { reason: "INVALID_JSON", route: "/api/mission/assess" }
+        });
+        if (!audit.ok) return json({ error: "Mission audit storage unavailable.", code: "MISSION_AUDIT_UNAVAILABLE" }, 503, cors);
+        return json({ error: "Expected JSON body.", code: "INVALID_JSON" }, 400, cors);
+      }
+
+      const assessment = assessMissionRequest({
+        moduleId: body?.moduleId,
+        action: body?.action,
+        mode: body?.mode,
+        humanApproval: body?.humanApproval === true
+      });
+      const audit = await publishEvent(env, {
+        type: assessment.allowed ? "mission.request.assessed" : "mission.request.rejected",
+        source: "mission-grid",
+        payload: {
+          moduleId: typeof body?.moduleId === "string" ? body.moduleId.slice(0, 80) : null,
+          mode: typeof body?.mode === "string" ? body.mode.slice(0, 40) : null,
+          allowed: assessment.allowed,
+          status: assessment.status,
+          reason: assessment.reason || null,
+          sideEffectsExecuted: false
+        }
+      });
+      // Fail closed: do not report a successful assessment if its audit record failed.
+      if (!audit.ok) return json({ error: "Mission audit storage unavailable.", code: "MISSION_AUDIT_UNAVAILABLE" }, 503, cors);
+      return json({ ...assessment, audit: { recorded: true } }, 200, cors);
+    }
 
     if (url.pathname === "/api/chat" && request.method === "POST") {
       if (!(await authorized(request, env))) return json({ error: "Owner session required." }, 401, cors);
