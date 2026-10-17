@@ -4,7 +4,10 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#08090d">
-  <meta name="application-version" content="NEXUS-2026.10.17">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="application-version" content="NEXUS-2026.10.17-PWA4">
   <meta name="description" content="Super Chatty Jarvis — voice-first AI command interface.">
   <meta name="color-scheme" content="dark">
   <title>Super Chatty Jarvis · Neural Console</title>
@@ -257,6 +260,11 @@
       catch { return null; }
     }
     async function checkHealth() {
+      if (!state.ownerToken) {
+        status(els.workerStatus,"CF: LOCKED","warn");
+        els.connectState.textContent = "Owner sign-in required. Health checks are disabled until the session is verified.";
+        return false;
+      }
       const url = safeUrl(els.workerUrl.value.trim());
       if (!url) { status(els.workerStatus,"CF: INVALID URL","bad"); els.connectState.textContent="Enter a valid HTTPS health URL."; return false; }
       status(els.workerStatus,"CF: CHECKING","warn");
@@ -403,6 +411,7 @@
         status(els.researchSearchStatus, "SESSION RESTORED", "ok");
         setOwnerStatus("Owner session restored securely from the HttpOnly cookie. No token is exposed to page JavaScript.", "ok");
         log("Owner session resumed after reload using the secure session cookie.", "good", "SECURITY");
+        await checkHealth();
         await restoreConversationMemory();
         await refreshTelemetry();
         clearInterval(state.telemetryTimer);
@@ -436,6 +445,7 @@
       status(els.ownerBadge,"OWNER VERIFIED","ok");
       status(els.researchSearchStatus,"SESSION VERIFIED","ok");
       setOwnerStatus("Owner session verified with " + methodLabel + ". Register a device passkey for future sign-ins.", "ok");
+      await checkHealth();
       await restoreConversationMemory();
       await refreshTelemetry();
       clearInterval(state.telemetryTimer);
@@ -697,6 +707,14 @@
 
 
     function connectEvents() {
+      if (!state.ownerToken) {
+        disconnectEvents();
+        els.streamStatus.textContent = "Owner sign-in required; event stream locked.";
+        log("SSE startup blocked until owner session verification.","warn","SECURITY");
+        return;
+      }
+      connectSentinelEvents();
+      return;
       disconnectEvents();
       const raw = els.eventsUrl.value.trim();
       if (!raw) {
@@ -740,8 +758,10 @@
       }
     }
     async function connect() {
-      await checkHealth();
-      connectEvents();
+      if (!state.ownerToken) { toast("Sign in with the owner password or passkey before connecting."); return; }
+      const healthy = await checkHealth();
+      if (!healthy) return;
+      connectSentinelEvents();
       clearInterval(state.healthTimer);
       state.healthTimer = setInterval(checkHealth, 30000);
     }
@@ -1026,8 +1046,10 @@
     setInterval(elapsed,1000); elapsed();
     log("Console initialized. UI events are local; backend telemetry is unverified until SSE connects.","good","BOOT");
     log("Voice command execution is disabled until a secured command API is configured.","warn","SECURITY");
-    checkHealth();
-    connectEvents();
+    status(els.ownerBadge,"LOCKED","warn");
+    status(els.researchSearchStatus,"OWNER SESSION REQUIRED","warn");
+    setOwnerStatus("Owner session required. Backend health, telemetry, and event streams remain disabled until verified.","warn");
+    addFeedItem(els.researchFeed,"Telemetry locked","Sign in with the owner password or registered passkey to initialize protected services.","info");
     resumeOwnerSession();
   })();
   </script>
