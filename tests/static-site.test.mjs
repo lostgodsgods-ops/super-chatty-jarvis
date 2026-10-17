@@ -166,6 +166,17 @@ test("PWA exposes real WebAuthn passkey sign-in and authenticated registration c
   assert.match(jarvisHtml, /ownerPasskeyLogin/);
   assert.match(jarvisHtml, /ownerPasskeyRegister/);
   assert.match(jarvisHtml, /ownerSetupOpen/);
+  assert.match(jarvisHtml, /function assertPasskeyOrigin/);
+  assert.match(jarvisHtml, /options\.origin !== origin/);
+  assert.match(centralWorker, /origin: parsedOrigin\.origin/);
+});
+
+test("PWA barge-in cancels TTS on first non-echo speech result", () => {
+  assert.match(jarvisHtml, /function interruptSpeechOutput\(\)/);
+  assert.match(jarvisHtml, /window\.speechSynthesis\.cancel\(\)/);
+  assert.match(jarvisHtml, /recognition\.onresult = event =>/);
+  assert.match(jarvisHtml, /if \(state\.speaking\) interruptSpeechOutput\(\)/);
+  assert.match(jarvisHtml, /heard\.length <= 2/);
 });
 
 
@@ -314,7 +325,8 @@ test("owner chat performs Tavily live search for current questions and exposes c
   assert.match(apiChat, /requiresLiveSearch\(message\)/);
   assert.match(apiChat, /fetchTavilyWithRetry\(searchQuery, env\)/);
   assert.match(apiChat, /rankTavilyResults\(searchQuery/);
-  assert.match(apiChat, /LIVE_SEARCH_NOT_CONFIGURED/);
+  assert.match(centralWorker, /directWebSearchFallback/);
+  assert.match(apiChat, /direct DuckDuckGo HTML search/);
   assert.match(apiChat, /No stale-model fallback was used/);
   assert.match(apiChat, /WebAuthn passkey registration and assertion verification/);
   assert.match(apiChat, /speech barge-in cancels speech synthesis/);

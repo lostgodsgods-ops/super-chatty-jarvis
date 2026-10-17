@@ -174,12 +174,25 @@ test("Tavily search requires an authenticated owner session", async () => {
   assert.equal(response.status, 401);
 });
 
-test("Tavily search fails closed when the API key is not configured", async () => {
+test("owner-authenticated search uses direct web search when the Tavily key is absent", async () => {
   const e = env();
   const token = await ownerToken(e);
-  const response = await call(e, "/search", { query: "Cloudflare Workers" }, token);
-  assert.equal(response.status, 503);
-  assert.equal((await response.json()).error, "Search is not configured.");
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async url => {
+    assert.match(String(url), /^https:\/\/html\.duckduckgo\.com\/html\//);
+    return new Response(`
+      <div class="result">
+        <a class="result__a" href="https://developers.cloudflare.com/workers/">Cloudflare Workers documentation</a>
+        <a class="result__snippet">Official Cloudflare Workers documentation.</a>
+      </div>`, { status: 200, headers: { "content-type": "text/html" } });
+  };
+  try {
+    const response = await call(e, "/search", { query: "Cloudflare Workers" }, token);
+    const body = await response.json();
+    assert.equal(response.status, 200, JSON.stringify(body));
+    assert.equal(body.provider, "duckduckgo-html");
+    assert.equal(body.results.length, 1);
+  } finally { globalThis.fetch = originalFetch; }
 });
 
 test("Tavily search validates query and sends bounded requests with source URLs", async () => {
@@ -209,8 +222,8 @@ test("Tavily search validates query and sends bounded requests with source URLs"
     assert.equal(requestOptions.headers.authorization, "Bearer test-tavily-key");
     const sent = JSON.parse(requestOptions.body);
     assert.equal(sent.query, "Cloudflare Workers");
-    assert.equal(sent.search_depth, "advanced");
-    assert.equal(sent.max_results, 8);
+    assert.equal(sent.search_depth, "basic");
+    assert.equal(sent.max_results, 5);
     assert.equal(sent.include_raw_content, false);
     const payload = await response.json();
     assert.equal(payload.provider, "tavily");
@@ -369,7 +382,9 @@ test("password, passkey, and device-biometric option routes remain independently
   const passkeyOptions = await passkeyResponse.json();
   const biometricOptions = await biometricResponse.json();
   assert.equal(passkeyOptions.userVerification, "required");
+  assert.equal(passkeyOptions.origin, "https://central.example.test");
   assert.equal(biometricOptions.userVerification, "required");
+  assert.equal(biometricOptions.origin, "https://central.example.test");
   assert.deepEqual(passkeyOptions.allowCredentials, [], "discoverable passkeys should work across synced devices");
   assert.deepEqual(biometricOptions.allowCredentials, [], "device verification should use discoverable credentials");
   assert.ok([...e.DB.webauthnChallenges.values()].some(row => row.purpose === "login"));

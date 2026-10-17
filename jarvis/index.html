@@ -615,6 +615,19 @@ body{background:radial-gradient(ellipse at 50% 38%,#50330f45 0,transparent 35%),
         } catch (error) { log("Hands-free auto-resume preference unavailable: " + (error?.message || String(error)), "warn", "VOICE"); }
       });
     }
+    function assertPasskeyOrigin(options, registration = false) {
+      const origin = window.location.origin;
+      if (!window.isSecureContext || (window.location.protocol !== "https:" && !["localhost", "127.0.0.1"].includes(window.location.hostname))) {
+        throw new Error("Passkeys require this app to be opened on its secure HTTPS origin.");
+      }
+      if (!options || options.origin !== origin) {
+        throw new Error("Passkey origin mismatch. Open Super Chatty Jarvis from its registered app URL.");
+      }
+      const rpId = registration ? options.rp?.id : options.rpId;
+      if (typeof rpId !== "string" || rpId !== window.location.hostname) {
+        throw new Error("Passkey relying-party ID does not match this app's hostname.");
+      }
+    }
     async function signInPasskey() {
       const base = workerBaseUrl();
       if (!base) { setOwnerStatus("Enter a valid Worker health URL first.", "bad"); return; }
@@ -626,6 +639,7 @@ body{background:radial-gradient(ellipse at 50% 38%,#50330f45 0,transparent 35%),
         const optionsResponse = await fetch(base + "/auth/passkey/login/options", { method:"POST", credentials:"include", headers:{Accept:"application/json"}, cache:"no-store" });
         const options = await optionsResponse.json().catch(() => ({}));
         if (!optionsResponse.ok) throw new Error(options.error || "Passkey sign-in is not configured.");
+        assertPasskeyOrigin(options, false);
         const credential = await navigator.credentials.get({ publicKey: {
           challenge: decodeB64url(options.challenge), rpId: options.rpId, timeout: options.timeout,
           userVerification: options.userVerification,
@@ -692,6 +706,7 @@ body{background:radial-gradient(ellipse at 50% 38%,#50330f45 0,transparent 35%),
       els.ownerPasskeyRegister.disabled = true;
       try {
         const options = await ownerFetch("/auth/passkey/register/options", { method:"POST", body:"{}" });
+        assertPasskeyOrigin(options, true);
         const credential = await navigator.credentials.create({ publicKey: {
           challenge: decodeB64url(options.challenge),
           rp: options.rp,
@@ -1012,6 +1027,8 @@ body{background:radial-gradient(ellipse at 50% 38%,#50330f45 0,transparent 35%),
       const spoken = String(state.currentSpeechText || "").toLocaleLowerCase().match(/[\p{L}\p{N}]{3,}/gu) || [];
       const heard = String(transcript || "").toLocaleLowerCase().match(/[\p{L}\p{N}]{3,}/gu) || [];
       if (!spoken.length || !heard.length) return false;
+      // Favor real barge-in for short utterances; echo suppression is only useful for longer overlap.
+      if (heard.length <= 2) return false;
       const words = new Set(spoken);
       const overlap = heard.filter(word => words.has(word)).length / heard.length;
       return overlap >= 0.8;

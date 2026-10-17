@@ -47,7 +47,7 @@ jobs:
           test -n "$CF_TOKEN" || { echo "Missing CLOUDFLARE_API_TOKEN"; exit 1; }
           test -n "$CF_ACCOUNT" || { echo "Missing CLOUDFLARE_ACCOUNT_ID"; exit 1; }
           test -n "$SETUP_TOKEN" || { echo "Missing OWNER_SETUP_TOKEN"; exit 1; }
-          test -n "$SEARCH_KEY" || { echo "Missing SEARCH_API_KEY"; exit 1; }
+          echo "SEARCH_API_KEY is optional; direct DuckDuckGo search is the fallback."
           test -n "$BRIDGE_TOKEN" || { echo "Missing AGENT_GATEWAY_TOKEN"; exit 1; }
           echo "Required secret values are present (values not displayed)."
 
@@ -121,11 +121,11 @@ jobs:
           const path = process.argv[2];
           const payload = {
             OWNER_SETUP_TOKEN: process.env.OWNER_SETUP_TOKEN,
-            SEARCH_API_KEY: process.env.SEARCH_API_KEY,
+            SEARCH_API_KEY: process.env.SEARCH_API_KEY || undefined,
             SEARCH_BRIDGE_TOKEN: process.env.AGENT_GATEWAY_TOKEN,
           };
           if (process.env.GEMINI_API_KEY) payload.GEMINI_API_KEY = process.env.GEMINI_API_KEY;
-          if (!payload.OWNER_SETUP_TOKEN || !payload.SEARCH_API_KEY || !payload.SEARCH_BRIDGE_TOKEN) {
+          if (!payload.OWNER_SETUP_TOKEN || !payload.SEARCH_BRIDGE_TOKEN) {
             throw new Error("Required Worker secret values are missing.");
           }
           fs.writeFileSync(path, JSON.stringify(payload), { mode: 0o600 });
@@ -143,7 +143,7 @@ jobs:
           trap 'rm -f "$tmp"' EXIT
           code="$(curl --silent --show-error --max-time 15 --output "$tmp" --write-out '%{http_code}' "$CENTRAL_AGENT_URL/health")"
           test "$code" = "200" || { echo "::error::Central Agent health failed with HTTP $code"; exit 1; }
-          node -e 'const fs=require("node:fs"); const x=JSON.parse(fs.readFileSync(process.argv[1],"utf8")); if(x.ok!==true||x.capabilities?.tavilySearchConfigured!==true||x.capabilities?.gatewaySearchConfigured!==true) throw Error("Central Tavily gateway is not configured"); console.log(JSON.stringify({ok:x.ok,tavilySearchConfigured:x.capabilities.tavilySearchConfigured,gatewaySearchConfigured:x.capabilities.gatewaySearchConfigured}));' "$tmp"
+          node -e 'const fs=require("node:fs"); const x=JSON.parse(fs.readFileSync(process.argv[1],"utf8")); if(x.ok!==true||x.capabilities?.directWebSearchFallback!==true||x.capabilities?.gatewaySearchConfigured!==true) throw Error("Central live-search fallback or gateway is not configured"); console.log(JSON.stringify({ok:x.ok,directWebSearchFallback:x.capabilities.directWebSearchFallback,tavilySearchConfigured:x.capabilities.tavilySearchConfigured,gatewaySearchConfigured:x.capabilities.gatewaySearchConfigured}));' "$tmp"
 
       - name: Initialize owner password when needed
         shell: bash
@@ -195,10 +195,10 @@ jobs:
           node - "$tmp/chat-response.json" <<'NODE'
           const fs=require("node:fs");
           const x=JSON.parse(fs.readFileSync(process.argv[2],"utf8"));
-          if(x.ok!==true||x.provider!=="tavily+workers-ai"||x.core?.webSearchExecuted!==true||
-             x.core?.searchProvider!=="tavily"||!Array.isArray(x.sources)||x.sources.length<1||
+          if(x.ok!==true||!["tavily+workers-ai","duckduckgo-html+workers-ai"].includes(x.provider)||x.core?.webSearchExecuted!==true||
+             !["tavily","duckduckgo-html"].includes(x.core?.searchProvider)||!Array.isArray(x.sources)||x.sources.length<1||
              !x.sources.every(s=>typeof s.url==="string"&&/^https?:\/\//.test(s.url))) {
-            throw new Error("Live chat did not return a valid Tavily-backed answer with source URLs.");
+            throw new Error("Live chat did not return a valid live-web answer with source URLs.");
           }
           console.log(JSON.stringify({authenticatedChat:"PASS",provider:x.provider,liveSearch:"PASS",sourceCount:x.sources.length,sourceUrlsValid:true}));
           NODE
@@ -219,7 +219,7 @@ jobs:
           console.log(JSON.stringify({passkeyChallenge:"PASS",originBinding:"PASS",rpId:x.rp.id}));
           NODE
 
-          echo "Authenticated Tavily chat and WebAuthn challenge checks PASS."
+          echo "Authenticated live-web chat and WebAuthn challenge checks PASS."
           curl --silent --show-error --max-time 20 -X POST -H "Authorization: Bearer $token" \
             -o /dev/null "$CENTRAL_AGENT_URL/auth/logout" || true
 
