@@ -17,7 +17,7 @@ test("PWA dashboard includes live D1 telemetry, activity feed, owner session and
   assert.ok(html.includes("/api/memory"));
   assert.ok(html.includes("restoreConversationMemory"));
   assert.ok(html.includes("memory_type:\"conversation_state\""));
-  assert.ok(html.includes('id="micBtn"'));
+  assert.ok(html.includes('id="handsFreeBtn"'));
   assert.ok(html.includes("connectSentinelEvents"));
   assert.ok(html.includes('base + "/api/events"'));
   assert.ok(html.includes("Authenticated Central Event Bus live"));
