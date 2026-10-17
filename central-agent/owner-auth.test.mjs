@@ -16,7 +16,7 @@ class FakeKV {
   }
 }
 class FakeDB {
-  constructor() { this.row = null; }
+  constructor() { this.row = null; this.passkeys = []; }
   prepare(sql) {
     const db = this;
     const statement = {
@@ -25,6 +25,12 @@ class FakeDB {
       async first() {
         if (sql.includes("SELECT salt")) return db.row ? { salt: db.row.salt, password_hash: db.row.password_hash } : null;
         return null;
+      },
+      async all() {
+        if (sql.includes("SELECT credential_id FROM owner_passkeys")) {
+          return { results: db.passkeys.map(item => ({ credential_id: item.credential_id })) };
+        }
+        return { results: [] };
       },
       async run() {
         if (sql.includes("INSERT INTO owner_credentials")) {
@@ -291,4 +297,22 @@ test("authenticated research query retries upstream rate limits before returning
   } finally {
     globalThis.fetch = originalFetch;
   }
+});
+
+
+test("password, passkey, and device-biometric option routes remain independently reachable", async () => {
+  const e = env();
+  e.DB.passkeys = [{ credential_id: "Y3JlZGVudGlhbA" }];
+  const passkeyResponse = await call(e, "/auth/passkey/login/options", {});
+  const biometricResponse = await call(e, "/auth/biometric/login/options", {});
+  assert.equal(passkeyResponse.status, 200);
+  assert.equal(biometricResponse.status, 200);
+  const passkeyOptions = await passkeyResponse.json();
+  const biometricOptions = await biometricResponse.json();
+  assert.equal(passkeyOptions.userVerification, "required");
+  assert.equal(biometricOptions.userVerification, "required");
+  assert.equal(passkeyOptions.allowCredentials[0].id, "Y3JlZGVudGlhbA");
+  assert.equal(biometricOptions.allowCredentials[0].id, "Y3JlZGVudGlhbA");
+  assert.ok([...e.SESSIONS.values.keys()].some(key => key.startsWith("webauthn:login:")));
+  assert.ok([...e.SESSIONS.values.keys()].some(key => key.startsWith("webauthn:biometric:")));
 });

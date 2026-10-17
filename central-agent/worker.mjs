@@ -677,7 +677,7 @@ export default {
 
     // WebAuthn authentication options/verification are public ceremonies protected by
     // one-time challenges, strict origin/RP checks, UV flags, and signature verification.
-    if (url.pathname === "/auth/passkey/login/options" && request.method === "POST") {
+    if ((url.pathname === "/auth/passkey/login/options" || url.pathname === "/auth/biometric/login/options") && request.method === "POST") {
       if (!env.DB || !env.SESSIONS) return json({ error: "Passkey authentication storage is not configured." }, 503, cors);
       try {
         await env.DB.prepare("CREATE TABLE IF NOT EXISTS owner_passkeys (credential_id TEXT PRIMARY KEY, public_key_json TEXT NOT NULL, sign_count INTEGER NOT NULL DEFAULT 0, created_at TEXT NOT NULL)").run();
@@ -685,7 +685,8 @@ export default {
         const credentials = rows?.results || [];
         if (!credentials.length) return json({ error: "No owner passkey is registered yet. Sign in with the owner password and register one first." }, 409, cors);
         const challenge = randomChallenge();
-        await env.SESSIONS.put("webauthn:login:" + challenge, JSON.stringify({ createdAt: Date.now() }), { expirationTtl: 300 });
+        const challengePrefix = url.pathname.includes("/auth/biometric/") ? "webauthn:biometric:" : "webauthn:login:";
+        await env.SESSIONS.put(challengePrefix + challenge, JSON.stringify({ createdAt: Date.now() }), { expirationTtl: 300 });
         const ceremonyOrigin = request.headers.get("origin") || new URL(request.url).origin;
         const rpId = new URL(ceremonyOrigin).hostname;
         return json({ challenge, rpId, timeout: 300000, userVerification: "required",
@@ -694,14 +695,15 @@ export default {
         return json({ error: "Unable to prepare passkey sign-in." }, 503, cors);
       }
     }
-    if (url.pathname === "/auth/passkey/login/verify" && request.method === "POST") {
+    if ((url.pathname === "/auth/passkey/login/verify" || url.pathname === "/auth/biometric/login/verify") && request.method === "POST") {
       if (!env.DB || !env.SESSIONS) return json({ error: "Passkey authentication storage is not configured." }, 503, cors);
       let body;
       try { body = await request.json(); } catch { return json({ error: "Expected JSON body." }, 400, cors); }
       const credentialId = typeof body?.rawId === "string" ? body.rawId : (typeof body?.id === "string" ? body.id : "");
       const challenge = typeof body?.challenge === "string" ? body.challenge : "";
       if (!credentialId || !challenge) return json({ error: "Passkey assertion is incomplete." }, 400, cors);
-      const challengeKey = "webauthn:login:" + challenge;
+      const challengePrefix = url.pathname.includes("/auth/biometric/") ? "webauthn:biometric:" : "webauthn:login:";
+      const challengeKey = challengePrefix + challenge;
       const challengeRecord = await env.SESSIONS.get(challengeKey);
       if (!challengeRecord) return json({ error: "Passkey challenge expired. Try again." }, 401, cors);
       await env.SESSIONS.delete(challengeKey);
