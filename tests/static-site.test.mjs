@@ -204,3 +204,26 @@ test("owner gate prevents health checks and SSE from starting before session ver
   assert.match(jarvisHtml, /async function resumeOwnerSession\(\)[\s\S]*?session\.authenticated !== true[\s\S]*?return;[\s\S]*?await checkHealth\(\);/);
   assert.match(jarvisHtml, /Owner session required\. Backend health, telemetry, and event streams remain disabled until verified\./);
 });
+
+
+test("first-screen one-click install uses the browser-native prompt when eligible", () => {
+  assert.match(jarvisHtml, /id="installBanner"/, "install banner must exist on the initial screen");
+  assert.match(jarvisHtml, /id="installAppBtn"[^>]*>INSTALL SUPER CHATTY APP<\/button>/, "prominent install action must be present");
+  assert.match(jarvisHtml, /addEventListener\("beforeinstallprompt"/, "browser install eligibility must be captured");
+  assert.match(jarvisHtml, /event\.preventDefault\(\)/, "default install UI must be deferred to the custom action");
+  assert.match(jarvisHtml, /installEvent\.prompt\(\)/, "tap must invoke the captured native prompt");
+  assert.match(jarvisHtml, /addEventListener\("appinstalled"/, "successful install must be handled");
+  assert.match(jarvisHtml, /Chrome has not offered the native install prompt yet/i, "unavailable prompt state must be honest");
+  assert.match(jarvisHtml, /application-version" content="NEXUS-2026\.10\.17-PWA5"/, "app version must identify this shell release");
+  assert.match(serviceWorker, /CACHE_NAME\s*=\s*"super-chatty-jarvis-shell-v5"/, "shell cache must be invalidated");
+});
+
+test("PWA install icons and standalone asset paths are consistent", () => {
+  assert.equal(manifest.display, "standalone");
+  assert.deepEqual(manifest.display_override, ["standalone"]);
+  assert.ok(manifest.icons.some((icon) => icon.src === "./icon-192.png" && icon.sizes === "192x192" && icon.type === "image/png"));
+  assert.ok(manifest.icons.some((icon) => icon.src === "./icon-512.png" && icon.sizes === "512x512" && icon.type === "image/png"));
+  assert.match(jarvisHtml, /rel="apple-touch-icon" href="\.\/icon-192\.png"/);
+  assert.match(serviceWorker, /"\.\/icon-192\.png"/);
+  assert.match(serviceWorker, /"\.\/icon-512\.png"/);
+});
