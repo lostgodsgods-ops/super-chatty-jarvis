@@ -1087,7 +1087,15 @@ body{background:radial-gradient(ellipse at 50% 38%,#50330f45 0,transparent 35%),
       const overlap = heard.filter(word => words.has(word)).length / heard.length;
       return overlap >= 0.8;
     }
-    function speakText(text, onEnd) {
+    function adaptSpeechTone(utterance, text, language) {
+      const value = String(text || "").trim();
+      const sentenceCount = (value.match(/[.!?।]+/g) || []).length;
+      utterance.lang = ["hi-IN", "en-IN", "en-US"].includes(language) ? language : "en-IN";
+      // Lightweight prosody adaptation only; this does not clone or imitate a real person's voice.
+      utterance.rate = value.length > 900 ? 0.92 : sentenceCount > 4 ? 0.96 : /[!?।]$/.test(value) ? 1.02 : 1.0;
+      utterance.pitch = /[?？]$/.test(value) ? 1.04 : /[!！]{1,}$/.test(value) ? 1.02 : 1.0;
+    }
+    function speakText(text, onEnd, language = speechLanguage()) {
       if (!("speechSynthesis" in window) || typeof SpeechSynthesisUtterance === "undefined") {
         if (typeof onEnd === "function") onEnd();
         return false;
@@ -1098,7 +1106,7 @@ body{background:radial-gradient(ellipse at 50% 38%,#50330f45 0,transparent 35%),
         window.speechSynthesis.cancel();
         const utterance = new SpeechSynthesisUtterance(String(text).slice(0, 3000));
         state.currentSpeechText = utterance.text;
-        utterance.lang = speechLanguage(); utterance.rate = 1.0; utterance.pitch = 1;
+        adaptSpeechTone(utterance, utterance.text, language);
         utterance.onend = utterance.onerror = () => {
           if (generation !== state.speechGeneration) return;
           state.speaking = false; state.currentSpeechText = "";
@@ -1199,6 +1207,7 @@ body{background:radial-gradient(ellipse at 50% 38%,#50330f45 0,transparent 35%),
     }
     async function submitCommand(source = "text") {
       const command = els.commandInput.value.trim();
+      const turnLanguage = speechLanguage();
       if (!command) { toast("Say or type a message first."); if (source === "text") els.commandInput.focus(); return; }
       if (!state.ownerToken) {
         toast("Unlock the Owner session before sending a message.");
@@ -1210,7 +1219,7 @@ body{background:radial-gradient(ellipse at 50% 38%,#50330f45 0,transparent 35%),
       state.chatBusy = true; state.chatController = controller; els.sendBtn.disabled = true; setCoreState("Chatty is thinking · Loss Gods");
       log("Loss Gods message received.", "info", source === "voice" ? "VOICE" : "CHAT");
       try {
-        const payload = await ownerFetch("/api/chat", { method: "POST", body: JSON.stringify({ message: command.slice(0, 8000), language: speechLanguage() }), signal: controller.signal });
+        const payload = await ownerFetch("/api/chat", { method: "POST", body: JSON.stringify({ message: command.slice(0, 8000), language: turnLanguage }), signal: controller.signal });
         if (turnId !== state.turnId || !state.ownerToken) return;
         if (typeof payload.reply !== "string" || !payload.reply.trim()) throw new Error("Chat service returned an empty reply.");
         const reply = payload.reply.trim();
@@ -1230,7 +1239,7 @@ body{background:radial-gradient(ellipse at 50% 38%,#50330f45 0,transparent 35%),
         if (turnId !== state.turnId) return;
         state.chatBusy = false;
         if (state.handsFree || source === "voice") {
-          const spoken = speakText(reply, () => { if (state.handsFree && state.ownerToken) startListening(); });
+          const spoken = speakText(reply, () => { if (state.handsFree && state.ownerToken) startListening(); }, turnLanguage);
           if (!spoken && state.handsFree && state.ownerToken) startListening();
         } else toast("Chatty replied. Enable hands-free to hear responses aloud.");
       } catch (error) {
