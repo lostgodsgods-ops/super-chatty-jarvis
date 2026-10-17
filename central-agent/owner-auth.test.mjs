@@ -9,16 +9,16 @@ import worker, { parseSetupToken, PASSWORD_ITERATIONS } from "./worker.mjs";
 import { base64url, fromBase64url } from "./webauthn.mjs";
 
 class FakeKV {
-  constructor() { this.values = new Map(); this.failSessionWritesOnly = false; }
+  constructor() { this.values = new Map(); this.failSessionWritesOnly = false; this.failWebAuthnWrites = false; }
   async get(key) { return this.values.get(key) ?? null; }
-  async put(key, value) { if (this.failSessionWritesOnly && key.startsWith("session:")) throw new Error("KV daily write quota exhausted"); this.values.set(key, value); }
+  async put(key, value) { if ((this.failSessionWritesOnly && key.startsWith("session:")) || (this.failWebAuthnWrites && key.startsWith("webauthn:"))) throw new Error("KV daily write quota exhausted"); this.values.set(key, value); }
   async delete(key) { this.values.delete(key); }
   async list({ prefix = "" } = {}) {
     return { keys: [...this.values.keys()].filter(name => name.startsWith(prefix)).map(name => ({ name })) };
   }
 }
 class FakeDB {
-  constructor() { this.row = null; this.passkeys = []; this.sessions = new Map(); }
+  constructor() { this.row = null; this.passkeys = []; this.sessions = new Map(); this.webauthnChallenges = new Map(); }
   prepare(sql) {
     const db = this;
     const statement = {
@@ -27,6 +27,7 @@ class FakeDB {
       async first() {
         if (sql.includes("SELECT salt")) return db.row ? { salt: db.row.salt, password_hash: db.row.password_hash } : null;
         if (sql.includes("SELECT status, expires_at FROM owner_sessions")) return db.sessions.get(this.params[0]) || null;
+        if (sql.includes("SELECT challenge FROM owner_webauthn_challenges")) return [...db.webauthnChallenges.values()].find(row => row.session_hash === this.params[0] && row.purpose === this.params[1] && row.expires_at > this.params[2]) || null;
         return null;
       },
       async all() {
@@ -47,6 +48,8 @@ class FakeDB {
           db.row.password_hash = this.params[1];
           return { meta: { changes: 1 } };
         }
+        if (sql.includes("INSERT INTO owner_webauthn_challenges")) { db.webauthnChallenges.set(this.params[0], { challenge: this.params[0], purpose: this.params[1], session_hash: this.params[2], expires_at: this.params[3] }); return { meta: { changes: 1 } }; }
+        if (sql.includes("DELETE FROM owner_webauthn_challenges")) { const found = [...db.webauthnChallenges.values()].find(row => row.challenge === this.params[0] && row.purpose === this.params[1] && row.expires_at > this.params[2] && (this.params[3] == null || row.session_hash === this.params[3])); if (found) db.webauthnChallenges.delete(found.challenge); return { meta: { changes: found ? 1 : 0 }, results: found ? [found] : [] }; }
         if (sql.includes("INSERT INTO owner_sessions")) {
           db.sessions.set(this.params[0], { token_hash: this.params[0], expires_at: this.params[1], status: sql.includes("'revoked'") ? "revoked" : "active" });
           return { meta: { changes: 1 } };
@@ -435,4 +438,35 @@ test("owner chat endpoint validates empty and oversized messages and fails close
   assert.equal((await call(e, "/api/chat", { message: "x".repeat(8001) }, token)).status, 400);
   const unavailable = await call(e, "/api/chat", { message: "Hello" }, token);
   assert.equal(unavailable.status, 503);
+});
+
+
+test("passkey login challenge creation survives exhausted KV writes by using D1", async () => {
+  const e = env();
+  e.DB.passkeys = [{ credential_id: "Y3JlZGVudGlhbA" }];
+  e.SESSIONS.failWebAuthnWrites = true;
+  const response = await call(e, "/auth/passkey/login/options", {});
+  assert.equal(response.status, 200);
+  const options = await response.json();
+  assert.ok(options.challenge);
+  const row = e.DB.webauthnChallenges.get(options.challenge);
+  assert.equal(row?.purpose, "login");
+  assert.ok(row?.expires_at > Date.now());
+  assert.equal([...e.SESSIONS.values.keys()].some(key => key.startsWith("webauthn:login:")), false);
+});
+
+test("passkey registration uses the immutable Loss Gods owner label and a discoverable credential", async () => {
+  const e = env();
+  const token = await ownerToken(e);
+  e.SESSIONS.failWebAuthnWrites = true;
+  const response = await call(e, "/auth/passkey/register/options", {}, token);
+  assert.equal(response.status, 200);
+  const options = await response.json();
+  assert.equal(options.user.name, "loss-gods");
+  assert.equal(options.user.displayName, "Loss Gods");
+  assert.equal(options.authenticatorSelection.residentKey, "required");
+  assert.equal(options.authenticatorSelection.userVerification, "required");
+  const row = [...e.DB.webauthnChallenges.values()].find(item => item.purpose === "register");
+  assert.ok(row?.challenge === options.challenge);
+  assert.ok(row?.session_hash);
 });
