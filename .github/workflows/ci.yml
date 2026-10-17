@@ -1,0 +1,30 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - "**"
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: Node tests and syntax checks
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - name: Run test suite
+        run: npm test
+      - name: Check Central Agent module syntax
+        run: |
+          node --check central-agent/worker.mjs
+          node --check central-agent/webauthn.mjs
+          node --check central-agent/edge-guard.mjs
