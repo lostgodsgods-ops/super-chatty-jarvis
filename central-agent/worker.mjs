@@ -846,9 +846,12 @@ export default {
         const challenge = randomChallenge();
         const challengePrefix = url.pathname.includes("/auth/biometric/") ? "webauthn:biometric:" : "webauthn:login:";
         const purpose = challengePrefix.includes("biometric") ? "biometric" : "login";
-        await storeWebAuthnChallenge(env, challenge, purpose, null);
         const ceremonyOrigin = request.headers.get("origin") || new URL(request.url).origin;
-        const rpId = new URL(ceremonyOrigin).hostname;
+        let parsedOrigin;
+        try { parsedOrigin = new URL(ceremonyOrigin); } catch { return json({ error: "Invalid WebAuthn origin." }, 400, cors); }
+        if (!["https:", "http:"].includes(parsedOrigin.protocol) || (parsedOrigin.protocol !== "https:" && !["localhost", "127.0.0.1"].includes(parsedOrigin.hostname))) return json({ error: "WebAuthn requires a secure origin." }, 400, cors);
+        await storeWebAuthnChallenge(env, challenge, purpose, parsedOrigin.origin);
+        const rpId = parsedOrigin.hostname;
         return json({ challenge, rpId, timeout: 300000, userVerification: "required",
           allowCredentials: [] }, 200, cors);
       } catch {
@@ -863,12 +866,15 @@ export default {
       const challenge = typeof body?.challenge === "string" ? body.challenge : "";
       if (!credentialId || !challenge) return json({ error: "Passkey assertion is incomplete." }, 400, cors);
       const purpose = url.pathname.includes("/auth/biometric/") ? "biometric" : "login";
-      if (!(await consumeWebAuthnChallenge(env, challenge, purpose, null))) return json({ error: "Passkey challenge expired or already used. Try again." }, 401, cors);
+      const origin = request.headers.get("origin") || new URL(request.url).origin;
+      let parsedOrigin;
+      try { parsedOrigin = new URL(origin); } catch { return json({ error: "Invalid WebAuthn origin." }, 400, cors); }
+      if (parsedOrigin.origin !== origin || !["https:", "http:"].includes(parsedOrigin.protocol) || (parsedOrigin.protocol !== "https:" && !["localhost", "127.0.0.1"].includes(parsedOrigin.hostname))) return json({ error: "Invalid WebAuthn origin." }, 400, cors);
+      if (!(await consumeWebAuthnChallenge(env, challenge, purpose, parsedOrigin.origin))) return json({ error: "Passkey challenge expired, origin mismatch, or already used. Try again." }, 401, cors);
       try {
         const stored = await env.DB.prepare("SELECT credential_id, public_key_json, sign_count FROM owner_passkeys WHERE credential_id = ?").bind(credentialId).first();
         if (!stored) return json({ error: "Unknown owner passkey." }, 401, cors);
-        const origin = request.headers.get("origin") || new URL(request.url).origin;
-        const result = await verifyAssertion(body, challenge, origin, new URL(origin).hostname, stored);
+        const result = await verifyAssertion(body, challenge, parsedOrigin.origin, parsedOrigin.hostname, stored);
         await env.DB.prepare("UPDATE owner_passkeys SET sign_count = ? WHERE credential_id = ?").bind(result.signCount, result.credentialId).run();
         const token = base64url(crypto.getRandomValues(new Uint8Array(32)));
         await storeOwnerSession(env, token);
