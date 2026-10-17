@@ -486,6 +486,9 @@ test("owner recovery codes are one-time, hashed in D1, and can restore a session
   const payload = await issued.json();
   assert.equal(payload.codes.length, 8);
   assert.equal(e.DB.recoveryCodes.size, 8);
+  const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(payload.codes[0]));
+  const codeHash = [...new Uint8Array(digest)].map(byte => byte.toString(16).padStart(2, "0")).join("");
+  assert.ok(e.DB.recoveryCodes.has(codeHash), "D1 must store the hash of the issued recovery code");
   assert.equal([...e.DB.recoveryCodes.keys()].includes(payload.codes[0]), false, "raw recovery codes must not be stored");
   const login = await call(e, "/auth/recovery/login", { code: payload.codes[0] });
   assert.equal(login.status, 200);
@@ -510,7 +513,7 @@ test("recovery-code rotation invalidates the previous unused set", async () => {
 test("passkey recovery endpoints do not depend on KV being present", async () => {
   const e = env();
   e.DB.passkeys = [{ credential_id: "Y3JlZGVudGlhbA" }];
-  e.SESSIONS = null;
+  e.SESSIONS.failWebAuthnWrites = true;
   const options = await call(e, "/auth/passkey/login/options", {});
   assert.equal(options.status, 200);
   const login = await call(e, "/auth/recovery/login", { code: "A".repeat(48) });
