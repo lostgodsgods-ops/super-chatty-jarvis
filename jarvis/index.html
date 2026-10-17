@@ -386,7 +386,7 @@ body{background:radial-gradient(ellipse at 50% 38%,#50330f45 0,transparent 35%),
       line.textContent = "[Loss Gods · " + source + "] " + String(message).slice(0,500);
       row.append(stamp,line); els.terminal.append(row); state.eventsCount++;
       while (els.terminal.children.length > 160) els.terminal.firstElementChild.remove();
-      els.logCount.textContent = els.eventsCount + " events";
+      els.logCount.textContent = state.eventsCount + " events";
       els.terminal.scrollTop = els.terminal.scrollHeight;
     }
     function status(el, text, kind="warn") {
