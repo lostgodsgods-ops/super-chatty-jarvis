@@ -133,23 +133,23 @@ test("NEXUS PWA preserves owner-only telemetry and adds safe local visual intake
 
 
 test("owner session locks on reload/background and never auto-restores from a cookie", () => {
-  assert.match(centralWorker, /function readSessionCookie\\(request\\)/);
-  assert.match(centralWorker, /__Host-sc_session/);
-  assert.match(centralWorker, /access-control-allow-credentials": "true"/);
-  assert.match(centralWorker, /Secure; HttpOnly; SameSite=Strict/);
-  assert.match(centralWorker, /set-cookie": sessionCookie\\(token\\)/);
-  assert.match(centralWorker, /set-cookie": sessionCookie\\("", 0\\)/);
-  assert.match(jarvisHtml, /async function resumeOwnerSession\\(\\)/);
-  assert.match(jarvisHtml, /credentials:\\s*"include"/);
+  assert.ok(centralWorker.includes("function readSessionCookie(request)"));
+  assert.ok(centralWorker.includes("__Host-sc_session"));
+  assert.ok(centralWorker.includes('"access-control-allow-credentials": "true"'));
+  assert.ok(centralWorker.includes("Secure; HttpOnly; SameSite=Strict"));
+  assert.ok(centralWorker.includes('"set-cookie": sessionCookie(token)'));
+  assert.ok(centralWorker.includes('"set-cookie": sessionCookie("", 0)'));
+  assert.ok(jarvisHtml.includes("async function resumeOwnerSession()"));
+  assert.ok(jarvisHtml.includes('credentials: "include"'));
   const resumeStart = jarvisHtml.indexOf("async function resumeOwnerSession()");
   const resumeEnd = jarvisHtml.indexOf("function decodeB64url", resumeStart);
   const resumeBody = jarvisHtml.slice(resumeStart, resumeEnd);
-  assert.match(resumeBody, /method:\\s*"POST"/, "startup must revoke any cookie-backed session");
-  assert.doesNotMatch(resumeBody, /state\\.ownerToken\\s*=\\s*"cookie-session"/, "reload must not restore a cookie session");
-  assert.match(jarvisHtml, /document\\.addEventListener\\("visibilitychange"/);
-  assert.match(jarvisHtml, /lockOwnerOnBackground/);
-  assert.match(jarvisHtml, /resumeOwnerSession\\(\\);/);
-  assert.match(jarvisHtml, /token === "cookie-session" \\? \\{\\} : \\{ authorization:/);
+  assert.ok(resumeBody.includes('method: "POST"'), "startup must revoke any cookie-backed session");
+  assert.equal(resumeBody.includes('state.ownerToken = "cookie-session"'), false, "reload must not restore a cookie session");
+  assert.ok(jarvisHtml.includes('document.addEventListener("visibilitychange"'));
+  assert.ok(jarvisHtml.includes("lockOwnerOnBackground"));
+  assert.ok(jarvisHtml.includes("resumeOwnerSession();"));
+  assert.ok(jarvisHtml.includes('token === "cookie-session" ? {} : { authorization:'));
   assert.doesNotMatch(jarvisHtml, /localStorage\\.setItem\\([^\\n]*(?:token|session)/i);
   assert.doesNotMatch(jarvisHtml, /sessionStorage\\.setItem\\([^\\n]*(?:token|session)/i);
 });
