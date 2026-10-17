@@ -19,6 +19,7 @@ import { runSentinelCycle, getSentinelStatus } from "./sentinel.mjs";
 import { publishEvent, listModules, eventStreamResponse } from "./event-bus.mjs";
 import { runIntelCycle } from "./intel-cron.mjs";
 import { ingestCapabilitySpec, CapabilityIngestionError } from "./architecture/capability-ingestion.mjs";
+import { executeToolAction, listToolCapabilities } from "./architecture/tool-gateway.mjs";
 
 const VERSION = "1.4.0";
 const OWNER_IDENTITY = Object.freeze({ key: "loss-gods", displayName: "Loss Gods" });
@@ -1039,6 +1040,26 @@ export default {
     if (!gatewayChatRoute && !memoryBridgeRoute && !logoutRoute && !recoveryLoginRoute && !(await authorized(request, env))) {
       await publishEvent(env, { type: "security.auth.denied", source: "owner-auth", payload: { path: url.pathname, method: request.method } });
       return json({ error: "Unauthorized. Sign in with your Owner password." }, 401, cors);
+    }
+
+    if (url.pathname === "/api/tools/capabilities" && request.method === "GET") {
+      return json({ ok: true, capabilities: listToolCapabilities(env) }, 200, cors);
+    }
+
+    if (url.pathname === "/api/tools" && request.method === "POST") {
+      let body;
+      try { body = await request.json(); } catch { return json({ error: "Expected JSON body." }, 400, cors); }
+      if (!body || typeof body !== "object" || Array.isArray(body)) return json({ error: "Expected a JSON object." }, 400, cors);
+      const action = typeof body.action === "string" ? body.action.slice(0, 80) : "";
+      await publishEvent(env, { type: "tool.requested", source: "api-tool-gateway", payload: { action } });
+      try {
+        const outcome = await executeToolAction(body, env);
+        await publishEvent(env, { type: outcome.status >= 200 && outcome.status < 300 ? "tool.completed" : "tool.blocked", source: "api-tool-gateway", payload: { action, status: outcome.status, error: outcome.body?.error || null } });
+        return json(outcome.body, outcome.status, cors);
+      } catch {
+        await publishEvent(env, { type: "tool.failed", source: "api-tool-gateway", payload: { action, code: "TOOL_EXECUTION_FAILED" } });
+        return json({ ok: false, error: "TOOL_EXECUTION_FAILED" }, 502, cors);
+      }
     }
 
     if (url.pathname === "/api/capabilities/ingest" && request.method === "POST") {
