@@ -8,6 +8,7 @@ const jarvisHtml = await readFile(new URL("../jarvis/index.html", import.meta.ur
 const serviceWorker = await readFile(new URL("../jarvis/sw.js", import.meta.url), "utf8");
 const manifest = JSON.parse(await readFile(new URL("../jarvis/manifest.webmanifest", import.meta.url), "utf8"));
 const centralWorker = await readFile(new URL("../central-agent/worker.mjs", import.meta.url), "utf8");
+const capabilityIngestionSource = await readFile(new URL("../central-agent/architecture/capability-ingestion.mjs", import.meta.url), "utf8");
 const readme = await readFile(new URL("../README_HI.txt", import.meta.url), "utf8");
 const agentBrief = await readFile(new URL("../AI_AGENT_PROMPT.md", import.meta.url), "utf8");
 const deployWorkflow = await readFile(
@@ -16,6 +17,10 @@ const deployWorkflow = await readFile(
 );
 const wranglerConfig = await readFile(
   new URL("../wrangler.jsonc", import.meta.url),
+  "utf8",
+);
+const centralWranglerConfig = await readFile(
+  new URL("../central-agent/wrangler.jsonc", import.meta.url),
   "utf8",
 );
 
@@ -338,4 +343,33 @@ test("owner chat performs Tavily live search for current questions and exposes c
   assert.match(apiChat, /D1 persists configured owner credentials/);
   assert.match(apiChat, /Bounded multi-agent research and task loops/);
   assert.match(apiChat, /webSearchExecuted: needsLiveSearch/);
+});
+
+
+test("voice barge-in has an RMS onset path, separate native TTS cancellation, and stale-turn protection", () => {
+  assert.match(jarvisHtml, /function startBargeInMonitor\(/);
+  assert.match(jarvisHtml, /getByteTimeDomainData\(/);
+  assert.match(jarvisHtml, /Math\.sqrt\(sum\s*\/\s*data\.length\)/);
+  assert.match(jarvisHtml, /window\.speechSynthesis\.cancel\(\)/);
+  assert.match(jarvisHtml, /state\.turnId/);
+  assert.match(jarvisHtml, /turnId !== state\.turnId/);
+  assert.match(jarvisHtml, /state\.chatController\.abort\(\)/);
+  assert.ok(jarvisHtml.includes("function adaptSpeechTone("));
+  assert.ok(jarvisHtml.includes("}, turnLanguage);"), "spoken reply should preserve the turn language");
+  assert.ok(jarvisHtml.includes("const turnLanguage = speechLanguage();"));
+});
+
+test("capability ingestion is wired to an authenticated route and remains metadata-only", () => {
+  assert.match(centralWorker, /url\.pathname === "\/api\/capabilities\/ingest"/);
+  assert.match(centralWorker, /ingestCapabilitySpec\(specUrl, env\)/);
+  assert.match(centralWorker, /executionEnabled:\s*false/);
+  assert.match(capabilityIngestionSource, /CAPABILITY_SPEC_HOSTS/);
+  assert.match(capabilityIngestionSource, /redirect:\s*"error"/);
+});
+
+test("scheduled intel is proposal-only and never self-deploys or self-grants", () => {
+  assert.match(centralWorker, /runIntelCycle\(env\)/);
+  assert.match(centralWorker, /upgradeExecution:\s*false/);
+  assert.match(centralWorker, /INTEL_CRON_ENABLED/);
+  assert.match(centralWranglerConfig, /"GITHUB_REPOSITORY":\s*"lostgodsgods-ops\/super-chatty-jarvis"/);
 });

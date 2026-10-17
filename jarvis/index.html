@@ -380,7 +380,7 @@ body{background:radial-gradient(ellipse at 50% 38%,#50330f45 0,transparent 35%),
       refreshTelemetry:$("refreshTelemetry"), factSearchForm:$("factSearchForm"), factQuery:$("factQuery"),
       researchSearchBtn:$("researchSearchBtn"), researchSearchStatus:$("researchSearchStatus"), sourceResults:$("sourceResults")
     };
-    const state = { events:null, recognition:null, listening:false, handsFree:false, speaking:false, chatBusy:false, chatController:null, audioContext:null, analyser:null, mediaStream:null, raf:0, eventsCount:0, connected:false, started:Date.now(), healthTimer:0, toastTimer:0, ownerToken:"", telemetryTimer:0, researchBusy:false, memoryHistory:[] };
+    const state = { events:null, recognition:null, listening:false, handsFree:false, speaking:false, chatBusy:false, chatController:null, audioContext:null, analyser:null, mediaStream:null, raf:0, eventsCount:0, connected:false, started:Date.now(), healthTimer:0, toastTimer:0, ownerToken:"", telemetryTimer:0, researchBusy:false, memoryHistory:[], turnId:0, bargeInStream:null, bargeInContext:null, bargeInAnalyser:null, bargeInRaf:0 };
     const time = () => new Date().toLocaleTimeString([], {hour12:false});
     function log(message, type="info", source="UI") {
       const row = document.createElement("div"); row.className = "log";
@@ -1018,10 +1018,63 @@ body{background:radial-gradient(ellipse at 50% 38%,#50330f45 0,transparent 35%),
     function speechLanguage() {
       return /[\\u0900-\\u097F]/.test(els.commandInput.value || "") ? "hi-IN" : "en-IN";
     }
+    async function startBargeInMonitor() {
+      if (state.bargeInStream || !navigator.mediaDevices?.getUserMedia) return;
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({
+          audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true }, video: false
+        });
+        if (!state.handsFree || !state.ownerToken) { stream.getTracks().forEach(track => track.stop()); return; }
+        const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+        if (!AudioContextClass) { stream.getTracks().forEach(track => track.stop()); return; }
+        const context = new AudioContextClass();
+        const analyser = context.createAnalyser(); analyser.fftSize = 512; analyser.smoothingTimeConstant = 0;
+        context.createMediaStreamSource(stream).connect(analyser);
+        const data = new Uint8Array(analyser.fftSize);
+        state.bargeInStream = stream; state.bargeInContext = context; state.bargeInAnalyser = analyser;
+        let hotFrames = 0, noiseFloor = 0.012;
+        const sample = () => {
+          if (!state.bargeInAnalyser || !state.handsFree || !state.ownerToken) return;
+          analyser.getByteTimeDomainData(data);
+          let sum = 0;
+          for (let i = 0; i < data.length; i++) { const value = (data[i] - 128) / 128; sum += value * value; }
+          const rms = Math.sqrt(sum / data.length);
+          const threshold = Math.max(0.045, noiseFloor * 3.2);
+          if (state.speaking && rms >= threshold) hotFrames++;
+          else {
+            hotFrames = 0;
+            noiseFloor = Math.min(0.04, noiseFloor * 0.96 + rms * 0.04);
+          }
+          // At 60 Hz, four consecutive frames is about 67 ms. Recognition supplies the words;
+          // RMS only cancels active TTS and never submits a command by itself.
+          if (state.speaking && hotFrames >= 4) {
+            hotFrames = 0;
+            interruptSpeechOutput();
+          }
+          state.bargeInRaf = requestAnimationFrame(sample);
+        };
+        if (context.state === "suspended") await context.resume().catch(() => {});
+        state.bargeInRaf = requestAnimationFrame(sample);
+      } catch (error) {
+        log("RMS barge-in monitor unavailable; transcript-based interruption remains active: " + (error?.message || String(error)), "warn", "VOICE");
+      }
+    }
+    async function stopBargeInMonitor() {
+      if (state.bargeInRaf) cancelAnimationFrame(state.bargeInRaf);
+      state.bargeInRaf = 0; state.bargeInAnalyser = null;
+      if (state.bargeInStream) state.bargeInStream.getTracks().forEach(track => track.stop());
+      state.bargeInStream = null;
+      if (state.bargeInContext) { try { await state.bargeInContext.close(); } catch {} }
+      state.bargeInContext = null;
+    }
     function interruptSpeechOutput() {
       state.speechGeneration = (state.speechGeneration || 0) + 1;
+      state.turnId++;
+      if (state.chatController) { state.chatController.abort(); state.chatController = null; }
+      state.chatBusy = false; els.sendBtn.disabled = false;
       if ("speechSynthesis" in window) window.speechSynthesis.cancel();
       state.speaking = false; state.currentSpeechText = "";
+      log("Speech output interrupted by owner speech.", "info", "VOICE");
       if (state.handsFree && state.ownerToken && !state.chatBusy) setTimeout(() => startListening(), 80);
     }
     function transcriptLooksLikeTtsEcho(transcript) {
@@ -1034,7 +1087,15 @@ body{background:radial-gradient(ellipse at 50% 38%,#50330f45 0,transparent 35%),
       const overlap = heard.filter(word => words.has(word)).length / heard.length;
       return overlap >= 0.8;
     }
-    function speakText(text, onEnd) {
+    function adaptSpeechTone(utterance, text, language) {
+      const value = String(text || "").trim();
+      const sentenceCount = (value.match(/[.!?।]+/g) || []).length;
+      utterance.lang = ["hi-IN", "en-IN", "en-US"].includes(language) ? language : "en-IN";
+      // Lightweight prosody adaptation only; this does not clone or imitate a real person's voice.
+      utterance.rate = value.length > 900 ? 0.92 : sentenceCount > 4 ? 0.96 : /[!?।]$/.test(value) ? 1.02 : 1.0;
+      utterance.pitch = /[?？]$/.test(value) ? 1.04 : /[!！]{1,}$/.test(value) ? 1.02 : 1.0;
+    }
+    function speakText(text, onEnd, language = speechLanguage()) {
       if (!("speechSynthesis" in window) || typeof SpeechSynthesisUtterance === "undefined") {
         if (typeof onEnd === "function") onEnd();
         return false;
@@ -1045,7 +1106,7 @@ body{background:radial-gradient(ellipse at 50% 38%,#50330f45 0,transparent 35%),
         window.speechSynthesis.cancel();
         const utterance = new SpeechSynthesisUtterance(String(text).slice(0, 3000));
         state.currentSpeechText = utterance.text;
-        utterance.lang = speechLanguage(); utterance.rate = 1.0; utterance.pitch = 1;
+        adaptSpeechTone(utterance, utterance.text, language);
         utterance.onend = utterance.onerror = () => {
           if (generation !== state.speechGeneration) return;
           state.speaking = false; state.currentSpeechText = "";
@@ -1066,6 +1127,7 @@ body{background:radial-gradient(ellipse at 50% 38%,#50330f45 0,transparent 35%),
       state.handsFree = false; state.listening = false;
       try { if (state.recognition) state.recognition.abort(); } catch {}
       state.recognition = null;
+      stopBargeInMonitor();
       if ("speechSynthesis" in window) window.speechSynthesis.cancel();
       state.speaking = false;
       els.handsFreeBtn.setAttribute("aria-pressed", "false");
@@ -1096,6 +1158,7 @@ body{background:radial-gradient(ellipse at 50% 38%,#50330f45 0,transparent 35%),
       els.handsFreeBtn.setAttribute("aria-pressed", "true"); els.handsFreeBtn.textContent = "HANDS-FREE ON";
       els.privacyNote.textContent = "Hands-free listening is active while Owner is unlocked. Browser speech recognition may process audio.";
       log("Loss Gods enabled hands-free listening.", "good", "VOICE");
+      startBargeInMonitor();
       await startListening();
     }
     async function startListening() {
@@ -1144,17 +1207,20 @@ body{background:radial-gradient(ellipse at 50% 38%,#50330f45 0,transparent 35%),
     }
     async function submitCommand(source = "text") {
       const command = els.commandInput.value.trim();
+      const turnLanguage = speechLanguage();
       if (!command) { toast("Say or type a message first."); if (source === "text") els.commandInput.focus(); return; }
       if (!state.ownerToken) {
         toast("Unlock the Owner session before sending a message.");
         els.privacyNote.textContent = "Message remains local. No microphone or remote chat is available while locked."; return;
       }
       if (state.chatBusy) return;
-      state.chatBusy = true; state.chatController = new AbortController(); els.sendBtn.disabled = true; setCoreState("Chatty is thinking · Loss Gods");
+      const turnId = ++state.turnId;
+      const controller = new AbortController();
+      state.chatBusy = true; state.chatController = controller; els.sendBtn.disabled = true; setCoreState("Chatty is thinking · Loss Gods");
       log("Loss Gods message received.", "info", source === "voice" ? "VOICE" : "CHAT");
       try {
-        const payload = await ownerFetch("/api/chat", { method: "POST", body: JSON.stringify({ message: command.slice(0, 8000), language: speechLanguage() }), signal: state.chatController.signal });
-        if (!state.ownerToken) return;
+        const payload = await ownerFetch("/api/chat", { method: "POST", body: JSON.stringify({ message: command.slice(0, 8000), language: turnLanguage }), signal: controller.signal });
+        if (turnId !== state.turnId || !state.ownerToken) return;
         if (typeof payload.reply !== "string" || !payload.reply.trim()) throw new Error("Chat service returned an empty reply.");
         const reply = payload.reply.trim();
         els.chatReply.textContent = "CHATTY · LOSS GODS\\n" + reply; els.chatReply.classList.remove("hidden");
@@ -1167,21 +1233,24 @@ body{background:radial-gradient(ellipse at 50% 38%,#50330f45 0,transparent 35%),
           await ownerFetch("/api/memory", { method: "POST", body: JSON.stringify({
             session_id: "owner-global", memory_type:"conversation_state",
             state: { commandHistory: state.memoryHistory, lastCommand: command.slice(0, 1000), lastReply: reply.slice(0, 1000), updatedAt: new Date().toISOString() }
-          }) });
-        } catch (memoryError) { log("Chat reply succeeded; optional memory save failed: " + (memoryError?.message || String(memoryError)), "warn", "MEMORY"); }
+          }), signal: controller.signal });
+          if (turnId !== state.turnId) return;
+        } catch (memoryError) { if (turnId !== state.turnId) return; log("Chat reply succeeded; optional memory save failed: " + (memoryError?.message || String(memoryError)), "warn", "MEMORY"); }
+        if (turnId !== state.turnId) return;
         state.chatBusy = false;
         if (state.handsFree || source === "voice") {
-          const spoken = speakText(reply, () => { if (state.handsFree && state.ownerToken) startListening(); });
+          const spoken = speakText(reply, () => { if (state.handsFree && state.ownerToken) startListening(); }, turnLanguage);
           if (!spoken && state.handsFree && state.ownerToken) startListening();
         } else toast("Chatty replied. Enable hands-free to hear responses aloud.");
       } catch (error) {
+        if (turnId !== state.turnId) return;
         state.chatBusy = false;
         if (!state.ownerToken) return;
         const message = error?.message || "Chat service unavailable.";
         setCoreState("Chat unavailable · Loss Gods"); els.privacyNote.textContent = message; toast(message);
         log("Chat request failed: " + message, "error", "CHAT");
         if (state.handsFree && state.ownerToken) startListening();
-      } finally { state.chatBusy = false; state.chatController = null; els.sendBtn.disabled = false; }
+      } finally { if (turnId === state.turnId) { state.chatBusy = false; state.chatController = null; els.sendBtn.disabled = false; } }
     }
 
     // NEXUS visual intake: user-initiated camera only; media is previewed locally.

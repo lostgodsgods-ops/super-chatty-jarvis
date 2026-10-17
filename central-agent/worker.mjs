@@ -16,6 +16,8 @@ import { spawnAgents, listAgentDefinitions, listRecentAgentRuns } from "./agent-
 import { guardRequest } from "./edge-guard.mjs";
 import { runSentinelCycle, getSentinelStatus } from "./sentinel.mjs";
 import { publishEvent, listModules, eventStreamResponse } from "./event-bus.mjs";
+import { ingestCapabilitySpec, CapabilityIngestionError } from "./architecture/capability-ingestion.mjs";
+import { runIntelCycle } from "./intel-cron.mjs";
 
 const VERSION = "1.4.0";
 const OWNER_IDENTITY = Object.freeze({ key: "loss-gods", displayName: "Loss Gods" });
@@ -1038,6 +1040,25 @@ export default {
       return json({ error: "Unauthorized. Sign in with your Owner password." }, 401, cors);
     }
 
+    if (url.pathname === "/api/capabilities/ingest" && request.method === "POST") {
+      if (!(await authorized(request, env))) return json({ error: "Owner session required." }, 401, cors);
+      let body;
+      try { body = await request.json(); } catch { return json({ error: "Expected JSON body." }, 400, cors); }
+      const specUrl = typeof body?.specUrl === "string" ? body.specUrl.trim() : "";
+      if (!specUrl || specUrl.length > 2048) return json({ error: "specUrl must contain 1–2048 characters." }, 400, cors);
+      try {
+        const result = await ingestCapabilitySpec(specUrl, env);
+        await publishEvent(env, { type: "capability.spec.indexed", source: "capability-ingestion", payload: { host: result.host, operationCount: result.operationCount, schemaHash: result.schemaHash } });
+        return json(result, 200, cors);
+      } catch (error) {
+        const known = error instanceof CapabilityIngestionError;
+        const status = known ? error.status : 503;
+        const code = known ? error.code : "CAPABILITY_INGESTION_FAILED";
+        await publishEvent(env, { type: "capability.spec.rejected", source: "capability-ingestion", payload: { code, status } });
+        return json({ ok: false, error: code, executionEnabled: false }, status, cors);
+      }
+    }
+
     if (url.pathname === "/api/chat" && request.method === "POST") {
       if (!(await authorized(request, env))) return json({ error: "Owner session required." }, 401, cors);
       let body;
@@ -1574,13 +1595,19 @@ export default {
 
   async scheduled(controller, env, ctx) {
     const work = (async () => {
+      let intel = { ok: false, status: "disabled", upgradeExecution: false };
+      if (env.INTEL_CRON_ENABLED === "true") {
+        try { intel = await runIntelCycle(env); }
+        catch { intel = { ok: false, status: "degraded", error: "INTEL_CYCLE_FAILED", upgradeExecution: false }; }
+        await publishEvent(env, { type: intel.ok ? "intel.cycle.completed" : "intel.cycle.degraded", source: "intel-cron", payload: { ok: intel.ok === true, status: intel.status, upgradeExecution: false } });
+      }
       const sentinel = await runSentinelCycle(env);
       await publishEvent(env, { type: sentinel.ok ? "sentinel.completed" : "sentinel.degraded", source: "sentinel-cron", payload: { ok: sentinel.ok === true, status: sentinel.status || (sentinel.ok ? "healthy" : "degraded") } });
       const recovery = await recoverStaleKnowledgeTasks(env, 20);
       const processing = await processApprovedKnowledgeTasks(env, 3);
       const research = await runBoundedResearchCycle(env);
       await publishEvent(env, { type: "scheduler.cycle.completed", source: "central-scheduler", payload: { sentinelOk: sentinel.ok === true, recoveredTasks: Number(recovery?.recovered || recovery?.count || 0), processedTasks: Number(processing?.processed || processing?.count || 0), researchOk: research?.ok !== false } });
-      return { sentinel, recovery, processing, research };
+      return { intel, sentinel, recovery, processing, research };
     })();
     if (ctx && typeof ctx.waitUntil === "function") ctx.waitUntil(work);
     else await work;
