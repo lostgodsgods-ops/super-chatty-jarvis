@@ -18,6 +18,10 @@ const wranglerConfig = await readFile(
   new URL("../wrangler.jsonc", import.meta.url),
   "utf8",
 );
+const centralWranglerConfig = await readFile(
+  new URL("../central-agent/wrangler.jsonc", import.meta.url),
+  "utf8",
+);
 
 test("public page contains the core project sections", () => {
   for (const id of ["about", "capabilities", "agents", "invest", "contact"]) {
