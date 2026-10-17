@@ -178,7 +178,7 @@
         <form id="ownerLoginForm" class="owner-grid">
           <label class="field-label" for="ownerPassword">Owner password</label>
           <input class="text-input" id="ownerPassword" type="password" autocomplete="current-password" minlength="12" maxlength="256" placeholder="Enter owner password" required>
-          <div class="owner-actions"><button class="action-btn" id="ownerLogin" type="submit">Verify session</button><button class="action-btn secondary" id="ownerPasskeyLogin" type="button">Use device passkey</button><button class="action-btn secondary" id="ownerLogout" type="button" disabled>Sign out</button></div>
+          <div class="owner-actions"><button class="action-btn" id="ownerLogin" type="submit">Password sign-in</button><button class="action-btn secondary" id="ownerPasskeyLogin" type="button">Passkey sign-in</button><button class="action-btn secondary" id="ownerBiometricLogin" type="button">Face / device biometric</button><button class="action-btn secondary" id="ownerLogout" type="button" disabled>Sign out</button></div>
         </form>
         <div class="owner-actions" style="margin-top:10px"><button class="action-btn secondary" id="ownerPasskeyRegister" type="button" disabled>Register fingerprint / passkey</button><button class="action-btn secondary" id="ownerSetupOpen" type="button">Setup / reset password</button></div>
         <div class="owner-status warn" id="ownerSessionStatus" role="status" aria-live="polite">Locked. Sign in with the owner password, then register a device passkey. Session tokens are not stored in browser storage.</div>
@@ -296,6 +296,8 @@
       auditCount:$("auditCount"), observationCount:$("observationCount"), signalCount:$("signalCount"),
       lastRunStatus:$("lastRunStatus"), lastRunMeta:$("lastRunMeta"), researchFeed:$("researchFeed"),
       ownerLoginForm:$("ownerLoginForm"), ownerPassword:$("ownerPassword"), ownerLogin:$("ownerLogin"),
+      ownerPasskeyLogin:$("ownerPasskeyLogin"), ownerPasskeyRegister:$("ownerPasskeyRegister"),
+      ownerBiometricLogin:$("ownerBiometricLogin"), ownerSetupOpen:$("ownerSetupOpen"),
       ownerLogout:$("ownerLogout"), ownerBadge:$("ownerBadge"), ownerSessionStatus:$("ownerSessionStatus"),
       refreshTelemetry:$("refreshTelemetry"), factSearchForm:$("factSearchForm"), factQuery:$("factQuery"),
       researchSearchBtn:$("researchSearchBtn"), researchSearchStatus:$("researchSearchStatus"), sourceResults:$("sourceResults")
