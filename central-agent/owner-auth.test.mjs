@@ -492,6 +492,7 @@ test("owner recovery codes are one-time, hashed in D1, and can restore a session
   const codeHash = [...new Uint8Array(digest)].map(byte => byte.toString(16).padStart(2, "0")).join("");
   assert.ok(e.DB.recoveryCodes.has(codeHash), "D1 must store the hash of the issued recovery code");
   assert.equal([...e.DB.recoveryCodes.keys()].includes(payload.codes[0]), false, "raw recovery codes must not be stored");
+  e.SESSIONS.failSessionWritesOnly = true;
   const login = await call(e, "/auth/recovery/login", { code: payload.codes[0] });
   assert.equal(login.status, 200, JSON.stringify(await login.clone().json()));
   const recovered = await login.json();
@@ -513,7 +514,7 @@ test("recovery-code rotation invalidates the previous unused set", async () => {
 });
 
 
-test("passkey recovery endpoints do not depend on KV being present", async () => {
+test("passkey challenge creation survives exhausted KV writes", async () => {
   const e = env();
   e.DB.passkeys = [{ credential_id: "Y3JlZGVudGlhbA" }];
   e.SESSIONS.failWebAuthnWrites = true;
@@ -528,4 +529,13 @@ test("successful owner authentication seeds and validates the stable Loss Gods i
   const e = env();
   await ownerToken(e);
   assert.deepEqual(e.DB.identity, { owner_key: "loss-gods", display_name: "Loss Gods" });
+});
+
+
+test("PWA exposes one-time recovery controls without persisting recovery codes or session tokens", async () => {
+  const html = await readFile(new URL("../jarvis/index.html", import.meta.url), "utf8");
+  for (const id of ["ownerRecoveryGenerate","ownerRecoveryCodes","ownerRecoveryInput","ownerRecoveryLogin"]) assert.ok(html.includes('id="' + id + '"'));
+  assert.ok(html.includes('"/auth/recovery/login"'));
+  assert.ok(html.includes('"/auth/recovery/codes"'));
+  assert.ok(html.includes('els.ownerRecoveryCodes.textContent = "";'));
 });
