@@ -384,9 +384,9 @@ body{background:radial-gradient(ellipse at 50% 38%,#50330f45 0,transparent 35%),
       const stamp = document.createElement("span"); stamp.className = "logtime"; stamp.textContent = time();
       const line = document.createElement("span"); line.className = "logline " + type;
       line.textContent = "[Loss Gods · " + source + "] " + String(message).slice(0,500);
-      row.append(stamp,line); els.terminal.append(row); els.eventsCount++;
+      row.append(stamp,line); els.terminal.append(row); state.eventsCount++;
       while (els.terminal.children.length > 160) els.terminal.firstElementChild.remove();
-      els.logCount.textContent = els.eventsCount + " events";
+      els.logCount.textContent = state.eventsCount + " events";
       els.terminal.scrollTop = els.terminal.scrollHeight;
     }
     function status(el, text, kind="warn") {
@@ -1256,7 +1256,7 @@ body{background:radial-gradient(ellipse at 50% 38%,#50330f45 0,transparent 35%),
     els.commandInput.addEventListener("keydown",event=>{if(event.key==="Enter"){event.preventDefault();submitCommand();}});
     els.connectBtn.addEventListener("click",connect);
     els.disconnectBtn.addEventListener("click",()=>{disconnectEvents();clearInterval(state.healthTimer);log("Live SSE connection closed by user.","warn","STREAM");});
-    $("clearLogs").addEventListener("click",()=>{els.terminal.replaceChildren();els.eventsCount=0;els.logCount.textContent="0 events";log("Terminal cleared.","info","UI");});
+    $("clearLogs").addEventListener("click",()=>{els.terminal.replaceChildren();state.eventsCount=0;els.logCount.textContent="0 events";log("Terminal cleared.","info","UI");});
     function resizeCanvas(){const c=els.wave,r=c.getBoundingClientRect(),d=Math.min(window.devicePixelRatio||1,2);c.width=Math.round(r.width*d);c.height=Math.round(r.height*d);}
     window.addEventListener("resize",resizeCanvas,{passive:true}); resizeCanvas();
     if ("serviceWorker" in navigator && location.protocol !== "file:") {
