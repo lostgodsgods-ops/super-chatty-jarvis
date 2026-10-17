@@ -482,7 +482,7 @@ body{background:radial-gradient(ellipse at 50% 38%,#50330f45 0,transparent 35%),
       els.voiceLabel.textContent = "CHAT WITH CHATTY · OWNER: LOSS GODS";
       disconnectEvents();
       clearInterval(state.telemetryTimer); state.telemetryTimer = 0;
-      els.ownerLogout.disabled = true; els.ownerLogin.disabled = false; els.ownerPasskeyRegister.disabled = true; els.researchSearchBtn.disabled = true;
+      els.ownerLogout.disabled = true; els.ownerLogin.disabled = false; els.ownerPasskeyRegister.disabled = true; els.ownerRecoveryGenerate.disabled = true; els.ownerRecoveryCodes.textContent = ""; els.ownerRecoveryCodes.hidden = true; els.researchSearchBtn.disabled = true;
       status(els.ownerBadge,"LOCKED","warn"); status(els.researchSearchStatus,"OWNER SESSION REQUIRED","warn");
       setOwnerStatus(message,"warn");
       els.auditCount.textContent = "—"; els.observationCount.textContent = "—"; els.signalCount.textContent = "—";
