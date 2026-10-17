@@ -36,8 +36,24 @@ test("sentinel verifies D1 without KV writes and persists a healthy audit record
   assert.equal(result.ok,true); assert.equal(result.status,"healthy");
   assert.equal(DB.health.length,1); assert.equal(JSON.parse(DB.health[0].metrics_json).d1.estimatedBytes,40960);
   assert.equal(JSON.parse(DB.health[0].metrics_json).storageMode,"d1-authoritative");
-  assert.equal(JSON.parse(DB.health[0].metrics_json).kv.checked,false);
+  assert.equal(JSON.parse(DB.health[0].metrics_json).kv.checked,true);
+  assert.equal(JSON.parse(DB.health[0].metrics_json).kv.ok,true);
+  assert.equal(JSON.parse(DB.health[0].metrics_json).kv.operation,"read-only-get");
+  assert.equal(SESSIONS.values.size,0,"Sentinel must not write to KV");
   assert.equal((await getSentinelStatus(DB))[0].status,"healthy");
+});
+
+test("sentinel reports KV read failure accurately without mutating data or masking D1 status", async()=>{
+  const DB=new FakeDB();
+  const SESSIONS={async get(){throw new Error("KV read unavailable");}};
+  const result=await runSentinelCycle({DB,SESSIONS},{now:"2026-10-17T00:00:00.000Z"});
+  assert.equal(result.ok,true);
+  assert.equal(result.status,"healthy");
+  assert.equal(result.metrics.d1.ok,true);
+  assert.equal(result.metrics.kv.checked,true);
+  assert.equal(result.metrics.kv.ok,false);
+  assert.equal(result.metrics.kv.operation,"read-only-get");
+  assert.equal(DB.health.length,1);
 });
 test("sentinel remains healthy when KV is unavailable because KV is not a readiness dependency", async()=>{
   const DB=new FakeDB();
