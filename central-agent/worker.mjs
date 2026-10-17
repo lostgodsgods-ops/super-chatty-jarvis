@@ -865,12 +865,15 @@ export default {
 
     const gatewayChatRoute = request.method === "POST" && (url.pathname === "/chat" || url.pathname === "/internal/chat");
     const memoryBridgeRoute = url.pathname === "/api/memory";
+    // Recovery login is public by design, but only a high-entropy one-time code
+    // hashed in D1 can mint a session. It must not pass the normal session gate.
+    const recoveryLoginRoute = url.pathname === "/auth/recovery/login" && request.method === "POST";
     // Logout is deliberately idempotent: startup/background cleanup may have no token,
     // an expired token, or unavailable session storage. It only deletes the supplied
     // token's hash and always clears the cookie; it never grants access to protected routes.
     const logoutRoute = url.pathname === "/auth/logout" && request.method === "POST";
-    if (!gatewayChatRoute && !memoryBridgeRoute && !logoutRoute && (!env.DB || !env.SESSIONS)) return json({ error: "Owner authentication storage is not configured." }, 503, cors);
-    if (!gatewayChatRoute && !memoryBridgeRoute && !logoutRoute && !(await authorized(request, env))) {
+    if (!gatewayChatRoute && !memoryBridgeRoute && !logoutRoute && !recoveryLoginRoute && (!env.DB || !env.SESSIONS)) return json({ error: "Owner authentication storage is not configured." }, 503, cors);
+    if (!gatewayChatRoute && !memoryBridgeRoute && !logoutRoute && !recoveryLoginRoute && !(await authorized(request, env))) {
       await publishEvent(env, { type: "security.auth.denied", source: "owner-auth", payload: { path: url.pathname, method: request.method } });
       return json({ error: "Unauthorized. Sign in with your Owner password." }, 401, cors);
     }
