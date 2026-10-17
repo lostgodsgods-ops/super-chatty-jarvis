@@ -38,3 +38,29 @@ test("unknown routes fail closed when Owner authentication storage is unavailabl
   const response = await worker.fetch(new Request("https://example.test/unknown"), {});
   assert.equal(response.status, 503);
 });
+
+
+test("Red Queen status rejects unauthenticated requests before exposing the registry", async () => {
+  const response = await worker.fetch(new Request("https://example.test/api/red-queen/status"), {
+    DB: { prepare() { throw new Error("unauthenticated request must not query D1"); } },
+    SESSIONS: { get: async () => null }
+  });
+  assert.equal(response.status, 401);
+});
+
+test("Red Queen status exposes only declared simulation capabilities to an authenticated owner", async () => {
+  const response = await worker.fetch(new Request("https://example.test/api/red-queen/status", {
+    headers: { authorization: "Bearer test-owner-session" }
+  }), {
+    SESSIONS: { get: async () => "active" }
+  });
+  assert.equal(response.status, 200);
+  const body = await response.json();
+  assert.equal(body.ok, true);
+  assert.equal(body.registry.executionMode, "planning-and-simulation-only");
+  assert.deepEqual(body.registry.missionModules.map(item => item.id), [
+    "secure-transit", "subsurface-habitat", "robotics-workforce", "aerospace-research"
+  ]);
+  assert.equal(body.registry.livePhysicalExecution, false);
+  assert.equal(body.registry.quantumMeshImplemented, false);
+});
