@@ -232,7 +232,9 @@ body{background:radial-gradient(ellipse at 50% 38%,#50330f45 0,transparent 35%),
           <input class="text-input" id="ownerPassword" type="password" autocomplete="current-password" minlength="12" maxlength="256" placeholder="Enter owner password" required>
           <div class="owner-actions"><button class="action-btn" id="ownerLogin" type="submit">Password sign-in</button><button class="action-btn secondary" id="ownerPasskeyLogin" type="button">Passkey sign-in</button><button class="action-btn secondary" id="ownerBiometricLogin" type="button">Face / device biometric</button><button class="action-btn secondary" id="ownerLogout" type="button" disabled>Sign out</button></div>
         </form>
-        <div class="owner-actions" style="margin-top:10px"><button class="action-btn secondary" id="ownerPasskeyRegister" type="button" disabled>Register fingerprint / passkey</button><button class="action-btn secondary" id="ownerSetupOpen" type="button">Setup / reset password</button></div>
+        <div class="owner-actions" style="margin-top:10px"><button class="action-btn secondary" id="ownerPasskeyRegister" type="button" disabled>Register fingerprint / passkey</button><button class="action-btn secondary" id="ownerRecoveryGenerate" type="button" disabled>Generate recovery codes</button><button class="action-btn secondary" id="ownerSetupOpen" type="button">Setup / reset password</button></div>
+        <pre id="ownerRecoveryCodes" class="dashboard-note" hidden style="white-space:pre-wrap;overflow-wrap:anywhere"></pre>
+        <div class="owner-actions" style="margin-top:10px"><input class="text-input" id="ownerRecoveryInput" type="text" maxlength="64" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="One-time recovery code"><button class="action-btn secondary" id="ownerRecoveryLogin" type="button">Recover owner access</button></div>
         <div class="owner-status warn" id="ownerSessionStatus" role="status" aria-live="polite">Locked. Sign in with the owner password, then register a device passkey. Session tokens are not stored in browser storage.</div>
         <p class="dashboard-note">Passkey and device-biometric sign-in use separate login routes. Android/browser chooses whether to verify with fingerprint, face, or screen-lock PIN; a website cannot force face-only or fingerprint-only verification.</p>
       </div>
@@ -372,6 +374,7 @@ body{background:radial-gradient(ellipse at 50% 38%,#50330f45 0,transparent 35%),
       lastRunStatus:$("lastRunStatus"), lastRunMeta:$("lastRunMeta"), researchFeed:$("researchFeed"),
       ownerLoginForm:$("ownerLoginForm"), ownerPassword:$("ownerPassword"), ownerLogin:$("ownerLogin"),
       ownerPasskeyLogin:$("ownerPasskeyLogin"), ownerPasskeyRegister:$("ownerPasskeyRegister"),
+      ownerRecoveryGenerate:$("ownerRecoveryGenerate"), ownerRecoveryCodes:$("ownerRecoveryCodes"), ownerRecoveryInput:$("ownerRecoveryInput"), ownerRecoveryLogin:$("ownerRecoveryLogin"),
       ownerBiometricLogin:$("ownerBiometricLogin"), ownerSetupOpen:$("ownerSetupOpen"),
       ownerLogout:$("ownerLogout"), ownerBadge:$("ownerBadge"), ownerSessionStatus:$("ownerSessionStatus"),
       refreshTelemetry:$("refreshTelemetry"), factSearchForm:$("factSearchForm"), factQuery:$("factQuery"),
@@ -586,6 +589,7 @@ body{background:radial-gradient(ellipse at 50% 38%,#50330f45 0,transparent 35%),
       els.ownerLogout.disabled = false;
       els.ownerLogin.disabled = false;
       els.ownerPasskeyRegister.disabled = false;
+      els.ownerRecoveryGenerate.disabled = false;
       els.researchSearchBtn.disabled = false;
       status(els.ownerBadge,"OWNER VERIFIED","ok");
       status(els.researchSearchStatus,"SESSION VERIFIED","ok");
