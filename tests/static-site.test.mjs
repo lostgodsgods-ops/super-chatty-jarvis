@@ -284,6 +284,21 @@ test("voice-first console replaces manual mic clutter with explicit owner-only h
 });
 
 
+test("hands-free voice resumes after owner unlock only after explicit prior opt-in", () => {
+  const activationStart = jarvisHtml.indexOf("async function activateOwnerSession(token, methodLabel)");
+  const activationEnd = jarvisHtml.indexOf("async function signInPasskey()", activationStart);
+  assert.ok(activationStart >= 0 && activationEnd > activationStart, "owner activation function must exist");
+  const activation = jarvisHtml.slice(activationStart, activationEnd);
+  assert.match(jarvisHtml, /localStorage\.setItem\(["']sc_hands_free_autostart_v1["'],\s*["']1["']\)/,
+    "only explicit hands-free opt-in should persist auto-resume consent");
+  assert.match(jarvisHtml, /localStorage\.getItem\(["']sc_hands_free_autostart_v1["']\)\s*===\s*["']1["']/,
+    "autostart must be gated by previously saved consent");
+  assert.match(activation, /speakGreeting\(\s*\(\)\s*=>\s*\{[\s\S]{0,300}startHandsFree\(\)/,
+    "voice may resume after unlock and greeting only when opt-in was saved");
+  assert.match(jarvisHtml, /localStorage\.removeItem\(["']sc_hands_free_autostart_v1["']\)/,
+    "explicitly switching hands-free off must revoke remembered consent");
+});
+
 test("PWA event counter increments numeric state and never reads an undefined DOM property", () => {
   assert.match(jarvisHtml, /state\.eventsCount\+\+/);
   assert.match(jarvisHtml, /els\.logCount\.textContent\s*=\s*state\.eventsCount\s*\+\s*" events"/);
