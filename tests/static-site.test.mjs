@@ -258,3 +258,15 @@ test("owner login backend keeps password validation strict and returns a token o
   assert.match(body, /Invalid password\./);
   assert.ok(body.indexOf("equalSecret(candidate, credentials.password_hash)") < body.indexOf("const token ="));
 });
+
+
+test("base64url encoder converts plus and slash characters without runtime errors", () => {
+  const match = jarvisHtml.match(/function encodeB64url\(value\)\s*\{[\s\S]*?\n    \}/);
+  assert.ok(match, "PWA base64url encoder must exist");
+  const encodeB64url = vm.runInNewContext("(" + match[0] + ")", {
+    btoa: globalThis.btoa,
+    Uint8Array
+  });
+  // These bytes encode to "+///"; both characters must be converted to URL-safe form.
+  assert.equal(encodeB64url(Uint8Array.from([251, 255, 255]).buffer), "-___");
+});
