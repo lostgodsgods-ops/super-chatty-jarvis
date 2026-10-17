@@ -164,13 +164,13 @@ test("PWA exposes real WebAuthn passkey sign-in and authenticated registration c
 
 
 test("standalone install metadata advertises app-window behavior and a branded launch surface", () => {
-  assert.equal(manifestForInstall.display, "standalone");
-  assert.deepEqual(manifestForInstall.display_override, ["standalone"]);
+  assert.equal(manifest.display, "standalone");
+  assert.deepEqual(manifest.display_override, ["standalone"]);
   assert.equal(manifest.start_url, "./");
   assert.equal(manifest.scope, "./");
   assert.equal(manifest.background_color, "#08090d");
   assert.equal(manifest.theme_color, "#08090d");
-  assert.ok(manifestForInstall.icons.some(icon => icon.src === "./icon.svg" && icon.purpose.includes("maskable")));
+  assert.ok(manifest.icons.some(icon => icon.src === "./icon.svg" && icon.purpose.includes("maskable")));
   assert.ok(manifest.icons.some(icon => icon.src === "./icon-192.png" && icon.sizes === "192x192" && icon.type === "image/png"));
   assert.ok(manifest.icons.some(icon => icon.src === "./icon-512.png" && icon.sizes === "512x512" && icon.type === "image/png"));
   assert.match(serviceWorker, /icon-192\.png/);
@@ -203,7 +203,7 @@ test("one-click install button invokes the native prompt only after browser elig
 
 
 test("PWA install assets and standalone metadata are internally consistent", () => {
-  const manifestForInstall = manifest;
+  const manifest = manifest;
   assert.equal(manifest.display, "standalone");
   assert.deepEqual(manifest.display_override, ["standalone"]);
   assert.ok(manifest.icons.some((icon) => icon.src === "./icon-192.png" && icon.sizes === "192x192" && icon.type === "image/png"));
