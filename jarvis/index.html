@@ -993,7 +993,7 @@
           if (registration.waiting) registration.waiting.postMessage({ type: "SKIP_WAITING" });
           const checkForPwaUpdate = () => registration.update().catch(() => {});
           checkForPwaUpdate();
-          setInterval(checkForPwaUpdate, 5 * 60 * 1000);
+          setInterval(checkForPwaUpdate, 60 * 1000);
           document.addEventListener("visibilitychange", () => {
             if (document.visibilityState === "visible") checkForPwaUpdate();
           });
