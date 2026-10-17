@@ -491,7 +491,7 @@ test("owner recovery codes are one-time, hashed in D1, and can restore a session
   assert.ok(e.DB.recoveryCodes.has(codeHash), "D1 must store the hash of the issued recovery code");
   assert.equal([...e.DB.recoveryCodes.keys()].includes(payload.codes[0]), false, "raw recovery codes must not be stored");
   const login = await call(e, "/auth/recovery/login", { code: payload.codes[0] });
-  assert.equal(login.status, 200);
+  assert.equal(login.status, 200, JSON.stringify(await login.clone().json()));
   const recovered = await login.json();
   assert.ok(recovered.token);
   assert.equal((await call(e, "/policy", undefined, recovered.token)).status, 200);
@@ -506,7 +506,8 @@ test("recovery-code rotation invalidates the previous unused set", async () => {
   const second = await (await call(e, "/auth/recovery/codes", {}, token)).json();
   assert.equal(e.DB.recoveryCodes.size, 8);
   assert.equal((await call(e, "/auth/recovery/login", { code: first.codes[0] })).status, 401);
-  assert.equal((await call(e, "/auth/recovery/login", { code: second.codes[0] })).status, 200);
+  const recovered = await call(e, "/auth/recovery/login", { code: second.codes[0] });
+  assert.equal(recovered.status, 200, JSON.stringify(await recovered.clone().json()));
 });
 
 
