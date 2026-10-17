@@ -605,7 +605,11 @@ body{background:radial-gradient(ellipse at 50% 38%,#50330f45 0,transparent 35%),
         if (state.ownerToken) refreshTelemetry().catch(error => log("Telemetry refresh failed: " + (error?.message || String(error)), "warn", "TELEMETRY"));
       }, 30000);
       toast("Owner session verified. Welcome, Loss Gods.");
-      speakGreeting();
+      speakGreeting(() => {
+        try {
+          if (state.ownerToken && localStorage.getItem("sc_hands_free_autostart_v1") === "1") startHandsFree();
+        } catch (error) { log("Hands-free auto-resume preference unavailable: " + (error?.message || String(error)), "warn", "VOICE"); }
+      });
     }
     async function signInPasskey() {
       const base = workerBaseUrl();
@@ -983,8 +987,8 @@ body{background:radial-gradient(ellipse at 50% 38%,#50330f45 0,transparent 35%),
         if (typeof onEnd === "function") onEnd(); return false;
       }
     }
-    function speakGreeting() {
-      speakText("Welcome, Loss Gods. Super Chatty Jarvis is ready. Hands-free listening stays off until you enable it.");
+    function speakGreeting(onEnd) {
+      speakText("Welcome, Loss Gods. Super Chatty Jarvis is ready. Hands-free listening resumes only if you previously enabled it.", onEnd);
     }
     function stopHandsFree(reason = "Hands-free voice stopped.") {
       state.handsFree = false; state.listening = false;
@@ -1004,11 +1008,18 @@ body{background:radial-gradient(ellipse at 50% 38%,#50330f45 0,transparent 35%),
         toast("Hands-free voice requires an unlocked Owner session.");
         els.privacyNote.textContent = "Sign in first. The microphone stays off while locked."; return;
       }
-      if (state.handsFree) { stopHandsFree("Hands-free listening stopped by Loss Gods."); return; }
+      if (state.handsFree) {
+        try { localStorage.removeItem("sc_hands_free_autostart_v1"); } catch {}
+        stopHandsFree("Hands-free listening stopped by Loss Gods."); return;
+      }
       if (!speechApi()) {
         toast("This browser does not support SpeechRecognition. Type a message instead.");
         log("SpeechRecognition API unavailable; text chat remains available.", "warn", "VOICE"); return;
       }
+      // Remember only an explicit user opt-in. This preference allows a future verified
+      // owner session to resume listening; it never grants authentication or mic permission.
+      try { localStorage.setItem("sc_hands_free_autostart_v1", "1"); }
+      catch { log("Hands-free preference could not be saved; voice remains enabled for this session only.", "warn", "VOICE"); }
       state.handsFree = true;
       els.handsFreeBtn.setAttribute("aria-pressed", "true"); els.handsFreeBtn.textContent = "HANDS-FREE ON";
       els.privacyNote.textContent = "Hands-free listening is active while Owner is unlocked. Browser speech recognition may process audio.";
