@@ -1011,7 +1011,7 @@ export default {
       let parsedOrigin;
       try { parsedOrigin = new URL(origin); } catch { return json({ error: "Invalid WebAuthn origin." }, 400, cors); }
       if (parsedOrigin.origin !== origin || !["https:", "http:"].includes(parsedOrigin.protocol) || (parsedOrigin.protocol !== "https:" && !["localhost", "127.0.0.1"].includes(parsedOrigin.hostname))) return json({ error: "Invalid WebAuthn origin." }, 400, cors);
-      if (!(await consumeWebAuthnChallenge(env, challenge, purpose, parsedOrigin.origin))) return json({ error: "Passkey challenge expired, origin mismatch, or already used. Try again." }, 403, cors);
+      if (!(await consumeWebAuthnChallenge(env, challenge, purpose, parsedOrigin.origin))) return json({ error: "Passkey challenge expired, origin mismatch, or already used. Try again." }, 401, cors);
       try {
         const stored = await env.DB.prepare("SELECT credential_id, public_key_json, sign_count FROM owner_passkeys WHERE credential_id = ?").bind(credentialId).first();
         if (!stored) return json({ error: "Unknown owner passkey." }, 401, cors);
@@ -1607,7 +1607,7 @@ export default {
         try { intel = await runIntelCycle(env); }
         catch { intel = { ok: false, status: "degraded", error: "INTEL_CYCLE_FAILED", upgradeExecution: false }; }
       }
-      await publishEvent(env, { type: intel.ok ? "intel.completed" : "intel.degraded", source: "intel-cron", payload: { ok: intel.ok === true, status: intel.status || "degraded", upgradeExecution: false } });
+      await publishEvent(env, { type: intel.ok ? "intel.cycle.completed" : "intel.cycle.degraded", source: "intel-cron", payload: { ok: intel.ok === true, status: intel.status || "degraded", upgradeExecution: false } });
       await publishEvent(env, { type: sentinel.ok ? "sentinel.completed" : "sentinel.degraded", source: "sentinel-cron", payload: { ok: sentinel.ok === true, status: sentinel.status || (sentinel.ok ? "healthy" : "degraded") } });
       const recovery = await recoverStaleKnowledgeTasks(env, 20);
       const processing = await processApprovedKnowledgeTasks(env, 3);
