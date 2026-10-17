@@ -169,6 +169,11 @@ test("PWA exposes real WebAuthn passkey sign-in and authenticated registration c
   assert.match(jarvisHtml, /function assertPasskeyOrigin/);
   assert.match(jarvisHtml, /options\.origin !== origin/);
   assert.match(centralWorker, /origin: parsedOrigin\.origin/);
+  assert.equal(
+    (jarvisHtml.match(/assertPasskeyOrigin\(options, false\)/g) || []).length,
+    2,
+    "both passkey and biometric login must validate exact origin and RP ID before navigator.credentials.get",
+  );
 });
 
 test("PWA barge-in cancels TTS on first non-echo speech result", () => {
