@@ -125,6 +125,58 @@ async function ensureOwnerSessionSchema(env) {
   await env.DB.prepare("CREATE TABLE IF NOT EXISTS owner_sessions (token_hash TEXT PRIMARY KEY, status TEXT NOT NULL, expires_at INTEGER NOT NULL, created_at TEXT NOT NULL)").run();
 }
 
+async function ensureWebAuthnChallengeSchema(env) {
+  if (!env.DB || typeof env.DB.prepare !== "function") throw new Error("WEBAUTHN_D1_UNAVAILABLE");
+  await env.DB.prepare("CREATE TABLE IF NOT EXISTS owner_webauthn_challenges (challenge TEXT PRIMARY KEY, purpose TEXT NOT NULL, session_hash TEXT, expires_at INTEGER NOT NULL, created_at TEXT NOT NULL)").run();
+}
+
+async function storeWebAuthnChallenge(env, challenge, purpose, sessionHash = null) {
+  await ensureWebAuthnChallengeSchema(env);
+  const now = Date.now();
+  await env.DB.prepare("DELETE FROM owner_webauthn_challenges WHERE expires_at <= ?").bind(now).run();
+  await env.DB.prepare("INSERT INTO owner_webauthn_challenges (challenge, purpose, session_hash, expires_at, created_at) VALUES (?, ?, ?, ?, ?)")
+    .bind(challenge, purpose, sessionHash, now + 300000, new Date(now).toISOString()).run();
+}
+
+async function consumeWebAuthnChallenge(env, challenge, purpose, sessionHash = null) {
+  await ensureWebAuthnChallengeSchema(env);
+  const row = await env.DB.prepare("DELETE FROM owner_webauthn_challenges WHERE challenge = ? AND purpose = ? AND expires_at > ? AND session_hash IS ? RETURNING challenge")
+    .bind(challenge, purpose, Date.now(), sessionHash).first();
+  return row?.challenge === challenge;
+}
+
+async function ensureRecoveryCodeSchema(env) {
+  if (!env.DB || typeof env.DB.prepare !== "function") throw new Error("OWNER_RECOVERY_D1_UNAVAILABLE");
+  await env.DB.prepare("CREATE TABLE IF NOT EXISTS owner_recovery_codes (code_hash TEXT PRIMARY KEY, created_at TEXT NOT NULL, used_at TEXT)").run();
+}
+
+function normalizeRecoveryCode(value) {
+  return typeof value === "string" ? value.replace(/[\\s-]/g, "").toUpperCase() : "";
+}
+
+async function issueOwnerRecoveryCodes(env) {
+  await ensureRecoveryCodeSchema(env);
+  const codes = Array.from({ length: 8 }, () => Array.from(crypto.getRandomValues(new Uint8Array(24)), byte => byte.toString(16).padStart(2, "0")).join("").toUpperCase());
+  const now = new Date().toISOString();
+  const statements = [
+    env.DB.prepare("DELETE FROM owner_recovery_codes"),
+    ...await Promise.all(codes.map(async code => env.DB.prepare("INSERT INTO owner_recovery_codes (code_hash, created_at, used_at) VALUES (?, ?, NULL)").bind(await sha256Hex(code), now)))
+  ];
+  if (typeof env.DB.batch !== "function") throw new Error("OWNER_RECOVERY_BATCH_UNAVAILABLE");
+  await env.DB.batch(statements);
+  return codes;
+}
+
+async function consumeOwnerRecoveryCode(env, code) {
+  await ensureRecoveryCodeSchema(env);
+  const normalized = normalizeRecoveryCode(code);
+  if (!/^[A-F0-9]{48}$/.test(normalized)) return false;
+  const codeHash = await sha256Hex(normalized);
+  const row = await env.DB.prepare("UPDATE owner_recovery_codes SET used_at = ? WHERE code_hash = ? AND used_at IS NULL RETURNING code_hash")
+    .bind(new Date().toISOString(), codeHash).first();
+  return row?.code_hash === codeHash;
+}
+
 async function storeOwnerSession(env, token) {
   const tokenHash = await sha256Hex(token);
   await ensureOwnerSessionSchema(env);
@@ -754,7 +806,7 @@ export default {
     // WebAuthn authentication options/verification are public ceremonies protected by
     // one-time challenges, strict origin/RP checks, UV flags, and signature verification.
     if ((url.pathname === "/auth/passkey/login/options" || url.pathname === "/auth/biometric/login/options") && request.method === "POST") {
-      if (!env.DB || !env.SESSIONS) return json({ error: "Passkey authentication storage is not configured." }, 503, cors);
+      if (!env.DB) return json({ error: "Passkey authentication storage is not configured." }, 503, cors);
       try {
         await env.DB.prepare("CREATE TABLE IF NOT EXISTS owner_passkeys (credential_id TEXT PRIMARY KEY, public_key_json TEXT NOT NULL, sign_count INTEGER NOT NULL DEFAULT 0, created_at TEXT NOT NULL)").run();
         const rows = await env.DB.prepare("SELECT credential_id FROM owner_passkeys ORDER BY created_at DESC").all();
@@ -762,11 +814,12 @@ export default {
         if (!credentials.length) return json({ error: "No owner passkey is registered yet. Sign in with the owner password and register one first." }, 409, cors);
         const challenge = randomChallenge();
         const challengePrefix = url.pathname.includes("/auth/biometric/") ? "webauthn:biometric:" : "webauthn:login:";
-        await env.SESSIONS.put(challengePrefix + challenge, JSON.stringify({ createdAt: Date.now() }), { expirationTtl: 300 });
+        const purpose = challengePrefix.includes("biometric") ? "biometric" : "login";
+        await storeWebAuthnChallenge(env, challenge, purpose, null);
         const ceremonyOrigin = request.headers.get("origin") || new URL(request.url).origin;
         const rpId = new URL(ceremonyOrigin).hostname;
         return json({ challenge, rpId, timeout: 300000, userVerification: "required",
-          allowCredentials: credentials.map(item => ({ type: "public-key", id: item.credential_id, transports: ["internal", "hybrid"] })) }, 200, cors);
+          allowCredentials: [] }, 200, cors);
       } catch {
         return json({ error: "Unable to prepare passkey sign-in." }, 503, cors);
       }
@@ -778,11 +831,8 @@ export default {
       const credentialId = typeof body?.rawId === "string" ? body.rawId : (typeof body?.id === "string" ? body.id : "");
       const challenge = typeof body?.challenge === "string" ? body.challenge : "";
       if (!credentialId || !challenge) return json({ error: "Passkey assertion is incomplete." }, 400, cors);
-      const challengePrefix = url.pathname.includes("/auth/biometric/") ? "webauthn:biometric:" : "webauthn:login:";
-      const challengeKey = challengePrefix + challenge;
-      const challengeRecord = await env.SESSIONS.get(challengeKey);
-      if (!challengeRecord) return json({ error: "Passkey challenge expired. Try again." }, 401, cors);
-      await env.SESSIONS.delete(challengeKey);
+      const purpose = url.pathname.includes("/auth/biometric/") ? "biometric" : "login";
+      if (!(await consumeWebAuthnChallenge(env, challenge, purpose, null))) return json({ error: "Passkey challenge expired or already used. Try again." }, 401, cors);
       try {
         const stored = await env.DB.prepare("SELECT credential_id, public_key_json, sign_count FROM owner_passkeys WHERE credential_id = ?").bind(credentialId).first();
         if (!stored) return json({ error: "Unknown owner passkey." }, 401, cors);
@@ -838,8 +888,32 @@ export default {
       }
     }
 
+    if (url.pathname === "/auth/recovery/codes" && request.method === "POST") {
+      if (!env.DB) return json({ error: "Owner recovery storage is not configured." }, 503, cors);
+      if (!(await authorized(request, env))) return json({ error: "Owner session required." }, 401, cors);
+      try {
+        const codes = await issueOwnerRecoveryCodes(env);
+        return json({ ok: true, codes, count: codes.length, message: "Recovery codes generated. Each code works once. Save them somewhere private now; they are shown only this time." }, 200, cors);
+      } catch {
+        return json({ error: "Unable to generate recovery codes. No codes were displayed; retry when D1 is available." }, 503, cors);
+      }
+    }
+    if (url.pathname === "/auth/recovery/login" && request.method === "POST") {
+      if (!env.DB) return json({ error: "Owner recovery storage is not configured." }, 503, cors);
+      let body;
+      try { body = await request.json(); } catch { return json({ error: "Expected JSON body." }, 400, cors); }
+      try {
+        if (!(await consumeOwnerRecoveryCode(env, body?.code))) return json({ error: "Recovery code invalid or already used." }, 401, cors);
+        const token = base64url(crypto.getRandomValues(new Uint8Array(32)));
+        await storeOwnerSession(env, token);
+        return json({ ok: true, token, expiresIn: SESSION_TTL_SECONDS, method: "owner-recovery-code" }, 200, { ...cors, "set-cookie": sessionCookie(token) });
+      } catch {
+        return json({ error: "Owner recovery is temporarily unavailable. The code may have been consumed; check with another unused code." }, 503, cors);
+      }
+    }
+
     if (url.pathname === "/auth/passkey/register/options" && request.method === "POST") {
-      if (!env.DB || !env.SESSIONS) return json({ error: "Passkey registration storage is not configured." }, 503, cors);
+      if (!env.DB) return json({ error: "Passkey registration storage is not configured." }, 503, cors);
       try {
         await env.DB.prepare("CREATE TABLE IF NOT EXISTS owner_passkeys (credential_id TEXT PRIMARY KEY, public_key_json TEXT NOT NULL, sign_count INTEGER NOT NULL DEFAULT 0, created_at TEXT NOT NULL)").run();
         const challenge = randomChallenge();
@@ -847,13 +921,14 @@ export default {
         const bearer = auth.startsWith("Bearer ") ? auth.slice(7) : "";
         const sessionToken = bearer || readSessionCookie(request);
         if (!sessionToken) return json({ error: "Owner session required." }, 401, cors);
-        await env.SESSIONS.put("webauthn:register:" + await sha256Hex(sessionToken), challenge, { expirationTtl: 300 });
+        const sessionHash = await sha256Hex(sessionToken);
+        await storeWebAuthnChallenge(env, challenge, "register", sessionHash);
         const ceremonyOrigin = request.headers.get("origin") || new URL(request.url).origin;
         const rpId = new URL(ceremonyOrigin).hostname;
         return json({ challenge, rp: { id: rpId, name: "Super Chatty Jarvis" },
-          user: { id: base64url(crypto.getRandomValues(new Uint8Array(16))), name: "owner", displayName: "Super Chatty Owner" },
+          user: { id: base64url(new TextEncoder().encode("loss-gods-super-chatty-owner-v1")), name: "loss-gods", displayName: "Loss Gods" },
           pubKeyCredParams: [{ type: "public-key", alg: -7 }], timeout: 300000, attestation: "none",
-          authenticatorSelection: { authenticatorAttachment: "platform", residentKey: "preferred", userVerification: "required" },
+          authenticatorSelection: { authenticatorAttachment: "platform", residentKey: "required", userVerification: "required" },
           excludeCredentials: (await env.DB.prepare("SELECT credential_id FROM owner_passkeys").all())?.results?.map(item => ({ type: "public-key", id: item.credential_id })) || []
         }, 200, cors);
       } catch {
@@ -866,12 +941,12 @@ export default {
       const bearer = auth.startsWith("Bearer ") ? auth.slice(7) : "";
       const sessionToken = bearer || readSessionCookie(request);
       if (!sessionToken) return json({ error: "Owner session required." }, 401, cors);
-      const challengeKey = "webauthn:register:" + await sha256Hex(sessionToken);
-      const challenge = await env.SESSIONS.get(challengeKey);
-      if (!challenge) return json({ error: "Passkey registration challenge expired. Try again." }, 401, cors);
-      await env.SESSIONS.delete(challengeKey);
       let body;
       try { body = await request.json(); } catch { return json({ error: "Expected JSON body." }, 400, cors); }
+      const challenge = typeof body?.challenge === "string" ? body.challenge : "";
+      if (!challenge) return json({ error: "Passkey registration challenge is missing. Try again." }, 400, cors);
+      const sessionHash = await sha256Hex(sessionToken);
+      if (!(await consumeWebAuthnChallenge(env, challenge, "register", sessionHash))) return json({ error: "Passkey registration challenge expired or already used. Try again." }, 401, cors);
       try {
         const origin = request.headers.get("origin") || new URL(request.url).origin;
         const credential = await verifyRegistration(body, challenge, origin, new URL(origin).hostname);
