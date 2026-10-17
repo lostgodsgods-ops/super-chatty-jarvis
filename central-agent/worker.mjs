@@ -31,7 +31,7 @@ async function fetchTavilyWithRetry(query, env) {
       response = await fetch(endpoint, {
         method: "POST",
         headers: { authorization: "Bearer " + env.SEARCH_API_KEY, "content-type": "application/json", accept: "application/json" },
-        body: JSON.stringify({ query: buildTavilyQuery(query) || query.slice(0, 400), search_depth: "advanced", max_results: 8, include_answer: false, include_raw_content: false }),
+        body: JSON.stringify({ query: buildTavilyQuery(query) || query.slice(0, 400), search_depth: "basic", max_results: 5, include_answer: false, include_raw_content: false }),
         signal: AbortSignal.timeout(8000)
       });
     } catch {
@@ -1104,7 +1104,7 @@ export default {
           },
           body: JSON.stringify({
             query: buildTavilyQuery(query) || query,
-            search_depth: "advanced",
+            search_depth: searchDepth,
             max_results: 8,
             include_answer: false,
             include_raw_content: false
