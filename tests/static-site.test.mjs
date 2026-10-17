@@ -206,7 +206,9 @@ test("owner gate prevents health checks and SSE from starting before session ver
   assert.match(jarvisHtml, /async function checkHealth\(\)\s*\{\s*if\s*\(!state\.ownerToken\)/);
   assert.match(jarvisHtml, /async function connect\(\)\s*\{\s*if\s*\(!state\.ownerToken\)/);
   assert.match(jarvisHtml, /function connectEvents\(\)\s*\{\s*if\s*\(!state\.ownerToken\)/);
-  assert.match(jarvisHtml, /await checkHealth\(\);\s*await restoreConversationMemory\(\);/);
+  assert.match(jarvisHtml, /const optionalSteps = \[/);
+  assert.match(jarvisHtml, /\["health check", \(\) => checkHealth\(\)\]/);
+  assert.match(jarvisHtml, /\["conversation memory restore", \(\) => restoreConversationMemory\(\)\]/);
   assert.match(jarvisHtml, /async function resumeOwnerSession\(\)[\s\S]*?session\.authenticated !== true[\s\S]*?return;[\s\S]*?await checkHealth\(\);/);
   assert.match(jarvisHtml, /Owner session required\. Backend health, telemetry, and event streams remain disabled until verified\./);
 });
