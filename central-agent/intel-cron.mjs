@@ -77,7 +77,7 @@ export async function runIntelCycle(env = {}, options = {}) {
   let sessionLedger = { available: false, activeSessionCount: null };
   try {
     const row = await env.DB.prepare("SELECT COUNT(*) AS activeSessionCount FROM owner_sessions WHERE status = ? AND expires_at > ?")
-      .bind("active", Math.floor(Date.parse(now) / 1000)).first();
+      .bind("active", Date.parse(now)).first();
     sessionLedger = { available: true, activeSessionCount: Number(row?.activeSessionCount) || 0 };
   } catch {
     sessionLedger = { available: false, activeSessionCount: null };

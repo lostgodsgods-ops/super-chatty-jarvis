@@ -77,10 +77,12 @@ test("intel cron uses fixed repository endpoint and writes proposal-only telemet
 
 test("intel cron reads aggregate D1 sessions and hashes allowlisted API JSON without storing values", async () => {
   const writes = [];
+  const queries = [];
   const db = {
     prepare(sql) {
       return {
         bind(...values) {
+          queries.push({ sql, values });
           return {
             first: async () => ({ activeSessionCount: 7 }),
             run: async () => { writes.push({ sql, values }); return { success: true }; }
@@ -105,6 +107,10 @@ test("intel cron reads aggregate D1 sessions and hashes allowlisted API JSON wit
     now: "2026-10-17T00:00:00.000Z"
   });
   assert.equal(result.telemetry.d1SessionLedger.activeSessionCount, 7);
+  const ledgerQuery = queries.find(query => /FROM owner_sessions/.test(query.sql));
+  assert.ok(ledgerQuery, "session ledger query should execute");
+  assert.equal(ledgerQuery.values[0], "active");
+  assert.equal(ledgerQuery.values[1], Date.parse("2026-10-17T00:00:00.000Z"));
   assert.equal(result.telemetry.approvedApiEndpoints[0].ok, true);
   assert.deepEqual(result.telemetry.approvedApiEndpoints[0].topLevelKeys, ["service", "privateDetail"]);
   assert.equal(JSON.stringify(result.telemetry.approvedApiEndpoints).includes("must-not-be-stored"), false);
