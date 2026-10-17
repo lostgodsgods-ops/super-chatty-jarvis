@@ -7,7 +7,7 @@
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="application-version" content="NEXUS-2026.10.17-PWA4">
+  <meta name="application-version" content="NEXUS-2026.10.17-PWA5">
   <meta name="description" content="Super Chatty Jarvis — voice-first AI command interface.">
   <meta name="color-scheme" content="dark">
   <title>Super Chatty Jarvis · Neural Console</title>
@@ -61,10 +61,27 @@
 @media(max-width:760px){.agent-army{grid-template-columns:1fr}.agent-hud{padding:15px}.agent-hud-head{align-items:center}}
 @media(prefers-reduced-motion:reduce){#coreWrap[data-reactor-state] .ring{animation-duration:.01ms!important}}
 
+
+/* First-screen PWA install affordance. The browser owns the native install dialog. */
+.install-banner{position:relative;z-index:12;width:min(1440px,calc(100% - 20px));margin:10px auto 0;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 14px;border:1px solid #53e8ff9c;border-radius:15px;background:linear-gradient(110deg,rgba(5,28,42,.98),rgba(7,17,29,.97));box-shadow:0 0 30px #53e8ff18,0 12px 34px #0006}
+.install-copy{flex:1;min-width:0}.install-copy strong{display:block;color:var(--cyan2);font-size:12px;letter-spacing:.1em}.install-copy span{display:block;color:var(--muted);font-size:11px;margin-top:3px}
+.install-app-btn{flex:0 0 auto;min-height:44px;border:1px solid #d0fbff;border-radius:11px;padding:11px 15px;background:linear-gradient(135deg,#c7fbff,#39cce8);color:#03131d;font-size:11px;font-weight:950;letter-spacing:.04em;box-shadow:0 0 22px #53e8ff28}
+.install-dismiss{flex:0 0 auto;min-width:34px;min-height:34px;border:1px solid #ffffff22;border-radius:9px;background:#ffffff06;color:var(--muted);font-size:18px}
+.install-banner[hidden]{display:none!important}
+@media(max-width:520px){.install-banner{align-items:stretch;flex-wrap:wrap;gap:9px;padding:11px}.install-copy{flex-basis:calc(100% - 2px)}.install-app-btn{flex:1}.install-dismiss{min-width:42px}}
+
 </style>
 </head>
 <body>
   <canvas id="particleMesh" aria-hidden="true"></canvas>
+  <section class="install-banner" id="installBanner" role="region" aria-label="Install Super Chatty Jarvis">
+    <div class="install-copy">
+      <strong>INSTALL SUPER CHATTY JARVIS</strong>
+      <span id="installHint">Install for a dedicated app window. Chrome controls when its native install prompt is available.</span>
+    </div>
+    <button class="install-app-btn" id="installAppBtn" type="button" aria-describedby="installHint">INSTALL APP NOW</button>
+    <button class="install-dismiss" id="installDismissBtn" type="button" aria-label="Dismiss install banner">×</button>
+  </section>
   <main class="shell">
     <header class="topbar">
       <div class="brand"><div class="brandmark" aria-hidden="true">✦</div><div class="brandname">SUPER <span>CHATTY</span> / JARVIS</div></div>
@@ -219,6 +236,54 @@
   <script>
   (() => {
     "use strict";
+    // beforeinstallprompt is browser-controlled; show the native dialog only from a real tap.
+    let deferredInstallPrompt = null;
+    const installBanner = document.getElementById("installBanner");
+    const installButton = document.getElementById("installAppBtn");
+    const installHint = document.getElementById("installHint");
+    const installDismiss = document.getElementById("installDismissBtn");
+    const isStandalone = () => window.matchMedia("(display-mode: standalone)").matches || window.navigator.standalone === true;
+    if (installBanner && isStandalone()) installBanner.hidden = true;
+    window.addEventListener("beforeinstallprompt", (event) => {
+      if (isStandalone() || !installBanner || !installButton) return;
+      event.preventDefault();
+      deferredInstallPrompt = event;
+      installBanner.hidden = false;
+      installBanner.dataset.installState = "ready";
+      installHint.textContent = "Ready to install. Tap the button to open Chrome's native install dialog.";
+      installButton.setAttribute("aria-label", "Open native install dialog for Super Chatty Jarvis");
+    });
+    if (installButton) installButton.addEventListener("click", async () => {
+      if (isStandalone()) {
+        if (installBanner) installBanner.hidden = true;
+        return;
+      }
+      if (!deferredInstallPrompt) {
+        if (installHint) installHint.textContent = "Native install prompt is unavailable in this browser right now. In Chrome, open ⋮ and choose Install app or Add to Home screen.";
+        return;
+      }
+      const installEvent = deferredInstallPrompt;
+      deferredInstallPrompt = null;
+      try {
+        await installEvent.prompt();
+        const choice = await installEvent.userChoice;
+        if (choice && choice.outcome === "accepted") {
+          installHint.textContent = "Install accepted. Finish any confirmation shown by Chrome.";
+          installBanner.dataset.installState = "accepted";
+        } else {
+          installHint.textContent = "Install cancelled. You can tap INSTALL APP NOW to try again if Chrome offers the prompt.";
+          installBanner.dataset.installState = "dismissed";
+        }
+      } catch (error) {
+        installHint.textContent = "Chrome could not open the native install dialog. Use Chrome's ⋮ menu and choose Install app or Add to Home screen.";
+        installBanner.dataset.installState = "unavailable";
+      }
+    });
+    if (installDismiss) installDismiss.addEventListener("click", () => { if (installBanner) installBanner.hidden = true; });
+    window.addEventListener("appinstalled", () => {
+      deferredInstallPrompt = null;
+      if (installBanner) installBanner.hidden = true;
+    });
     const $ = (id) => document.getElementById(id);
     const els = {
       workerStatus:$("workerStatus"), pipelineStatus:$("pipelineStatus"), core:$("core"), coreState:$("coreState"),
