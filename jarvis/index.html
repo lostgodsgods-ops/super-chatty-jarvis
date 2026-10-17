@@ -601,6 +601,7 @@
                 let payload = dataLine;
                 try { payload = JSON.parse(dataLine); } catch {}
                 const eventName = eventLine.slice(6).trim();
+                updateAgentHud(eventName, dataLine, "");
                 if (eventName === "status" && payload && typeof payload === "object") {
                   const healthy = payload.status === "healthy";
                   status(els.pipelineStatus, healthy ? "SENTINEL: HEALTHY" : "SENTINEL: DEGRADED", healthy ? "ok" : "warn");
