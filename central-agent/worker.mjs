@@ -16,6 +16,8 @@ import { spawnAgents, listAgentDefinitions, listRecentAgentRuns } from "./agent-
 import { guardRequest } from "./edge-guard.mjs";
 import { runSentinelCycle, getSentinelStatus } from "./sentinel.mjs";
 import { publishEvent, listModules, eventStreamResponse } from "./event-bus.mjs";
+import { runIntelCycle } from "./intel-cron.mjs";
+import { handleCapabilityIngest } from "./architecture/capability-api.mjs";
 import { ingestCapabilitySpec, CapabilityIngestionError } from "./architecture/capability-ingestion.mjs";
 import { runIntelCycle } from "./intel-cron.mjs";
 
@@ -1059,6 +1061,10 @@ export default {
       }
     }
 
+    if (url.pathname === "/api/capabilities/ingest") {
+      return handleCapabilityIngest(request, env);
+    }
+
     if (url.pathname === "/api/chat" && request.method === "POST") {
       if (!(await authorized(request, env))) return json({ error: "Owner session required." }, 401, cors);
       let body;
@@ -1602,6 +1608,12 @@ export default {
         await publishEvent(env, { type: intel.ok ? "intel.cycle.completed" : "intel.cycle.degraded", source: "intel-cron", payload: { ok: intel.ok === true, status: intel.status, upgradeExecution: false } });
       }
       const sentinel = await runSentinelCycle(env);
+      let intel = { ok: false, status: "disabled", upgradeExecution: false };
+      if (String(env.INTEL_CRON_ENABLED || "").toLowerCase() === "true") {
+        try { intel = await runIntelCycle(env); }
+        catch { intel = { ok: false, status: "degraded", error: "INTEL_CYCLE_FAILED", upgradeExecution: false }; }
+      }
+      await publishEvent(env, { type: intel.ok ? "intel.completed" : "intel.degraded", source: "intel-cron", payload: { ok: intel.ok === true, status: intel.status || "degraded", upgradeExecution: false } });
       await publishEvent(env, { type: sentinel.ok ? "sentinel.completed" : "sentinel.degraded", source: "sentinel-cron", payload: { ok: sentinel.ok === true, status: sentinel.status || (sentinel.ok ? "healthy" : "degraded") } });
       const recovery = await recoverStaleKnowledgeTasks(env, 20);
       const processing = await processApprovedKnowledgeTasks(env, 3);
