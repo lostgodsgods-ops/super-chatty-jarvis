@@ -203,7 +203,6 @@ test("one-click install button invokes the native prompt only after browser elig
 
 
 test("PWA install assets and standalone metadata are internally consistent", () => {
-  const manifest = manifest;
   assert.equal(manifest.display, "standalone");
   assert.deepEqual(manifest.display_override, ["standalone"]);
   assert.ok(manifest.icons.some((icon) => icon.src === "./icon-192.png" && icon.sizes === "192x192" && icon.type === "image/png"));
