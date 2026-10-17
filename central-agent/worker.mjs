@@ -748,8 +748,12 @@ export default {
 
     const gatewayChatRoute = request.method === "POST" && (url.pathname === "/chat" || url.pathname === "/internal/chat");
     const memoryBridgeRoute = url.pathname === "/api/memory";
-    if (!gatewayChatRoute && !memoryBridgeRoute && (!env.DB || !env.SESSIONS)) return json({ error: "Owner authentication storage is not configured." }, 503, cors);
-    if (!gatewayChatRoute && !memoryBridgeRoute && !(await authorized(request, env))) {
+    // Logout is deliberately idempotent: startup/background cleanup may have no token,
+    // an expired token, or unavailable session storage. It only deletes the supplied
+    // token's hash and always clears the cookie; it never grants access to protected routes.
+    const logoutRoute = url.pathname === "/auth/logout" && request.method === "POST";
+    if (!gatewayChatRoute && !memoryBridgeRoute && !logoutRoute && (!env.DB || !env.SESSIONS)) return json({ error: "Owner authentication storage is not configured." }, 503, cors);
+    if (!gatewayChatRoute && !memoryBridgeRoute && !logoutRoute && !(await authorized(request, env))) {
       await publishEvent(env, { type: "security.auth.denied", source: "owner-auth", payload: { path: url.pathname, method: request.method } });
       return json({ error: "Unauthorized. Sign in with your Owner password." }, 401, cors);
     }
