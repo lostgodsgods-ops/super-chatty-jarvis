@@ -52,7 +52,8 @@ test("Red Queen status exposes only declared simulation capabilities to an authe
   const response = await worker.fetch(new Request("https://example.test/api/red-queen/status", {
     headers: { authorization: "Bearer test-owner-session" }
   }), {
-    SESSIONS: { get: async () => "active" }
+    DB: { prepare() { return { bind() { return this; }, first: async () => null, run: async () => ({ meta: { last_row_id: 7 } }) }; } },
+    SESSIONS: { get: async () => "active", put: async () => {} }
   });
   assert.equal(response.status, 200);
   const body = await response.json();
