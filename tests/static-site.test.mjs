@@ -150,8 +150,8 @@ test("owner session locks on reload/background and never auto-restores from a co
   assert.ok(jarvisHtml.includes("lockOwnerOnBackground"));
   assert.ok(jarvisHtml.includes("resumeOwnerSession();"));
   assert.ok(jarvisHtml.includes('token === "cookie-session" ? {} : { authorization:'));
-  assert.doesNotMatch(jarvisHtml, /localStorage\\.setItem\\([^\\n]*(?:token|session)/i);
-  assert.doesNotMatch(jarvisHtml, /sessionStorage\\.setItem\\([^\\n]*(?:token|session)/i);
+  assert.equal(jarvisHtml.includes("localStorage.setItem"), false);
+  assert.equal(jarvisHtml.includes("sessionStorage.setItem"), false);
 });
 
 test("PWA exposes real WebAuthn passkey sign-in and authenticated registration controls", () => {
