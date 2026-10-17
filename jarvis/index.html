@@ -4,7 +4,10 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#08090d">
-  <meta name="application-version" content="NEXUS-2026.10.17">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="application-version" content="NEXUS-2026.10.17-PWA4">
   <meta name="description" content="Super Chatty Jarvis — voice-first AI command interface.">
   <meta name="color-scheme" content="dark">
   <title>Super Chatty Jarvis · Neural Console</title>
@@ -257,6 +260,11 @@
       catch { return null; }
     }
     async function checkHealth() {
+      if (!state.ownerToken) {
+        status(els.workerStatus,"CF: LOCKED","warn");
+        els.connectState.textContent = "Owner sign-in required. Health checks are disabled until the session is verified.";
+        return false;
+      }
       const url = safeUrl(els.workerUrl.value.trim());
       if (!url) { status(els.workerStatus,"CF: INVALID URL","bad"); els.connectState.textContent="Enter a valid HTTPS health URL."; return false; }
       status(els.workerStatus,"CF: CHECKING","warn");
@@ -403,6 +411,7 @@
         status(els.researchSearchStatus, "SESSION RESTORED", "ok");
         setOwnerStatus("Owner session restored securely from the HttpOnly cookie. No token is exposed to page JavaScript.", "ok");
         log("Owner session resumed after reload using the secure session cookie.", "good", "SECURITY");
+        await checkHealth();
         await restoreConversationMemory();
         await refreshTelemetry();
         clearInterval(state.telemetryTimer);
@@ -436,6 +445,7 @@
       status(els.ownerBadge,"OWNER VERIFIED","ok");
       status(els.researchSearchStatus,"SESSION VERIFIED","ok");
       setOwnerStatus("Owner session verified with " + methodLabel + ". Register a device passkey for future sign-ins.", "ok");
+      await checkHealth();
       await restoreConversationMemory();
       await refreshTelemetry();
       clearInterval(state.telemetryTimer);
@@ -591,6 +601,7 @@
                 let payload = dataLine;
                 try { payload = JSON.parse(dataLine); } catch {}
                 const eventName = eventLine.slice(6).trim();
+                updateAgentHud(eventName, dataLine, "");
                 if (eventName === "status" && payload && typeof payload === "object") {
                   const healthy = payload.status === "healthy";
                   status(els.pipelineStatus, healthy ? "SENTINEL: HEALTHY" : "SENTINEL: DEGRADED", healthy ? "ok" : "warn");
@@ -697,51 +708,19 @@
 
 
     function connectEvents() {
-      disconnectEvents();
-      const raw = els.eventsUrl.value.trim();
-      if (!raw) {
-        els.streamStatus.textContent = "SSE endpoint not configured";
-        log("No SSE endpoint configured. Terminal shows local UI and health-check events only.","warn","STREAM");
-        toast("Add a real SSE endpoint to enable backend logs.");
+      if (!state.ownerToken) {
+        disconnectEvents();
+        els.streamStatus.textContent = "Owner sign-in required; event stream locked.";
+        log("SSE startup blocked until owner session verification.","warn","SECURITY");
         return;
       }
-      const url = safeUrl(raw);
-      if (!url) { log("SSE URL rejected: HTTPS is required.","error","STREAM"); toast("Use a valid HTTPS SSE URL."); return; }
-      if (!("EventSource" in window)) { log("This browser does not support EventSource.","error","STREAM"); return; }
-      try {
-        state.events = new EventSource(url.href, {withCredentials:false});
-        els.streamStatus.textContent = "Connecting to SSE…";
-        state.events.onopen = () => {
-          state.connected = true; els.streamStatus.textContent = "Live SSE connected";
-          status(els.pipelineStatus,"EVENTS: LIVE","ok"); log("Connected to configured SSE endpoint.","good","STREAM");
-        };
-        state.events.onmessage = (event) => {
-          let payload = event.data;
-          try {
-            const parsed = JSON.parse(event.data);
-            if (parsed && typeof parsed === "object") payload = parsed.message || parsed.log || parsed.event || JSON.stringify(parsed);
-          } catch {}
-          log(payload,"info","BACKEND");
-          updateAgentHud("message", event.data, event.lastEventId);
-        };
-
-        ["log","deploy","ci","status","commit","deployment","search","tavily","tavily.result","research","scrape","agent.status","agent.started","agent.executing","agent.execution.started","agent.execution.completed","task.started","task.enqueued","task.executing","task.completed","task.failed","security","security.alert","security.request.denied","security.auth.denied","health","heartbeat","sentinel.status","sentinel.completed","sentinel.degraded","scheduler.cycle.completed","reactor.state","system.state","audit","error","alert","bus.degraded"].forEach((name) => state.events.addEventListener(name, (event) => {
-          let payload = event.data;
-          try { const parsed = JSON.parse(event.data); payload = parsed.message || parsed.log || parsed.status || JSON.stringify(parsed); } catch {}
-          log(payload, name === "deploy" ? "good" : "info", name.toUpperCase());
-          updateAgentHud(name, event.data, event.lastEventId);
-        }));
-        state.events.onerror = () => {
-          state.connected = false; els.streamStatus.textContent = "SSE reconnecting / unavailable";
-          status(els.pipelineStatus,"EVENTS: RECONNECTING","warn");
-        };
-      } catch (err) {
-        log("Unable to open SSE: " + err.message,"error","STREAM");
-      }
+      connectSentinelEvents();
     }
     async function connect() {
-      await checkHealth();
-      connectEvents();
+      if (!state.ownerToken) { toast("Sign in with the owner password or passkey before connecting."); return; }
+      const healthy = await checkHealth();
+      if (!healthy) return;
+      connectSentinelEvents();
       clearInterval(state.healthTimer);
       state.healthTimer = setInterval(checkHealth, 30000);
     }
@@ -1015,7 +994,7 @@
           if (registration.waiting) registration.waiting.postMessage({ type: "SKIP_WAITING" });
           const checkForPwaUpdate = () => registration.update().catch(() => {});
           checkForPwaUpdate();
-          setInterval(checkForPwaUpdate, 5 * 60 * 1000);
+          setInterval(checkForPwaUpdate, 60 * 1000);
           document.addEventListener("visibilitychange", () => {
             if (document.visibilityState === "visible") checkForPwaUpdate();
           });
@@ -1026,8 +1005,10 @@
     setInterval(elapsed,1000); elapsed();
     log("Console initialized. UI events are local; backend telemetry is unverified until SSE connects.","good","BOOT");
     log("Voice command execution is disabled until a secured command API is configured.","warn","SECURITY");
-    checkHealth();
-    connectEvents();
+    status(els.ownerBadge,"LOCKED","warn");
+    status(els.researchSearchStatus,"OWNER SESSION REQUIRED","warn");
+    setOwnerStatus("Owner session required. Backend health, telemetry, and event streams remain disabled until verified.","warn");
+    addFeedItem(els.researchFeed,"Telemetry locked","Sign in with the owner password or registered passkey to initialize protected services.","info");
     resumeOwnerSession();
   })();
   </script>

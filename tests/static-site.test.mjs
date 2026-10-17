@@ -6,6 +6,7 @@ import vm from "node:vm";
 const html = await readFile(new URL("../index.html", import.meta.url), "utf8");
 const jarvisHtml = await readFile(new URL("../jarvis/index.html", import.meta.url), "utf8");
 const serviceWorker = await readFile(new URL("../jarvis/sw.js", import.meta.url), "utf8");
+const manifest = JSON.parse(await readFile(new URL("../jarvis/manifest.webmanifest", import.meta.url), "utf8"));
 const centralWorker = await readFile(new URL("../central-agent/worker.mjs", import.meta.url), "utf8");
 const readme = await readFile(new URL("../README_HI.txt", import.meta.url), "utf8");
 const agentBrief = await readFile(new URL("../AI_AGENT_PROMPT.md", import.meta.url), "utf8");
@@ -92,20 +93,21 @@ test("NEXUS agent HUD is live-wired to the production SSE event bus", () => {
     assert.ok(jarvisHtml.includes(text), "missing agent HUD feature: " + text);
   }
   assert.ok(jarvisHtml.includes('id="eventsUrl"') && jarvisHtml.includes('value="https://shrill-silence-164f.lostgodsgods.workers.dev/api/events"'), "SSE URL should default to the production endpoint");
-  assert.match(jarvisHtml, /connectEvents\(\);\s*resumeOwnerSession\(\);\s*\}\)\(\);/, "SSE and cookie-session restoration must initialize");
-  assert.match(jarvisHtml, /updateAgentHud\("message", event\.data, event\.lastEventId\)/);
-  assert.match(jarvisHtml, /security\.request\.denied/);
+  assert.match(jarvisHtml, /resumeOwnerSession\(\);\s*\}\)\(\);/, "session restore must run at startup");
+  assert.doesNotMatch(jarvisHtml, /checkHealth\(\);\s*connectEvents\(\);\s*resumeOwnerSession\(\);/, "health checks and SSE must not start before owner session verification");
+  assert.match(jarvisHtml, /updateAgentHud\(eventName, dataLine, ""\)/, "authenticated SSE events must update the agent HUD");
+  assert.match(centralWorker, /security\.request\.denied/);
   assert.match(jarvisHtml, /parsed\.payload && typeof parsed\.payload==="object"/);
 });
 
 
 test("installed PWA force-updates stale shells and revalidates HTML assets", () => {
-  assert.match(serviceWorker, /CACHE_NAME\s*=\s*"super-chatty-jarvis-shell-v3"/, "shell cache must be version-bumped");
+  assert.match(serviceWorker, /CACHE_NAME\s*=\s*"super-chatty-jarvis-shell-v4"/, "shell cache must be version-bumped");
   assert.match(serviceWorker, /self\.skipWaiting\(\)/, "new worker must activate without waiting for an old tab to close");
   assert.match(serviceWorker, /self\.clients\.claim\(\)/, "new worker must claim open PWA clients");
   assert.match(serviceWorker, /key !== CACHE_NAME.*caches\.delete\(key\)/s, "activation must delete older Super Chatty shell caches");
   assert.match(serviceWorker, /new Request\(request,\s*\{\s*cache:\s*"no-store"\s*\}\)/, "navigation must bypass stale browser HTTP cache");
-  assert.match(jarvisHtml, /application-version" content="NEXUS-2026\.10\.17"/, "frontend version must be bumped");
+  assert.match(jarvisHtml, /application-version" content="NEXUS-2026\.10\.17-PWA4"/, "frontend version must be bumped");
   assert.match(jarvisHtml, /registration\.update\(\)/, "PWA must check for worker updates");
   assert.match(jarvisHtml, /controllerchange/, "active sessions must detect the new worker controller");
   assert.match(jarvisHtml, /location\.reload\(\)/, "active sessions must reload after a worker update");
@@ -158,4 +160,26 @@ test("PWA exposes real WebAuthn passkey sign-in and authenticated registration c
   assert.match(jarvisHtml, /ownerPasskeyLogin/);
   assert.match(jarvisHtml, /ownerPasskeyRegister/);
   assert.match(jarvisHtml, /ownerSetupOpen/);
+});
+
+
+test("standalone install metadata advertises app-window behavior and a branded launch surface", () => {
+  assert.equal(manifest.display, "standalone");
+  assert.deepEqual(manifest.display_override, ["standalone", "minimal-ui"]);
+  assert.equal(manifest.start_url, "./");
+  assert.equal(manifest.scope, "./");
+  assert.equal(manifest.background_color, "#08090d");
+  assert.equal(manifest.theme_color, "#08090d");
+  assert.ok(manifest.icons.some(icon => icon.src === "./icon.svg" && icon.purpose.includes("maskable")));
+  assert.match(jarvisHtml, /name="mobile-web-app-capable" content="yes"/);
+  assert.match(jarvisHtml, /name="apple-mobile-web-app-capable" content="yes"/);
+});
+
+test("owner gate prevents health checks and SSE from starting before session verification", () => {
+  assert.match(jarvisHtml, /async function checkHealth\(\)\s*\{\s*if\s*\(!state\.ownerToken\)/);
+  assert.match(jarvisHtml, /async function connect\(\)\s*\{\s*if\s*\(!state\.ownerToken\)/);
+  assert.match(jarvisHtml, /function connectEvents\(\)\s*\{\s*if\s*\(!state\.ownerToken\)/);
+  assert.match(jarvisHtml, /await checkHealth\(\);\s*await restoreConversationMemory\(\);/);
+  assert.match(jarvisHtml, /async function resumeOwnerSession\(\)[\s\S]*?session\.authenticated !== true[\s\S]*?return;[\s\S]*?await checkHealth\(\);/);
+  assert.match(jarvisHtml, /Owner session required\. Backend health, telemetry, and event streams remain disabled until verified\./);
 });

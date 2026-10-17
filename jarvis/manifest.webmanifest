@@ -2,14 +2,31 @@
   "id": "./",
   "name": "Super Chatty Jarvis",
   "short_name": "Chatty Jarvis",
-  "description": "Voice-first AI command interface.",
+  "description": "Owner-secured voice-first AI command interface.",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
+  "display_override": [
+    "standalone",
+    "minimal-ui"
+  ],
   "orientation": "portrait",
   "background_color": "#08090d",
   "theme_color": "#08090d",
+  "prefer_related_applications": false,
+  "launch_handler": {
+    "client_mode": "navigate-existing"
+  },
+  "categories": [
+    "productivity",
+    "utilities"
+  ],
   "icons": [
-    { "src": "./icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
+    {
+      "src": "./icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
   ]
 }
