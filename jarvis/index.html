@@ -1002,6 +1002,10 @@ body{background:radial-gradient(ellipse at 50% 38%,#50330f45 0,transparent 35%),
     function speechLanguage() {
       return /[\\u0900-\\u097F]/.test(els.commandInput.value || "") ? "hi-IN" : "en-IN";
     }
+    function interruptSpeechOutput() {
+      if ("speechSynthesis" in window) window.speechSynthesis.cancel();
+      state.speaking = false;
+    }
     function speakText(text, onEnd) {
       if (!("speechSynthesis" in window) || typeof SpeechSynthesisUtterance === "undefined") {
         if (typeof onEnd === "function") onEnd();
@@ -1062,9 +1066,12 @@ body{background:radial-gradient(ellipse at 50% 38%,#50330f45 0,transparent 35%),
       const Recognition = speechApi();
       if (!Recognition) { stopHandsFree("Speech recognition is unavailable."); return; }
       const recognition = new Recognition();
-      recognition.lang = "en-IN"; recognition.continuous = false; recognition.interimResults = false; recognition.maxAlternatives = 1;
+      recognition.lang = "en-IN"; recognition.continuous = false; recognition.interimResults = true; recognition.maxAlternatives = 1;
       state.recognition = recognition;
       recognition.onstart = () => {
+        // Barge-in: once the microphone starts, immediately stop spoken output.
+        if ("speechSynthesis" in window) window.speechSynthesis.cancel();
+        state.speaking = false;
         state.listening = true; els.handsFreeBtn.classList.add("listening"); els.micMetric.textContent = "LIVE";
         els.voiceLabel.textContent = "LISTENING · LOSS GODS"; setCoreState("Hands-free listening · speak naturally");
         els.privacyNote.textContent = "Microphone active. Audio recognition may be processed by your browser provider.";
