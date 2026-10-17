@@ -590,27 +590,12 @@ export default {
 
       let providerResponse;
       try {
-        providerResponse = await fetch("https://api.tavily.com/search", {
-          method: "POST",
-          headers: {
-            authorization: "Bearer " + env.SEARCH_API_KEY,
-            "content-type": "application/json",
-            accept: "application/json"
-          },
-          body: JSON.stringify({
-            query,
-            search_depth: "basic",
-            max_results: 5,
-            include_answer: false,
-            include_raw_content: false
-          }),
-          signal: AbortSignal.timeout(8000)
-        });
+        providerResponse = await fetchTavilyWithRetry(query, env);
       } catch (error) {
         console.warn("internal_search_provider_network_error", {
           errorName: typeof error?.name === "string" ? error.name : "Error"
         });
-        return json({ error: "Live search provider could not be reached.", code: "SEARCH_PROVIDER_NETWORK_ERROR" }, 502, cors);
+        return json({ error: "Live search provider could not be reached after bounded retries.", code: "SEARCH_PROVIDER_NETWORK_ERROR" }, 502, cors);
       }
       if (!providerResponse.ok) {
         console.warn("internal_search_provider_http_error", { status: providerResponse.status });
