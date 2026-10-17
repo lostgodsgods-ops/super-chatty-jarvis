@@ -9,24 +9,30 @@ import worker, { parseSetupToken, PASSWORD_ITERATIONS } from "./worker.mjs";
 import { base64url, fromBase64url } from "./webauthn.mjs";
 
 class FakeKV {
-  constructor() { this.values = new Map(); this.failSessionWritesOnly = false; }
+  constructor() { this.values = new Map(); this.failSessionWritesOnly = false; this.failWebAuthnWrites = false; }
   async get(key) { return this.values.get(key) ?? null; }
-  async put(key, value) { if (this.failSessionWritesOnly && key.startsWith("session:")) throw new Error("KV daily write quota exhausted"); this.values.set(key, value); }
+  async put(key, value) { if ((this.failSessionWritesOnly && key.startsWith("session:")) || (this.failWebAuthnWrites && key.startsWith("webauthn:"))) throw new Error("KV daily write quota exhausted"); this.values.set(key, value); }
   async delete(key) { this.values.delete(key); }
   async list({ prefix = "" } = {}) {
     return { keys: [...this.values.keys()].filter(name => name.startsWith(prefix)).map(name => ({ name })) };
   }
 }
 class FakeDB {
-  constructor() { this.row = null; this.passkeys = []; this.sessions = new Map(); }
+  constructor() { this.row = null; this.passkeys = []; this.sessions = new Map(); this.webauthnChallenges = new Map(); this.recoveryCodes = new Map(); this.identity = null; }
+  async batch(statements) { const snapshot = new Map(this.recoveryCodes); try { const results = []; for (const statement of statements) results.push(await statement.run()); return results; } catch (error) { this.recoveryCodes = snapshot; throw error; } }
   prepare(sql) {
     const db = this;
     const statement = {
       params: [],
       bind(...params) { this.params = params; return this; },
       async first() {
+        if (sql.includes("SELECT owner_key, display_name FROM owner_identity")) return db.identity;
         if (sql.includes("SELECT salt")) return db.row ? { salt: db.row.salt, password_hash: db.row.password_hash } : null;
         if (sql.includes("SELECT status, expires_at FROM owner_sessions")) return db.sessions.get(this.params[0]) || null;
+        if (sql.includes("SELECT challenge FROM owner_webauthn_challenges")) return [...db.webauthnChallenges.values()].find(row => row.session_hash === this.params[0] && row.purpose === this.params[1] && row.expires_at > this.params[2]) || null;
+        if (sql.includes("DELETE FROM owner_webauthn_challenges") && sql.includes("RETURNING")) { const row = db.webauthnChallenges.get(this.params[0]); if (!row || row.purpose !== this.params[1] || row.expires_at <= this.params[2] || row.session_hash !== this.params[3]) return null; db.webauthnChallenges.delete(this.params[0]); return { challenge: row.challenge }; }
+        if (sql.includes("UPDATE owner_recovery_codes") && sql.includes("RETURNING")) { const row = db.recoveryCodes.get(this.params[1]); if (!row || row.used_at !== null) return null; row.used_at = this.params[0]; return { code_hash: this.params[1] }; }
+        if (sql.includes("SELECT code_hash FROM owner_recovery_codes")) { const row = db.recoveryCodes.get(this.params[0]); return row && row.used_at === null ? { code_hash: this.params[0] } : null; }
         return null;
       },
       async all() {
@@ -36,6 +42,7 @@ class FakeDB {
         return { results: [] };
       },
       async run() {
+        if (sql.includes("INSERT OR IGNORE INTO owner_identity")) { if (!db.identity) db.identity = { owner_key: this.params[0], display_name: this.params[1] }; return { meta: { changes: 1 } }; }
         if (sql.includes("INSERT INTO owner_credentials")) {
           if (db.row) return { meta: { changes: 0 } };
           db.row = { id: 1, salt: this.params[0], password_hash: this.params[1], created_at: this.params[2] };
@@ -47,6 +54,10 @@ class FakeDB {
           db.row.password_hash = this.params[1];
           return { meta: { changes: 1 } };
         }
+        if (sql.includes("INSERT INTO owner_recovery_codes")) { db.recoveryCodes.set(this.params[0], { code_hash: this.params[0], created_at: this.params[1], used_at: null }); return { meta: { changes: 1 } }; }
+        if (sql.includes("DELETE FROM owner_recovery_codes")) { if (sql.includes("NOT IN")) { const keep = new Set(this.params); for (const key of db.recoveryCodes.keys()) if (!keep.has(key)) db.recoveryCodes.delete(key); } else db.recoveryCodes.clear(); return { meta: { changes: 1 } }; }
+        if (sql.includes("INSERT INTO owner_webauthn_challenges")) { db.webauthnChallenges.set(this.params[0], { challenge: this.params[0], purpose: this.params[1], session_hash: this.params[2], expires_at: this.params[3] }); return { meta: { changes: 1 } }; }
+        if (sql.includes("DELETE FROM owner_webauthn_challenges")) { const found = [...db.webauthnChallenges.values()].find(row => row.challenge === this.params[0] && row.purpose === this.params[1] && row.expires_at > this.params[2] && (this.params[3] == null || row.session_hash === this.params[3])); if (found) db.webauthnChallenges.delete(found.challenge); return { meta: { changes: found ? 1 : 0 }, results: found ? [found] : [] }; }
         if (sql.includes("INSERT INTO owner_sessions")) {
           db.sessions.set(this.params[0], { token_hash: this.params[0], expires_at: this.params[1], status: sql.includes("'revoked'") ? "revoked" : "active" });
           return { meta: { changes: 1 } };
@@ -359,10 +370,10 @@ test("password, passkey, and device-biometric option routes remain independently
   const biometricOptions = await biometricResponse.json();
   assert.equal(passkeyOptions.userVerification, "required");
   assert.equal(biometricOptions.userVerification, "required");
-  assert.equal(passkeyOptions.allowCredentials[0].id, "Y3JlZGVudGlhbA");
-  assert.equal(biometricOptions.allowCredentials[0].id, "Y3JlZGVudGlhbA");
-  assert.ok([...e.SESSIONS.values.keys()].some(key => key.startsWith("webauthn:login:")));
-  assert.ok([...e.SESSIONS.values.keys()].some(key => key.startsWith("webauthn:biometric:")));
+  assert.deepEqual(passkeyOptions.allowCredentials, [], "discoverable passkeys should work across synced devices");
+  assert.deepEqual(biometricOptions.allowCredentials, [], "device verification should use discoverable credentials");
+  assert.ok([...e.DB.webauthnChallenges.values()].some(row => row.purpose === "login"));
+  assert.ok([...e.DB.webauthnChallenges.values()].some(row => row.purpose === "biometric"));
 });
 
 
@@ -435,4 +446,96 @@ test("owner chat endpoint validates empty and oversized messages and fails close
   assert.equal((await call(e, "/api/chat", { message: "x".repeat(8001) }, token)).status, 400);
   const unavailable = await call(e, "/api/chat", { message: "Hello" }, token);
   assert.equal(unavailable.status, 503);
+});
+
+
+test("passkey login challenge creation survives exhausted KV writes by using D1", async () => {
+  const e = env();
+  e.DB.passkeys = [{ credential_id: "Y3JlZGVudGlhbA" }];
+  e.SESSIONS.failWebAuthnWrites = true;
+  const response = await call(e, "/auth/passkey/login/options", {});
+  assert.equal(response.status, 200);
+  const options = await response.json();
+  assert.ok(options.challenge);
+  const row = e.DB.webauthnChallenges.get(options.challenge);
+  assert.equal(row?.purpose, "login");
+  assert.ok(row?.expires_at > Date.now());
+  assert.equal([...e.SESSIONS.values.keys()].some(key => key.startsWith("webauthn:login:")), false);
+});
+
+test("passkey registration uses the immutable Loss Gods owner label and a discoverable credential", async () => {
+  const e = env();
+  const token = await ownerToken(e);
+  e.SESSIONS.failWebAuthnWrites = true;
+  const response = await call(e, "/auth/passkey/register/options", {}, token);
+  assert.equal(response.status, 200);
+  const options = await response.json();
+  assert.equal(options.user.name, "loss-gods");
+  assert.equal(options.user.displayName, "Loss Gods");
+  assert.equal(options.authenticatorSelection.residentKey, "required");
+  assert.equal(options.authenticatorSelection.userVerification, "required");
+  const row = [...e.DB.webauthnChallenges.values()].find(item => item.purpose === "register");
+  assert.ok(row?.challenge === options.challenge);
+  assert.ok(row?.session_hash);
+});
+
+
+test("owner recovery codes are one-time, hashed in D1, and can restore a session without password or email", async () => {
+  const e = env();
+  const token = await ownerToken(e);
+  const issued = await call(e, "/auth/recovery/codes", {}, token);
+  assert.equal(issued.status, 200);
+  const payload = await issued.json();
+  assert.equal(payload.codes.length, 8);
+  assert.equal(e.DB.recoveryCodes.size, 8);
+  const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(payload.codes[0]));
+  const codeHash = [...new Uint8Array(digest)].map(byte => byte.toString(16).padStart(2, "0")).join("");
+  assert.ok(e.DB.recoveryCodes.has(codeHash), "D1 must store the hash of the issued recovery code");
+  assert.equal([...e.DB.recoveryCodes.keys()].includes(payload.codes[0]), false, "raw recovery codes must not be stored");
+  e.SESSIONS.failSessionWritesOnly = true;
+  const login = await call(e, "/auth/recovery/login", { code: payload.codes[0] });
+  assert.equal(login.status, 200, JSON.stringify(await login.clone().json()));
+  const recovered = await login.json();
+  assert.ok(recovered.token);
+  assert.equal((await call(e, "/policy", undefined, recovered.token)).status, 200);
+  const replay = await call(e, "/auth/recovery/login", { code: payload.codes[0] });
+  assert.equal(replay.status, 401);
+});
+
+test("recovery-code rotation invalidates the previous unused set", async () => {
+  const e = env();
+  const token = await ownerToken(e);
+  const first = await (await call(e, "/auth/recovery/codes", {}, token)).json();
+  const second = await (await call(e, "/auth/recovery/codes", {}, token)).json();
+  assert.equal(e.DB.recoveryCodes.size, 8);
+  assert.equal((await call(e, "/auth/recovery/login", { code: first.codes[0] })).status, 401);
+  const recovered = await call(e, "/auth/recovery/login", { code: second.codes[0] });
+  assert.equal(recovered.status, 200, JSON.stringify(await recovered.clone().json()));
+});
+
+
+test("passkey challenge creation survives exhausted KV writes", async () => {
+  const e = env();
+  e.DB.passkeys = [{ credential_id: "Y3JlZGVudGlhbA" }];
+  e.SESSIONS.failWebAuthnWrites = true;
+  const options = await call(e, "/auth/passkey/login/options", {});
+  assert.equal(options.status, 200);
+  const login = await call(e, "/auth/recovery/login", { code: "A".repeat(48) });
+  assert.notEqual(login.status, 503, "invalid codes should be rejected without requiring KV");
+});
+
+
+test("successful owner authentication seeds and validates the stable Loss Gods identity in D1", async () => {
+  const e = env();
+  await ownerToken(e);
+  assert.deepEqual(e.DB.identity, { owner_key: "loss-gods", display_name: "Loss Gods" });
+});
+
+
+test("PWA exposes one-time recovery controls without persisting recovery codes or session tokens", async () => {
+  const html = await readFile(new URL("../jarvis/index.html", import.meta.url), "utf8");
+  for (const id of ["ownerRecoveryGenerate","ownerRecoveryCodes","ownerRecoveryInput","ownerRecoveryLogin"]) assert.ok(html.includes('id="' + id + '"'));
+  assert.ok(html.includes('"/auth/recovery/login"'));
+  assert.ok(html.includes('"/auth/recovery/codes"'));
+  assert.ok(html.includes('els.ownerRecoveryCodes.textContent = "";'));
 });

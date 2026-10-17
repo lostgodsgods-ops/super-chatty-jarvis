@@ -17,6 +17,7 @@ import { runSentinelCycle, getSentinelStatus } from "./sentinel.mjs";
 import { publishEvent, listModules, eventStreamResponse } from "./event-bus.mjs";
 
 const VERSION = "1.4.0";
+const OWNER_IDENTITY = Object.freeze({ key: "loss-gods", displayName: "Loss Gods" });
 const DEFAULT_WORKERS_AI_MODEL = "@cf/meta/llama-3.1-8b-instruct-fast";
 export const PASSWORD_ITERATIONS = 100000;
 const SESSION_TTL_SECONDS = 3600;
@@ -125,7 +126,73 @@ async function ensureOwnerSessionSchema(env) {
   await env.DB.prepare("CREATE TABLE IF NOT EXISTS owner_sessions (token_hash TEXT PRIMARY KEY, status TEXT NOT NULL, expires_at INTEGER NOT NULL, created_at TEXT NOT NULL)").run();
 }
 
+async function ensureWebAuthnChallengeSchema(env) {
+  if (!env.DB || typeof env.DB.prepare !== "function") throw new Error("WEBAUTHN_D1_UNAVAILABLE");
+  await env.DB.prepare("CREATE TABLE IF NOT EXISTS owner_webauthn_challenges (challenge TEXT PRIMARY KEY, purpose TEXT NOT NULL, session_hash TEXT, expires_at INTEGER NOT NULL, created_at TEXT NOT NULL)").run();
+}
+
+async function storeWebAuthnChallenge(env, challenge, purpose, sessionHash = null) {
+  await ensureWebAuthnChallengeSchema(env);
+  const now = Date.now();
+  await env.DB.prepare("DELETE FROM owner_webauthn_challenges WHERE expires_at <= ?").bind(now).run();
+  await env.DB.prepare("INSERT INTO owner_webauthn_challenges (challenge, purpose, session_hash, expires_at, created_at) VALUES (?, ?, ?, ?, ?)")
+    .bind(challenge, purpose, sessionHash, now + 300000, new Date(now).toISOString()).run();
+}
+
+async function consumeWebAuthnChallenge(env, challenge, purpose, sessionHash = null) {
+  await ensureWebAuthnChallengeSchema(env);
+  const row = await env.DB.prepare("DELETE FROM owner_webauthn_challenges WHERE challenge = ? AND purpose = ? AND expires_at > ? AND session_hash IS ? RETURNING challenge")
+    .bind(challenge, purpose, Date.now(), sessionHash).first();
+  return row?.challenge === challenge;
+}
+
+async function ensureRecoveryCodeSchema(env) {
+  if (!env.DB || typeof env.DB.prepare !== "function") throw new Error("OWNER_RECOVERY_D1_UNAVAILABLE");
+  await env.DB.prepare("CREATE TABLE IF NOT EXISTS owner_recovery_codes (code_hash TEXT PRIMARY KEY, created_at TEXT NOT NULL, used_at TEXT)").run();
+}
+
+function normalizeRecoveryCode(value) {
+  return typeof value === "string" ? value.replace(/[\s-]/g, "").toUpperCase() : "";
+}
+
+async function issueOwnerRecoveryCodes(env) {
+  await ensureRecoveryCodeSchema(env);
+  const codes = Array.from({ length: 8 }, () => Array.from(crypto.getRandomValues(new Uint8Array(24)), byte => byte.toString(16).padStart(2, "0")).join("").toUpperCase());
+  const now = new Date().toISOString();
+  const statements = [
+    env.DB.prepare("DELETE FROM owner_recovery_codes"),
+    ...await Promise.all(codes.map(async code => env.DB.prepare("INSERT INTO owner_recovery_codes (code_hash, created_at, used_at) VALUES (?, ?, NULL)").bind(await sha256Hex(code), now)))
+  ];
+  if (typeof env.DB.batch !== "function") throw new Error("OWNER_RECOVERY_BATCH_UNAVAILABLE");
+  await env.DB.batch(statements);
+  return codes;
+}
+
+async function consumeOwnerRecoveryCode(env, code) {
+  await ensureRecoveryCodeSchema(env);
+  const normalized = normalizeRecoveryCode(code);
+  if (!/^[A-F0-9]{48}$/.test(normalized)) return false;
+  const codeHash = await sha256Hex(normalized);
+  const row = await env.DB.prepare("UPDATE owner_recovery_codes SET used_at = ? WHERE code_hash = ? AND used_at IS NULL RETURNING code_hash")
+    .bind(new Date().toISOString(), codeHash).first();
+  return row?.code_hash === codeHash;
+}
+
+async function ensureOwnerIdentity(env) {
+  if (!env.DB || typeof env.DB.prepare !== "function") throw new Error("OWNER_IDENTITY_D1_UNAVAILABLE");
+  await env.DB.prepare("CREATE TABLE IF NOT EXISTS owner_identity (id INTEGER PRIMARY KEY CHECK (id = 1), owner_key TEXT NOT NULL CHECK (owner_key = 'loss-gods'), display_name TEXT NOT NULL CHECK (display_name = 'Loss Gods'), created_at TEXT NOT NULL)").run();
+  const existing = await env.DB.prepare("SELECT owner_key, display_name FROM owner_identity WHERE id = 1").first();
+  if (existing && (existing.owner_key !== OWNER_IDENTITY.key || existing.display_name !== OWNER_IDENTITY.displayName)) {
+    throw new Error("OWNER_IDENTITY_MISMATCH");
+  }
+  if (!existing) {
+    await env.DB.prepare("INSERT OR IGNORE INTO owner_identity (id, owner_key, display_name, created_at) VALUES (1, ?, ?, ?)")
+      .bind(OWNER_IDENTITY.key, OWNER_IDENTITY.displayName, new Date().toISOString()).run();
+  }
+}
+
 async function storeOwnerSession(env, token) {
+  await ensureOwnerIdentity(env);
   const tokenHash = await sha256Hex(token);
   await ensureOwnerSessionSchema(env);
   await env.DB.prepare("INSERT INTO owner_sessions (token_hash, status, expires_at, created_at) VALUES (?, 'active', ?, ?) ON CONFLICT(token_hash) DO UPDATE SET status = 'active', expires_at = excluded.expires_at")
@@ -276,8 +343,9 @@ function ownerPage() {
 <div id="passwordPanel" class="auth-panel" role="tabpanel" aria-labelledby="passwordTab"><form id="loginForm"><label for="loginPassword">Master password (12–256 characters)</label><input id="loginPassword" type="password" minlength="12" maxlength="256" autocomplete="current-password" required><button type="submit">Sign in with password</button></form></div>
 <div id="passkeyPanel" class="auth-panel hidden" role="tabpanel" aria-labelledby="passkeyTab"><p class="hint">Uses a registered device passkey. Android/browser chooses the available verification method.</p><button id="passkeyLoginButton" type="button">Continue with passkey</button></div>
 <div id="biometricPanel" class="auth-panel hidden" role="tabpanel" aria-labelledby="biometricTab"><p class="hint">Uses a separate WebAuthn challenge. Your device may request fingerprint, face, or screen-lock PIN; this website cannot force one specific biometric.</p><button id="biometricLoginButton" type="button">Continue with device verification</button></div>
+<div id="recoveryPanel" class="auth-panel"><p class="hint">If this device is lost, use one unused recovery code saved earlier. Recovery codes do not require the old device, password, or email account.</p><label for="recoveryCodeInput">One-time recovery code</label><input id="recoveryCodeInput" type="text" inputmode="text" autocomplete="off" autocapitalize="characters" spellcheck="false" maxlength="64"><button id="recoveryLoginButton" type="button">Recover owner access</button></div>
 </section>
-<section id="settings" class="hidden"><h2>Owner security settings</h2><p class="hint">Change your password here. Active sessions are revoked after a successful change. This page keeps the session token in memory only; it does not write the password or token to browser storage.</p><button id="registerPasskeyButton" type="button">Register this device passkey</button><form id="changePasswordForm"><label for="currentPassword">Current password</label><input id="currentPassword" type="password" autocomplete="current-password" required><label for="newPassword">New password (12–256 characters)</label><input id="newPassword" type="password" minlength="12" maxlength="256" autocomplete="new-password" required><label for="confirmNewPassword">Confirm new password</label><input id="confirmNewPassword" type="password" minlength="12" maxlength="256" autocomplete="new-password" required><button type="submit">Update Password</button></form><button id="logoutButton" type="button">Sign out</button></section>
+<section id="settings" class="hidden"><h2>Owner security settings</h2><p class="hint">Change your password here. Active sessions are revoked after a successful change. This page keeps the session token in memory only; it does not write the password or token to browser storage.</p><button id="registerPasskeyButton" type="button">Register this device passkey</button><button id="generateRecoveryCodesButton" type="button">Generate / rotate recovery codes</button><pre id="recoveryCodesOutput" class="hint hidden" style="white-space:pre-wrap;overflow-wrap:anywhere;padding:12px;background:#06111d;border:1px solid #35546b;border-radius:10px"></pre><form id="changePasswordForm"><label for="currentPassword">Current password</label><input id="currentPassword" type="password" autocomplete="current-password" required><label for="newPassword">New password (12–256 characters)</label><input id="newPassword" type="password" minlength="12" maxlength="256" autocomplete="new-password" required><label for="confirmNewPassword">Confirm new password</label><input id="confirmNewPassword" type="password" minlength="12" maxlength="256" autocomplete="new-password" required><button type="submit">Update Password</button></form><button id="logoutButton" type="button">Sign out</button></section>
 <div id="status" class="status" role="status" aria-live="polite">Checking setup status…</div></main>
 <script>
 const statusBox=document.getElementById("status");
@@ -302,7 +370,22 @@ document.getElementById("loginForm").addEventListener("submit",async event=>{eve
 async function signInDevice(mode){const biometric=mode==="biometric";const optionsPath=biometric?"/auth/biometric/login/options":"/auth/passkey/login/options";const verifyPath=biometric?"/auth/biometric/login/verify":"/auth/passkey/login/verify";const button=document.getElementById(biometric?"biometricLoginButton":"passkeyLoginButton");button.disabled=true;try{if(!window.PublicKeyCredential||!navigator.credentials)throw new Error("This browser does not support device credential verification.");const options=await send(optionsPath,{});const credential=await navigator.credentials.get({publicKey:{challenge:decodeB64url(options.challenge),rpId:options.rpId,timeout:options.timeout,userVerification:"required",allowCredentials:(options.allowCredentials||[]).map(item=>({type:item.type,id:decodeB64url(item.id),transports:item.transports}))}});if(!credential)throw new Error("Device verification was cancelled.");const assertion={id:credential.id,rawId:encodeB64url(credential.rawId),type:credential.type,challenge:options.challenge,response:{authenticatorData:encodeB64url(credential.response.authenticatorData),clientDataJSON:encodeB64url(credential.response.clientDataJSON),signature:encodeB64url(credential.response.signature),userHandle:credential.response.userHandle?encodeB64url(credential.response.userHandle):null}};const verified=await send(verifyPath,assertion);if(!verified.token)throw new Error("No owner session was returned.");await activateOwnerSession(verified.token,biometric?"device biometric / screen lock":"passkey");}catch(error){ownerSessionToken="";say(error.message||"Device sign-in failed. Switch to another tab and retry.");}finally{button.disabled=false;}}
 document.getElementById("passkeyLoginButton").addEventListener("click",()=>signInDevice("passkey"));
 document.getElementById("biometricLoginButton").addEventListener("click",()=>signInDevice("biometric"));
-document.getElementById("registerPasskeyButton").addEventListener("click",async()=>{const button=document.getElementById("registerPasskeyButton");button.disabled=true;try{if(!window.PublicKeyCredential||!navigator.credentials)throw new Error("This browser does not support passkeys.");const options=await send("/auth/passkey/register/options",{}, {authorization:"Bearer "+ownerSessionToken});const publicKey={...options,challenge:decodeB64url(options.challenge),user:{...options.user,id:decodeB64url(options.user.id)},excludeCredentials:(options.excludeCredentials||[]).map(item=>({...item,id:decodeB64url(item.id)}))};const credential=await navigator.credentials.create({publicKey});if(!credential)throw new Error("Device registration was cancelled.");const attestation={id:credential.id,rawId:encodeB64url(credential.rawId),type:credential.type,response:{attestationObject:encodeB64url(credential.response.attestationObject),clientDataJSON:encodeB64url(credential.response.clientDataJSON)}};const result=await send("/auth/passkey/register/verify",attestation,{authorization:"Bearer "+ownerSessionToken});say(result.message||"Device passkey registered.");}catch(error){say(error.message||"Passkey registration failed.");}finally{button.disabled=false;}});
+document.getElementById("recoveryLoginButton").addEventListener("click",async()=>{
+  const input=document.getElementById("recoveryCodeInput");
+  const code=input.value.trim();
+  if(!code){say("Enter one unused recovery code.");return;}
+  const button=document.getElementById("recoveryLoginButton");button.disabled=true;
+  try{const result=await send("/auth/recovery/login",{code});if(!result.token)throw new Error("Recovery did not return an owner session.");input.value="";await activateOwnerSession(result.token,"one-time recovery code");}
+  catch(error){say(error.message||"Recovery failed. Use another unused code.");}
+  finally{button.disabled=false;}
+});
+document.getElementById("generateRecoveryCodesButton").addEventListener("click",async()=>{
+  const button=document.getElementById("generateRecoveryCodesButton");button.disabled=true;
+  try{const result=await send("/auth/recovery/codes",{}, {authorization:"Bearer "+ownerSessionToken});const output=document.getElementById("recoveryCodesOutput");output.textContent=result.codes.join("\\n");output.classList.remove("hidden");say("Save these codes somewhere private now. Each works once; generating a new set invalidates the old set.");}
+  catch(error){say(error.message||"Unable to generate recovery codes.");}
+  finally{button.disabled=false;}
+});
+document.getElementById("registerPasskeyButton").addEventListener("click",async()=>{const button=document.getElementById("registerPasskeyButton");button.disabled=true;try{if(!window.PublicKeyCredential||!navigator.credentials)throw new Error("This browser does not support passkeys.");const options=await send("/auth/passkey/register/options",{}, {authorization:"Bearer "+ownerSessionToken});const publicKey={...options,challenge:decodeB64url(options.challenge),user:{...options.user,id:decodeB64url(options.user.id)},excludeCredentials:(options.excludeCredentials||[]).map(item=>({...item,id:decodeB64url(item.id)}))};const credential=await navigator.credentials.create({publicKey});if(!credential)throw new Error("Device registration was cancelled.");const attestation={id:credential.id,rawId:encodeB64url(credential.rawId),type:credential.type,challenge:options.challenge,response:{attestationObject:encodeB64url(credential.response.attestationObject),clientDataJSON:encodeB64url(credential.response.clientDataJSON)}};const result=await send("/auth/passkey/register/verify",attestation,{authorization:"Bearer "+ownerSessionToken});say(result.message||"Device passkey registered.");}catch(error){say(error.message||"Passkey registration failed.");}finally{button.disabled=false;}});
 document.getElementById("changePasswordForm").addEventListener("submit",async event=>{event.preventDefault();const currentPassword=document.getElementById("currentPassword").value;const newPassword=document.getElementById("newPassword").value;const confirmNewPassword=document.getElementById("confirmNewPassword").value;if(newPassword!==confirmNewPassword){say("New passwords do not match.");return}try{const result=await send("/auth/change-password",{currentPassword,newPassword},{authorization:"Bearer "+ownerSessionToken});say(result.message||"Password updated.");ownerSessionToken="";document.getElementById("currentPassword").value="";document.getElementById("newPassword").value="";document.getElementById("confirmNewPassword").value="";document.getElementById("settings").classList.add("hidden");loginSection.classList.remove("hidden");}catch(error){say(error.message)}});
 document.getElementById("logoutButton").addEventListener("click",async()=>{try{if(ownerSessionToken)await fetch("/auth/logout",{method:"POST",headers:{authorization:"Bearer "+ownerSessionToken},credentials:"include",cache:"no-store",keepalive:true});}finally{ownerSessionToken="";document.getElementById("settings").classList.add("hidden");loginSection.classList.remove("hidden");say("Signed out. This session has been revoked.");}});
 
@@ -754,7 +837,7 @@ export default {
     // WebAuthn authentication options/verification are public ceremonies protected by
     // one-time challenges, strict origin/RP checks, UV flags, and signature verification.
     if ((url.pathname === "/auth/passkey/login/options" || url.pathname === "/auth/biometric/login/options") && request.method === "POST") {
-      if (!env.DB || !env.SESSIONS) return json({ error: "Passkey authentication storage is not configured." }, 503, cors);
+      if (!env.DB) return json({ error: "Passkey authentication storage is not configured." }, 503, cors);
       try {
         await env.DB.prepare("CREATE TABLE IF NOT EXISTS owner_passkeys (credential_id TEXT PRIMARY KEY, public_key_json TEXT NOT NULL, sign_count INTEGER NOT NULL DEFAULT 0, created_at TEXT NOT NULL)").run();
         const rows = await env.DB.prepare("SELECT credential_id FROM owner_passkeys ORDER BY created_at DESC").all();
@@ -762,11 +845,12 @@ export default {
         if (!credentials.length) return json({ error: "No owner passkey is registered yet. Sign in with the owner password and register one first." }, 409, cors);
         const challenge = randomChallenge();
         const challengePrefix = url.pathname.includes("/auth/biometric/") ? "webauthn:biometric:" : "webauthn:login:";
-        await env.SESSIONS.put(challengePrefix + challenge, JSON.stringify({ createdAt: Date.now() }), { expirationTtl: 300 });
+        const purpose = challengePrefix.includes("biometric") ? "biometric" : "login";
+        await storeWebAuthnChallenge(env, challenge, purpose, null);
         const ceremonyOrigin = request.headers.get("origin") || new URL(request.url).origin;
         const rpId = new URL(ceremonyOrigin).hostname;
         return json({ challenge, rpId, timeout: 300000, userVerification: "required",
-          allowCredentials: credentials.map(item => ({ type: "public-key", id: item.credential_id, transports: ["internal", "hybrid"] })) }, 200, cors);
+          allowCredentials: [] }, 200, cors);
       } catch {
         return json({ error: "Unable to prepare passkey sign-in." }, 503, cors);
       }
@@ -778,11 +862,8 @@ export default {
       const credentialId = typeof body?.rawId === "string" ? body.rawId : (typeof body?.id === "string" ? body.id : "");
       const challenge = typeof body?.challenge === "string" ? body.challenge : "";
       if (!credentialId || !challenge) return json({ error: "Passkey assertion is incomplete." }, 400, cors);
-      const challengePrefix = url.pathname.includes("/auth/biometric/") ? "webauthn:biometric:" : "webauthn:login:";
-      const challengeKey = challengePrefix + challenge;
-      const challengeRecord = await env.SESSIONS.get(challengeKey);
-      if (!challengeRecord) return json({ error: "Passkey challenge expired. Try again." }, 401, cors);
-      await env.SESSIONS.delete(challengeKey);
+      const purpose = url.pathname.includes("/auth/biometric/") ? "biometric" : "login";
+      if (!(await consumeWebAuthnChallenge(env, challenge, purpose, null))) return json({ error: "Passkey challenge expired or already used. Try again." }, 401, cors);
       try {
         const stored = await env.DB.prepare("SELECT credential_id, public_key_json, sign_count FROM owner_passkeys WHERE credential_id = ?").bind(credentialId).first();
         if (!stored) return json({ error: "Unknown owner passkey." }, 401, cors);
@@ -799,12 +880,15 @@ export default {
 
     const gatewayChatRoute = request.method === "POST" && (url.pathname === "/chat" || url.pathname === "/internal/chat");
     const memoryBridgeRoute = url.pathname === "/api/memory";
+    // Recovery login is public by design, but only a high-entropy one-time code
+    // hashed in D1 can mint a session. It must not pass the normal session gate.
+    const recoveryLoginRoute = url.pathname === "/auth/recovery/login" && request.method === "POST";
     // Logout is deliberately idempotent: startup/background cleanup may have no token,
     // an expired token, or unavailable session storage. It only deletes the supplied
     // token's hash and always clears the cookie; it never grants access to protected routes.
     const logoutRoute = url.pathname === "/auth/logout" && request.method === "POST";
-    if (!gatewayChatRoute && !memoryBridgeRoute && !logoutRoute && (!env.DB || !env.SESSIONS)) return json({ error: "Owner authentication storage is not configured." }, 503, cors);
-    if (!gatewayChatRoute && !memoryBridgeRoute && !logoutRoute && !(await authorized(request, env))) {
+    if (!gatewayChatRoute && !memoryBridgeRoute && !logoutRoute && !recoveryLoginRoute && (!env.DB || !env.SESSIONS)) return json({ error: "Owner authentication storage is not configured." }, 503, cors);
+    if (!gatewayChatRoute && !memoryBridgeRoute && !logoutRoute && !recoveryLoginRoute && !(await authorized(request, env))) {
       await publishEvent(env, { type: "security.auth.denied", source: "owner-auth", payload: { path: url.pathname, method: request.method } });
       return json({ error: "Unauthorized. Sign in with your Owner password." }, 401, cors);
     }
@@ -838,22 +922,47 @@ export default {
       }
     }
 
+    if (url.pathname === "/auth/recovery/codes" && request.method === "POST") {
+      if (!env.DB) return json({ error: "Owner recovery storage is not configured." }, 503, cors);
+      if (!(await authorized(request, env))) return json({ error: "Owner session required." }, 401, cors);
+      try {
+        const codes = await issueOwnerRecoveryCodes(env);
+        return json({ ok: true, codes, count: codes.length, message: "Recovery codes generated. Each code works once. Save them somewhere private now; they are shown only this time." }, 200, cors);
+      } catch {
+        return json({ error: "Unable to generate recovery codes. No codes were displayed; retry when D1 is available." }, 503, cors);
+      }
+    }
+    if (url.pathname === "/auth/recovery/login" && request.method === "POST") {
+      if (!env.DB) return json({ error: "Owner recovery storage is not configured." }, 503, cors);
+      let body;
+      try { body = await request.json(); } catch { return json({ error: "Expected JSON body." }, 400, cors); }
+      try {
+        if (!(await consumeOwnerRecoveryCode(env, body?.code))) return json({ error: "Recovery code invalid or already used." }, 401, cors);
+        const token = base64url(crypto.getRandomValues(new Uint8Array(32)));
+        await storeOwnerSession(env, token);
+        return json({ ok: true, token, expiresIn: SESSION_TTL_SECONDS, method: "owner-recovery-code" }, 200, { ...cors, "set-cookie": sessionCookie(token) });
+      } catch {
+        return json({ error: "Owner recovery is temporarily unavailable. The code may have been consumed; check with another unused code." }, 503, cors);
+      }
+    }
+
     if (url.pathname === "/auth/passkey/register/options" && request.method === "POST") {
-      if (!env.DB || !env.SESSIONS) return json({ error: "Passkey registration storage is not configured." }, 503, cors);
+      if (!env.DB) return json({ error: "Passkey registration storage is not configured." }, 503, cors);
       try {
         await env.DB.prepare("CREATE TABLE IF NOT EXISTS owner_passkeys (credential_id TEXT PRIMARY KEY, public_key_json TEXT NOT NULL, sign_count INTEGER NOT NULL DEFAULT 0, created_at TEXT NOT NULL)").run();
         const challenge = randomChallenge();
         const auth = request.headers.get("authorization") || "";
         const bearer = auth.startsWith("Bearer ") ? auth.slice(7) : "";
         const sessionToken = bearer || readSessionCookie(request);
-        if (!sessionToken) return json({ error: "Owner session required." }, 401, cors);
-        await env.SESSIONS.put("webauthn:register:" + await sha256Hex(sessionToken), challenge, { expirationTtl: 300 });
+        if (!sessionToken || !(await authorized(request, env))) return json({ error: "Valid owner session required." }, 401, cors);
+        const sessionHash = await sha256Hex(sessionToken);
+        await storeWebAuthnChallenge(env, challenge, "register", sessionHash);
         const ceremonyOrigin = request.headers.get("origin") || new URL(request.url).origin;
         const rpId = new URL(ceremonyOrigin).hostname;
         return json({ challenge, rp: { id: rpId, name: "Super Chatty Jarvis" },
-          user: { id: base64url(crypto.getRandomValues(new Uint8Array(16))), name: "owner", displayName: "Super Chatty Owner" },
+          user: { id: base64url(new TextEncoder().encode(OWNER_IDENTITY.key + "-super-chatty-owner-v1")), name: OWNER_IDENTITY.key, displayName: OWNER_IDENTITY.displayName },
           pubKeyCredParams: [{ type: "public-key", alg: -7 }], timeout: 300000, attestation: "none",
-          authenticatorSelection: { authenticatorAttachment: "platform", residentKey: "preferred", userVerification: "required" },
+          authenticatorSelection: { authenticatorAttachment: "platform", residentKey: "required", userVerification: "required" },
           excludeCredentials: (await env.DB.prepare("SELECT credential_id FROM owner_passkeys").all())?.results?.map(item => ({ type: "public-key", id: item.credential_id })) || []
         }, 200, cors);
       } catch {
@@ -865,13 +974,13 @@ export default {
       const auth = request.headers.get("authorization") || "";
       const bearer = auth.startsWith("Bearer ") ? auth.slice(7) : "";
       const sessionToken = bearer || readSessionCookie(request);
-      if (!sessionToken) return json({ error: "Owner session required." }, 401, cors);
-      const challengeKey = "webauthn:register:" + await sha256Hex(sessionToken);
-      const challenge = await env.SESSIONS.get(challengeKey);
-      if (!challenge) return json({ error: "Passkey registration challenge expired. Try again." }, 401, cors);
-      await env.SESSIONS.delete(challengeKey);
+      if (!sessionToken || !(await authorized(request, env))) return json({ error: "Valid owner session required." }, 401, cors);
       let body;
       try { body = await request.json(); } catch { return json({ error: "Expected JSON body." }, 400, cors); }
+      const challenge = typeof body?.challenge === "string" ? body.challenge : "";
+      if (!challenge) return json({ error: "Passkey registration challenge is missing. Try again." }, 400, cors);
+      const sessionHash = await sha256Hex(sessionToken);
+      if (!(await consumeWebAuthnChallenge(env, challenge, "register", sessionHash))) return json({ error: "Passkey registration challenge expired or already used. Try again." }, 401, cors);
       try {
         const origin = request.headers.get("origin") || new URL(request.url).origin;
         const credential = await verifyRegistration(body, challenge, origin, new URL(origin).hostname);
