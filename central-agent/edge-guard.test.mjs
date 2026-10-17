@@ -29,5 +29,5 @@ test("rate-limit KV write exhaustion degrades non-credential routes without bypa
  const env={SESSIONS:kv};
  assert.equal(await guardRequest(request("/api/chat"),env,1800000),null);
  assert.equal(await guardRequest(request("/auth/session"),env,1800001),null);
- await assert.rejects(()=>guardRequest(request("/auth/login"),env,1800002),/KV write quota exhausted/);
+ await assert.rejects(()=>guardRequest(new Request("https://example.test/auth/login",{method:"POST",headers:{"cf-connecting-ip":"192.0.2.4"}}),env,1800002),/KV write quota exhausted/);
 });
