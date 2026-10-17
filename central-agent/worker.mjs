@@ -23,7 +23,87 @@ const DEFAULT_WORKERS_AI_MODEL = "@cf/meta/llama-3.1-8b-instruct-fast";
 export const PASSWORD_ITERATIONS = 100000;
 const SESSION_TTL_SECONDS = 3600;
 
+function decodeHtmlEntities(value) {
+  return String(value || "").replace(/&(#x[0-9a-f]+|#\d+|amp|quot|apos|#39|lt|gt|nbsp);/gi, (entity, code) => {
+    const key = code.toLowerCase();
+    if (key === "amp") return "&";
+    if (key === "quot") return '"';
+    if (key === "apos" || key === "#39") return "'";
+    if (key === "lt") return "<";
+    if (key === "gt") return ">";
+    if (key === "nbsp") return " ";
+    const number = key.startsWith("#x") ? Number.parseInt(key.slice(2), 16) : Number.parseInt(key.slice(1), 10);
+    return Number.isFinite(number) && number >= 0 && number <= 0x10ffff ? String.fromCodePoint(number) : entity;
+  });
+}
+
+function stripHtml(value) {
+  return decodeHtmlEntities(String(value || "").replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, " ")
+    .replace(/<style\b[^>]*>[\s\S]*?<\/style>/gi, " ")
+    .replace(/<[^>]+>/g, " ").replace(/\s+/g, " ")).trim();
+}
+
+export function parseDuckDuckGoHtml(html, query = "") {
+  if (typeof html !== "string" || html.length === 0) return [];
+  const anchors = [...html.matchAll(/<a\b(?=[^>]*\bclass=["'][^"']*\bresult__a\b[^"']*["'])([^>]*)>([\s\S]*?)<\/a>/gi)];
+  const snippets = [...html.matchAll(/<(?:a|div|td)\b(?=[^>]*\bclass=["'][^"']*\bresult__snippet\b[^"']*["'])[^>]*>([\s\S]*?)<\/(?:a|div|td)>/gi)]
+    .map(match => stripHtml(match[1])).filter(Boolean);
+  const results = [];
+  for (let i = 0; i < anchors.length && results.length < 8; i++) {
+    const hrefMatch = anchors[i][1].match(/\bhref\s*=\s*["']([^"']+)["']/i);
+    if (!hrefMatch) continue;
+    let target;
+    try {
+      target = new URL(decodeHtmlEntities(hrefMatch[1]), "https://html.duckduckgo.com");
+      if (/(^|\.)duckduckgo\.com$/i.test(target.hostname) && target.pathname === "/l/") {
+        const redirected = target.searchParams.get("uddg");
+        if (!redirected) continue;
+        target = new URL(redirected);
+      }
+    } catch { continue; }
+    if (target.protocol !== "https:" && target.protocol !== "http:") continue;
+    if (/(^|\.)duckduckgo\.com$/i.test(target.hostname)) continue;
+    const title = stripHtml(anchors[i][2]).slice(0, 240);
+    if (!title) continue;
+    results.push({
+      title,
+      url: target.toString(),
+      content: (snippets[i] || title).slice(0, 1200),
+      published_date: null,
+      score: Math.max(0.1, 0.9 - results.length * 0.05)
+    });
+  }
+  return rankTavilyResults(query, results);
+}
+
+async function fetchDirectWebSearch(query) {
+  const cleanQuery = buildTavilyQuery(query) || String(query || "").trim().slice(0, 400);
+  if (!cleanQuery) throw new Error("LIVE_SEARCH_EMPTY_QUERY");
+  const url = new URL("https://html.duckduckgo.com/html/");
+  url.searchParams.set("q", cleanQuery);
+  const response = await fetch(url.toString(), {
+    method: "GET",
+    headers: {
+      accept: "text/html,application/xhtml+xml",
+      "accept-language": "en-US,en;q=0.8,hi;q=0.6",
+      "user-agent": "Mozilla/5.0 (compatible; SuperChattyJarvis/1.0; +https://github.com/lostgodsgods-ops/super-chatty-jarvis)"
+    },
+    signal: AbortSignal.timeout(8000)
+  });
+  if (!response.ok) throw new Error("DIRECT_WEB_SEARCH_HTTP_" + response.status);
+  const html = (await response.text()).slice(0, 1_000_000);
+  const results = parseDuckDuckGoHtml(html, cleanQuery);
+  if (!results.length) throw new Error("DIRECT_WEB_SEARCH_NO_RESULTS");
+  return new Response(JSON.stringify({ results }), {
+    status: 200,
+    headers: { "content-type": "application/json; charset=utf-8", "cache-control": "no-store", "x-search-provider": "duckduckgo-html" }
+  });
+}
+
 async function fetchTavilyWithRetry(query, env) {
+  // Direct public web search is the no-key fallback. Public search engines can still
+  // rate-limit or change HTML; callers must surface a clear failure if both paths fail.
+  if (!env.SEARCH_API_KEY) return fetchDirectWebSearch(query);
   const endpoint = "https://api.tavily.com/search";
   let response;
   for (let attempt = 0; attempt < 3; attempt++) {
@@ -35,18 +115,23 @@ async function fetchTavilyWithRetry(query, env) {
         signal: AbortSignal.timeout(8000)
       });
     } catch {
-      if (attempt === 2) throw new Error("LIVE_SEARCH_NETWORK_ERROR");
+      if (attempt === 2) return fetchDirectWebSearch(query);
       await new Promise(resolve => setTimeout(resolve, 250 * (2 ** attempt)));
       continue;
     }
-    if (response.ok || ![429, 500, 502, 503, 504].includes(response.status) || attempt === 2) return response;
+    if (response.ok) {
+      const headers = new Headers(response.headers);
+      headers.set("x-search-provider", "tavily");
+      return new Response(response.body, { status: response.status, statusText: response.statusText, headers });
+    }
+    if (![429, 500, 502, 503, 504].includes(response.status) || attempt === 2) return fetchDirectWebSearch(query);
     const retryAfter = Number(response.headers.get("retry-after"));
     const delay = Number.isFinite(retryAfter) && retryAfter > 0
       ? Math.min(1500, Math.max(250, retryAfter * 1000))
       : 250 * (2 ** attempt);
     await new Promise(resolve => setTimeout(resolve, delay));
   }
-  throw new Error("LIVE_SEARCH_NETWORK_ERROR");
+  return fetchDirectWebSearch(query);
 }
 
 
