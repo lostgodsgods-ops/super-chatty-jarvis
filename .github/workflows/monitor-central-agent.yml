@@ -162,7 +162,7 @@ jobs:
               echo "::error::Current-information /chat failed with HTTP $code"; cat "$tmp"; exit 1
             fi
           else
-            node -e 'const fs=require("fs"); const x=JSON.parse(fs.readFileSync(process.argv[1],"utf8")); if(x.ok!==true||x.core?.intent!=="current_information"||x.core?.webSearchExecuted!==true||x.core?.searchProvider!=="tavily"||!Array.isArray(x.sources)||x.sources.length<1) throw Error("Current-information chat did not prove live-web synthesis"); if(x.sources.some(s=>typeof s.url!=="string"||(!s.url.startsWith("https://")&&!s.url.startsWith("http://")))) throw Error("Invalid source URL"); console.log(JSON.stringify({ok:true,intent:x.core.intent,webSearchExecuted:x.core.webSearchExecuted,searchProvider:x.core.searchProvider,sourceCount:x.sources.length,externalActionsPerformed:x.core.externalActionsPerformed}));' "$tmp"
+            node -e 'const fs=require("fs"); const x=JSON.parse(fs.readFileSync(process.argv[1],"utf8")); if(x.ok!==true||x.core?.intent!=="current_information"||x.core?.webSearchExecuted!==true||!["tavily","duckduckgo-html","wikipedia-api"].includes(x.core?.searchProvider)||!Array.isArray(x.sources)||x.sources.length<1) throw Error("Current-information chat did not prove live-web synthesis"); if(x.sources.some(s=>typeof s.url!=="string"||(!s.url.startsWith("https://")&&!s.url.startsWith("http://")))) throw Error("Invalid source URL"); console.log(JSON.stringify({ok:true,intent:x.core.intent,webSearchExecuted:x.core.webSearchExecuted,searchProvider:x.core.searchProvider,sourceCount:x.sources.length,externalActionsPerformed:x.core.externalActionsPerformed}));' "$tmp"
           fi
 
       - name: Probe Central Agent chat route dispatch without credentials
@@ -209,7 +209,7 @@ jobs:
             node -e 'const fs=require("node:fs"); try {const x=JSON.parse(fs.readFileSync(process.argv[1],"utf8")); console.log(JSON.stringify({error:x.error||"Search proxy failed",code:x.code||null,providerStatus:x.providerStatus||null,upstreamPath:x.upstreamPath||null}));} catch {console.log("Search response was not valid JSON.");}' "$tmp/search.json"
             exit 1
           fi
-          node -e 'const fs=require("node:fs"); const x=JSON.parse(fs.readFileSync(process.argv[1],"utf8")); if(x.ok!==true||x.core?.webSearchExecuted!==true||x.core?.searchProvider!=="tavily"||!Array.isArray(x.sources)||x.sources.length<1) throw Error("Expected a live web result with at least one source"); if(x.sources.some(s=>typeof s.url!=="string"||!/^https?:\/\//i.test(s.url))) throw Error("Invalid source URL"); console.log(JSON.stringify({ok:x.ok,searchProvider:x.core.searchProvider,sourceCount:x.sources.length,sourceUrls:x.sources.map(s=>s.url)},null,2));' "$tmp/search.json"
+          node -e 'const fs=require("node:fs"); const x=JSON.parse(fs.readFileSync(process.argv[1],"utf8")); if(x.ok!==true||x.core?.webSearchExecuted!==true||!["tavily","duckduckgo-html","wikipedia-api"].includes(x.core?.searchProvider)||!Array.isArray(x.sources)||x.sources.length<1) throw Error("Expected a live web result with at least one source"); if(x.sources.some(s=>typeof s.url!=="string"||!/^https?:\/\//i.test(s.url))) throw Error("Invalid source URL"); console.log(JSON.stringify({ok:x.ok,searchProvider:x.core.searchProvider,sourceCount:x.sources.length,sourceUrls:x.sources.map(s=>s.url)},null,2));' "$tmp/search.json"
 
       - name: Verify authenticated event bus and module registry
         shell: bash
