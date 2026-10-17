@@ -1,6 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { webcrypto } from "node:crypto";
+import { readFile } from "node:fs/promises";
 
 // Cloudflare Workers provide Web Crypto globally; make the same API explicit in Node tests.
 Object.defineProperty(globalThis, "crypto", { value: webcrypto, configurable: true, writable: true });
@@ -330,4 +331,24 @@ test("owner page exposes independent password, passkey, and biometric sign-in ta
   assert.ok(html.includes('function selectAuthTab(selected)'));
   assert.ok(html.includes('You can change your password here') || html.includes('Change your password here'));
   assert.doesNotMatch(html, /localStorage|sessionStorage/);
+});
+
+test("owner page locks the in-memory session and revokes it when backgrounded", async () => {
+  const response = await call(env(), "/owner");
+  const html = await response.text();
+  assert.ok(html.includes('document.addEventListener("visibilitychange"'));
+  assert.ok(html.includes('document.addEventListener("freeze"'));
+  assert.ok(html.includes('function lockOwnerPage(message)'));
+  assert.ok(html.includes('keepalive:true'));
+  assert.ok(html.includes('ownerSessionToken=""'));
+});
+
+test("PWA exposes the golden neural core, quick-chat drawer, cinematic viewer, and background lock", async () => {
+  const html = await readFile(new URL("../jarvis/index.html", import.meta.url), "utf8");
+  for (const id of ["coreWrap","quickChatToggle","quickChatDrawer","quickChatText","articleOpen","cinemaOverlay","cinemaStage","cinemaClose"]) {
+    assert.ok(html.includes('id="' + id + '"'), "missing immersive HUD control: " + id);
+  }
+  assert.ok(html.includes("lockOwnerOnBackground"));
+  assert.ok(html.includes('sandbox="allow-forms allow-popups"'));
+  assert.ok(html.includes('document.addEventListener("visibilitychange"'));
 });
