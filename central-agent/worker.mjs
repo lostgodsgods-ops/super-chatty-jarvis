@@ -273,6 +273,8 @@ export default {
         url.pathname === "/sw.js" ||
         url.pathname === "/manifest.webmanifest" ||
         url.pathname === "/icon.svg" ||
+        url.pathname === "/icon-192.png" ||
+        url.pathname === "/icon-512.png" ||
         url.pathname === "/jarvis" ||
         url.pathname === "/jarvis/" ||
         url.pathname.startsWith("/jarvis/");

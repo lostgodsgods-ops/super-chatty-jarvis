@@ -191,6 +191,8 @@ test("PWA provides a direct native install prompt and a safe fallback", () => {
   assert.match(jarvisHtml, /Chrome has not offered the native install prompt yet/, "unsupported browsers need a truthful fallback");
   assert.doesNotMatch(jarvisHtml, /if \(!deferredInstallPrompt\)[\s\S]{0,350}menu and choose Install app/i, "the install button must not direct users to a manual menu workaround");
   assert.match(jarvisHtml, /display-mode:\s*standalone/, "installed standalone mode must be detected");
+  assert.ok(centralWorker.includes('url.pathname === "/icon-192.png"'), "Worker must allow the public 192px install icon");
+  assert.ok(centralWorker.includes('url.pathname === "/icon-512.png"'), "Worker must allow the public 512px install icon");
   assert.match(serviceWorker, /CACHE_NAME\s*=\s*"super-chatty-jarvis-shell-v5"/, "install UX release must invalidate old shell cache");
 });
 
