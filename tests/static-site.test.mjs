@@ -102,7 +102,7 @@ test("NEXUS agent HUD is live-wired to the production SSE event bus", () => {
 
 
 test("installed PWA force-updates stale shells and revalidates HTML assets", () => {
-  assert.match(serviceWorker, /CACHE_NAME\s*=\s*"super-chatty-jarvis-shell-v4"/, "shell cache must be version-bumped");
+  assert.match(serviceWorker, /CACHE_NAME\s*=\s*"super-chatty-jarvis-shell-v5"/, "shell cache must be version-bumped");
   assert.match(serviceWorker, /self\.skipWaiting\(\)/, "new worker must activate without waiting for an old tab to close");
   assert.match(serviceWorker, /self\.clients\.claim\(\)/, "new worker must claim open PWA clients");
   assert.match(serviceWorker, /key !== CACHE_NAME.*caches\.delete\(key\)/s, "activation must delete older Super Chatty shell caches");
@@ -165,7 +165,7 @@ test("PWA exposes real WebAuthn passkey sign-in and authenticated registration c
 
 test("standalone install metadata advertises app-window behavior and a branded launch surface", () => {
   assert.equal(manifest.display, "standalone");
-  assert.deepEqual(manifest.display_override, ["standalone", "minimal-ui"]);
+  assert.deepEqual(manifest.display_override, ["standalone"]);
   assert.equal(manifest.start_url, "./");
   assert.equal(manifest.scope, "./");
   assert.equal(manifest.background_color, "#08090d");
@@ -182,4 +182,17 @@ test("owner gate prevents health checks and SSE from starting before session ver
   assert.match(jarvisHtml, /await checkHealth\(\);\s*await restoreConversationMemory\(\);/);
   assert.match(jarvisHtml, /async function resumeOwnerSession\(\)[\s\S]*?session\.authenticated !== true[\s\S]*?return;[\s\S]*?await checkHealth\(\);/);
   assert.match(jarvisHtml, /Owner session required\. Backend health, telemetry, and event streams remain disabled until verified\./);
+});
+
+
+test("one-click install button invokes the native prompt only after browser eligibility", () => {
+  assert.match(jarvisHtml, /id="installPanel"/, "install card must be present on the initial interface");
+  assert.match(jarvisHtml, /id="installAppBtn"[^>]*>INSTALL SUPER CHATTY APP<\/button>/, "a high-visibility direct install button must be present");
+  assert.match(jarvisHtml, /addEventListener\("beforeinstallprompt"/, "the browser install event must be captured");
+  assert.match(jarvisHtml, /event\.preventDefault\(\)/, "the browser's automatic mini-infobar must be deferred for the custom button");
+  assert.match(jarvisHtml, /installPrompt\.prompt\(\)/, "the button must invoke the native install prompt");
+  assert.match(jarvisHtml, /addEventListener\("appinstalled"/, "successful installation must update the UI");
+  assert.match(jarvisHtml, /Chrome has not offered the native install prompt yet/i, "the UI must not claim installation is possible before browser eligibility");
+  assert.match(jarvisHtml, /application-version" content="NEXUS-2026\.10\.17-PWA5"/, "the PWA version must be bumped");
+  assert.match(serviceWorker, /CACHE_NAME\s*=\s*"super-chatty-jarvis-shell-v5"/, "the shell cache must be invalidated for this release");
 });
