@@ -178,12 +178,12 @@ test("standalone install metadata advertises app-window behavior and a branded l
 
 test("PWA provides a direct native install prompt and a safe fallback", () => {
   assert.match(jarvisHtml, /id="installBanner"/, "install banner must be present in the first-screen UI");
-  assert.match(jarvisHtml, /id="installAppBtn"[^>]*>INSTALL APP NOW</, "install button must be prominent and directly tappable");
+  assert.match(jarvisHtml, /id="installAppBtn"[^>]*>INSTALL SUPER CHATTY APP</, "install button must be prominent and directly tappable");
   assert.match(jarvisHtml, /beforeinstallprompt/, "Chrome install prompt event must be captured");
   assert.match(jarvisHtml, /event\.preventDefault\(\)/, "browser prompt must be deferred until the user taps the button");
   assert.match(jarvisHtml, /installEvent\.prompt\(\)/, "button must invoke the native prompt from a user gesture");
   assert.match(jarvisHtml, /appinstalled/, "successful installation must be detected");
-  assert.match(jarvisHtml, /Native install prompt is unavailable/, "unsupported browsers need a truthful fallback");
+  assert.match(jarvisHtml, /Chrome has not offered the native install prompt yet/, "unsupported browsers need a truthful fallback");
   assert.match(jarvisHtml, /display-mode:\s*standalone/, "installed standalone mode must be detected");
   assert.match(serviceWorker, /CACHE_NAME\s*=\s*"super-chatty-jarvis-shell-v5"/, "install UX release must invalidate old shell cache");
 });
