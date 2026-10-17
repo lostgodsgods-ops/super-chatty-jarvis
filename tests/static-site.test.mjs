@@ -107,7 +107,7 @@ test("installed PWA force-updates stale shells and revalidates HTML assets", () 
   assert.match(serviceWorker, /self\.clients\.claim\(\)/, "new worker must claim open PWA clients");
   assert.match(serviceWorker, /key !== CACHE_NAME.*caches\.delete\(key\)/s, "activation must delete older Super Chatty shell caches");
   assert.match(serviceWorker, /new Request\(request,\s*\{\s*cache:\s*"no-store"\s*\}\)/, "navigation must bypass stale browser HTTP cache");
-  assert.match(jarvisHtml, /application-version" content="NEXUS-2026\.10\.17-PWA4"/, "frontend version must be bumped");
+  assert.match(jarvisHtml, /application-version" content="NEXUS-2026\.10\.17-PWA5"/, "frontend version must be bumped");
   assert.match(jarvisHtml, /registration\.update\(\)/, "PWA must check for worker updates");
   assert.match(jarvisHtml, /controllerchange/, "active sessions must detect the new worker controller");
   assert.match(jarvisHtml, /location\.reload\(\)/, "active sessions must reload after a worker update");
@@ -190,7 +190,7 @@ test("one-click install button invokes the native prompt only after browser elig
   assert.match(jarvisHtml, /id="installAppBtn"[^>]*>INSTALL SUPER CHATTY APP<\/button>/, "a high-visibility direct install button must be present");
   assert.match(jarvisHtml, /addEventListener\("beforeinstallprompt"/, "the browser install event must be captured");
   assert.match(jarvisHtml, /event\.preventDefault\(\)/, "the browser's automatic mini-infobar must be deferred for the custom button");
-  assert.match(jarvisHtml, /installPrompt\.prompt\(\)/, "the button must invoke the native install prompt");
+  assert.match(jarvisHtml, /promptEvent\.prompt\(\)/, "the button must invoke the native install prompt");
   assert.match(jarvisHtml, /addEventListener\("appinstalled"/, "successful installation must update the UI");
   assert.match(jarvisHtml, /Chrome has not offered the native install prompt yet/i, "the UI must not claim installation is possible before browser eligibility");
   assert.match(jarvisHtml, /application-version" content="NEXUS-2026\.10\.17-PWA5"/, "the PWA version must be bumped");
