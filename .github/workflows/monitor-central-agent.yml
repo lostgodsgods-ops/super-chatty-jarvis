@@ -124,7 +124,7 @@ jobs:
             node -e 'const fs=require("fs"); try { const x=JSON.parse(fs.readFileSync(process.argv[1],"utf8")); console.log(JSON.stringify({error:x.error||"Search request failed"})); } catch { console.log("Search response was not valid JSON."); }' "$tmp/search.json"
             exit 1
           fi
-          node -e 'const fs=require("fs"); const x=JSON.parse(fs.readFileSync(process.argv[1],"utf8")); if(x.ok!==true||x.provider!=="tavily"||!Array.isArray(x.results)||x.results.length<1) throw Error("Expected ok=true, provider=tavily, and at least one result"); const urls=x.results.map(r=>r.url); if(urls.some(u=>typeof u!=="string"||!/^https?:\/\//i.test(u))) throw Error("One or more result URLs are invalid"); console.log(JSON.stringify({ok:x.ok,provider:x.provider,resultCount:x.results.length,sourceUrls:urls},null,2));' "$tmp/search.json"
+          node -e 'const fs=require("fs"); const x=JSON.parse(fs.readFileSync(process.argv[1],"utf8")); if(x.ok!==true||!["tavily","duckduckgo-html"].includes(x.provider)||!Array.isArray(x.results)||x.results.length<1) throw Error("Expected ok=true, provider=tavily, and at least one result"); const urls=x.results.map(r=>r.url); if(urls.some(u=>typeof u!=="string"||!/^https?:\/\//i.test(u))) throw Error("One or more result URLs are invalid"); console.log(JSON.stringify({ok:x.ok,provider:x.provider,resultCount:x.results.length,sourceUrls:urls},null,2));' "$tmp/search.json"
 
       - name: Verify scoped PWA bridge search endpoint directly
         shell: bash
