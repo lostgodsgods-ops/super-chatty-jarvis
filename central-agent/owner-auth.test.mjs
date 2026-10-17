@@ -29,6 +29,7 @@ class FakeDB {
         if (sql.includes("SELECT salt")) return db.row ? { salt: db.row.salt, password_hash: db.row.password_hash } : null;
         if (sql.includes("SELECT status, expires_at FROM owner_sessions")) return db.sessions.get(this.params[0]) || null;
         if (sql.includes("SELECT challenge FROM owner_webauthn_challenges")) return [...db.webauthnChallenges.values()].find(row => row.session_hash === this.params[0] && row.purpose === this.params[1] && row.expires_at > this.params[2]) || null;
+        if (sql.includes("DELETE FROM owner_webauthn_challenges") && sql.includes("RETURNING")) { const row = db.webauthnChallenges.get(this.params[0]); if (!row || row.purpose !== this.params[1] || row.expires_at <= this.params[2] || row.session_hash !== this.params[3]) return null; db.webauthnChallenges.delete(this.params[0]); return { challenge: row.challenge }; }
         if (sql.includes("UPDATE owner_recovery_codes") && sql.includes("RETURNING")) { const row = db.recoveryCodes.get(this.params[1]); if (!row || row.used_at !== null) return null; row.used_at = this.params[0]; return { code_hash: this.params[1] }; }
         if (sql.includes("SELECT code_hash FROM owner_recovery_codes")) { const row = db.recoveryCodes.get(this.params[0]); return row && row.used_at === null ? { code_hash: this.params[0] } : null; }
         return null;
@@ -367,8 +368,8 @@ test("password, passkey, and device-biometric option routes remain independently
   const biometricOptions = await biometricResponse.json();
   assert.equal(passkeyOptions.userVerification, "required");
   assert.equal(biometricOptions.userVerification, "required");
-  assert.equal(passkeyOptions.allowCredentials[0].id, "Y3JlZGVudGlhbA");
-  assert.equal(biometricOptions.allowCredentials[0].id, "Y3JlZGVudGlhbA");
+  assert.deepEqual(passkeyOptions.allowCredentials, [], "discoverable passkeys should work across synced devices");
+  assert.deepEqual(biometricOptions.allowCredentials, [], "device verification should use discoverable credentials");
   assert.ok([...e.DB.webauthnChallenges.values()].some(row => row.purpose === "login"));
   assert.ok([...e.DB.webauthnChallenges.values()].some(row => row.purpose === "biometric"));
 });
@@ -503,4 +504,15 @@ test("recovery-code rotation invalidates the previous unused set", async () => {
   assert.equal(e.DB.recoveryCodes.size, 8);
   assert.equal((await call(e, "/auth/recovery/login", { code: first.codes[0] })).status, 401);
   assert.equal((await call(e, "/auth/recovery/login", { code: second.codes[0] })).status, 200);
+});
+
+
+test("passkey recovery endpoints do not depend on KV being present", async () => {
+  const e = env();
+  e.DB.passkeys = [{ credential_id: "Y3JlZGVudGlhbA" }];
+  e.SESSIONS = null;
+  const options = await call(e, "/auth/passkey/login/options", {});
+  assert.equal(options.status, 200);
+  const login = await call(e, "/auth/recovery/login", { code: "A".repeat(48) });
+  assert.notEqual(login.status, 503, "invalid codes should be rejected without requiring KV");
 });
