@@ -981,10 +981,15 @@ export default {
         const bearer = auth.startsWith("Bearer ") ? auth.slice(7) : "";
         const sessionToken = bearer || readSessionCookie(request);
         if (!sessionToken || !(await authorized(request, env))) return json({ error: "Valid owner session required." }, 401, cors);
-        const sessionHash = await sha256Hex(sessionToken);
-        await storeWebAuthnChallenge(env, challenge, "register", sessionHash);
         const ceremonyOrigin = request.headers.get("origin") || new URL(request.url).origin;
-        const rpId = new URL(ceremonyOrigin).hostname;
+        let parsedOrigin;
+        try { parsedOrigin = new URL(ceremonyOrigin); } catch { return json({ error: "Invalid WebAuthn origin." }, 400, cors); }
+        if (parsedOrigin.origin !== ceremonyOrigin || !["https:", "http:"].includes(parsedOrigin.protocol) ||
+            (parsedOrigin.protocol !== "https:" && !["localhost", "127.0.0.1"].includes(parsedOrigin.hostname)) ||
+            parsedOrigin.username || parsedOrigin.password) return json({ error: "Invalid WebAuthn origin." }, 400, cors);
+        const sessionHash = await sha256Hex(sessionToken + "\n" + parsedOrigin.origin);
+        await storeWebAuthnChallenge(env, challenge, "register", sessionHash);
+        const rpId = parsedOrigin.hostname;
         return json({ challenge, rp: { id: rpId, name: "Super Chatty Jarvis" },
           user: { id: base64url(new TextEncoder().encode(OWNER_IDENTITY.key + "-super-chatty-owner-v1")), name: OWNER_IDENTITY.key, displayName: OWNER_IDENTITY.displayName },
           pubKeyCredParams: [{ type: "public-key", alg: -7 }], timeout: 300000, attestation: "none",
@@ -1005,11 +1010,16 @@ export default {
       try { body = await request.json(); } catch { return json({ error: "Expected JSON body." }, 400, cors); }
       const challenge = typeof body?.challenge === "string" ? body.challenge : "";
       if (!challenge) return json({ error: "Passkey registration challenge is missing. Try again." }, 400, cors);
-      const sessionHash = await sha256Hex(sessionToken);
-      if (!(await consumeWebAuthnChallenge(env, challenge, "register", sessionHash))) return json({ error: "Passkey registration challenge expired or already used. Try again." }, 401, cors);
+      const origin = request.headers.get("origin") || new URL(request.url).origin;
+      let parsedOrigin;
+      try { parsedOrigin = new URL(origin); } catch { return json({ error: "Invalid WebAuthn origin." }, 400, cors); }
+      if (parsedOrigin.origin !== origin || !["https:", "http:"].includes(parsedOrigin.protocol) ||
+          (parsedOrigin.protocol !== "https:" && !["localhost", "127.0.0.1"].includes(parsedOrigin.hostname)) ||
+          parsedOrigin.username || parsedOrigin.password) return json({ error: "Invalid WebAuthn origin." }, 400, cors);
+      const sessionHash = await sha256Hex(sessionToken + "\n" + parsedOrigin.origin);
+      if (!(await consumeWebAuthnChallenge(env, challenge, "register", sessionHash))) return json({ error: "Passkey registration challenge expired, origin mismatch, or already used. Try again." }, 401, cors);
       try {
-        const origin = request.headers.get("origin") || new URL(request.url).origin;
-        const credential = await verifyRegistration(body, challenge, origin, new URL(origin).hostname);
+        const credential = await verifyRegistration(body, challenge, parsedOrigin.origin, parsedOrigin.hostname);
         await env.DB.prepare("INSERT INTO owner_passkeys (credential_id, public_key_json, sign_count, created_at) VALUES (?, ?, ?, ?)").bind(
           credential.credentialId, JSON.stringify(credential.publicKey), credential.signCount, new Date().toISOString()
         ).run();
