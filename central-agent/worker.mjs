@@ -79,24 +79,65 @@ export function parseDuckDuckGoHtml(html, query = "") {
 async function fetchDirectWebSearch(query) {
   const cleanQuery = buildTavilyQuery(query) || String(query || "").trim().slice(0, 400);
   if (!cleanQuery) throw new Error("LIVE_SEARCH_EMPTY_QUERY");
-  const url = new URL("https://html.duckduckgo.com/html/");
-  url.searchParams.set("q", cleanQuery);
-  const response = await fetch(url.toString(), {
+
+  // First try the no-key DuckDuckGo HTML endpoint. It may intermittently block
+  // automated requests, so do not make it the only path to live evidence.
+  try {
+    const url = new URL("https://html.duckduckgo.com/html/");
+    url.searchParams.set("q", cleanQuery);
+    const response = await fetch(url.toString(), {
+      method: "GET",
+      headers: {
+        accept: "text/html,application/xhtml+xml",
+        "accept-language": "en-US,en;q=0.8,hi;q=0.6",
+        "user-agent": "Mozilla/5.0 (compatible; SuperChattyJarvis/1.0; +https://github.com/lostgodsgods-ops/super-chatty-jarvis)"
+      },
+      signal: AbortSignal.timeout(8000)
+    });
+    if (response.ok) {
+      const html = (await response.text()).slice(0, 1_000_000);
+      const results = parseDuckDuckGoHtml(html, cleanQuery);
+      if (results.length) return new Response(JSON.stringify({ results }), {
+        status: 200,
+        headers: { "content-type": "application/json; charset=utf-8", "cache-control": "no-store", "x-search-provider": "duckduckgo-html" }
+      });
+    }
+  } catch {
+    // Continue to the structured no-key fallback below.
+  }
+
+  // Wikipedia's public MediaWiki search API requires no API key and returns
+  // structured URLs/snippets. It is a broad-web fallback, not a guarantee of
+  // breaking-news coverage; callers still cite the actual page and its dates.
+  const wikiUrl = new URL("https://en.wikipedia.org/w/api.php");
+  wikiUrl.searchParams.set("action", "query");
+  wikiUrl.searchParams.set("list", "search");
+  wikiUrl.searchParams.set("srsearch", cleanQuery);
+  wikiUrl.searchParams.set("srlimit", "8");
+  wikiUrl.searchParams.set("format", "json");
+  wikiUrl.searchParams.set("utf8", "1");
+  const wikiResponse = await fetch(wikiUrl.toString(), {
     method: "GET",
     headers: {
-      accept: "text/html,application/xhtml+xml",
-      "accept-language": "en-US,en;q=0.8,hi;q=0.6",
-      "user-agent": "Mozilla/5.0 (compatible; SuperChattyJarvis/1.0; +https://github.com/lostgodsgods-ops/super-chatty-jarvis)"
+      accept: "application/json",
+      "user-agent": "SuperChattyJarvis/1.0 (public no-key search fallback)"
     },
     signal: AbortSignal.timeout(8000)
   });
-  if (!response.ok) throw new Error("DIRECT_WEB_SEARCH_HTTP_" + response.status);
-  const html = (await response.text()).slice(0, 1_000_000);
-  const results = parseDuckDuckGoHtml(html, cleanQuery);
+  if (!wikiResponse.ok) throw new Error("DIRECT_WEB_SEARCH_HTTP_" + wikiResponse.status);
+  const wikiPayload = await wikiResponse.json();
+  const wikiResults = Array.isArray(wikiPayload?.query?.search) ? wikiPayload.query.search : [];
+  const results = rankTavilyResults(cleanQuery, wikiResults.map((item, index) => ({
+    title: typeof item?.title === "string" ? item.title : "",
+    url: Number.isSafeInteger(item?.pageid) && item.pageid > 0 ? "https://en.wikipedia.org/?curid=" + item.pageid : "",
+    content: stripHtml(item?.snippet || ""),
+    published_date: null,
+    score: Math.max(0.1, 0.6 - index * 0.04)
+  })));
   if (!results.length) throw new Error("DIRECT_WEB_SEARCH_NO_RESULTS");
   return new Response(JSON.stringify({ results }), {
     status: 200,
-    headers: { "content-type": "application/json; charset=utf-8", "cache-control": "no-store", "x-search-provider": "duckduckgo-html" }
+    headers: { "content-type": "application/json; charset=utf-8", "cache-control": "no-store", "x-search-provider": "wikipedia-api" }
   });
 }
 
