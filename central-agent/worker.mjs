@@ -1104,7 +1104,7 @@ export default {
           },
           body: JSON.stringify({
             query: buildTavilyQuery(query) || query,
-            search_depth: searchDepth === "advanced" ? "advanced" : "advanced",
+            search_depth: "advanced",
             max_results: 8,
             include_answer: false,
             include_raw_content: false
