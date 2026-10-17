@@ -271,9 +271,13 @@ jobs:
           node - "$tmp/sentinel-run.json" <<'NODE'
           const fs=require("node:fs");
           const x=JSON.parse(fs.readFileSync(process.argv[2],"utf8"));
-          if(x.ok!==true||x.status!=="healthy"||x.metrics?.d1?.ok!==true||x.metrics?.kv?.ok!==true) throw new Error("Sentinel D1/KV probes are not healthy.");
-          if(x.metrics?.storageMode!=="kv-d1-hybrid"||("archive" in x.metrics)) throw new Error("Sentinel is not running in R2-free KV/D1 mode.");
-          console.log(JSON.stringify({sentinel:"PASS",storageMode:"kv-d1-hybrid",d1:"PASS",kv:"PASS",r2Dependency:"NONE"}));
+          if(x.ok!==true||x.status!=="healthy"||x.metrics?.d1?.ok!==true) throw new Error("Sentinel D1 authoritative readiness probe is not healthy.");
+          if(x.metrics?.storageMode!=="d1-authoritative"||("archive" in x.metrics)) throw new Error("Sentinel storage mode does not match the D1-authoritative, R2-free architecture.");
+          const kv=x.metrics?.kv;
+          if(!kv||typeof kv.checked!=="boolean") throw new Error("Sentinel KV status is missing or malformed.");
+          if(kv.checked===true && kv.ok!==true) throw new Error("Sentinel reports a failed KV probe.");
+          if(kv.checked===false && typeof kv.reason!=="string") throw new Error("Sentinel omitted the reason KV is excluded from readiness.");
+          console.log(JSON.stringify({sentinel:"PASS",storageMode:"d1-authoritative",d1:"PASS",kv:kv.checked?(kv.ok?"PASS":"FAIL"):"NON_CRITICAL_NOT_PROBED",kvReason:kv.reason||null,r2Dependency:"NONE"}));
           NODE
 
           status_code="$(curl --silent --show-error --max-time 20 -H "Authorization: Bearer $token" \
