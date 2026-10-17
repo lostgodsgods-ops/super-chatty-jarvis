@@ -52,14 +52,36 @@ export async function guardRequest(request, env, nowMs = Date.now()) {
   try {
     await kv.put(rateKey, String(count + 1), { expirationTtl: WINDOW_SECONDS + 5 });
   } catch (error) {
-    // The rate-limit counter is a defense-in-depth control, not authentication.
-    // If KV writes are quota-limited, keep credential-changing routes fail-closed,
-    // but allow other routes to reach their own auth/policy checks instead of taking
-    // the entire application offline. The IP blocklist read above still applies.
+    // KV is the fast path. If its daily write quota is exhausted, move the
+    // rate-limit counter to D1 rather than disabling credential protection or
+    // returning 503 for every authenticated API call.
     const credentialMutation = request.method === "POST" &&
       path.startsWith("/auth/") &&
       !["/auth/logout", "/auth/status", "/auth/session"].includes(path);
-    if (credentialMutation) throw error;
+    if (credentialMutation) {
+      if (!env.DB || typeof env.DB.prepare !== "function") throw error;
+      try {
+        await env.DB.prepare(
+          "CREATE TABLE IF NOT EXISTS edge_rate_limits (rate_key TEXT PRIMARY KEY, request_count INTEGER NOT NULL, window_start INTEGER NOT NULL)"
+        ).run();
+        const fallbackKey = ipHash + ":" + path.slice(0, 80);
+        const fallback = await env.DB.prepare(
+          "INSERT INTO edge_rate_limits (rate_key, request_count, window_start) VALUES (?, 1, ?) " +
+          "ON CONFLICT(rate_key) DO UPDATE SET " +
+          "request_count = CASE WHEN window_start = excluded.window_start THEN request_count + 1 ELSE 1 END, " +
+          "window_start = excluded.window_start RETURNING request_count"
+        ).bind(fallbackKey, window).first();
+        if (Number(fallback?.request_count || 0) > maxRequests) {
+          await recordEvent(env, "rate_limit", ipHash, path, { count: Number(fallback.request_count), windowSeconds: WINDOW_SECONDS, storage: "d1-fallback" }, now);
+          return { status: 429, body: { error: "Rate limit exceeded. Retry after the current minute." }, headers: { "retry-after": String(WINDOW_SECONDS - Math.floor((nowMs / 1000) % WINDOW_SECONDS)), "cache-control": "no-store" } };
+        }
+        return null;
+      } catch {
+        // Do not allow a credential mutation if both KV and D1 rate limiting fail.
+        throw error;
+      }
+    }
+    // Other routes still pass through their own session authorization and policy checks.
   }
   return null;
 }
