@@ -160,7 +160,7 @@ test("PWA exposes real WebAuthn passkey sign-in and authenticated registration c
   assert.match(centralWorker, /\/auth\/passkey\/register\/options/);
   assert.match(centralWorker, /\/auth\/passkey\/register\/verify/);
   assert.match(centralWorker, /verifyAssertion\(body, challenge, origin/);
-  assert.match(centralWorker, /verifyRegistration\\(body, challenge, parsedOrigin.origin/);
+  assert.match(centralWorker, /verifyRegistration\(body, challenge, parsedOrigin\.origin/);
   assert.match(jarvisHtml, /navigator\.credentials\.get/);
   assert.match(jarvisHtml, /navigator\.credentials\.create/);
   assert.match(jarvisHtml, /ownerPasskeyLogin/);
@@ -312,7 +312,8 @@ test("owner chat performs Tavily live search for current questions and exposes c
   assert.ok(apiChatStart >= 0 && recoveryStart > apiChatStart, "owner chat route should exist");
   const apiChat = centralWorker.slice(apiChatStart, recoveryStart);
   assert.match(apiChat, /requiresLiveSearch\(message\)/);
-  assert.match(apiChat, /fetchTavilyWithRetry\\(searchQuery, env\\)/);\n  assert.match(apiChat, /rankTavilyResults\\(searchQuery/);
+  assert.match(apiChat, /fetchTavilyWithRetry\(searchQuery, env\)/);
+  assert.match(apiChat, /rankTavilyResults\(searchQuery/);
   assert.match(apiChat, /LIVE_SEARCH_NOT_CONFIGURED/);
   assert.match(apiChat, /No stale-model fallback was used/);
   assert.match(apiChat, /WebAuthn passkey registration and assertion verification/);
