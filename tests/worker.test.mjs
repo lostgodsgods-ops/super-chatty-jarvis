@@ -63,5 +63,5 @@ test("Red Queen status exposes only declared simulation capabilities to an authe
     "secure-transit", "subsurface-habitat", "robotics-workforce", "aerospace-research"
   ]);
   assert.equal(body.registry.livePhysicalExecution, false);
-  assert.equal(body.registry.quantumMeshImplemented, false);
+  assert.equal(body.registry.infrastructure.quantumMeshImplemented, false);
 });
