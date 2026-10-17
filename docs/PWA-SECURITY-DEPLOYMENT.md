@@ -2,7 +2,7 @@
 
 ## Scope
 
-This is an installable Progressive Web App (PWA), not an Android APK. The manifest requests `display: standalone` with `display_override: ["standalone"]` and a branded dark launch surface. The first-screen install banner uses Chrome's `beforeinstallprompt` event when Chrome exposes it; tapping **INSTALL APP NOW** invokes the native prompt. The Android/Chrome install UI and splash screen are controlled partly by the operating system and browser; behavior varies by device.
+This is an installable Progressive Web App (PWA), not an Android APK. The manifest requests `display: standalone` with `display_override: ["standalone"]` and a branded dark launch surface. The first-screen install banner uses Chrome's `beforeinstallprompt` event when Chrome exposes it; tapping **INSTALL SUPER CHATTY APP** invokes the native prompt. The Android/Chrome install UI and splash screen are controlled partly by the operating system and browser; behavior varies by device.
 
 ## Owner-first startup
 
