@@ -885,6 +885,7 @@ export default {
     }
 
     if (url.pathname === "/api/chat" && request.method === "POST") {
+      if (!(await authorized(request, env))) return json({ error: "Owner session required." }, 401, cors);
       let body;
       try { body = await request.json(); } catch { return json({ error: "Expected JSON body." }, 400, cors); }
       const message = typeof body?.message === "string" ? body.message.trim() : "";
