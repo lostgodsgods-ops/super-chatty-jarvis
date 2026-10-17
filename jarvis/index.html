@@ -1011,10 +1011,10 @@ body{background:radial-gradient(ellipse at 50% 38%,#50330f45 0,transparent 35%),
     function transcriptLooksLikeTtsEcho(transcript) {
       const spoken = String(state.currentSpeechText || "").toLocaleLowerCase().match(/[\p{L}\p{N}]{3,}/gu) || [];
       const heard = String(transcript || "").toLocaleLowerCase().match(/[\p{L}\p{N}]{3,}/gu) || [];
-      if (spoken.length < 3 || heard.length < 3) return false;
+      if (!spoken.length || !heard.length) return false;
       const words = new Set(spoken);
       const overlap = heard.filter(word => words.has(word)).length / heard.length;
-      return overlap >= 0.65;
+      return overlap >= 0.8;
     }
     function speakText(text, onEnd) {
       if (!("speechSynthesis" in window) || typeof SpeechSynthesisUtterance === "undefined") {
