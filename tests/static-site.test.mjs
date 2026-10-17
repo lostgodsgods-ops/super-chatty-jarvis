@@ -240,9 +240,10 @@ test("verified owner login is not downgraded by optional dashboard initializatio
   assert.ok(start >= 0 && end > start, "owner activation function must exist");
   const body = jarvisHtml.slice(start, end);
   assert.match(body, /session\.authenticated !== true/);
-  assert.match(body, /try\s*\{\s*await checkHealth\(\)/);
-  assert.match(body, /try\s*\{\s*await refreshTelemetry\(\)/);
-  assert.match(body, /try\s*\{\s*connectSentinelEvents\(\)/);
+  assert.match(body, /const optionalSteps = \[/);
+  assert.match(body, /\["health check", \(\) => checkHealth\(\)\]/);
+  assert.match(body, /\["telemetry refresh", \(\) => refreshTelemetry\(\)\]/);
+  assert.match(body, /\["event bus connection", \(\) => connectSentinelEvents\(\)\]/);
   assert.match(jarvisHtml, /credentials:\s*"include"/);
 });
 
