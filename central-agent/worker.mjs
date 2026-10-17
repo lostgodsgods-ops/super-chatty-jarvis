@@ -151,7 +151,7 @@ async function ensureRecoveryCodeSchema(env) {
 }
 
 function normalizeRecoveryCode(value) {
-  return typeof value === "string" ? value.replace(/[\\s-]/g, "").toUpperCase() : "";
+  return typeof value === "string" ? value.replace(/[\s-]/g, "").toUpperCase() : "";
 }
 
 async function issueOwnerRecoveryCodes(env) {
@@ -936,7 +936,7 @@ export default {
         const auth = request.headers.get("authorization") || "";
         const bearer = auth.startsWith("Bearer ") ? auth.slice(7) : "";
         const sessionToken = bearer || readSessionCookie(request);
-        if (!sessionToken) return json({ error: "Owner session required." }, 401, cors);
+        if (!sessionToken || !(await authorized(request, env))) return json({ error: "Valid owner session required." }, 401, cors);
         const sessionHash = await sha256Hex(sessionToken);
         await storeWebAuthnChallenge(env, challenge, "register", sessionHash);
         const ceremonyOrigin = request.headers.get("origin") || new URL(request.url).origin;
@@ -956,7 +956,7 @@ export default {
       const auth = request.headers.get("authorization") || "";
       const bearer = auth.startsWith("Bearer ") ? auth.slice(7) : "";
       const sessionToken = bearer || readSessionCookie(request);
-      if (!sessionToken) return json({ error: "Owner session required." }, 401, cors);
+      if (!sessionToken || !(await authorized(request, env))) return json({ error: "Valid owner session required." }, 401, cors);
       let body;
       try { body = await request.json(); } catch { return json({ error: "Expected JSON body." }, 400, cors); }
       const challenge = typeof body?.challenge === "string" ? body.challenge : "";
