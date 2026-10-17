@@ -365,3 +365,35 @@ test("PWA exposes the golden neural core, quick-chat drawer, cinematic viewer, a
   assert.ok(resumeBody.includes('method: "POST"'), "startup must revoke any cookie-backed session");
   assert.equal(resumeBody.includes('state.ownerToken = "cookie-session"'), false, "startup must not restore a cookie session");
 });
+
+
+test("owner chat endpoint requires authentication and returns a natural persona reply", async () => {
+  const e = env();
+  e.AI = {
+    async run(model, input) {
+      assert.equal(model, "@cf/meta/llama-3.1-8b-instruct-fast");
+      assert.equal(input.messages[0].role, "system");
+      assert.match(input.messages[0].content, /Loss Gods/);
+      assert.equal(input.messages[1].content, "Namaste, Chatty");
+      return { response: "Namaste, Loss Gods. I am ready." };
+    }
+  };
+  const denied = await call(e, "/api/chat", { message: "Namaste, Chatty", language: "hi-IN" });
+  assert.equal(denied.status, 401);
+  const token = await ownerToken(e);
+  const response = await call(e, "/api/chat", { message: "Namaste, Chatty", language: "hi-IN" }, token);
+  assert.equal(response.status, 200);
+  const payload = await response.json();
+  assert.equal(payload.ok, true);
+  assert.equal(payload.reply, "Namaste, Loss Gods. I am ready.");
+  assert.equal(payload.core.externalActionsPerformed, false);
+});
+
+test("owner chat endpoint validates empty and oversized messages and fails closed without AI", async () => {
+  const e = env();
+  const token = await ownerToken(e);
+  assert.equal((await call(e, "/api/chat", { message: " " }, token)).status, 400);
+  assert.equal((await call(e, "/api/chat", { message: "x".repeat(8001) }, token)).status, 400);
+  const unavailable = await call(e, "/api/chat", { message: "Hello" }, token);
+  assert.equal(unavailable.status, 503);
+});

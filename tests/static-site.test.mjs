@@ -270,3 +270,15 @@ test("base64url encoder converts plus and slash characters without runtime error
   // These bytes encode to "+///"; both characters must be converted to URL-safe form.
   assert.equal(encodeB64url(Uint8Array.from([251, 255, 255]).buffer), "-___");
 });
+
+
+test("voice-first console replaces manual mic clutter with explicit owner-only hands-free mode", () => {
+  assert.doesNotMatch(jarvisHtml, /id="micBtn"/, "manual mic button should be removed");
+  assert.match(jarvisHtml, /id="handsFreeBtn"/, "hands-free mode must have a visible explicit opt-in");
+  assert.match(jarvisHtml, /async function startHandsFree\(\)/, "voice loop must have a dedicated start routine");
+  assert.match(jarvisHtml, /if\s*\(!state\.ownerToken\)[\s\S]{0,180}Hands-free voice requires an unlocked Owner session/);
+  assert.match(jarvisHtml, /ownerFetch\("\/api\/chat"/, "voice/text commands must use the owner-authenticated chat API");
+  assert.match(jarvisHtml, /SpeechSynthesisUtterance/, "AI replies must be spoken aloud");
+  assert.match(jarvisHtml, /Loss Gods/, "owner identity must appear in the greeting/persona UI");
+  assert.match(jarvisHtml, /stopHandsFree\(/, "logout/lock must stop continuous listening");
+});
