@@ -369,8 +369,8 @@ test("password, passkey, and device-biometric option routes remain independently
   assert.equal(biometricOptions.userVerification, "required");
   assert.equal(passkeyOptions.allowCredentials[0].id, "Y3JlZGVudGlhbA");
   assert.equal(biometricOptions.allowCredentials[0].id, "Y3JlZGVudGlhbA");
-  assert.ok([...e.SESSIONS.values.keys()].some(key => key.startsWith("webauthn:login:")));
-  assert.ok([...e.SESSIONS.values.keys()].some(key => key.startsWith("webauthn:biometric:")));
+  assert.ok([...e.DB.webauthnChallenges.values()].some(row => row.purpose === "login"));
+  assert.ok([...e.DB.webauthnChallenges.values()].some(row => row.purpose === "biometric"));
 });
 
 
