@@ -282,3 +282,10 @@ test("voice-first console replaces manual mic clutter with explicit owner-only h
   assert.match(jarvisHtml, /Loss Gods/, "owner identity must appear in the greeting/persona UI");
   assert.match(jarvisHtml, /stopHandsFree\(/, "logout/lock must stop continuous listening");
 });
+
+
+test("PWA event counter increments numeric state and never reads an undefined DOM property", () => {
+  assert.match(jarvisHtml, /state\.eventsCount\+\+/);
+  assert.match(jarvisHtml, /state\.logCount\.textContent\s*=\s*state\.eventsCount\s*\+\s*" events"/);
+  assert.doesNotMatch(jarvisHtml, /els\.eventsCount\+\+/);
+});
