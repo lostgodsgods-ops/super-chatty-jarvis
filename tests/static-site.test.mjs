@@ -8,6 +8,7 @@ const jarvisHtml = await readFile(new URL("../jarvis/index.html", import.meta.ur
 const serviceWorker = await readFile(new URL("../jarvis/sw.js", import.meta.url), "utf8");
 const manifest = JSON.parse(await readFile(new URL("../jarvis/manifest.webmanifest", import.meta.url), "utf8"));
 const centralWorker = await readFile(new URL("../central-agent/worker.mjs", import.meta.url), "utf8");
+const capabilityIngestionSource = await readFile(new URL("../central-agent/architecture/capability-ingestion.mjs", import.meta.url), "utf8");
 const readme = await readFile(new URL("../README_HI.txt", import.meta.url), "utf8");
 const agentBrief = await readFile(new URL("../AI_AGENT_PROMPT.md", import.meta.url), "utf8");
 const deployWorkflow = await readFile(
@@ -359,8 +360,8 @@ test("capability ingestion is wired to an authenticated route and remains metada
   assert.match(centralWorker, /url\.pathname === "\/api\/capabilities\/ingest"/);
   assert.match(centralWorker, /ingestCapabilitySpec\(specUrl, env\)/);
   assert.match(centralWorker, /executionEnabled:\s*false/);
-  assert.match(centralWorker, /CAPABILITY_SPEC_HOSTS/);
-  assert.match(centralWorker, /redirect:\s*"error"/);
+  assert.match(capabilityIngestionSource, /CAPABILITY_SPEC_HOSTS/);
+  assert.match(capabilityIngestionSource, /redirect:\s*"error"/);
 });
 
 test("scheduled intel is proposal-only and never self-deploys or self-grants", () => {
