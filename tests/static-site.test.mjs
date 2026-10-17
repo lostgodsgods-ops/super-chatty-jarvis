@@ -367,5 +367,5 @@ test("scheduled intel is proposal-only and never self-deploys or self-grants", (
   assert.match(centralWorker, /runIntelCycle\(env\)/);
   assert.match(centralWorker, /upgradeExecution:\s*false/);
   assert.match(centralWorker, /INTEL_CRON_ENABLED/);
-  assert.match(wranglerConfig, /"GITHUB_REPOSITORY":\s*"lostgodsgods-ops\/super-chatty-jarvis"/);
+  assert.match(centralWranglerConfig, /"GITHUB_REPOSITORY":\s*"lostgodsgods-ops\/super-chatty-jarvis"/);
 });
