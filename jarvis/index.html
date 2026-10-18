@@ -380,7 +380,7 @@ body{background:radial-gradient(ellipse at 50% 38%,#50330f45 0,transparent 35%),
       refreshTelemetry:$("refreshTelemetry"), factSearchForm:$("factSearchForm"), factQuery:$("factQuery"),
       researchSearchBtn:$("researchSearchBtn"), researchSearchStatus:$("researchSearchStatus"), sourceResults:$("sourceResults")
     };
-    const state = { events:null, recognition:null, listening:false, handsFree:false, speaking:false, chatBusy:false, chatController:null, audioContext:null, analyser:null, mediaStream:null, raf:0, eventsCount:0, connected:false, started:Date.now(), healthTimer:0, toastTimer:0, ownerToken:"", telemetryTimer:0, researchBusy:false, memoryHistory:[], turnId:0, bargeInStream:null, bargeInContext:null, bargeInAnalyser:null, bargeInRaf:0 };
+    const state = { events:null, recognition:null, listening:false, handsFree:false, speaking:false, chatBusy:false, chatController:null, eventsCount:0, connected:false, started:Date.now(), healthTimer:0, toastTimer:0, ownerToken:"", telemetryTimer:0, researchBusy:false, memoryHistory:[], turnId:0 };
     const time = () => new Date().toLocaleTimeString([], {hour12:false});
     function log(message, type="info", source="UI") {
       const row = document.createElement("div"); row.className = "log";
@@ -609,11 +609,7 @@ body{background:radial-gradient(ellipse at 50% 38%,#50330f45 0,transparent 35%),
         if (state.ownerToken) refreshTelemetry().catch(error => log("Telemetry refresh failed: " + (error?.message || String(error)), "warn", "TELEMETRY"));
       }, 30000);
       toast("Owner session verified. Welcome, Loss Gods.");
-      speakGreeting(() => {
-        try {
-          if (state.ownerToken && localStorage.getItem("sc_hands_free_autostart_v1") === "1") startHandsFree();
-        } catch (error) { log("Hands-free auto-resume preference unavailable: " + (error?.message || String(error)), "warn", "VOICE"); }
-      });
+      speakGreeting();
     }
     function assertPasskeyOrigin(options, registration = false) {
       const origin = window.location.origin;
@@ -969,104 +965,16 @@ body{background:radial-gradient(ellipse at 50% 38%,#50330f45 0,transparent 35%),
       state.healthTimer = setInterval(checkHealth, 30000);
     }
     async function stopAudioMeter() {
-      if (state.raf) cancelAnimationFrame(state.raf); state.raf = 0;
-      if (state.mediaStream) state.mediaStream.getTracks().forEach(t => t.stop()); state.mediaStream = null;
-      if (state.audioContext) { try { await state.audioContext.close(); } catch {} state.audioContext = null; }
-      state.analyser = null; els.audioMetric.textContent = "0%";
+      // Live level measurement is isolated in voice-diagnostics.html.
+      // Never open a second getUserMedia stream beside browser SpeechRecognition.
+      els.audioMetric.textContent = "N/A";
       els.core.style.transform = "scale(1)";
-    }
-    async function startAudioMeter() {
-      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) return;
-      try {
-        state.mediaStream = await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:true,noiseSuppression:true,autoGainControl:true},video:false});
-        const AudioContextClass = window.AudioContext || window.webkitAudioContext;
-        if (!AudioContextClass) return;
-        state.audioContext = new AudioContextClass();
-        const source = state.audioContext.createMediaStreamSource(state.mediaStream);
-        state.analyser = state.audioContext.createAnalyser(); state.analyser.fftSize = 256;
-        source.connect(state.analyser);
-        const data = new Uint8Array(state.analyser.frequencyBinCount);
-        const canvas = els.wave, ctx = canvas.getContext("2d");
-        const draw = () => {
-          if (!state.analyser) return;
-          state.analyser.getByteFrequencyData(data);
-          const level = data.reduce((sum,v)=>sum+v,0) / (data.length * 255);
-          els.audioMetric.textContent = Math.round(level*100) + "%";
-          els.core.style.transform = "scale(" + (1 + Math.min(level,0.24)) + ")";
-          els.core.style.boxShadow = "0 0 " + (18+level*90) + "px #ffcc704d,0 0 " + (58+level*160) + "px #ffad3a55,inset -13px -18px 28px #0009,inset 6px 7px 20px #fff7b14a";
-          const rect = canvas.getBoundingClientRect(), dpr = Math.min(window.devicePixelRatio||1,2);
-          if (canvas.width !== Math.round(rect.width*dpr) || canvas.height !== Math.round(rect.height*dpr)) { canvas.width=Math.round(rect.width*dpr); canvas.height=Math.round(rect.height*dpr); }
-          ctx.clearRect(0,0,canvas.width,canvas.height);
-          const cx=canvas.width/2,cy=canvas.height/2, radius=canvas.width*.27, bars=data.length;
-          ctx.lineWidth=Math.max(1,dpr);
-          for(let i=0;i<bars;i++){
-            const angle=(i/bars)*Math.PI*2;
-            const magnitude=(data[i]/255)*canvas.width*.105;
-            const x1=cx+Math.cos(angle)*radius, y1=cy+Math.sin(angle)*radius;
-            const x2=cx+Math.cos(angle)*(radius+magnitude), y2=cy+Math.sin(angle)*(radius+magnitude);
-            ctx.strokeStyle="rgba(255,207,125,"+(0.2+data[i]/340)+")";
-            ctx.beginPath();ctx.moveTo(x1,y1);ctx.lineTo(x2,y2);ctx.stroke();
-          }
-          state.raf=requestAnimationFrame(draw);
-        };
-        draw();
-      } catch (err) {
-        log("Audio visualizer permission unavailable: " + err.message,"warn","AUDIO");
-      }
     }
     function speechApi() { return window.SpeechRecognition || window.webkitSpeechRecognition || null; }
     function speechLanguage() {
       return /[\\u0900-\\u097F]/.test(els.commandInput.value || "") ? "hi-IN" : "en-IN";
     }
-    async function startBargeInMonitor() {
-      if (state.bargeInStream || !navigator.mediaDevices?.getUserMedia) return;
-      try {
-        const stream = await navigator.mediaDevices.getUserMedia({
-          audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true }, video: false
-        });
-        if (!state.handsFree || !state.ownerToken) { stream.getTracks().forEach(track => track.stop()); return; }
-        const AudioContextClass = window.AudioContext || window.webkitAudioContext;
-        if (!AudioContextClass) { stream.getTracks().forEach(track => track.stop()); return; }
-        const context = new AudioContextClass();
-        const analyser = context.createAnalyser(); analyser.fftSize = 512; analyser.smoothingTimeConstant = 0;
-        context.createMediaStreamSource(stream).connect(analyser);
-        const data = new Uint8Array(analyser.fftSize);
-        state.bargeInStream = stream; state.bargeInContext = context; state.bargeInAnalyser = analyser;
-        let hotFrames = 0, noiseFloor = 0.012;
-        const sample = () => {
-          if (!state.bargeInAnalyser || !state.handsFree || !state.ownerToken) return;
-          analyser.getByteTimeDomainData(data);
-          let sum = 0;
-          for (let i = 0; i < data.length; i++) { const value = (data[i] - 128) / 128; sum += value * value; }
-          const rms = Math.sqrt(sum / data.length);
-          const threshold = Math.max(0.045, noiseFloor * 3.2);
-          if (state.speaking && rms >= threshold) hotFrames++;
-          else {
-            hotFrames = 0;
-            noiseFloor = Math.min(0.04, noiseFloor * 0.96 + rms * 0.04);
-          }
-          // At 60 Hz, four consecutive frames is about 67 ms. Recognition supplies the words;
-          // RMS only cancels active TTS and never submits a command by itself.
-          if (state.speaking && hotFrames >= 4) {
-            hotFrames = 0;
-            interruptSpeechOutput();
-          }
-          state.bargeInRaf = requestAnimationFrame(sample);
-        };
-        if (context.state === "suspended") await context.resume().catch(() => {});
-        state.bargeInRaf = requestAnimationFrame(sample);
-      } catch (error) {
-        log("RMS barge-in monitor unavailable; transcript-based interruption remains active: " + (error?.message || String(error)), "warn", "VOICE");
-      }
-    }
-    async function stopBargeInMonitor() {
-      if (state.bargeInRaf) cancelAnimationFrame(state.bargeInRaf);
-      state.bargeInRaf = 0; state.bargeInAnalyser = null;
-      if (state.bargeInStream) state.bargeInStream.getTracks().forEach(track => track.stop());
-      state.bargeInStream = null;
-      if (state.bargeInContext) { try { await state.bargeInContext.close(); } catch {} }
-      state.bargeInContext = null;
-    }
+    // Dedicated RMS barge-in capture removed: it competed with SpeechRecognition.
     function interruptSpeechOutput() {
       state.speechGeneration = (state.speechGeneration || 0) + 1;
       state.turnId++;
@@ -1075,7 +983,6 @@ body{background:radial-gradient(ellipse at 50% 38%,#50330f45 0,transparent 35%),
       if ("speechSynthesis" in window) window.speechSynthesis.cancel();
       state.speaking = false; state.currentSpeechText = "";
       log("Speech output interrupted by owner speech.", "info", "VOICE");
-      if (state.handsFree && state.ownerToken && !state.chatBusy) setTimeout(() => startListening(), 80);
     }
     function transcriptLooksLikeTtsEcho(transcript) {
       const spoken = String(state.currentSpeechText || "").toLocaleLowerCase().match(/[\p{L}\p{N}]{3,}/gu) || [];
@@ -1113,7 +1020,6 @@ body{background:radial-gradient(ellipse at 50% 38%,#50330f45 0,transparent 35%),
           if (typeof onEnd === "function") onEnd();
         };
         state.speaking = true; window.speechSynthesis.speak(utterance);
-        if (state.handsFree && state.ownerToken) setTimeout(() => startListening(), 180);
         return true;
       } catch (error) {
         state.speaking = false; log("Speech output unavailable: " + (error?.message || String(error)), "warn", "VOICE");
@@ -1121,13 +1027,12 @@ body{background:radial-gradient(ellipse at 50% 38%,#50330f45 0,transparent 35%),
       }
     }
     function speakGreeting(onEnd) {
-      speakText("Welcome, Loss Gods. Super Chatty Jarvis is ready. Hands-free listening resumes only if you previously enabled it.", onEnd);
+      speakText("Welcome, Loss Gods. Super Chatty Jarvis is ready. Tap the microphone toggle when you want voice listening.", onEnd);
     }
     function stopHandsFree(reason = "Hands-free voice stopped.") {
       state.handsFree = false; state.listening = false;
       try { if (state.recognition) state.recognition.abort(); } catch {}
       state.recognition = null;
-      stopBargeInMonitor();
       if ("speechSynthesis" in window) window.speechSynthesis.cancel();
       state.speaking = false;
       els.handsFreeBtn.setAttribute("aria-pressed", "false");
@@ -1143,30 +1048,25 @@ body{background:radial-gradient(ellipse at 50% 38%,#50330f45 0,transparent 35%),
         els.privacyNote.textContent = "Sign in first. The microphone stays off while locked."; return;
       }
       if (state.handsFree) {
-        try { localStorage.removeItem("sc_hands_free_autostart_v1"); } catch {}
-        stopHandsFree("Hands-free listening stopped by Loss Gods."); return;
+        stopHandsFree("Voice listening stopped by manual toggle."); return;
       }
       if (!speechApi()) {
         toast("This browser does not support SpeechRecognition. Type a message instead.");
         log("SpeechRecognition API unavailable; text chat remains available.", "warn", "VOICE"); return;
       }
-      // Remember only an explicit user opt-in. This preference allows a future verified
-      // owner session to resume listening; it never grants authentication or mic permission.
-      try { localStorage.setItem("sc_hands_free_autostart_v1", "1"); }
-      catch { log("Hands-free preference could not be saved; voice remains enabled for this session only.", "warn", "VOICE"); }
+      // Manual, foreground-only opt-in. Never persist or auto-resume microphone activation.
       state.handsFree = true;
       els.handsFreeBtn.setAttribute("aria-pressed", "true"); els.handsFreeBtn.textContent = "HANDS-FREE ON";
       els.privacyNote.textContent = "Hands-free listening is active while Owner is unlocked. Browser speech recognition may process audio.";
-      log("Loss Gods enabled hands-free listening.", "good", "VOICE");
-      startBargeInMonitor();
+      log("Manual voice toggle enabled. Browser SpeechRecognition is the only active voice-capture path.", "good", "VOICE");
       await startListening();
     }
     async function startListening() {
-      if (!state.handsFree || !state.ownerToken || state.listening || state.chatBusy) return;
+      if (!state.handsFree || !state.ownerToken || state.listening || state.recognition || state.chatBusy) return;
       const Recognition = speechApi();
       if (!Recognition) { stopHandsFree("Speech recognition is unavailable."); return; }
       const recognition = new Recognition();
-      recognition.lang = "en-IN"; recognition.continuous = false; recognition.interimResults = true; recognition.maxAlternatives = 1;
+      recognition.lang = speechLanguage(); recognition.continuous = false; recognition.interimResults = true; recognition.maxAlternatives = 1;
       state.recognition = recognition;
       recognition.onstart = () => {
         // Keep recognition active during TTS so the owner can barge in.
@@ -1198,9 +1098,12 @@ body{background:radial-gradient(ellipse at 50% 38%,#50330f45 0,transparent 35%),
         }
       };
       recognition.onend = () => {
+        // Ignore late end events from an aborted/obsolete recognition instance.
+        if (state.recognition !== recognition) return;
+        state.recognition = null;
         state.listening = false; els.handsFreeBtn.classList.remove("listening");
         els.micMetric.textContent = state.handsFree ? "READY" : "IDLE";
-        if (state.handsFree && state.ownerToken && !state.chatBusy) setTimeout(() => startListening(), 180);
+        if (state.handsFree && state.ownerToken && !state.chatBusy) setTimeout(() => startListening(), 250);
       };
       try { recognition.start(); }
       catch (error) { log("Could not start speech recognition: " + (error?.message || String(error)), "error", "VOICE"); stopHandsFree("Speech recognition could not start."); }
@@ -1365,7 +1268,6 @@ body{background:radial-gradient(ellipse at 50% 38%,#50330f45 0,transparent 35%),
       state.ownerToken="";state.memoryHistory=[];clearOwnerSession(reason);
       try{if(state.recognition)state.recognition.abort();}catch{}
       stopHandsFree("App backgrounded. Voice session stopped.");
-      if(state.mediaStream){state.mediaStream.getTracks().forEach(track=>track.stop());state.mediaStream=null;}
       stopAudioMeter().catch(()=>{});disconnectEvents();clearInterval(state.healthTimer);state.healthTimer=0;
       if(base)fetch(base+"/auth/logout",{method:"POST",headers:token&&token!=="cookie-session"?{authorization:"Bearer "+token}:{},credentials:"include",cache:"no-store",keepalive:true}).catch(()=>{});
       log("Session locked on "+reason,"warn","SECURITY");
