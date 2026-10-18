@@ -1,0 +1,45 @@
+import test from "node:test";
+import assert from "node:assert/strict";
+import { webcrypto } from "node:crypto";
+import worker from "../central-agent/worker.mjs";
+
+if (!globalThis.crypto) globalThis.crypto = webcrypto;
+
+async function request(path, method = "POST", body = {}) {
+  return worker.fetch(new Request("https://unit.test" + path, {
+    method,
+    headers: { "content-type": "application/json", "cf-connecting-ip": "127.0.0.1" },
+    ...(method === "GET" || method === "HEAD" ? {} : { body: JSON.stringify(body) })
+  }), {
+    SESSIONS: { async get() { return null; }, async put() {} },
+    DB: { prepare() { return { bind() { return this; }, async run() { return { meta: { last_row_id: 1, changes: 1 } }; }, async first() { return null; }, async all() { return { results: [] }; } }; } }
+  });
+}
+
+test("owner-control mutation rejects requests without a real owner session", async () => {
+  const response = await request("/api/owner-control", "POST", { action: "takeover", enabled: true });
+  assert.equal(response.status, 401);
+  assert.match((await response.json()).error, /Unauthorized/);
+});
+
+test("finance sandbox rejects requests without a real owner session", async () => {
+  const response = await request("/api/finance/sandbox", "POST", {
+    idempotencyKey: "test-1", kind: "credit", amountMinor: 100
+  });
+  assert.equal(response.status, 401);
+  assert.match((await response.json()).error, /Unauthorized/);
+});
+
+test("robotics simulator assessment rejects requests without a real owner session", async () => {
+  const response = await request("/api/robotics/simulator/assess", "POST", {
+    action: "move-simulated", x: 1, y: 1, speed: 0.2
+  });
+  assert.equal(response.status, 401);
+  assert.match((await response.json()).error, /Unauthorized/);
+});
+
+test("robotics simulator endpoint remains protected by the global owner gate", async () => {
+  const response = await request("/api/robotics/simulator/assess", "GET");
+  assert.equal(response.status, 401);
+  assert.match((await response.json()).error, /Unauthorized/);
+});
