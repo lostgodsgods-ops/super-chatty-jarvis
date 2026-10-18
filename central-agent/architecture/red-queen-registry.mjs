@@ -1,4 +1,5 @@
 import { MISSION_MODULES } from "./mission-grid.mjs";
+import { PLATFORM_MODULES, getPlatformModuleSummary } from "./platform-module-registry.mjs";
 
 /**
  * Read-only Red Queen status projection.
@@ -19,6 +20,8 @@ export function buildRedQueenStatus(env = {}) {
     missionModules: MISSION_MODULES.map(({ id, label, status, executionMode, scope, boundary }) => ({
       id, label, status, executionMode, scope, boundary
     })),
+    platformModules: PLATFORM_MODULES,
+    platformModuleSummary: getPlatformModuleSummary(),
     baseSystems: {
       habitatAndLifeSupport: "simulation-only-not-connected",
       roboticsAndSwarmTasks: "sandbox-planning-only-not-connected",
