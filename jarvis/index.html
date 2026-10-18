@@ -380,7 +380,7 @@ body{background:radial-gradient(ellipse at 50% 38%,#50330f45 0,transparent 35%),
       refreshTelemetry:$("refreshTelemetry"), factSearchForm:$("factSearchForm"), factQuery:$("factQuery"),
       researchSearchBtn:$("researchSearchBtn"), researchSearchStatus:$("researchSearchStatus"), sourceResults:$("sourceResults")
     };
-    const state = { events:null, recognition:null, listening:false, handsFree:false, speaking:false, chatBusy:false, chatController:null, audioContext:null, analyser:null, mediaStream:null, raf:0, eventsCount:0, connected:false, started:Date.now(), healthTimer:0, toastTimer:0, ownerToken:"", telemetryTimer:0, researchBusy:false, memoryHistory:[], turnId:0, bargeInStream:null, bargeInContext:null, bargeInAnalyser:null, bargeInRaf:0 };
+    const state = { events:null, recognition:null, recognitionStarting:false, recognitionRetryTimer:0, recognitionRetryCount:0, recognitionStartTimer:0, listening:false, handsFree:false, speaking:false, chatBusy:false, chatController:null, audioContext:null, analyser:null, mediaStream:null, raf:0, eventsCount:0, connected:false, started:Date.now(), healthTimer:0, toastTimer:0, ownerToken:"", telemetryTimer:0, researchBusy:false, memoryHistory:[], turnId:0, bargeInStream:null, bargeInContext:null, bargeInAnalyser:null, bargeInRaf:0 };
     const time = () => new Date().toLocaleTimeString([], {hour12:false});
     function log(message, type="info", source="UI") {
       const row = document.createElement("div"); row.className = "log";
@@ -1124,12 +1124,20 @@ body{background:radial-gradient(ellipse at 50% 38%,#50330f45 0,transparent 35%),
       speakText("Welcome, Loss Gods. Super Chatty Jarvis is ready. Hands-free listening resumes only if you previously enabled it.", onEnd);
     }
     function stopHandsFree(reason = "Hands-free voice stopped.") {
-      state.handsFree = false; state.listening = false;
-      try { if (state.recognition) state.recognition.abort(); } catch {}
+      state.handsFree = false;
+      state.listening = false;
+      state.recognitionStarting = false;
+      if (state.recognitionRetryTimer) clearTimeout(state.recognitionRetryTimer);
+      if (state.recognitionStartTimer) clearTimeout(state.recognitionStartTimer);
+      state.recognitionRetryTimer = 0;
+      state.recognitionStartTimer = 0;
+      const recognition = state.recognition;
       state.recognition = null;
+      try { if (recognition) recognition.abort(); } catch {}
       stopBargeInMonitor();
       if ("speechSynthesis" in window) window.speechSynthesis.cancel();
       state.speaking = false;
+      state.currentSpeechText = "";
       els.handsFreeBtn.setAttribute("aria-pressed", "false");
       els.handsFreeBtn.textContent = "HANDS-FREE OFF";
       els.handsFreeBtn.classList.remove("listening");
@@ -1161,49 +1169,120 @@ body{background:radial-gradient(ellipse at 50% 38%,#50330f45 0,transparent 35%),
       startBargeInMonitor();
       await startListening();
     }
+    const MAX_RECOGNITION_RETRIES = 3;
+    function scheduleListeningRetry(delay) {
+      if (!state.handsFree || !state.ownerToken || state.chatBusy || state.recognitionRetryTimer) return;
+      state.recognitionRetryTimer = setTimeout(() => {
+        state.recognitionRetryTimer = 0;
+        if (state.handsFree && state.ownerToken && !state.chatBusy) startListening();
+      }, delay);
+    }
     async function startListening() {
-      if (!state.handsFree || !state.ownerToken || state.listening || state.chatBusy) return;
+      if (!state.handsFree || !state.ownerToken || state.listening || state.recognitionStarting || state.chatBusy) return;
+      if (state.recognitionRetryTimer) {
+        clearTimeout(state.recognitionRetryTimer);
+        state.recognitionRetryTimer = 0;
+      }
       const Recognition = speechApi();
       if (!Recognition) { stopHandsFree("Speech recognition is unavailable."); return; }
-      const recognition = new Recognition();
-      recognition.lang = "en-IN"; recognition.continuous = false; recognition.interimResults = true; recognition.maxAlternatives = 1;
-      state.recognition = recognition;
-      recognition.onstart = () => {
-        // Keep recognition active during TTS so the owner can barge in.
-        // TTS is cancelled only when incoming speech differs from the current spoken reply.
-        state.listening = true; els.handsFreeBtn.classList.add("listening"); els.micMetric.textContent = "LIVE";
-        els.voiceLabel.textContent = "LISTENING · LOSS GODS"; setCoreState("Hands-free listening · speak naturally");
-        els.privacyNote.textContent = "Microphone active. Audio recognition may be processed by your browser provider.";
-      };
-      recognition.onresult = event => {
-        let finalText = "";
-        for (let i = event.resultIndex; i < event.results.length; i++) {
-          const result = event.results[i];
-          const transcript = String(result?.[0]?.transcript || "").trim();
-          if (!transcript) continue;
-          if (state.speaking && transcriptLooksLikeTtsEcho(transcript)) continue;
-          if (state.speaking) interruptSpeechOutput();
-          if (result.isFinal) finalText += (finalText ? " " : "") + transcript;
-        }
-        if (finalText.trim()) {
-          els.commandInput.value = finalText.trim(); log("Loss Gods voice input captured.", "good", "VOICE");
-          submitCommand("voice").catch(error => log("Voice reply failed: " + (error?.message || String(error)), "error", "VOICE"));
-        }
-      };
-      recognition.onerror = event => {
-        log("Speech recognition error: " + event.error, "warn", "VOICE");
-        if (["not-allowed", "service-not-allowed", "audio-capture"].includes(event.error)) {
-          stopHandsFree("Microphone permission or speech service is unavailable.");
-          toast(event.error === "not-allowed" ? "Microphone permission was denied." : "Voice service unavailable. Hands-free was stopped.");
-        }
-      };
-      recognition.onend = () => {
-        state.listening = false; els.handsFreeBtn.classList.remove("listening");
-        els.micMetric.textContent = state.handsFree ? "READY" : "IDLE";
-        if (state.handsFree && state.ownerToken && !state.chatBusy) setTimeout(() => startListening(), 180);
-      };
-      try { recognition.start(); }
-      catch (error) { log("Could not start speech recognition: " + (error?.message || String(error)), "error", "VOICE"); stopHandsFree("Speech recognition could not start."); }
+      let recognition;
+      try {
+        recognition = new Recognition();
+        state.recognition = recognition;
+        state.recognitionStarting = true;
+        recognition.lang = "en-IN";
+        recognition.continuous = false;
+        recognition.interimResults = true;
+        recognition.maxAlternatives = 1;
+        recognition.onstart = () => {
+          if (state.recognition !== recognition) return;
+          state.recognitionStarting = false;
+          if (state.recognitionStartTimer) clearTimeout(state.recognitionStartTimer);
+          state.recognitionStartTimer = 0;
+          state.listening = true;
+          els.handsFreeBtn.classList.add("listening");
+          els.micMetric.textContent = "LIVE";
+          els.voiceLabel.textContent = "LISTENING · LOSS GODS";
+          setCoreState("Hands-free listening · speak naturally");
+          els.privacyNote.textContent = "Microphone active. Audio recognition may be processed by your browser provider.";
+        };
+        recognition.onresult = event => {
+          if (state.recognition !== recognition || !state.handsFree || !state.ownerToken) return;
+          let finalText = "";
+          for (let i = event.resultIndex; i < event.results.length; i++) {
+            const result = event.results[i];
+            const transcript = String(result?.[0]?.transcript || "").trim();
+            if (!transcript) continue;
+            if (state.speaking && transcriptLooksLikeTtsEcho(transcript)) continue;
+            if (state.speaking) interruptSpeechOutput();
+            if (result.isFinal) finalText += (finalText ? " " : "") + transcript;
+          }
+          if (finalText.trim()) {
+            state.recognitionRetryCount = 0;
+            els.commandInput.value = finalText.trim();
+            log("Loss Gods voice input captured.", "good", "VOICE");
+            submitCommand("voice").catch(error => log("Voice reply failed: " + (error?.message || String(error)), "error", "VOICE"));
+          }
+        };
+        recognition.onerror = event => {
+          if (state.recognition !== recognition) return;
+          state.recognitionStarting = false;
+          if (state.recognitionStartTimer) clearTimeout(state.recognitionStartTimer);
+          state.recognitionStartTimer = 0;
+          const error = String(event?.error || "unknown");
+          log("Speech recognition error: " + error, "warn", "VOICE");
+          if (["not-allowed", "service-not-allowed", "audio-capture", "language-not-supported"].includes(error)) {
+            stopHandsFree("Microphone permission or speech service is unavailable.");
+            toast(error === "not-allowed" ? "Microphone permission was denied." : "Voice service unavailable. Hands-free was stopped.");
+            return;
+          }
+          if (["network", "service-not-allowed"].includes(error)) {
+            state.recognitionRetryCount++;
+            if (state.recognitionRetryCount > MAX_RECOGNITION_RETRIES) {
+              stopHandsFree("Speech service kept failing after bounded retries.");
+              toast("Voice service is unavailable. Use typing or retry later.");
+              return;
+            }
+            const delay = Math.min(1000 * (2 ** (state.recognitionRetryCount - 1)), 8000);
+            els.privacyNote.textContent = "Voice service error. Retrying in " + Math.ceil(delay / 1000) + "s (" + state.recognitionRetryCount + "/" + MAX_RECOGNITION_RETRIES + ").";
+            scheduleListeningRetry(delay);
+          }
+        };
+        recognition.onend = () => {
+          if (state.recognition !== recognition) return;
+          state.recognition = null;
+          state.recognitionStarting = false;
+          state.listening = false;
+          if (state.recognitionStartTimer) clearTimeout(state.recognitionStartTimer);
+          state.recognitionStartTimer = 0;
+          els.handsFreeBtn.classList.remove("listening");
+          els.micMetric.textContent = state.handsFree ? "READY" : "IDLE";
+          if (state.handsFree && state.ownerToken && !state.chatBusy && !state.recognitionRetryTimer) {
+            scheduleListeningRetry(180);
+          }
+        };
+        recognition.start();
+        state.recognitionStartTimer = setTimeout(() => {
+          if (state.recognition !== recognition || !state.recognitionStarting) return;
+          log("Speech recognition startup timed out.", "warn", "VOICE");
+          state.recognitionStarting = false;
+          state.recognition = null;
+          try { recognition.abort(); } catch {}
+          state.recognitionRetryCount++;
+          if (state.recognitionRetryCount > MAX_RECOGNITION_RETRIES) {
+            stopHandsFree("Speech recognition could not start after bounded retries.");
+            return;
+          }
+          scheduleListeningRetry(Math.min(1000 * (2 ** (state.recognitionRetryCount - 1)), 8000));
+        }, 5000);
+      } catch (error) {
+        if (state.recognition === recognition) state.recognition = null;
+        state.recognitionStarting = false;
+        if (state.recognitionStartTimer) clearTimeout(state.recognitionStartTimer);
+        state.recognitionStartTimer = 0;
+        log("Could not start speech recognition: " + (error?.message || String(error)), "error", "VOICE");
+        stopHandsFree("Speech recognition could not start.");
+      }
     }
     async function submitCommand(source = "text") {
       const command = els.commandInput.value.trim();
