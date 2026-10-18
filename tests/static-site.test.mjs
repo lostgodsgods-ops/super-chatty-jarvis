@@ -351,7 +351,7 @@ test("voice capture is singleton and competing microphone monitor is absent", ()
   assert.match(jarvisHtml, /if \(state\.recognition !== recognition\) return/);
   assert.match(jarvisHtml, /state\.chatController\.abort\(\)/);
   assert.match(jarvisHtml, /function adaptSpeechTone\(/);
-  assert.match(jarvisHtml, /}, turnLanguage);/);
+  assert.ok(jarvisHtml.includes("}, turnLanguage);"), "spoken reply should preserve the turn language");
   assert.match(jarvisHtml, /const turnLanguage = speechLanguage\(\);/);
 });
 
