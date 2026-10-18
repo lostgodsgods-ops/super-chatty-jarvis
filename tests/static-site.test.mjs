@@ -376,18 +376,18 @@ test("scheduled intel is proposal-only and never self-deploys or self-grants", (
 
 
 test("main voice coordinator avoids legacy duplicate audio-meter and barge-in capture", () => {
-  assert.doesNotMatch(jarvisHtml, /function startAudioMeter\\s*\\(/);
-  assert.doesNotMatch(jarvisHtml, /function startBargeInMonitor\\s*\\(/);
+  assert.doesNotMatch(jarvisHtml, /function startAudioMeter\s*\(/);
+  assert.doesNotMatch(jarvisHtml, /function startBargeInMonitor\s*\(/);
   assert.doesNotMatch(jarvisHtml, /bargeInStream|bargeInContext|bargeInAnalyser|bargeInRaf/);
 });
 
 test("microphone sandbox reuses one explicit shared stream for metering and recorder fallback", () => {
   assert.match(micSandboxHtml, /let sharedStream = null/);
-  assert.equal([...micSandboxHtml.matchAll(/getUserMedia\\s*\\(/g)].length, 1, "one capture call only");
-  assert.match(micSandboxHtml, /new MediaRecorder\\(sharedStream/);
-  assert.match(micSandboxHtml, /blob\\.size\\s*>\\s*0/);
+  assert.equal([...micSandboxHtml.matchAll(/getUserMedia\s*\(/g)].length, 1, "one capture call only");
+  assert.match(micSandboxHtml, /new MediaRecorder\(sharedStream/);
+  assert.match(micSandboxHtml, /blob\.size\s*>\s*0/);
   assert.match(micSandboxHtml, /Simulate Web Speech error/i);
-  assert.match(micSandboxHtml, /navigator\\.serviceWorker/);
-  assert.doesNotMatch(micSandboxHtml, /getUserMedia\\(.*\\)\\s*;\\s*$/s);
+  assert.match(micSandboxHtml, /navigator\.serviceWorker/);
+  assert.doesNotMatch(micSandboxHtml, /getUserMedia\(.*\)\s*;\s*$/s);
   assert.match(micSandboxHtml, /getTracks\(\)\.forEach\(track => track\.stop\(\)\)/, "stop releases every stream track");
 });
