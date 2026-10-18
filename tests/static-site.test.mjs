@@ -107,12 +107,12 @@ test("NEXUS agent HUD is live-wired to the production SSE event bus", () => {
 
 
 test("installed PWA force-updates stale shells and revalidates HTML assets", () => {
-  assert.match(serviceWorker, /CACHE_NAME\s*=\s*"super-chatty-jarvis-shell-v5"/, "shell cache must be version-bumped for the install UX release");
+  assert.match(serviceWorker, /CACHE_NAME\s*=\s*"super-chatty-jarvis-shell-v6-voice-singleton"/, "shell cache must be version-bumped for the install UX release");
   assert.match(serviceWorker, /self\.skipWaiting\(\)/, "new worker must activate without waiting for an old tab to close");
   assert.match(serviceWorker, /self\.clients\.claim\(\)/, "new worker must claim open PWA clients");
   assert.match(serviceWorker, /key !== CACHE_NAME.*caches\.delete\(key\)/s, "activation must delete older Super Chatty shell caches");
   assert.match(serviceWorker, /new Request\(request,\s*\{\s*cache:\s*"no-store"\s*\}\)/, "navigation must bypass stale browser HTTP cache");
-  assert.match(jarvisHtml, /application-version" content="NEXUS-2026\.10\.17-PWA5"/, "frontend version must be bumped");
+  assert.match(jarvisHtml, /application-version" content="NEXUS-2026\.10\.18-VOICE-SINGLETON"/, "frontend version must be bumped");
   assert.match(jarvisHtml, /registration\.update\(\)/, "PWA must check for worker updates");
   assert.match(jarvisHtml, /controllerchange/, "active sessions must detect the new worker controller");
   assert.match(jarvisHtml, /location\.reload\(\)/, "active sessions must reload after a worker update");
@@ -220,7 +220,7 @@ test("PWA provides a direct native install prompt and a safe fallback", () => {
   assert.match(jarvisHtml, /display-mode:\s*standalone/, "installed standalone mode must be detected");
   assert.ok(centralWorker.includes('url.pathname === "/icon-192.png"'), "Worker must allow the public 192px install icon");
   assert.ok(centralWorker.includes('url.pathname === "/icon-512.png"'), "Worker must allow the public 512px install icon");
-  assert.match(serviceWorker, /CACHE_NAME\s*=\s*"super-chatty-jarvis-shell-v5"/, "install UX release must invalidate old shell cache");
+  assert.match(serviceWorker, /CACHE_NAME\s*=\s*"super-chatty-jarvis-shell-v6-voice-singleton"/, "install UX release must invalidate old shell cache");
 });
 
 test("owner gate prevents health checks and SSE from starting before session verification", () => {
@@ -243,8 +243,8 @@ test("first-screen one-click install uses the browser-native prompt when eligibl
   assert.match(jarvisHtml, /installEvent\.prompt\(\)/, "tap must invoke the captured native prompt");
   assert.match(jarvisHtml, /addEventListener\("appinstalled"/, "successful install must be handled");
   assert.match(jarvisHtml, /Chrome has not offered the native install prompt yet/i, "unavailable prompt state must be honest");
-  assert.match(jarvisHtml, /application-version" content="NEXUS-2026\.10\.17-PWA5"/, "app version must identify this shell release");
-  assert.match(serviceWorker, /CACHE_NAME\s*=\s*"super-chatty-jarvis-shell-v5"/, "shell cache must be invalidated");
+  assert.match(jarvisHtml, /application-version" content="NEXUS-2026\.10\.18-VOICE-SINGLETON"/, "app version must identify this shell release");
+  assert.match(serviceWorker, /CACHE_NAME\s*=\s*"super-chatty-jarvis-shell-v6-voice-singleton"/, "shell cache must be invalidated");
 });
 
 test("PWA install icons and standalone asset paths are consistent", () => {
@@ -305,19 +305,16 @@ test("voice-first console replaces manual mic clutter with explicit owner-only h
 });
 
 
-test("hands-free voice resumes after owner unlock only after explicit prior opt-in", () => {
+test("voice activation is manual and never auto-resumes after owner unlock", () => {
   const activationStart = jarvisHtml.indexOf("async function activateOwnerSession(token, methodLabel)");
   const activationEnd = jarvisHtml.indexOf("async function signInPasskey()", activationStart);
   assert.ok(activationStart >= 0 && activationEnd > activationStart, "owner activation function must exist");
   const activation = jarvisHtml.slice(activationStart, activationEnd);
-  assert.match(jarvisHtml, /localStorage\.setItem\(["']sc_hands_free_autostart_v1["'],\s*["']1["']\)/,
-    "only explicit hands-free opt-in should persist auto-resume consent");
-  assert.match(jarvisHtml, /localStorage\.getItem\(["']sc_hands_free_autostart_v1["']\)\s*===\s*["']1["']/,
-    "autostart must be gated by previously saved consent");
-  assert.match(activation, /speakGreeting\(\s*\(\)\s*=>\s*\{[\s\S]{0,300}startHandsFree\(\)/,
-    "voice may resume after unlock and greeting only when opt-in was saved");
-  assert.match(jarvisHtml, /localStorage\.removeItem\(["']sc_hands_free_autostart_v1["']\)/,
-    "explicitly switching hands-free off must revoke remembered consent");
+  assert.match(activation, /speakGreeting\(\);/);
+  assert.doesNotMatch(activation, /startHandsFree\(\)/, "owner unlock must not auto-start microphone capture");
+  assert.doesNotMatch(jarvisHtml, /sc_hands_free_autostart_v1/, "voice opt-in must not persist across sessions");
+  assert.match(jarvisHtml, /if \(state\.handsFree\) \{\s*stopHandsFree\("Voice listening stopped by manual toggle\."/);
+  assert.match(jarvisHtml, /Manual voice toggle enabled/);
 });
 
 test("PWA event counter increments numeric state and never reads an undefined DOM property", () => {
@@ -346,17 +343,16 @@ test("owner chat performs Tavily live search for current questions and exposes c
 });
 
 
-test("voice barge-in has an RMS onset path, separate native TTS cancellation, and stale-turn protection", () => {
-  assert.match(jarvisHtml, /function startBargeInMonitor\(/);
-  assert.match(jarvisHtml, /getByteTimeDomainData\(/);
-  assert.match(jarvisHtml, /Math\.sqrt\(sum\s*\/\s*data\.length\)/);
-  assert.match(jarvisHtml, /window\.speechSynthesis\.cancel\(\)/);
-  assert.match(jarvisHtml, /state\.turnId/);
-  assert.match(jarvisHtml, /turnId !== state\.turnId/);
+test("voice capture is singleton and competing microphone monitor is absent", () => {
+  assert.doesNotMatch(jarvisHtml, /startBargeInMonitor|stopBargeInMonitor|bargeInStream/);
+  assert.doesNotMatch(jarvisHtml, /getUserMedia\(\s*\{\s*audio/);
+  assert.doesNotMatch(jarvisHtml, /sc_hands_free_autostart_v1/);
+  assert.match(jarvisHtml, /state\.listening \|\| state\.recognition \|\| state\.chatBusy/);
+  assert.match(jarvisHtml, /if \(state\.recognition !== recognition\) return/);
   assert.match(jarvisHtml, /state\.chatController\.abort\(\)/);
-  assert.ok(jarvisHtml.includes("function adaptSpeechTone("));
-  assert.ok(jarvisHtml.includes("}, turnLanguage);"), "spoken reply should preserve the turn language");
-  assert.ok(jarvisHtml.includes("const turnLanguage = speechLanguage();"));
+  assert.match(jarvisHtml, /function adaptSpeechTone\(/);
+  assert.match(jarvisHtml, /}, turnLanguage);/);
+  assert.match(jarvisHtml, /const turnLanguage = speechLanguage\(\);/);
 });
 
 test("capability ingestion is wired to an authenticated route and remains metadata-only", () => {
