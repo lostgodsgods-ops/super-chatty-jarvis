@@ -370,6 +370,64 @@ jobs:
           })().catch(error=>{console.error(error);process.exit(1)});
           NODE
 
+          owner_control_code="$(curl --silent --show-error --max-time 20 -H "Authorization: Bearer $token" -o "$tmp/owner-control.json" -w '%{http_code}' "$CENTRAL_AGENT_URL/api/owner-control")"
+          test "$owner_control_code" = "200" || { echo "::error::Owner Control live status failed: HTTP $owner_control_code"; exit 1; }
+          node - "$tmp/owner-control.json" <<'NODE'
+          const fs=require("node:fs");
+          const x=JSON.parse(fs.readFileSync(process.argv[2],"utf8"));
+          if(x.ok!==true||!x.state||!["normal","owner-takeover","emergency-stop"].includes(x.state.mode)||x.audit?.recorded!==true) throw new Error("Owner Control response/audit schema is invalid.");
+          console.log(JSON.stringify({ownerControlLive:"PASS",mode:x.state.mode,revision:x.state.revision,audit:"PASS"}));
+          NODE
+
+          finance_code="$(curl --silent --show-error --max-time 20 -H "Authorization: Bearer $token" -o "$tmp/finance-before.json" -w '%{http_code}' "$CENTRAL_AGENT_URL/api/finance/sandbox")"
+          test "$finance_code" = "200" || { echo "::error::Finance sandbox live read failed: HTTP $finance_code"; exit 1; }
+          node - "$tmp/finance-before.json" <<'NODE'
+          const fs=require("node:fs");
+          const x=JSON.parse(fs.readFileSync(process.argv[2],"utf8"));
+          if(x.ok!==true||x.ledger?.mode!=="simulation-only"||x.ledger?.livePaymentsEnabled!==false||!Number.isSafeInteger(x.ledger?.balanceMinor)) throw new Error("Finance sandbox safety schema is invalid.");
+          console.log(JSON.stringify({financeSandboxLive:"PASS",mode:x.ledger.mode,livePaymentsEnabled:x.ledger.livePaymentsEnabled,revision:x.revision}));
+          NODE
+
+          node -e 'process.stdout.write(JSON.stringify({action:"status"}))' > "$tmp/robotics-status-request.json"
+          robotics_code="$(curl --silent --show-error --max-time 20 -H "Authorization: Bearer $token" -H 'content-type: application/json' --data-binary "@$tmp/robotics-status-request.json" -o "$tmp/robotics-status.json" -w '%{http_code}' -X POST "$CENTRAL_AGENT_URL/api/robotics/simulator/assess")"
+          test "$robotics_code" = "200" || { echo "::error::Robotics simulator status assessment failed: HTTP $robotics_code"; cat "$tmp/robotics-status.json"; exit 1; }
+          node - "$tmp/robotics-status.json" <<'NODE'
+          const fs=require("node:fs");
+          const x=JSON.parse(fs.readFileSync(process.argv[2],"utf8"));
+          if(x.ok!==true||x.assessment?.executionMode!=="simulation-only"||x.assessment?.sideEffectsExecuted!==false||x.audit?.recorded!==true) throw new Error("Robotics simulator safety schema is invalid.");
+          console.log(JSON.stringify({roboticsSimulatorLive:"PASS",executionMode:x.assessment.executionMode,sideEffectsExecuted:x.assessment.sideEffectsExecuted,audit:"PASS"}));
+          NODE
+
+          node -e 'process.stdout.write(JSON.stringify({idempotencyKey:"live-payment-smoke-denied",kind:"credit",amountMinor:1,livePayment:true}))' > "$tmp/live-payment-denial.json"
+          live_payment_code="$(curl --silent --show-error --max-time 20 -H "Authorization: Bearer $token" -H 'content-type: application/json' --data-binary "@$tmp/live-payment-denial.json" -o "$tmp/live-payment-denial-response.json" -w '%{http_code}' -X POST "$CENTRAL_AGENT_URL/api/finance/sandbox")"
+          test "$live_payment_code" = "400" || { echo "::error::Finance sandbox did not deny a live-payment request (HTTP $live_payment_code)"; exit 1; }
+          node - "$tmp/live-payment-denial-response.json" <<'NODE'
+          const fs=require("node:fs");
+          const x=JSON.parse(fs.readFileSync(process.argv[2],"utf8"));
+          if(x.error!=="LIVE_PAYMENTS_DISABLED") throw new Error("Live-payment denial returned an unexpected result.");
+          console.log(JSON.stringify({livePayment:"DENIED",simulationBoundary:"PASS"}));
+          NODE
+
+          finance_after_code="$(curl --silent --show-error --max-time 20 -H "Authorization: Bearer $token" -o "$tmp/finance-after.json" -w '%{http_code}' "$CENTRAL_AGENT_URL/api/finance/sandbox")"
+          test "$finance_after_code" = "200" || { echo "::error::Finance sandbox readback failed: HTTP $finance_after_code"; exit 1; }
+          node - "$tmp/finance-before.json" "$tmp/finance-after.json" <<'NODE'
+          const fs=require("node:fs");
+          const before=JSON.parse(fs.readFileSync(process.argv[2],"utf8"));
+          const after=JSON.parse(fs.readFileSync(process.argv[3],"utf8"));
+          if(before.revision!==after.revision||before.ledger.balanceMinor!==after.ledger.balanceMinor) throw new Error("Rejected live-payment attempt changed the simulation ledger.");
+          console.log(JSON.stringify({financeLedgerReadback:"PASS",rejectedPaymentMutation:"NONE"}));
+          NODE
+
+          red_queen_code="$(curl --silent --show-error --max-time 20 -H "Authorization: Bearer $token" -o "$tmp/red-queen-status.json" -w '%{http_code}' "$CENTRAL_AGENT_URL/api/red-queen/status")"
+          test "$red_queen_code" = "200" || { echo "::error::Red Queen status registry failed: HTTP $red_queen_code"; exit 1; }
+          node - "$tmp/red-queen-status.json" <<'NODE'
+          const fs=require("node:fs");
+          const x=JSON.parse(fs.readFileSync(process.argv[2],"utf8"));
+          const ids=new Set((x.registry?.platformModules||[]).map(m=>m.id));
+          for(const id of ["owner-control","finance-sandbox","robotics-iot","voice","memory","security-sentinel"]) if(!ids.has(id)) throw new Error("Red Queen registry missing module: "+id);
+          console.log(JSON.stringify({redQueenRegistry:"PASS",platformModules:ids.size,livePhysicalExecution:x.registry.livePhysicalExecution}));
+          NODE
+
           curl --silent --show-error --retry 2 --retry-all-errors --retry-delay 1 --max-time 20 \
             -X POST -H "Authorization: Bearer $token" -o /dev/null "$CENTRAL_AGENT_URL/auth/logout" || true
 
