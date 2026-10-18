@@ -182,12 +182,13 @@ test("PWA exposes real WebAuthn passkey sign-in and authenticated registration c
   );
 });
 
-test("PWA barge-in cancels TTS on first non-echo speech result", () => {
-  assert.match(jarvisHtml, /function interruptSpeechOutput\(\)/);
+test("voice recognition ignores TTS echo and stops cleanly without a second mic monitor", () => {
+  assert.doesNotMatch(jarvisHtml, /function interruptSpeechOutput\(\)/);
   assert.match(jarvisHtml, /window\.speechSynthesis\.cancel\(\)/);
   assert.match(jarvisHtml, /recognition\.onresult = event =>/);
-  assert.match(jarvisHtml, /if \(state\.speaking\) interruptSpeechOutput\(\)/);
-  assert.match(jarvisHtml, /heard\.length <= 2/);
+  assert.match(jarvisHtml, /if \(state\.speaking\) continue/);
+  assert.match(jarvisHtml, /function stopHandsFree\(/);
+  assert.match(jarvisHtml, /state\.recognition\.abort\(\)/);
 });
 
 
