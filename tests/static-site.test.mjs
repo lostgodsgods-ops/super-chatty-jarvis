@@ -343,6 +343,17 @@ test("owner chat performs Tavily live search for current questions and exposes c
 });
 
 
+test("voice transcripts are not persisted to conversation memory", () => {
+  const submitStart = jarvisHtml.indexOf("async function submitCommand(source = \"text\")");
+  const submitEnd = jarvisHtml.indexOf("// NEXUS visual intake", submitStart);
+  assert.ok(submitStart >= 0 && submitEnd > submitStart, "submitCommand must exist");
+  const submit = jarvisHtml.slice(submitStart, submitEnd);
+  assert.match(submit, /if \(source !== "voice"\) \{/);
+  assert.match(submit, /\/api\/memory/);
+  assert.match(submit, /Voice transcripts and spoken replies are session-only/);
+  assert.doesNotMatch(submit, /Loss Gods voice input captured/);
+});
+
 test("voice capture is singleton and competing microphone monitor is absent", () => {
   assert.doesNotMatch(jarvisHtml, /startBargeInMonitor|stopBargeInMonitor|bargeInStream/);
   assert.doesNotMatch(jarvisHtml, /getUserMedia\(\s*\{\s*audio/);
