@@ -35,7 +35,9 @@ export async function readOwnerExecutionGate(env = {}) {
       };
     }
 
-    const state = JSON.parse(row.state_json);
+    let state;
+    try { state = JSON.parse(row.state_json); }
+    catch { return denied("OWNER_CONTROL_STATE_CORRUPT"); }
     if (!state || typeof state !== "object" || Array.isArray(state) ||
         !["normal", "owner-takeover", "emergency-stop"].includes(state.mode) ||
         typeof state.emergencyStop !== "boolean" ||
