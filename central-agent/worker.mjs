@@ -20,6 +20,7 @@ import { publishEvent, listModules, eventStreamResponse } from "./event-bus.mjs"
 import { runIntelCycle } from "./intel-cron.mjs";
 import { ingestCapabilitySpec, CapabilityIngestionError } from "./architecture/capability-ingestion.mjs";
 import { assessMissionRequest } from "./architecture/mission-grid.mjs";
+import { readOwnerExecutionGate } from "./architecture/owner-execution-gate.mjs";
 import { createOwnerControlState, setOwnerTakeover, setEmergencyStop } from "./architecture/owner-control.mjs";
 import { DEFAULT_OWNER_CONTROL_SETTINGS, normalizeOwnerControlCommand, validateOwnerControlSettings } from "./architecture/owner-control-service.mjs";
 import { createSandboxLedger, postSandboxTransaction } from "./architecture/finance-sandbox.mjs";
@@ -1760,6 +1761,18 @@ export default {
     }
 
     if (url.pathname === "/agents" && request.method === "POST") {
+      const executionGate = await readOwnerExecutionGate(env);
+      if (!executionGate.ok || !executionGate.allowOwnerActions) {
+        const reason = executionGate.reason || "OWNER_EXECUTION_BLOCKED";
+        const audit = await publishEvent(env, {
+          type: "agent.execution.blocked",
+          source: "owner-control",
+          payload: { path: url.pathname, reason, mode: executionGate.mode, revision: executionGate.revision ?? null }
+        });
+        if (!audit?.ok) return json({ ok: false, error: "AUDIT_STORAGE_UNAVAILABLE" }, 503, cors);
+        const status = executionGate.ok ? 423 : 503;
+        return json({ ok: false, error: reason, executionBlocked: true, mode: executionGate.mode }, status, cors);
+      }
       if (!(request.headers.get("content-type") || "").toLowerCase().includes("application/json")) return json({ ok: false, error: "CONTENT_TYPE_JSON_REQUIRED" }, 415, cors);
       let body;
       try {
@@ -1774,6 +1787,18 @@ export default {
     }
 
     if (url.pathname === "/tasks" && request.method === "POST") {
+      const executionGate = await readOwnerExecutionGate(env);
+      if (!executionGate.ok || !executionGate.allowOwnerActions) {
+        const reason = executionGate.reason || "OWNER_EXECUTION_BLOCKED";
+        const audit = await publishEvent(env, {
+          type: "knowledge.task.blocked",
+          source: "owner-control",
+          payload: { path: url.pathname, reason, mode: executionGate.mode, revision: executionGate.revision ?? null }
+        });
+        if (!audit?.ok) return json({ ok: false, error: "AUDIT_STORAGE_UNAVAILABLE" }, 503, cors);
+        const status = executionGate.ok ? 423 : 503;
+        return json({ ok: false, error: reason, executionBlocked: true, mode: executionGate.mode }, status, cors);
+      }
       let body;
       try { body = await request.json(); } catch { return json({ error: "Expected JSON body." }, 400, cors); }
       const result = await enqueueKnowledgeTask(env, body?.query, body?.ownerApproval);
@@ -1875,6 +1900,21 @@ export default {
   async scheduled(controller, env, ctx) {
     const work = (async () => {
       const sentinel = await runSentinelCycle(env);
+      const executionGate = await readOwnerExecutionGate(env);
+      if (!executionGate.ok || !executionGate.allowBackgroundTasks) {
+        const reason = executionGate.reason || "BACKGROUND_EXECUTION_PAUSED";
+        await publishEvent(env, {
+          type: "scheduler.execution.blocked",
+          source: "central-scheduler",
+          payload: { reason, mode: executionGate.mode, revision: executionGate.revision ?? null, sentinelOk: sentinel.ok === true }
+        });
+        const intel = { ok: false, status: "paused-by-owner-control", upgradeExecution: false, reason };
+        const recovery = { skipped: true, reason };
+        const processing = { skipped: true, reason };
+        const research = { ok: false, skipped: true, reason };
+        await publishEvent(env, { type: "scheduler.cycle.completed", source: "central-scheduler", payload: { sentinelOk: sentinel.ok === true, executionBlocked: true, reason } });
+        return { intel, sentinel, recovery, processing, research, executionGate };
+      }
       let intel = { ok: false, status: "disabled", upgradeExecution: false };
       if (String(env.INTEL_CRON_ENABLED || "").toLowerCase() === "true") {
         try { intel = await runIntelCycle(env); }
