@@ -1053,7 +1053,7 @@ export default {
       // streamed byte-length check below remains authoritative when the header is absent.
       const declaredLength = request.headers.get("content-length");
       if (declaredLength !== null) {
-        if (!/^\\d+$/.test(declaredLength) || Number(declaredLength) > 8192) {
+        if (!/^[0-9]+$/.test(declaredLength) || Number(declaredLength) > 8192) {
           return json({ ok: false, error: "PAYLOAD_TOO_LARGE" }, 413, cors);
         }
       }
