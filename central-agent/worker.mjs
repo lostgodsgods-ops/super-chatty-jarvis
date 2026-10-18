@@ -22,6 +22,7 @@ import { ingestCapabilitySpec, CapabilityIngestionError } from "./architecture/c
 import { assessMissionRequest } from "./architecture/mission-grid.mjs";
 import { createOwnerControlState, setOwnerTakeover, setEmergencyStop } from "./architecture/owner-control.mjs";
 import { DEFAULT_OWNER_CONTROL_SETTINGS, normalizeOwnerControlCommand, validateOwnerControlSettings } from "./architecture/owner-control-service.mjs";
+import { createSandboxLedger, postSandboxTransaction } from "./architecture/finance-sandbox.mjs";
 
 const VERSION = "1.4.0";
 const OWNER_IDENTITY = Object.freeze({ key: "loss-gods", displayName: "Loss Gods" });
@@ -1370,6 +1371,81 @@ export default {
 
     if (url.pathname === "/policy" && request.method === "GET") {
       return json({ policy: describePolicy() }, 200, cors);
+    }
+
+    if (url.pathname === "/api/finance/sandbox") {
+      if (request.method !== "GET" && request.method !== "POST") {
+        return json({ ok: false, error: "METHOD_NOT_ALLOWED" }, 405, { allow: "GET, POST", ...cors });
+      }
+      if (!(await authorized(request, env))) return json({ ok: false, error: "OWNER_SESSION_REQUIRED" }, 401, cors);
+      if (!env.DB || typeof env.DB.prepare !== "function") {
+        return json({ ok: false, error: "FINANCE_SANDBOX_STORE_UNAVAILABLE" }, 503, cors);
+      }
+      try {
+        await env.DB.prepare("CREATE TABLE IF NOT EXISTS finance_sandbox_ledger (id INTEGER PRIMARY KEY CHECK (id = 1), ledger_json TEXT NOT NULL, revision INTEGER NOT NULL, updated_at TEXT NOT NULL)").run();
+        const row = await env.DB.prepare("SELECT ledger_json, revision FROM finance_sandbox_ledger WHERE id = 1").first();
+        let ledger = createSandboxLedger();
+        const revision = Number(row?.revision) || 0;
+        if (row?.ledger_json) {
+          try {
+            const parsed = JSON.parse(row.ledger_json);
+            if (parsed?.mode !== "simulation-only" || parsed?.livePaymentsEnabled !== false ||
+                !Number.isSafeInteger(parsed.balanceMinor) || parsed.balanceMinor < 0 ||
+                !Array.isArray(parsed.transactions) || !Array.isArray(parsed.idempotencyKeys)) {
+              return json({ ok: false, error: "FINANCE_SANDBOX_STATE_CORRUPT" }, 503, cors);
+            }
+            ledger = parsed;
+          } catch {
+            return json({ ok: false, error: "FINANCE_SANDBOX_STATE_CORRUPT" }, 503, cors);
+          }
+        }
+        if (request.method === "GET") {
+          const audit = await publishEvent(env, {
+            type: "finance_sandbox.ledger.read",
+            source: "central-agent",
+            payload: { authenticated: true, revision, mode: "simulation-only" }
+          });
+          if (!audit?.ok) return json({ ok: false, error: "AUDIT_STORAGE_UNAVAILABLE" }, 503, cors);
+          return json({ ok: true, ledger, revision, audit: { recorded: true, eventId: audit.id } }, 200, cors);
+        }
+
+        const length = Number(request.headers.get("content-length") || 0);
+        if (length > 8192) return json({ ok: false, error: "REQUEST_TOO_LARGE" }, 413, cors);
+        let body;
+        try { body = await request.json(); } catch { return json({ ok: false, error: "EXPECTED_JSON_BODY" }, 400, cors); }
+        const transaction = postSandboxTransaction(ledger, body);
+        if (!transaction.ok) return json({ ok: false, error: transaction.error, mode: "simulation-only" }, 400, cors);
+
+        const audit = await publishEvent(env, {
+          type: "finance_sandbox.transaction",
+          source: "central-agent",
+          payload: {
+            authenticated: true,
+            mode: "simulation-only",
+            idempotencyKey: transaction.transaction.idempotencyKey,
+            kind: transaction.transaction.kind,
+            amountMinor: transaction.transaction.amountMinor,
+            balanceAfterMinor: transaction.transaction.balanceAfterMinor
+          }
+        });
+        if (!audit?.ok) return json({ ok: false, error: "AUDIT_STORAGE_UNAVAILABLE" }, 503, cors);
+
+        const updatedAt = new Date().toISOString();
+        const nextRevision = revision + 1;
+        const serialized = JSON.stringify(transaction.ledger);
+        if (row) {
+          const saved = await env.DB.prepare("UPDATE finance_sandbox_ledger SET ledger_json = ?, revision = ?, updated_at = ? WHERE id = 1 AND revision = ?")
+            .bind(serialized, nextRevision, updatedAt, revision).run();
+          if (Number(saved?.meta?.changes) !== 1) return json({ ok: false, error: "FINANCE_SANDBOX_CONCURRENT_UPDATE_RETRY" }, 409, cors);
+        } else {
+          const saved = await env.DB.prepare("INSERT INTO finance_sandbox_ledger (id, ledger_json, revision, updated_at) VALUES (1, ?, ?, ?) ON CONFLICT(id) DO NOTHING")
+            .bind(serialized, nextRevision, updatedAt).run();
+          if (Number(saved?.meta?.changes) !== 1) return json({ ok: false, error: "FINANCE_SANDBOX_CONCURRENT_UPDATE_RETRY" }, 409, cors);
+        }
+        return json({ ok: true, ledger: transaction.ledger, transaction: transaction.transaction, revision: nextRevision, audit: { recorded: true, eventId: audit.id } }, 200, cors);
+      } catch {
+        return json({ ok: false, error: "FINANCE_SANDBOX_OPERATION_FAILED" }, 503, cors);
+      }
     }
 
     if (url.pathname === "/api/owner-control") {
