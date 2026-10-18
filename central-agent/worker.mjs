@@ -19,6 +19,7 @@ import { runSentinelCycle, getSentinelStatus } from "./sentinel.mjs";
 import { publishEvent, listModules, eventStreamResponse } from "./event-bus.mjs";
 import { runIntelCycle } from "./intel-cron.mjs";
 import { ingestCapabilitySpec, CapabilityIngestionError } from "./architecture/capability-ingestion.mjs";
+import { assessMissionRequest } from "./architecture/mission-grid.mjs";
 
 const VERSION = "1.4.0";
 const OWNER_IDENTITY = Object.freeze({ key: "loss-gods", displayName: "Loss Gods" });
@@ -1039,6 +1040,63 @@ export default {
     if (!gatewayChatRoute && !memoryBridgeRoute && !logoutRoute && !recoveryLoginRoute && !(await authorized(request, env))) {
       await publishEvent(env, { type: "security.auth.denied", source: "owner-auth", payload: { path: url.pathname, method: request.method } });
       return json({ error: "Unauthorized. Sign in with your Owner password." }, 401, cors);
+    }
+
+    if (url.pathname === "/api/mission-grid/assess") {
+      if (request.method !== "POST") {
+        return json({ ok: false, error: "METHOD_NOT_ALLOWED" }, 405, { allow: "POST", ...cors });
+      }
+
+      // The shared owner-session gate above runs before this handler. This route
+      // can assess planning/simulation requests only; it never actuates hardware.
+      const requestId = crypto.randomUUID();
+      let body;
+      try {
+        const raw = await request.text();
+        if (!raw || new TextEncoder().encode(raw).byteLength > 8192) {
+          return json({ ok: false, error: "INVALID_REQUEST_BODY" }, 400, cors);
+        }
+        body = JSON.parse(raw);
+      } catch {
+        return json({ ok: false, error: "EXPECTED_VALID_JSON" }, 400, cors);
+      }
+
+      const moduleId = typeof body?.moduleId === "string" ? body.moduleId.trim() : "";
+      const action = typeof body?.action === "string" ? body.action.trim() : "";
+      const mode = typeof body?.mode === "string" ? body.mode.trim() : "";
+      if (!moduleId || moduleId.length > 80 || !action || action.length > 1000 || !mode || mode.length > 32) {
+        const audit = await publishEvent(env, {
+          type: "mission_grid.request.denied",
+          source: "security_gate",
+          payload: { requestId, path: url.pathname, authenticated: true, reason: "INVALID_COMMAND_SCHEMA" }
+        });
+        if (!audit?.ok) return json({ ok: false, error: "AUDIT_STORAGE_UNAVAILABLE", requestId }, 503, cors);
+        return json({ ok: false, error: "INVALID_COMMAND_SCHEMA", requestId }, 400, cors);
+      }
+
+      // Plan -> Validate -> Authorize (shared gate) -> bounded assessment -> Audit.
+      const assessment = assessMissionRequest({ moduleId, action, mode });
+      const allowed = assessment.allowed === true &&
+        (assessment.status === "PLAN_ONLY" || assessment.status === "SIMULATION_ONLY");
+      const audit = await publishEvent(env, {
+        type: allowed ? "mission_grid.request.assessed" : "mission_grid.request.denied",
+        source: "security_gate",
+        payload: {
+          requestId,
+          path: url.pathname,
+          authenticated: true,
+          moduleId,
+          mode,
+          status: assessment.status,
+          reason: assessment.reason || null,
+          sideEffectsExecuted: false
+        }
+      });
+      if (!audit?.ok) return json({ ok: false, error: "AUDIT_STORAGE_UNAVAILABLE", requestId }, 503, cors);
+      if (!allowed) {
+        return json({ ok: false, error: assessment.reason || "MISSION_REQUEST_BLOCKED", requestId, assessment }, 403, cors);
+      }
+      return json({ ok: true, requestId, assessment, audit: { recorded: true, eventId: audit.id } }, 200, cors);
     }
 
     if (url.pathname === "/api/capabilities/ingest" && request.method === "POST") {
