@@ -7,7 +7,7 @@ async function request(path, method = "POST", body = {}) {
     method,
     headers: { "content-type": "application/json", "cf-connecting-ip": "127.0.0.1" },
     ...(method === "GET" || method === "HEAD" ? {} : { body: JSON.stringify(body) })
-  }), { SESSIONS: { async get() { return null; }, async put() {} } });
+  }), {\n    SESSIONS: { async get() { return null; }, async put() {} },\n    DB: { prepare() { return { bind() { return this; }, async run() { return { meta: { last_row_id: 1, changes: 1 } }; }, async first() { return null; }, async all() { return { results: [] }; } }; } }\n  });
 }
 
 test("owner-control mutation rejects requests without a real owner session", async () => {
