@@ -1049,6 +1049,14 @@ export default {
 
       // The shared owner-session gate above runs before this handler. This route
       // can assess planning/simulation requests only; it never actuates hardware.
+      // Reject an oversized declared body before buffering or parsing it. The
+      // streamed byte-length check below remains authoritative when the header is absent.
+      const declaredLength = request.headers.get("content-length");
+      if (declaredLength !== null) {
+        if (!/^\\d+$/.test(declaredLength) || Number(declaredLength) > 8192) {
+          return json({ ok: false, error: "PAYLOAD_TOO_LARGE" }, 413, cors);
+        }
+      }
       const requestId = crypto.randomUUID();
       let body;
       try {
