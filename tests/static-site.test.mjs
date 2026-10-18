@@ -346,10 +346,16 @@ test("owner chat performs Tavily live search for current questions and exposes c
 });
 
 
-test("voice barge-in has an RMS onset path, separate native TTS cancellation, and stale-turn protection", () => {
-  assert.match(jarvisHtml, /function startBargeInMonitor\(/);
-  assert.match(jarvisHtml, /getByteTimeDomainData\(/);
-  assert.match(jarvisHtml, /Math\.sqrt\(sum\s*\/\s*data\.length\)/);
+test("hands-free voice uses Web Speech as the sole recognition mic and retains transcript-based TTS interruption", () => {
+  assert.doesNotMatch(jarvisHtml, /startBargeInMonitor|stopBargeInMonitor|bargeInStream/,
+    "a parallel getUserMedia barge-in stream must not compete with Web Speech recognition");
+  const handsFreeStart = jarvisHtml.indexOf("async function startHandsFree()");
+  const listeningStart = jarvisHtml.indexOf("async function startListening()", handsFreeStart);
+  assert.ok(handsFreeStart >= 0 && listeningStart > handsFreeStart, "hands-free lifecycle functions must exist");
+  const handsFreeBody = jarvisHtml.slice(handsFreeStart, listeningStart);
+  assert.doesNotMatch(handsFreeBody, /getUserMedia\(/, "hands-free startup must not open a second microphone stream");
+  assert.match(jarvisHtml, /recognition\.onresult = event =>/);
+  assert.match(jarvisHtml, /if \(state\.speaking\) interruptSpeechOutput\(\)/);
   assert.match(jarvisHtml, /window\.speechSynthesis\.cancel\(\)/);
   assert.match(jarvisHtml, /state\.turnId/);
   assert.match(jarvisHtml, /turnId !== state\.turnId/);
