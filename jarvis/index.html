@@ -1246,6 +1246,13 @@ body{background:radial-gradient(ellipse at 50% 38%,#50330f45 0,transparent 35%),
             const delay = Math.min(1000 * (2 ** (state.recognitionRetryCount - 1)), 8000);
             els.privacyNote.textContent = "Voice service error. Retrying in " + Math.ceil(delay / 1000) + "s (" + state.recognitionRetryCount + "/" + MAX_RECOGNITION_RETRIES + ").";
             scheduleListeningRetry(delay);
+            // Release the failed instance immediately; some browsers do not emit onend after network errors.
+            state.recognition = null;
+            state.listening = false;
+            state.recognitionStarting = false;
+            els.handsFreeBtn.classList.remove("listening");
+            els.micMetric.textContent = "READY";
+            try { recognition.abort(); } catch {}
           }
         };
         recognition.onend = () => {
