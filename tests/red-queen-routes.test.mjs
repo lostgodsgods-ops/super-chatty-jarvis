@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import worker from "../central-agent/worker.mjs";
+import { webcrypto } from "node:crypto";\nimport worker from "../central-agent/worker.mjs";\n\nif (!globalThis.crypto) globalThis.crypto = webcrypto;
 
 async function request(path, method = "POST", body = {}) {
   return worker.fetch(new Request("https://unit.test" + path, {
