@@ -972,7 +972,7 @@ body{background:radial-gradient(ellipse at 50% 38%,#50330f45 0,transparent 35%),
     }
     function speechApi() { return window.SpeechRecognition || window.webkitSpeechRecognition || null; }
     function speechLanguage() {
-      return /[\\u0900-\\u097F]/.test(els.commandInput.value || "") ? "hi-IN" : "en-IN";
+      return /[\u0900-\u097F]/.test(els.commandInput.value || "") ? "hi-IN" : "en-IN";
     }
     // Dedicated RMS barge-in capture removed: it competed with SpeechRecognition.
     function interruptSpeechOutput() {
@@ -1069,8 +1069,7 @@ body{background:radial-gradient(ellipse at 50% 38%,#50330f45 0,transparent 35%),
       recognition.lang = speechLanguage(); recognition.continuous = false; recognition.interimResults = true; recognition.maxAlternatives = 1;
       state.recognition = recognition;
       recognition.onstart = () => {
-        // Keep recognition active during TTS so the owner can barge in.
-        // TTS is cancelled only when incoming speech differs from the current spoken reply.
+        // The recognition engine is the only voice-capture path; no parallel mic monitor is opened.
         state.listening = true; els.handsFreeBtn.classList.add("listening"); els.micMetric.textContent = "LIVE";
         els.voiceLabel.textContent = "LISTENING · LOSS GODS"; setCoreState("Hands-free listening · speak naturally");
         els.privacyNote.textContent = "Microphone active. Audio recognition may be processed by your browser provider.";
