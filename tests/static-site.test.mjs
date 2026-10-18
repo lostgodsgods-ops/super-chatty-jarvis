@@ -243,7 +243,7 @@ test("first-screen one-click install uses the browser-native prompt when eligibl
   assert.match(jarvisHtml, /installEvent\.prompt\(\)/, "tap must invoke the captured native prompt");
   assert.match(jarvisHtml, /addEventListener\("appinstalled"/, "successful install must be handled");
   assert.match(jarvisHtml, /Chrome has not offered the native install prompt yet/i, "unavailable prompt state must be honest");
-  assert.match(jarvisHtml, /application-version" content="NEXUS-2026\.10\.18-VOICE-SINGLETON"/, "app version must identify this shell release");
+  assert.match(jarvisHtml, /application-version" content="NEXUS-2026\.10\.18-EVENT-NOTIFICATIONS"/, "app version must identify this shell release");
   assert.match(serviceWorker, /CACHE_NAME\s*=\s*"super-chatty-jarvis-shell-v7-event-notifications"/, "shell cache must be invalidated");
 });
 
