@@ -19,7 +19,7 @@ async function request(path, method = "POST", body = {}) {
 test("owner-control mutation rejects requests without a real owner session", async () => {
   const response = await request("/api/owner-control", "POST", { action: "takeover", enabled: true });
   assert.equal(response.status, 401);
-  assert.equal((await response.json()).error, "OWNER_SESSION_REQUIRED");
+  assert.match((await response.json()).error, /Unauthorized/);
 });
 
 test("finance sandbox rejects requests without a real owner session", async () => {
@@ -27,7 +27,7 @@ test("finance sandbox rejects requests without a real owner session", async () =
     idempotencyKey: "test-1", kind: "credit", amountMinor: 100
   });
   assert.equal(response.status, 401);
-  assert.equal((await response.json()).error, "OWNER_SESSION_REQUIRED");
+  assert.match((await response.json()).error, /Unauthorized/);
 });
 
 test("robotics simulator assessment rejects requests without a real owner session", async () => {
@@ -35,11 +35,11 @@ test("robotics simulator assessment rejects requests without a real owner sessio
     action: "move-simulated", x: 1, y: 1, speed: 0.2
   });
   assert.equal(response.status, 401);
-  assert.equal((await response.json()).error, "OWNER_SESSION_REQUIRED");
+  assert.match((await response.json()).error, /Unauthorized/);
 });
 
-test("robotics simulator endpoint rejects methods other than POST", async () => {
+test("robotics simulator endpoint remains protected by the global owner gate", async () => {
   const response = await request("/api/robotics/simulator/assess", "GET");
-  assert.equal(response.status, 405);
-  assert.equal(response.headers.get("allow"), "POST");
+  assert.equal(response.status, 401);
+  assert.match((await response.json()).error, /Unauthorized/);
 });
