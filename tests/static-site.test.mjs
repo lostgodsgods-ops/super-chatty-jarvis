@@ -5,6 +5,7 @@ import vm from "node:vm";
 
 const html = await readFile(new URL("../index.html", import.meta.url), "utf8");
 const jarvisHtml = await readFile(new URL("../jarvis/index.html", import.meta.url), "utf8");
+const micSandboxHtml = await readFile(new URL("../jarvis/mic-sandbox.html", import.meta.url), "utf8");
 const serviceWorker = await readFile(new URL("../jarvis/sw.js", import.meta.url), "utf8");
 const manifest = JSON.parse(await readFile(new URL("../jarvis/manifest.webmanifest", import.meta.url), "utf8"));
 const centralWorker = await readFile(new URL("../central-agent/worker.mjs", import.meta.url), "utf8");
@@ -372,4 +373,20 @@ test("scheduled intel is proposal-only and never self-deploys or self-grants", (
   assert.match(centralWorker, /upgradeExecution:\s*false/);
   assert.match(centralWorker, /INTEL_CRON_ENABLED/);
   assert.match(centralWranglerConfig, /"GITHUB_REPOSITORY":\s*"lostgodsgods-ops\/super-chatty-jarvis"/);
+});
+
+
+test("main voice coordinator avoids legacy duplicate audio-meter and barge-in capture", () => {
+  assert.doesNotMatch(jarvisHtml, /function startAudioMeter\\s*\\(/);
+  assert.doesNotMatch(jarvisHtml, /function startBargeInMonitor\\s*\\(/);
+  assert.doesNotMatch(jarvisHtml, /bargeInStream|bargeInContext|bargeInAnalyser|bargeInRaf/);
+});
+
+test("microphone sandbox exercises one stream and MediaRecorder fallback without auto-start", () => {
+  assert.match(micSandboxHtml, /getUserMedia/);
+  assert.match(micSandboxHtml, /new MediaRecorder/);
+  assert.match(micSandboxHtml, /blob\\.size\\s*>\\s*0/);
+  assert.match(micSandboxHtml, /Simulate Web Speech error/i);
+  assert.match(micSandboxHtml, /navigator\\.serviceWorker/);
+  assert.doesNotMatch(micSandboxHtml, /getUserMedia\\(.*\\)\\s*;\\s*$/s);
 });
