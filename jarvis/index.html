@@ -1085,7 +1085,7 @@ body{background:radial-gradient(ellipse at 50% 38%,#50330f45 0,transparent 35%),
           if (result.isFinal) finalText += (finalText ? " " : "") + transcript;
         }
         if (finalText.trim()) {
-          els.commandInput.value = finalText.trim(); log("Loss Gods voice input captured.", "good", "VOICE");
+          els.commandInput.value = finalText.trim();
           submitCommand("voice").catch(error => log("Voice reply failed: " + (error?.message || String(error)), "error", "VOICE"));
         }
       };
@@ -1129,15 +1129,19 @@ body{background:radial-gradient(ellipse at 50% 38%,#50330f45 0,transparent 35%),
         addFeedItem(els.researchFeed, "Chatty · Loss Gods", reply, "info"); els.commandInput.value = "";
         setCoreState("Reply ready · Loss Gods"); els.privacyNote.textContent = "AI reply received from the authenticated Worker. No external action was executed.";
         log("Chatty replied to Loss Gods.", "good", "CHAT");
-        try {
-          state.memoryHistory.push({ command: command.slice(0, 1000), reply: reply.slice(0, 1000), capturedAt: new Date().toISOString() });
-          state.memoryHistory = state.memoryHistory.slice(-20);
-          await ownerFetch("/api/memory", { method: "POST", body: JSON.stringify({
-            session_id: "owner-global", memory_type:"conversation_state",
-            state: { commandHistory: state.memoryHistory, lastCommand: command.slice(0, 1000), lastReply: reply.slice(0, 1000), updatedAt: new Date().toISOString() }
-          }), signal: controller.signal });
-          if (turnId !== state.turnId) return;
-        } catch (memoryError) { if (turnId !== state.turnId) return; log("Chat reply succeeded; optional memory save failed: " + (memoryError?.message || String(memoryError)), "warn", "MEMORY"); }
+        // Voice transcripts and spoken replies are session-only: do not add them to local
+        // conversation history or send them to the persistent /api/memory endpoint.
+        if (source !== "voice") {
+          try {
+            state.memoryHistory.push({ command: command.slice(0, 1000), reply: reply.slice(0, 1000), capturedAt: new Date().toISOString() });
+            state.memoryHistory = state.memoryHistory.slice(-20);
+            await ownerFetch("/api/memory", { method: "POST", body: JSON.stringify({
+              session_id: "owner-global", memory_type:"conversation_state",
+              state: { commandHistory: state.memoryHistory, lastCommand: command.slice(0, 1000), lastReply: reply.slice(0, 1000), updatedAt: new Date().toISOString() }
+            }), signal: controller.signal });
+            if (turnId !== state.turnId) return;
+          } catch (memoryError) { if (turnId !== state.turnId) return; log("Chat reply succeeded; optional memory save failed: " + (memoryError?.message || String(memoryError)), "warn", "MEMORY"); }
+        }
         if (turnId !== state.turnId) return;
         state.chatBusy = false;
         if (state.handsFree || source === "voice") {
