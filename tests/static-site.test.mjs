@@ -373,3 +373,11 @@ test("scheduled intel is proposal-only and never self-deploys or self-grants", (
   assert.match(centralWorker, /INTEL_CRON_ENABLED/);
   assert.match(centralWranglerConfig, /"GITHUB_REPOSITORY":\s*"lostgodsgods-ops\/super-chatty-jarvis"/);
 });
+
+
+test("voice input offers explicit Hindi/English recognition and stops fatal speech-service loops", () => {
+  assert.match(jarvisHtml, /id="voiceLanguage"/, "voice language must be selectable before listening");
+  assert.match(jarvisHtml, /recognition\.lang\s*=\s*els\.voiceLanguage\.value/, "recognition must use the selected language rather than hard-coded English");
+  assert.match(jarvisHtml, /\["not-allowed",\s*"service-not-allowed",\s*"audio-capture",\s*"network"\]/, "fatal mic/network errors must stop the restart loop");
+  assert.match(jarvisHtml, /voiceLanguage\.addEventListener\("change"/, "changing language during hands-free mode must restart recognition safely");
+});
