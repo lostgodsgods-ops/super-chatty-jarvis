@@ -41,7 +41,9 @@ export const MISSION_MODULES = Object.freeze([
 ]);
 
 const VALID_MODES = new Set(["plan", "simulate"]);
-const EVASION_PATTERN = /untraceable|evad(?:e|ing) tracking|avoid(?:ing)? detection|stealth extraction/i;
+// Match the prohibited concepts as phrases, not just a few exact wordings.
+// This covers the specific review examples without blocking ordinary route planning.
+const EVASION_PATTERN = /\buntraceable\b|\b(?:evade|evading|evasion of)\s+(?:tracking|detection)\b|\btracking\s+evasion\b|\bavoid(?:ing)?\s+detection\b|\b(?:covert|stealth)\s+extraction\b/i;
 
 export function getMissionModule(moduleId) {
   if (typeof moduleId !== "string") return null;
