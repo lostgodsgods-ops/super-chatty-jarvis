@@ -41,7 +41,9 @@
 (() => {
   "use strict";
   const $ = id => document.getElementById(id);
-  const state = { stream: null, context: null, analyser: null, raf: 0, peak: 0, recorder: null, chunks: [], recordingTimer: 0 };
+  const state = { context: null, analyser: null, raf: 0, peak: 0, recorder: null, chunks: [], recordingTimer: 0 };
+  // One explicit, shared stream powers the level meter and recorder fallback.
+  let sharedStream = null;
   const log = message => { $("log").textContent += "\n" + new Date().toISOString() + " " + message; };
   const setResult = (id, text, cls = "") => { const el = $(id); el.textContent = text; el.className = cls; };
   const supportsSpeech = !!(window.SpeechRecognition || window.webkitSpeechRecognition);
@@ -65,8 +67,8 @@
       try { state.recorder.stop(); } catch {}
     }
     state.recorder = null;
-    if (state.stream) state.stream.getTracks().forEach(track => track.stop());
-    state.stream = null;
+    if (sharedStream) sharedStream.getTracks().forEach(track => track.stop());
+    sharedStream = null;
     if (state.context) state.context.close().catch(() => {});
     state.context = null; state.analyser = null;
     $("startBtn").disabled = false; $("stopBtn").disabled = true; $("fallbackBtn").disabled = true;
@@ -74,23 +76,23 @@
     log("All sandbox microphone tracks released.");
   }
   $("startBtn").addEventListener("click", async () => {
-    if (state.stream) return;
+    if (sharedStream) return;
     if (!navigator.mediaDevices?.getUserMedia) {
       setResult("testA", "FAIL — getUserMedia unavailable; use HTTPS and a supported browser.", "fail"); return;
     }
     $("startBtn").disabled = true;
     try {
-      state.stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true }, video: false });
+      sharedStream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true }, video: false });
       const AC = window.AudioContext || window.webkitAudioContext;
       if (!AC) throw new Error("AudioContext unavailable");
       state.context = new AC();
       state.analyser = state.context.createAnalyser();
       state.analyser.fftSize = 256;
-      state.context.createMediaStreamSource(state.stream).connect(state.analyser);
+      state.context.createMediaStreamSource(sharedStream).connect(state.analyser);
       const data = new Uint8Array(state.analyser.fftSize);
       state.peak = 0;
       const sample = () => {
-        if (!state.analyser || !state.stream) return;
+        if (!state.analyser || !sharedStream) return;
         state.analyser.getByteTimeDomainData(data);
         let sum = 0;
         for (const n of data) { const x = (n - 128) / 128; sum += x * x; }
@@ -105,9 +107,9 @@
       state.raf = requestAnimationFrame(sample);
       $("stopBtn").disabled = false; $("fallbackBtn").disabled = !supportsRecorder;
       setResult("testA", "RUNNING — speak briefly and watch the input level.", "warn");
-      log("PASS: one audio stream acquired after explicit click; track count=" + state.stream.getAudioTracks().length);
+      log("PASS: one audio stream acquired after explicit click; track count=" + sharedStream.getAudioTracks().length);
       const checkPeak = () => {
-        if (!state.stream) return;
+        if (!sharedStream) return;
         if (state.peak > 0) setResult("testA", "PASS — audio level rose above 0% (peak " + state.peak + "%).", "pass");
         else setResult("testA", "NOT VERIFIED — no non-zero audio level observed yet; speak and check again.", "warn");
       };
@@ -124,7 +126,7 @@
     setResult("testB", "NOT TESTED");
   });
   $("fallbackBtn").addEventListener("click", () => {
-    if (!state.stream || !supportsRecorder) {
+    if (!sharedStream || !supportsRecorder) {
       setResult("testB", "BLOCKED — start Test A and verify MediaRecorder support first.", "fail"); return;
     }
     if (state.recorder && state.recorder.state !== "inactive") return;
@@ -132,7 +134,7 @@
     const candidates = ["audio/webm;codecs=opus", "audio/webm", "audio/mp4"];
     const mimeType = candidates.find(type => MediaRecorder.isTypeSupported?.(type));
     try {
-      state.recorder = mimeType ? new MediaRecorder(state.stream, { mimeType }) : new MediaRecorder(state.stream);
+      state.recorder = mimeType ? new MediaRecorder(sharedStream, { mimeType }) : new MediaRecorder(sharedStream);
       state.recorder.ondataavailable = event => { if (event.data?.size) state.chunks.push(event.data); };
       state.recorder.onerror = event => {
         setResult("testB", "FAIL — recorder error: " + (event.error?.message || "unknown error"), "fail");
