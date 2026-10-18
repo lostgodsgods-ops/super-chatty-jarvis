@@ -38,3 +38,46 @@ test("unknown routes fail closed when Owner authentication storage is unavailabl
   const response = await worker.fetch(new Request("https://example.test/unknown"), {});
   assert.equal(response.status, 503);
 });
+
+
+test("mission-grid assessment rejects unauthenticated requests before touching storage", async () => {
+  let databaseTouched = false;
+  const response = await worker.fetch(new Request("https://example.test/api/mission-grid/assess", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ moduleId: "aerospace-research", action: "Compare public orbital research", mode: "plan" })
+  }), {
+    DB: { prepare() { databaseTouched = true; throw new Error("unauthenticated request must not query D1"); } }
+  });
+  assert.equal(response.status, 401);
+  assert.equal(databaseTouched, false);
+});
+
+test("mission-grid assessment requires owner authorization and records an audit event", async () => {
+  const prepared = [];
+  const db = {
+    prepare(sql) {
+      prepared.push(sql);
+      return {
+        bind() { return this; },
+        first: async () => null,
+        run: async () => ({ meta: { last_row_id: 19 } })
+      };
+    }
+  };
+  const response = await worker.fetch(new Request("https://example.test/api/mission-grid/assess", {
+    method: "POST",
+    headers: { authorization: "Bearer test-owner-session", "content-type": "application/json" },
+    body: JSON.stringify({ moduleId: "aerospace-research", action: "Compare public orbital research", mode: "plan" })
+  }), {
+    DB: db,
+    SESSIONS: { get: async () => "active", put: async () => {} }
+  });
+  const body = await response.json();
+  assert.equal(response.status, 200);
+  assert.equal(body.ok, true);
+  assert.equal(body.assessment.status, "PLAN_ONLY");
+  assert.equal(body.assessment.sideEffectsExecuted, false);
+  assert.equal(body.audit.recorded, true);
+  assert.ok(prepared.some(sql => sql.includes("INSERT INTO central_event_bus_events")));
+});
