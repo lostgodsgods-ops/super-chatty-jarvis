@@ -824,7 +824,6 @@ body{background:radial-gradient(ellipse at 50% 38%,#50330f45 0,transparent 35%),
         if (permission === "default") permission = await Notification.requestPermission();
         if (permission !== "granted") {
           els.notificationState.textContent = "Notifications remain off; browser permission was not granted.";
-          status(els.notificationState, "ALERTS OFF", "warn");
           return;
         }
         const registration = await navigator.serviceWorker.ready;
@@ -836,12 +835,10 @@ body{background:radial-gradient(ellipse at 50% 38%,#50330f45 0,transparent 35%),
         });
         state.notificationsEnabled = true;
         els.notificationState.textContent = "Alerts enabled for critical events while the app is running and connected. Background push is not configured.";
-        status(els.notificationState, "ALERTS ENABLED", "ok");
         log("Owner enabled foreground event notifications; no background push subscription was created.", "good", "PWA");
       } catch (error) {
         state.notificationsEnabled = false;
         els.notificationState.textContent = "Could not enable notifications: " + (error?.message || "browser error");
-        status(els.notificationState, "ALERT SETUP FAILED", "warn");
       }
     }
 
