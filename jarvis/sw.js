@@ -1,5 +1,5 @@
 "use strict";
-const CACHE_NAME = "super-chatty-jarvis-shell-v5";
+const CACHE_NAME = "super-chatty-jarvis-shell-v6";
 const SHELL = ["./", "./index.html", "./manifest.webmanifest", "./icon.svg", "./icon-192.png", "./icon-512.png"];
 self.addEventListener("install", (event) => {
   event.waitUntil((async () => {
