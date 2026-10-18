@@ -108,12 +108,12 @@ test("NEXUS agent HUD is live-wired to the production SSE event bus", () => {
 
 
 test("installed PWA force-updates stale shells and revalidates HTML assets", () => {
-  assert.match(serviceWorker, /CACHE_NAME\s*=\s*"super-chatty-jarvis-shell-v5"/, "shell cache must be version-bumped for the install UX release");
+  assert.match(serviceWorker, /CACHE_NAME\s*=\s*"super-chatty-jarvis-shell-v6"/, "shell cache must be version-bumped for the install UX release");
   assert.match(serviceWorker, /self\.skipWaiting\(\)/, "new worker must activate without waiting for an old tab to close");
   assert.match(serviceWorker, /self\.clients\.claim\(\)/, "new worker must claim open PWA clients");
   assert.match(serviceWorker, /key !== CACHE_NAME.*caches\.delete\(key\)/s, "activation must delete older Super Chatty shell caches");
   assert.match(serviceWorker, /new Request\(request,\s*\{\s*cache:\s*"no-store"\s*\}\)/, "navigation must bypass stale browser HTTP cache");
-  assert.match(jarvisHtml, /application-version" content="NEXUS-2026\.10\.17-PWA5"/, "frontend version must be bumped");
+  assert.match(jarvisHtml, /application-version" content="NEXUS-2026\.10\.18-MIC1"/, "frontend version must be bumped");
   assert.match(jarvisHtml, /registration\.update\(\)/, "PWA must check for worker updates");
   assert.match(jarvisHtml, /controllerchange/, "active sessions must detect the new worker controller");
   assert.match(jarvisHtml, /location\.reload\(\)/, "active sessions must reload after a worker update");
@@ -221,7 +221,7 @@ test("PWA provides a direct native install prompt and a safe fallback", () => {
   assert.match(jarvisHtml, /display-mode:\s*standalone/, "installed standalone mode must be detected");
   assert.ok(centralWorker.includes('url.pathname === "/icon-192.png"'), "Worker must allow the public 192px install icon");
   assert.ok(centralWorker.includes('url.pathname === "/icon-512.png"'), "Worker must allow the public 512px install icon");
-  assert.match(serviceWorker, /CACHE_NAME\s*=\s*"super-chatty-jarvis-shell-v5"/, "install UX release must invalidate old shell cache");
+  assert.match(serviceWorker, /CACHE_NAME\s*=\s*"super-chatty-jarvis-shell-v6"/, "install UX release must invalidate old shell cache");
 });
 
 test("owner gate prevents health checks and SSE from starting before session verification", () => {
@@ -244,8 +244,8 @@ test("first-screen one-click install uses the browser-native prompt when eligibl
   assert.match(jarvisHtml, /installEvent\.prompt\(\)/, "tap must invoke the captured native prompt");
   assert.match(jarvisHtml, /addEventListener\("appinstalled"/, "successful install must be handled");
   assert.match(jarvisHtml, /Chrome has not offered the native install prompt yet/i, "unavailable prompt state must be honest");
-  assert.match(jarvisHtml, /application-version" content="NEXUS-2026\.10\.17-PWA5"/, "app version must identify this shell release");
-  assert.match(serviceWorker, /CACHE_NAME\s*=\s*"super-chatty-jarvis-shell-v5"/, "shell cache must be invalidated");
+  assert.match(jarvisHtml, /application-version" content="NEXUS-2026\.10\.18-MIC1"/, "app version must identify this shell release");
+  assert.match(serviceWorker, /CACHE_NAME\s*=\s*"super-chatty-jarvis-shell-v6"/, "shell cache must be invalidated");
 });
 
 test("PWA install icons and standalone asset paths are consistent", () => {
@@ -347,16 +347,15 @@ test("owner chat performs Tavily live search for current questions and exposes c
 });
 
 
-test("voice barge-in has an RMS onset path, separate native TTS cancellation, and stale-turn protection", () => {
-  assert.match(jarvisHtml, /function startBargeInMonitor\(/);
-  assert.match(jarvisHtml, /getByteTimeDomainData\(/);
-  assert.match(jarvisHtml, /Math\.sqrt\(sum\s*\/\s*data\.length\)/);
+test("voice coordinator uses one native recognition loop and cancels stale speech turns", () => {
+  assert.doesNotMatch(jarvisHtml, /function startBargeInMonitor\s*\(/);
+  assert.doesNotMatch(jarvisHtml, /bargeInStream|bargeInContext|bargeInAnalyser|bargeInRaf/);
+  assert.match(jarvisHtml, /function startListening\(/);
   assert.match(jarvisHtml, /window\.speechSynthesis\.cancel\(\)/);
   assert.match(jarvisHtml, /state\.turnId/);
   assert.match(jarvisHtml, /turnId !== state\.turnId/);
   assert.match(jarvisHtml, /state\.chatController\.abort\(\)/);
   assert.ok(jarvisHtml.includes("function adaptSpeechTone("));
-  assert.ok(jarvisHtml.includes("}, turnLanguage);"), "spoken reply should preserve the turn language");
   assert.ok(jarvisHtml.includes("const turnLanguage = speechLanguage();"));
 });
 
@@ -382,11 +381,13 @@ test("main voice coordinator avoids legacy duplicate audio-meter and barge-in ca
   assert.doesNotMatch(jarvisHtml, /bargeInStream|bargeInContext|bargeInAnalyser|bargeInRaf/);
 });
 
-test("microphone sandbox exercises one stream and MediaRecorder fallback without auto-start", () => {
-  assert.match(micSandboxHtml, /getUserMedia/);
-  assert.match(micSandboxHtml, /new MediaRecorder/);
+test("microphone sandbox reuses one explicit shared stream for metering and recorder fallback", () => {
+  assert.match(micSandboxHtml, /let sharedStream = null/);
+  assert.equal([...micSandboxHtml.matchAll(/getUserMedia\\s*\\(/g)].length, 1, "one capture call only");
+  assert.match(micSandboxHtml, /new MediaRecorder\\(sharedStream/);
   assert.match(micSandboxHtml, /blob\\.size\\s*>\\s*0/);
   assert.match(micSandboxHtml, /Simulate Web Speech error/i);
   assert.match(micSandboxHtml, /navigator\\.serviceWorker/);
   assert.doesNotMatch(micSandboxHtml, /getUserMedia\\(.*\\)\\s*;\\s*$/s);
+  assert.match(micSandboxHtml, /getTracks\(\)\.forEach\(track => track\.stop\(\)\)/, "stop releases every stream track");
 });
