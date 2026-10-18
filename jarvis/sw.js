@@ -1,23 +1,34 @@
 "use strict";
-const CACHE_NAME = "super-chatty-jarvis-shell-v5";
+const CACHE_NAME = "super-chatty-jarvis-shell-v6-voice-singleton";
 const SHELL = ["./", "./index.html", "./manifest.webmanifest", "./icon.svg", "./icon-192.png", "./icon-512.png"];
+const LEGACY_CACHE_PREFIXES = ["super-chatty-jarvis-shell-", "super-chatty-jarvis-", "chatty-jarvis-"];
 self.addEventListener("install", (event) => {
   event.waitUntil((async () => {
     try {
       const cache = await caches.open(CACHE_NAME);
       await cache.addAll(SHELL.map((path) => new Request(path, { cache: "reload" })));
-    } catch (error) {
-      // A failed optional cache must not prevent the service worker from installing.
-    }
+    } catch (error) { /* Optional shell assets must not block installation. */ }
     await self.skipWaiting();
   })());
 });
 self.addEventListener("activate", (event) => {
   event.waitUntil((async () => {
     const keys = await caches.keys();
-    await Promise.all(keys.filter((key) => key.startsWith("super-chatty-jarvis-shell-") && key !== CACHE_NAME).map((key) => caches.delete(key)));
+    await Promise.all(keys.filter((key) =>
+      LEGACY_CACHE_PREFIXES.some((prefix) => key.startsWith(prefix)) && key !== CACHE_NAME
+    ).map((key) => caches.delete(key)));
     await self.clients.claim();
   })());
+});
+self.addEventListener("message", (event) => {
+  if (event.data && event.data.type === "PURGE_LEGACY_CACHES") {
+    event.waitUntil((async () => {
+      const keys = await caches.keys();
+      await Promise.all(keys.filter((key) =>
+        LEGACY_CACHE_PREFIXES.some((prefix) => key.startsWith(prefix)) && key !== CACHE_NAME
+      ).map((key) => caches.delete(key)));
+    })());
+  }
 });
 self.addEventListener("fetch", (event) => {
   const request = event.request;
