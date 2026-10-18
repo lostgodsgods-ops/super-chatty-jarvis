@@ -20,6 +20,8 @@ import { publishEvent, listModules, eventStreamResponse } from "./event-bus.mjs"
 import { runIntelCycle } from "./intel-cron.mjs";
 import { ingestCapabilitySpec, CapabilityIngestionError } from "./architecture/capability-ingestion.mjs";
 import { assessMissionRequest } from "./architecture/mission-grid.mjs";
+import { createOwnerControlState, setOwnerTakeover, setEmergencyStop } from "./architecture/owner-control.mjs";
+import { DEFAULT_OWNER_CONTROL_SETTINGS, normalizeOwnerControlCommand, validateOwnerControlSettings } from "./architecture/owner-control-service.mjs";
 
 const VERSION = "1.4.0";
 const OWNER_IDENTITY = Object.freeze({ key: "loss-gods", displayName: "Loss Gods" });
@@ -1368,6 +1370,86 @@ export default {
 
     if (url.pathname === "/policy" && request.method === "GET") {
       return json({ policy: describePolicy() }, 200, cors);
+    }
+
+    if (url.pathname === "/api/owner-control") {
+      if (request.method !== "GET" && request.method !== "POST") {
+        return json({ ok: false, error: "METHOD_NOT_ALLOWED" }, 405, { allow: "GET, POST", ...cors });
+      }
+      if (!(await authorized(request, env))) return json({ ok: false, error: "OWNER_SESSION_REQUIRED" }, 401, cors);
+      if (!env.DB || typeof env.DB.prepare !== "function") {
+        return json({ ok: false, error: "OWNER_CONTROL_STORE_UNAVAILABLE" }, 503, cors);
+      }
+      try {
+        await env.DB.prepare("CREATE TABLE IF NOT EXISTS owner_control_state (id INTEGER PRIMARY KEY CHECK (id = 1), state_json TEXT NOT NULL, revision INTEGER NOT NULL, updated_at TEXT NOT NULL)").run();
+        const row = await env.DB.prepare("SELECT state_json, revision FROM owner_control_state WHERE id = 1").first();
+        let stored = { ...DEFAULT_OWNER_CONTROL_SETTINGS };
+        if (row?.state_json) {
+          try {
+            const parsed = JSON.parse(row.state_json);
+            stored = { ...DEFAULT_OWNER_CONTROL_SETTINGS, ...parsed, revision: Number(row.revision) || Number(parsed.revision) || 0 };
+          } catch {
+            return json({ ok: false, error: "OWNER_CONTROL_STATE_CORRUPT" }, 503, cors);
+          }
+        }
+        const state = createOwnerControlState(stored);
+
+        if (request.method === "GET") {
+          const audit = await publishEvent(env, {
+            type: "owner_control.status.read",
+            source: "central-agent",
+            payload: { path: url.pathname, authenticated: true, revision: state.revision }
+          });
+          if (!audit?.ok) return json({ ok: false, error: "AUDIT_STORAGE_UNAVAILABLE" }, 503, cors);
+          return json({ ok: true, state, audit: { recorded: true, eventId: audit.id } }, 200, cors);
+        }
+
+        const length = Number(request.headers.get("content-length") || 0);
+        if (length > 16384) return json({ ok: false, error: "REQUEST_TOO_LARGE" }, 413, cors);
+        let body;
+        try { body = await request.json(); } catch { return json({ ok: false, error: "EXPECTED_JSON_BODY" }, 400, cors); }
+        const normalized = normalizeOwnerControlCommand(body);
+        if (!normalized.ok) return json({ ok: false, error: normalized.error }, 400, cors);
+
+        let next;
+        const command = normalized.command;
+        if (command.action === "takeover") {
+          const decision = setOwnerTakeover(state, command.enabled, { ownerAuthenticated: true });
+          if (!decision.allowed) return json({ ok: false, error: decision.code, state }, 409, cors);
+          next = { ...decision.state, customRules: Array.isArray(stored.customRules) ? stored.customRules : [], nonOverridable: [...DEFAULT_OWNER_CONTROL_SETTINGS.nonOverridable] };
+        } else if (command.action === "emergency-stop") {
+          const decision = setEmergencyStop(state, command.enabled, { ownerAuthenticated: true });
+          if (!decision.allowed) return json({ ok: false, error: decision.code, state }, 409, cors);
+          next = { ...decision.state, customRules: Array.isArray(stored.customRules) ? stored.customRules : [], nonOverridable: [...DEFAULT_OWNER_CONTROL_SETTINGS.nonOverridable] };
+        } else {
+          const validated = validateOwnerControlSettings({ customRules: command.customRules }, stored);
+          if (!validated.ok) return json({ ok: false, error: validated.error }, 400, cors);
+          next = { ...stored, ...validated.settings, revision: state.revision + 1 };
+        }
+        next.revision = state.revision + 1;
+        next.updatedAt = new Date().toISOString();
+
+        // Record the authenticated intent before changing durable state. If audit is unavailable, fail closed.
+        const audit = await publishEvent(env, {
+          type: "owner_control.command",
+          source: "central-agent",
+          payload: {
+            action: command.action,
+            enabled: typeof command.enabled === "boolean" ? command.enabled : undefined,
+            mode: next.mode,
+            emergencyStop: next.emergencyStop,
+            revision: next.revision,
+            customRuleIds: Array.isArray(next.customRules) ? next.customRules.map(rule => rule.id) : []
+          }
+        });
+        if (!audit?.ok) return json({ ok: false, error: "AUDIT_STORAGE_UNAVAILABLE" }, 503, cors);
+
+        await env.DB.prepare("INSERT INTO owner_control_state (id, state_json, revision, updated_at) VALUES (1, ?, ?, ?) ON CONFLICT(id) DO UPDATE SET state_json = excluded.state_json, revision = excluded.revision, updated_at = excluded.updated_at")
+          .bind(JSON.stringify(next), next.revision, next.updatedAt).run();
+        return json({ ok: true, state: next, audit: { recorded: true, eventId: audit.id } }, 200, cors);
+      } catch {
+        return json({ ok: false, error: "OWNER_CONTROL_OPERATION_FAILED" }, 503, cors);
+      }
     }
 
     if (url.pathname === "/api/red-queen/status") {
