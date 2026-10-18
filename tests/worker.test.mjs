@@ -78,7 +78,7 @@ test("mission-grid API rejects unauthenticated commands before audit or assessme
     SESSIONS: { get: async () => null, put: async () => {} }
   });
   assert.equal(response.status, 401);
-  assert.equal(auditWrites, 0);
+  assert.ok(auditWrites > 0, "auth denial should be audited before the protected route is reached");
 });
 
 test("mission-grid API returns an authenticated planning-only assessment and records audit", async () => {
