@@ -107,12 +107,12 @@ test("NEXUS agent HUD is live-wired to the production SSE event bus", () => {
 
 
 test("installed PWA force-updates stale shells and revalidates HTML assets", () => {
-  assert.match(serviceWorker, /CACHE_NAME\s*=\s*"super-chatty-jarvis-shell-v5"/, "shell cache must be version-bumped for the install UX release");
+  assert.match(serviceWorker, /CACHE_NAME\s*=\s*"super-chatty-jarvis-shell-v6"/, "shell cache must be version-bumped for the install UX release");
   assert.match(serviceWorker, /self\.skipWaiting\(\)/, "new worker must activate without waiting for an old tab to close");
   assert.match(serviceWorker, /self\.clients\.claim\(\)/, "new worker must claim open PWA clients");
   assert.match(serviceWorker, /key !== CACHE_NAME.*caches\.delete\(key\)/s, "activation must delete older Super Chatty shell caches");
   assert.match(serviceWorker, /new Request\(request,\s*\{\s*cache:\s*"no-store"\s*\}\)/, "navigation must bypass stale browser HTTP cache");
-  assert.match(jarvisHtml, /application-version" content="NEXUS-2026\.10\.17-PWA5"/, "frontend version must be bumped");
+  assert.match(jarvisHtml, /application-version" content="NEXUS-2026\.10\.18-PWA6"/, "frontend version must be bumped");
   assert.match(jarvisHtml, /registration\.update\(\)/, "PWA must check for worker updates");
   assert.match(jarvisHtml, /controllerchange/, "active sessions must detect the new worker controller");
   assert.match(jarvisHtml, /location\.reload\(\)/, "active sessions must reload after a worker update");
@@ -220,7 +220,7 @@ test("PWA provides a direct native install prompt and a safe fallback", () => {
   assert.match(jarvisHtml, /display-mode:\s*standalone/, "installed standalone mode must be detected");
   assert.ok(centralWorker.includes('url.pathname === "/icon-192.png"'), "Worker must allow the public 192px install icon");
   assert.ok(centralWorker.includes('url.pathname === "/icon-512.png"'), "Worker must allow the public 512px install icon");
-  assert.match(serviceWorker, /CACHE_NAME\s*=\s*"super-chatty-jarvis-shell-v5"/, "install UX release must invalidate old shell cache");
+  assert.match(serviceWorker, /CACHE_NAME\s*=\s*"super-chatty-jarvis-shell-v6"/, "install UX release must invalidate old shell cache");
 });
 
 test("owner gate prevents health checks and SSE from starting before session verification", () => {
@@ -243,8 +243,8 @@ test("first-screen one-click install uses the browser-native prompt when eligibl
   assert.match(jarvisHtml, /installEvent\.prompt\(\)/, "tap must invoke the captured native prompt");
   assert.match(jarvisHtml, /addEventListener\("appinstalled"/, "successful install must be handled");
   assert.match(jarvisHtml, /Chrome has not offered the native install prompt yet/i, "unavailable prompt state must be honest");
-  assert.match(jarvisHtml, /application-version" content="NEXUS-2026\.10\.17-PWA5"/, "app version must identify this shell release");
-  assert.match(serviceWorker, /CACHE_NAME\s*=\s*"super-chatty-jarvis-shell-v5"/, "shell cache must be invalidated");
+  assert.match(jarvisHtml, /application-version" content="NEXUS-2026\.10\.18-PWA6"/, "app version must identify this shell release");
+  assert.match(serviceWorker, /CACHE_NAME\s*=\s*"super-chatty-jarvis-shell-v6"/, "shell cache must be invalidated");
 });
 
 test("PWA install icons and standalone asset paths are consistent", () => {
@@ -377,6 +377,7 @@ test("scheduled intel is proposal-only and never self-deploys or self-grants", (
 
 test("voice input offers explicit Hindi/English recognition and stops fatal speech-service loops", () => {
   assert.match(jarvisHtml, /id="voiceLanguage"/, "voice language must be selectable before listening");
+  assert.ok(jarvisHtml.includes(String.raw`return /[\u0900-\u097F]/.test`), "Devanagari detection must use the actual Unicode range, not a literal backslash sequence");
   assert.match(jarvisHtml, /recognition\.lang\s*=\s*els\.voiceLanguage\.value/, "recognition must use the selected language rather than hard-coded English");
   assert.match(jarvisHtml, /\["not-allowed",\s*"service-not-allowed",\s*"audio-capture",\s*"network"\]/, "fatal mic/network errors must stop the restart loop");
   assert.match(jarvisHtml, /voiceLanguage\.addEventListener\("change"/, "changing language during hands-free mode must restart recognition safely");
