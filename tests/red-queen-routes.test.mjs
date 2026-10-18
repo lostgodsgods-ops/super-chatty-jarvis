@@ -7,7 +7,7 @@ async function request(path, method = "POST", body = {}) {
     method,
     headers: { "content-type": "application/json" },
     ...(method === "GET" || method === "HEAD" ? {} : { body: JSON.stringify(body) })
-  }), {});
+  }), { SESSIONS: { async get() { return null; }, async put() {} } });
 }
 
 test("owner-control mutation rejects requests without a real owner session", async () => {
