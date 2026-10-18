@@ -7,7 +7,7 @@
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="application-version" content="NEXUS-2026.10.18-VOICE-SINGLETON">
+  <meta name="application-version" content="NEXUS-2026.10.18-EVENT-NOTIFICATIONS">
   <meta name="description" content="Super Chatty Jarvis — voice-first AI command interface.">
   <meta name="color-scheme" content="dark">
   <title>Super Chatty Jarvis · Neural Console</title>
@@ -182,7 +182,9 @@ body{background:radial-gradient(ellipse at 50% 38%,#50330f45 0,transparent 35%),
           <label class="field-label" for="eventsUrl">Live events SSE URL (optional)</label>
           <input class="text-input" id="eventsUrl" type="url" inputmode="url" value="https://shrill-silence-164f.lostgodsgods.workers.dev/api/events" placeholder="https://shrill-silence-164f.lostgodsgods.workers.dev/api/events" spellcheck="false">
           <div class="action-row"><button class="action-btn" id="connectBtn" type="button">Connect</button><button class="action-btn secondary" id="disconnectBtn" type="button">Disconnect</button></div>
+          <div class="action-row"><button class="action-btn secondary" id="enableNotificationsBtn" type="button">Enable event alerts</button></div>
           <div class="connect-state" id="connectState" role="status">Worker health: not checked yet.</div>
+          <div class="connect-state" id="notificationState" role="status">Foreground event alerts only; background push is not configured.</div>
         </section>
       </aside>
     </div>
@@ -380,7 +382,7 @@ body{background:radial-gradient(ellipse at 50% 38%,#50330f45 0,transparent 35%),
       refreshTelemetry:$("refreshTelemetry"), factSearchForm:$("factSearchForm"), factQuery:$("factQuery"),
       researchSearchBtn:$("researchSearchBtn"), researchSearchStatus:$("researchSearchStatus"), sourceResults:$("sourceResults")
     };
-    const state = { events:null, recognition:null, listening:false, handsFree:false, speaking:false, chatBusy:false, chatController:null, eventsCount:0, connected:false, started:Date.now(), healthTimer:0, toastTimer:0, ownerToken:"", telemetryTimer:0, researchBusy:false, memoryHistory:[], turnId:0 };
+    const state = { events:null, recognition:null, listening:false, handsFree:false, speaking:false, chatBusy:false, chatController:null, eventsCount:0, connected:false, notificationsEnabled:false, started:Date.now(), healthTimer:0, toastTimer:0, ownerToken:"", telemetryTimer:0, researchBusy:false, memoryHistory:[], turnId:0 };
     const time = () => new Date().toLocaleTimeString([], {hour12:false});
     function log(message, type="info", source="UI") {
       const row = document.createElement("div"); row.className = "log";
@@ -806,6 +808,58 @@ body{background:radial-gradient(ellipse at 50% 38%,#50330f45 0,transparent 35%),
       } finally { state.researchBusy = false; els.researchSearchBtn.disabled = !state.ownerToken; }
     }
 
+    async function enableEventNotifications() {
+      if (!("Notification" in window) || !("serviceWorker" in navigator)) {
+        els.notificationState.textContent = "System notifications are not supported in this browser.";
+        status(els.notificationState, "NOT SUPPORTED", "warn");
+        return;
+      }
+      if (!state.ownerToken) {
+        els.notificationState.textContent = "Sign in as Owner before enabling authenticated event alerts.";
+        status(els.notificationState, "OWNER SIGN-IN REQUIRED", "warn");
+        return;
+      }
+      try {
+        let permission = Notification.permission;
+        if (permission === "default") permission = await Notification.requestPermission();
+        if (permission !== "granted") {
+          els.notificationState.textContent = "Notifications remain off; browser permission was not granted.";
+          status(els.notificationState, "ALERTS OFF", "warn");
+          return;
+        }
+        const registration = await navigator.serviceWorker.ready;
+        await registration.showNotification("Super Chatty Jarvis alerts enabled", {
+          body: "Critical events can notify while this page is running and connected. Background push is not configured.",
+          icon: "./icon-192.png",
+          tag: "scj-notifications-enabled",
+          data: { url: "./" }
+        });
+        state.notificationsEnabled = true;
+        els.notificationState.textContent = "Alerts enabled for critical events while the app is running and connected. Background push is not configured.";
+        status(els.notificationState, "ALERTS ENABLED", "ok");
+        log("Owner enabled foreground event notifications; no background push subscription was created.", "good", "PWA");
+      } catch (error) {
+        state.notificationsEnabled = false;
+        els.notificationState.textContent = "Could not enable notifications: " + (error?.message || "browser error");
+        status(els.notificationState, "ALERT SETUP FAILED", "warn");
+      }
+    }
+
+    function notifyForEvent(eventName) {
+      if (!state.notificationsEnabled || !("Notification" in window) ||
+          Notification.permission !== "granted" || document.visibilityState === "visible") return;
+      if (!/(security|failed|degraded|blocked|alert|error)/i.test(String(eventName || ""))) return;
+      navigator.serviceWorker.ready.then(registration => registration.showNotification(
+        "Super Chatty Jarvis · " + String(eventName).slice(0, 64),
+        {
+          body: "A critical backend event arrived. Open the app to inspect the authenticated event log.",
+          icon: "./icon-192.png",
+          tag: "scj-critical-" + String(eventName).replace(/[^a-z0-9_-]/gi, "-").slice(0, 48),
+          data: { url: "./" }
+        }
+      )).catch(() => {});
+    }
+
     function connectSentinelEvents() {
       disconnectEvents();
       const base = workerBaseUrl();
@@ -841,6 +895,7 @@ body{background:radial-gradient(ellipse at 50% 38%,#50330f45 0,transparent 35%),
                 let payload = dataLine;
                 try { payload = JSON.parse(dataLine); } catch {}
                 const eventName = eventLine.slice(6).trim();
+                notifyForEvent(eventName);
                 updateAgentHud(eventName, dataLine, "");
                 if (eventName === "status" && payload && typeof payload === "object") {
                   const healthy = payload.status === "healthy";
@@ -1324,6 +1379,7 @@ body{background:radial-gradient(ellipse at 50% 38%,#50330f45 0,transparent 35%),
     els.sendBtn.addEventListener("click",submitCommand);
     els.commandInput.addEventListener("keydown",event=>{if(event.key==="Enter"){event.preventDefault();submitCommand();}});
     els.connectBtn.addEventListener("click",connect);
+    els.enableNotificationsBtn.addEventListener("click", enableEventNotifications);
     els.disconnectBtn.addEventListener("click",()=>{disconnectEvents();clearInterval(state.healthTimer);log("Live SSE connection closed by user.","warn","STREAM");});
     $("clearLogs").addEventListener("click",()=>{els.terminal.replaceChildren();state.eventsCount=0;els.logCount.textContent="0 events";log("Terminal cleared.","info","UI");});
     function resizeCanvas(){const c=els.wave,r=c.getBoundingClientRect(),d=Math.min(window.devicePixelRatio||1,2);c.width=Math.round(r.width*d);c.height=Math.round(r.height*d);}
