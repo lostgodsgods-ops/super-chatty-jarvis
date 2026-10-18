@@ -65,3 +65,67 @@ test("Red Queen status exposes only declared simulation capabilities to an authe
   assert.equal(body.registry.livePhysicalExecution, false);
   assert.equal(body.registry.infrastructure.quantumMeshImplemented, false);
 });
+
+
+test("mission-grid API rejects unauthenticated commands before audit or assessment", async () => {
+  let auditWrites = 0;
+  const response = await worker.fetch(new Request("https://example.test/api/mission-grid/assess", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ moduleId: "secure-transit", action: "Plan a route", mode: "plan" })
+  }), {
+    DB: { prepare() { return { bind() { return this; }, first: async () => null, run: async () => { auditWrites++; return { meta: { last_row_id: 1 } }; } }; } },
+    SESSIONS: { get: async () => null, put: async () => {} }
+  });
+  assert.equal(response.status, 401);
+  assert.equal(auditWrites, 0);
+});
+
+test("mission-grid API returns an authenticated planning-only assessment and records audit", async () => {
+  const events = [];
+  const response = await worker.fetch(new Request("https://example.test/api/mission-grid/assess", {
+    method: "POST",
+    headers: { authorization: "Bearer test-owner-session", "content-type": "application/json" },
+    body: JSON.stringify({ moduleId: "secure-transit", action: "Plan authorized freight routing", mode: "plan" })
+  }), {
+    DB: { prepare(sql) { return { bind(...args) { this.args = args; return this; }, first: async () => null, run: async () => { if (sql.includes("INSERT INTO central_event_bus_events")) events.push({ sql, args: this.args }); return { meta: { last_row_id: events.length || 1 } }; } }; } },
+    SESSIONS: { get: async () => "active", put: async () => {} }
+  });
+  assert.equal(response.status, 200);
+  const body = await response.json();
+  assert.equal(body.ok, true);
+  assert.equal(body.assessment.status, "PLAN_ONLY");
+  assert.equal(body.assessment.sideEffectsExecuted, false);
+  assert.equal(events.length, 1);
+  assert.equal(events[0].args[0], "mission_grid.request.assessed");
+});
+
+test("mission-grid API fails closed for live execution requests even if authenticated", async () => {
+  const response = await worker.fetch(new Request("https://example.test/api/mission-grid/assess", {
+    method: "POST",
+    headers: { authorization: "Bearer test-owner-session", "content-type": "application/json" },
+    body: JSON.stringify({ moduleId: "robotics-workforce", action: "Move a live robot", mode: "execute" })
+  }), {
+    DB: { prepare() { return { bind() { return this; }, first: async () => null, run: async () => ({ meta: { last_row_id: 1 } }) }; } },
+    SESSIONS: { get: async () => "active", put: async () => {} }
+  });
+  assert.equal(response.status, 403);
+  const body = await response.json();
+  assert.equal(body.ok, false);
+  assert.equal(body.assessment.reason, "LIVE_EXECUTION_DISABLED");
+});
+
+test("mission-grid API fails closed when the audit store is unavailable", async () => {
+  const response = await worker.fetch(new Request("https://example.test/api/mission-grid/assess", {
+    method: "POST",
+    headers: { authorization: "Bearer test-owner-session", "content-type": "application/json" },
+    body: JSON.stringify({ moduleId: "aerospace-research", action: "Compare public research concepts", mode: "simulate" })
+  }), {
+    DB: { prepare() { return { bind() { return this; }, first: async () => null, run: async () => { throw new Error("D1 unavailable"); } }; } },
+    SESSIONS: { get: async () => "active", put: async () => {} }
+  });
+  assert.equal(response.status, 503);
+  const body = await response.json();
+  assert.equal(body.ok, false);
+  assert.equal(body.error, "AUDIT_STORAGE_UNAVAILABLE");
+});
