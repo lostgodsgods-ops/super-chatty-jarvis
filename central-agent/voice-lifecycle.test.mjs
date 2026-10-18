@@ -27,6 +27,11 @@ test("network and service failures use bounded backoff instead of infinite rapid
   assert.match(script, /Math\.min\([^\n]*8000/);
 });
 
+test("network errors release the failed recognition instance even when the browser omits onend", () => {
+  assert.match(script, /Release the failed instance immediately/);
+  assert.match(script, /state\.recognition\s*=\s*null;[\s\S]*?try \{ recognition\.abort\(\); \} catch \{\}/);
+});
+
 test("voice stop cancels pending retries before aborting recognition", () => {
   assert.match(script, /function stopHandsFree\([\s\S]*?clearTimeout\(state\.recognitionRetryTimer\)/);
 });
