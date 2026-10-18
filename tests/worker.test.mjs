@@ -139,3 +139,22 @@ test("mission-grid API fails closed when the audit store is unavailable", async 
   assert.equal(body.ok, false);
   assert.equal(body.error, "AUDIT_STORAGE_UNAVAILABLE");
 });
+
+test("mission-grid API rejects oversized declared payloads before parsing the body", async () => {
+  const response = await worker.fetch(new Request("https://example.test/api/mission-grid/assess", {
+    method: "POST",
+    headers: {
+      authorization: "Bearer test-owner-session",
+      "content-type": "application/json",
+      "content-length": "8193"
+    },
+    body: JSON.stringify({ moduleId: "secure-transit", action: "Plan freight routing", mode: "plan" })
+  }), {
+    DB: { prepare() { return { bind() { return this; }, first: async () => null, run: async () => ({ meta: { last_row_id: 1 } }) }; } },
+    SESSIONS: { get: async () => "active", put: async () => {} }
+  });
+  assert.equal(response.status, 413);
+  const body = await response.json();
+  assert.equal(body.error, "PAYLOAD_TOO_LARGE");
+});
+
