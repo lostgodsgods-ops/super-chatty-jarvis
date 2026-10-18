@@ -23,6 +23,7 @@ import { assessMissionRequest } from "./architecture/mission-grid.mjs";
 import { createOwnerControlState, setOwnerTakeover, setEmergencyStop } from "./architecture/owner-control.mjs";
 import { DEFAULT_OWNER_CONTROL_SETTINGS, normalizeOwnerControlCommand, validateOwnerControlSettings } from "./architecture/owner-control-service.mjs";
 import { createSandboxLedger, postSandboxTransaction } from "./architecture/finance-sandbox.mjs";
+import { assessRobotSimulatorCommand } from "./architecture/robotics-simulator.mjs";
 
 const VERSION = "1.4.0";
 const OWNER_IDENTITY = Object.freeze({ key: "loss-gods", displayName: "Loss Gods" });
@@ -1371,6 +1372,47 @@ export default {
 
     if (url.pathname === "/policy" && request.method === "GET") {
       return json({ policy: describePolicy() }, 200, cors);
+    }
+
+    if (url.pathname === "/api/robotics/simulator/assess") {
+      if (request.method !== "POST") {
+        return json({ ok: false, error: "METHOD_NOT_ALLOWED" }, 405, { allow: "POST", ...cors });
+      }
+      if (!(await authorized(request, env))) return json({ ok: false, error: "OWNER_SESSION_REQUIRED" }, 401, cors);
+      if (!env.DB || typeof env.DB.prepare !== "function") return json({ ok: false, error: "OWNER_CONTROL_STORE_UNAVAILABLE" }, 503, cors);
+      const length = Number(request.headers.get("content-length") || 0);
+      if (length > 4096) return json({ ok: false, error: "REQUEST_TOO_LARGE" }, 413, cors);
+      let command;
+      try { command = await request.json(); } catch { return json({ ok: false, error: "EXPECTED_JSON_BODY" }, 400, cors); }
+      let emergencyStop = false;
+      try {
+        const row = await env.DB.prepare("SELECT state_json FROM owner_control_state WHERE id = 1").first();
+        if (row?.state_json) {
+          const ownerState = JSON.parse(row.state_json);
+          emergencyStop = ownerState.emergencyStop === true || ownerState.mode === "emergency-stop";
+        }
+      } catch {
+        return json({ ok: false, error: "OWNER_CONTROL_STATE_UNAVAILABLE" }, 503, cors);
+      }
+      const assessment = assessRobotSimulatorCommand(command, {
+        ownerAuthenticated: true,
+        simulatorConfigured: env.ROBOT_SIMULATOR_ENABLED === "true",
+        emergencyStop
+      });
+      const audit = await publishEvent(env, {
+        type: assessment.allowed ? "robotics.simulator.command_assessed" : "robotics.simulator.command_denied",
+        source: "central-agent",
+        payload: {
+          authenticated: true,
+          action: typeof command?.action === "string" ? command.action.slice(0, 40) : "invalid",
+          allowed: assessment.allowed,
+          reason: assessment.reason,
+          executionMode: "simulation-only",
+          sideEffectsExecuted: false
+        }
+      });
+      if (!audit?.ok) return json({ ok: false, error: "AUDIT_STORAGE_UNAVAILABLE" }, 503, cors);
+      return json({ ok: assessment.allowed, assessment, audit: { recorded: true, eventId: audit.id } }, assessment.allowed ? 200 : 403, cors);
     }
 
     if (url.pathname === "/api/finance/sandbox") {
