@@ -5,7 +5,7 @@ import worker from "../central-agent/worker.mjs";
 async function request(path, method = "POST", body = {}) {
   return worker.fetch(new Request("https://unit.test" + path, {
     method,
-    headers: { "content-type": "application/json" },
+    headers: { "content-type": "application/json", "cf-connecting-ip": "127.0.0.1" },
     ...(method === "GET" || method === "HEAD" ? {} : { body: JSON.stringify(body) })
   }), { SESSIONS: { async get() { return null; }, async put() {} } });
 }
