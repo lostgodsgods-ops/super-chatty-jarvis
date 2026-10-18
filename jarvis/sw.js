@@ -1,5 +1,5 @@
 "use strict";
-const CACHE_NAME = "super-chatty-jarvis-shell-v6-voice-singleton";
+const CACHE_NAME = "super-chatty-jarvis-shell-v7-event-notifications";
 const SHELL = ["./", "./index.html", "./manifest.webmanifest", "./icon.svg", "./icon-192.png", "./icon-512.png"];
 const LEGACY_CACHE_PREFIXES = ["super-chatty-jarvis-shell-", "super-chatty-jarvis-", "chatty-jarvis-"];
 self.addEventListener("install", (event) => {
@@ -29,6 +29,20 @@ self.addEventListener("message", (event) => {
       ).map((key) => caches.delete(key)));
     })());
   }
+});
+self.addEventListener("notificationclick", (event) => {
+  event.notification.close();
+  const target = new URL(event.notification.data?.url || "./", self.registration.scope).href;
+  event.waitUntil((async () => {
+    const windows = await self.clients.matchAll({ type: "window", includeUncontrolled: true });
+    for (const client of windows) {
+      if (client.url.startsWith(self.registration.scope) && "focus" in client) {
+        await client.focus();
+        return;
+      }
+    }
+    await self.clients.openWindow(target);
+  })());
 });
 self.addEventListener("fetch", (event) => {
   const request = event.request;
