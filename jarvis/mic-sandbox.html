@@ -1,0 +1,164 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="dark">
+<meta name="referrer" content="no-referrer">
+<title>Super Chatty Jarvis · Microphone Sandbox</title>
+<style>
+:root{color-scheme:dark;--bg:#07111f;--panel:#10243b;--line:#2a506f;--text:#eef7ff;--muted:#a6bdd2;--cyan:#53e8ff;--green:#50e3b2;--red:#ff788e;--gold:#ffc66d}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font:16px/1.5 system-ui,sans-serif;padding:24px}.wrap{max-width:760px;margin:auto}h1{line-height:1.15}p{color:var(--muted)}.card{border:1px solid var(--line);background:var(--panel);border-radius:16px;padding:20px;margin:16px 0}.row{display:flex;gap:10px;flex-wrap:wrap}button{background:#0b6688;color:white;border:1px solid #53e8ff;border-radius:10px;padding:12px 16px;font:inherit;font-weight:700}button:disabled{opacity:.45}output,pre{display:block;white-space:pre-wrap;overflow-wrap:anywhere;background:#050b12;padding:12px;border-radius:8px;color:var(--text)}.level{height:14px;border-radius:99px;background:#08131e;border:1px solid var(--line);overflow:hidden}.fill{height:100%;width:0;background:var(--green);transition:width .08s}.status{font-weight:700}.pass{color:var(--green)}.fail{color:var(--red)}.warn{color:var(--gold)}small{color:var(--muted)}
+</style>
+</head>
+<body><main class="wrap">
+<h1>Microphone Sandbox</h1>
+<p>Isolated diagnostic page. It never requests microphone access on load. Each test starts only after a button press. No audio is uploaded or sent to the server.</p>
+<section class="card">
+<h2>Environment</h2>
+<output id="environment">Checking browser capabilities…</output>
+<p id="workerNotice" class="status warn"></p>
+</section>
+<section class="card">
+<h2>Test A — one microphone stream</h2>
+<p>Tap Start, speak briefly, and confirm the live level rises above 0%. This test opens exactly one getUserMedia audio stream.</p>
+<div class="level" aria-label="Microphone input level"><div id="levelFill" class="fill"></div></div>
+<p>Peak level: <strong id="levelText">0%</strong></p>
+<div class="row"><button id="startBtn" type="button">Start single mic stream</button><button id="stopBtn" type="button" disabled>Stop and release mic</button></div>
+<output id="testA" aria-live="polite">NOT TESTED</output>
+</section>
+<section class="card">
+<h2>Test B — simulated Web Speech error → MediaRecorder fallback</h2>
+<p>With Test A's stream active, tap the button. The sandbox simulates a speech-service error and records a short local Blob from the same stream; it does not start a second microphone capture.</p>
+<button id="fallbackBtn" type="button" disabled>Simulate Web Speech error</button>
+<output id="testB" aria-live="polite">NOT TESTED</output>
+</section>
+<section class="card">
+<h2>Evidence log</h2><pre id="log" aria-live="polite">Sandbox ready. Microphone is off.</pre>
+</section>
+</main>
+<script>
+(() => {
+  "use strict";
+  const $ = id => document.getElementById(id);
+  const state = { stream: null, context: null, analyser: null, raf: 0, peak: 0, recorder: null, chunks: [], recordingTimer: 0 };
+  const log = message => { $("log").textContent += "\n" + new Date().toISOString() + " " + message; };
+  const setResult = (id, text, cls = "") => { const el = $(id); el.textContent = text; el.className = cls; };
+  const supportsSpeech = !!(window.SpeechRecognition || window.webkitSpeechRecognition);
+  const supportsRecorder = typeof window.MediaRecorder === "function";
+  $("environment").textContent = [
+    "Secure context: " + String(window.isSecureContext),
+    "getUserMedia: " + String(!!navigator.mediaDevices?.getUserMedia),
+    "SpeechRecognition: " + String(supportsSpeech),
+    "MediaRecorder: " + String(supportsRecorder),
+    "AudioContext: " + String(!!(window.AudioContext || window.webkitAudioContext))
+  ].join("\n");
+  $("workerNotice").textContent = navigator.serviceWorker?.controller
+    ? "WARNING: page is controlled by a service worker. For isolated testing use the dedicated staging origin."
+    : "No active service worker controls this page.";
+  function release() {
+    if (state.raf) cancelAnimationFrame(state.raf);
+    state.raf = 0;
+    if (state.recordingTimer) clearTimeout(state.recordingTimer);
+    state.recordingTimer = 0;
+    if (state.recorder && state.recorder.state !== "inactive") {
+      try { state.recorder.stop(); } catch {}
+    }
+    state.recorder = null;
+    if (state.stream) state.stream.getTracks().forEach(track => track.stop());
+    state.stream = null;
+    if (state.context) state.context.close().catch(() => {});
+    state.context = null; state.analyser = null;
+    $("startBtn").disabled = false; $("stopBtn").disabled = true; $("fallbackBtn").disabled = true;
+    $("levelFill").style.width = "0%"; $("levelText").textContent = "0%";
+    log("All sandbox microphone tracks released.");
+  }
+  $("startBtn").addEventListener("click", async () => {
+    if (state.stream) return;
+    if (!navigator.mediaDevices?.getUserMedia) {
+      setResult("testA", "FAIL — getUserMedia unavailable; use HTTPS and a supported browser.", "fail"); return;
+    }
+    $("startBtn").disabled = true;
+    try {
+      state.stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true }, video: false });
+      const AC = window.AudioContext || window.webkitAudioContext;
+      if (!AC) throw new Error("AudioContext unavailable");
+      state.context = new AC();
+      state.analyser = state.context.createAnalyser();
+      state.analyser.fftSize = 256;
+      state.context.createMediaStreamSource(state.stream).connect(state.analyser);
+      const data = new Uint8Array(state.analyser.fftSize);
+      state.peak = 0;
+      const sample = () => {
+        if (!state.analyser || !state.stream) return;
+        state.analyser.getByteTimeDomainData(data);
+        let sum = 0;
+        for (const n of data) { const x = (n - 128) / 128; sum += x * x; }
+        const rms = Math.sqrt(sum / data.length);
+        const percent = Math.min(100, Math.round(rms * 300));
+        state.peak = Math.max(state.peak, percent);
+        $("levelFill").style.width = percent + "%";
+        $("levelText").textContent = percent + "%";
+        state.raf = requestAnimationFrame(sample);
+      };
+      if (state.context.state === "suspended") await state.context.resume();
+      state.raf = requestAnimationFrame(sample);
+      $("stopBtn").disabled = false; $("fallbackBtn").disabled = !supportsRecorder;
+      setResult("testA", "RUNNING — speak briefly and watch the input level.", "warn");
+      log("PASS: one audio stream acquired after explicit click; track count=" + state.stream.getAudioTracks().length);
+      const checkPeak = () => {
+        if (!state.stream) return;
+        if (state.peak > 0) setResult("testA", "PASS — audio level rose above 0% (peak " + state.peak + "%).", "pass");
+        else setResult("testA", "NOT VERIFIED — no non-zero audio level observed yet; speak and check again.", "warn");
+      };
+      setTimeout(checkPeak, 1800);
+    } catch (error) {
+      release();
+      setResult("testA", "FAIL — " + (error?.name || "Error") + ": " + (error?.message || String(error)), "fail");
+      log("FAIL: " + (error?.name || "Error") + " " + (error?.message || String(error)));
+    }
+  });
+  $("stopBtn").addEventListener("click", () => {
+    release();
+    setResult("testA", "STOPPED — microphone tracks released.", "warn");
+    setResult("testB", "NOT TESTED");
+  });
+  $("fallbackBtn").addEventListener("click", () => {
+    if (!state.stream || !supportsRecorder) {
+      setResult("testB", "BLOCKED — start Test A and verify MediaRecorder support first.", "fail"); return;
+    }
+    if (state.recorder && state.recorder.state !== "inactive") return;
+    state.chunks = [];
+    const candidates = ["audio/webm;codecs=opus", "audio/webm", "audio/mp4"];
+    const mimeType = candidates.find(type => MediaRecorder.isTypeSupported?.(type));
+    try {
+      state.recorder = mimeType ? new MediaRecorder(state.stream, { mimeType }) : new MediaRecorder(state.stream);
+      state.recorder.ondataavailable = event => { if (event.data?.size) state.chunks.push(event.data); };
+      state.recorder.onerror = event => {
+        setResult("testB", "FAIL — recorder error: " + (event.error?.message || "unknown error"), "fail");
+        log("FAIL: MediaRecorder error");
+      };
+      state.recorder.onstop = () => {
+        const type = state.recorder?.mimeType || mimeType || "application/octet-stream";
+        const blob = new Blob(state.chunks, { type });
+        const ok = blob.size > 0 && blob.type.startsWith("audio/");
+        setResult("testB", (ok ? "PASS" : "FAIL") + " — simulated Web Speech error fallback; Blob size=" + blob.size + " bytes; MIME=" + blob.type + ".", ok ? "pass" : "fail");
+        log((ok ? "PASS" : "FAIL") + ": MediaRecorder Blob validation; size=" + blob.size + "; type=" + blob.type);
+        if (state.recorder) state.recorder = null;
+      };
+      state.recorder.start();
+      setResult("testB", "RUNNING — recording locally for 1.2 seconds…", "warn");
+      log("Simulated Web Speech error; MediaRecorder started on the existing stream.");
+      state.recordingTimer = setTimeout(() => {
+        state.recordingTimer = 0;
+        if (state.recorder && state.recorder.state !== "inactive") state.recorder.stop();
+      }, 1200);
+    } catch (error) {
+      setResult("testB", "FAIL — " + (error?.name || "Error") + ": " + (error?.message || String(error)), "fail");
+      log("FAIL: MediaRecorder start failed.");
+    }
+  });
+  window.addEventListener("pagehide", release, { once: true });
+})();
+</script>
+</body></html>
