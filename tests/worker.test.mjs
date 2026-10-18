@@ -88,7 +88,17 @@ test("mission-grid API returns an authenticated planning-only assessment and rec
     headers: { authorization: "Bearer test-owner-session", "content-type": "application/json" },
     body: JSON.stringify({ moduleId: "secure-transit", action: "Plan authorized freight routing", mode: "plan" })
   }), {
-    DB: { prepare(sql) { return { bind(...args) { this.args = args; return this; }, first: async () => null, run: async () => { if (sql.includes("INSERT INTO central_event_bus_events")) events.push({ sql, args: this.args }); return { meta: { last_row_id: events.length || 1 } }; } }; } },
+    DB: { prepare(sql) {
+      let boundArgs = [];
+      return {
+        bind(...args) { boundArgs = args; return this; },
+        first: async () => null,
+        run: async () => {
+          if (sql.includes("INSERT INTO central_event_bus_events")) events.push({ sql, args: boundArgs });
+          return { meta: { last_row_id: events.length || 1 } };
+        }
+      };
+    } },
     SESSIONS: { get: async () => "active", put: async () => {} }
   });
   assert.equal(response.status, 200);
