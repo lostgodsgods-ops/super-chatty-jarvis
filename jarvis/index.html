@@ -1555,13 +1555,23 @@ body{background:radial-gradient(ellipse at 50% 38%,#50330f45 0,transparent 35%),
       button.setAttribute("aria-busy", "true");
       const originalLabel = "UPDATE APP NOW";
       button.textContent = "CHECKING UPDATE…";
+      let reloadScheduled = false;
+      const reloadOnControllerChange = () => {
+        if (reloadScheduled) return;
+        reloadScheduled = true;
+        toast("New version active. Reloading Super Chatty Jarvis…");
+        setTimeout(() => location.reload(), 150);
+      };
       try {
         const registration = await navigator.serviceWorker.getRegistration("./");
-        if (!registration) throw new Error("Service worker is not registered. Reopen the app online and try again.");
+        if (!registration) throw new Error("No Service Worker registration found for this installed app. Open the live app URL online once, then retry.");
+        const hadInstallingWorker = Boolean(registration.installing);
         await registration.update();
         if (registration.waiting) {
+          navigator.serviceWorker.addEventListener("controllerchange", reloadOnControllerChange, { once: true });
           registration.waiting.postMessage({ type: "SKIP_WAITING" });
           toast("New version found. Activating the update…");
+          setTimeout(() => { if (!reloadScheduled) { reloadScheduled = true; location.reload(); } }, 8000);
           return;
         }
         const installing = registration.installing;
@@ -1582,14 +1592,21 @@ body{background:radial-gradient(ellipse at 50% 38%,#50330f45 0,transparent 35%),
             installing.addEventListener("statechange", onStateChange);
             onStateChange();
           });
-          if (registration.waiting) registration.waiting.postMessage({ type: "SKIP_WAITING" });
-          toast("Update installed. Refreshing the app…");
+          if (registration.waiting) {
+            navigator.serviceWorker.addEventListener("controllerchange", reloadOnControllerChange, { once: true });
+            registration.waiting.postMessage({ type: "SKIP_WAITING" });
+            setTimeout(() => { if (!reloadScheduled) { reloadScheduled = true; location.reload(); } }, 8000);
+            return;
+          }
+        }
+        if (!hadInstallingWorker && !registration.installing && !registration.waiting) {
+          toast("App is already up to date. No new Service Worker was found.");
+          button.disabled = false;
+          button.removeAttribute("aria-busy");
+          button.textContent = originalLabel;
           return;
         }
-        toast("Update check complete. Reloading the latest app files…");
-        const response = await fetch("./index.html", { cache: "no-store" });
-        if (!response.ok) throw new Error("Latest app files could not be fetched (HTTP " + response.status + ").");
-        location.reload();
+        throw new Error("Update check ended without an activated worker. Tap again or reopen the app online.");
       } catch (error) {
         toast("Update failed: " + (error?.message || "unknown error"));
         log("PWA update failed: " + (error?.message || "unknown error"), "warn", "PWA");
