@@ -290,7 +290,7 @@ async function fetchTavilyWithRetry(query, env) {
   if (!env.SEARCH_API_KEY) return fetchDirectWebSearch(query);
   const endpoint = "https://api.tavily.com/search";
   let response;
-  for (let attempt = 0; attempt < 2; attempt++) {
+  for (let attempt = 0; attempt < 3; attempt++) {
     try {
       response = await fetchSearchProvider("tavily", endpoint, {
         method: "POST",
@@ -305,7 +305,7 @@ async function fetchTavilyWithRetry(query, env) {
       headers.set("x-search-provider", "tavily");
       return new Response(response.body, { status: response.status, statusText: response.statusText, headers });
     }
-    if (![429, 500, 502, 503, 504].includes(response.status) || attempt === 1) return fetchDirectWebSearch(query, [{ provider: "tavily", status: "http-" + response.status }]);
+    if (![429, 500, 502, 503, 504].includes(response.status) || attempt === 2) return fetchDirectWebSearch(query, [{ provider: "tavily", status: "http-" + response.status }]);
     const retryAfter = Number(response.headers.get("retry-after"));
     const delay = Number.isFinite(retryAfter) && retryAfter > 0
       ? Math.min(500, Math.max(100, retryAfter * 1000))
