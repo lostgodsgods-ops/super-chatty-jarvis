@@ -266,7 +266,6 @@ async function fetchDirectWebSearch(query, initialDiagnostics = []) {
       accept: "application/json",
       "user-agent": "SuperChattyJarvis/1.0 (public no-key search fallback)"
     },
-    signal: AbortSignal.timeout(8000)
   });
   if (!wikiResponse.ok) throw new Error("DIRECT_WEB_SEARCH_HTTP_" + wikiResponse.status);
   const wikiPayload = await wikiResponse.json();
