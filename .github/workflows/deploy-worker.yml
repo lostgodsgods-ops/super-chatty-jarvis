@@ -1,0 +1,44 @@
+name: Deploy Super Chatty Jarvis Worker
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "jarvis/**"
+      - "src/**"
+      - "wrangler.jsonc"
+      - "migrations/**"
+      - ".github/workflows/deploy-worker.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: super-chatty-jarvis-worker-production
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Deploy Worker and PWA assets
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout mainline source
+        uses: actions/checkout@v4
+
+      - name: Verify deployment credentials are configured
+        env:
+          CF_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CF_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          test -n "$CF_API_TOKEN" || { echo "::error::Set the CLOUDFLARE_API_TOKEN repository secret before deploying."; exit 1; }
+          test -n "$CF_ACCOUNT_ID" || { echo "::error::Set the CLOUDFLARE_ACCOUNT_ID repository secret before deploying."; exit 1; }
+
+      - name: Deploy Worker and bundled PWA assets
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: deploy
