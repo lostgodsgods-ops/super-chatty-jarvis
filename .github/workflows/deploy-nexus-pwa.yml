@@ -57,14 +57,16 @@ jobs:
 
           fetch_asset "/" "$tmp/index.html" "$tmp/root.headers" "text/html"
           grep -Fq 'Super Chatty Jarvis · Neural Console' "$tmp/index.html"
+          grep -Fq 'id="updateAppBtn"' "$tmp/index.html"
+          grep -Fq 'NEXUS-2026.10.19-RED-QUEEN-PWA-UPDATE' "$tmp/index.html"
 
           fetch_asset "/sw.js" "$tmp/sw-root.js" "$tmp/sw-root.headers" "javascript"
-          grep -Fq 'super-chatty-jarvis-shell-v6-voice-singleton' "$tmp/sw-root.js"
+          grep -Fq 'super-chatty-jarvis-shell-v8-red-queen-pwa-update' "$tmp/sw-root.js"
           grep -Eiq '^cache-control: no-cache, must-revalidate' "$tmp/root.headers"
           grep -Eiq '^cache-control: no-cache, must-revalidate' "$tmp/sw-root.headers"
 
           fetch_asset "/jarvis/sw.js" "$tmp/sw-subpath.js" "$tmp/sw-subpath.headers" "javascript"
-          grep -Fq 'super-chatty-jarvis-shell-v6-voice-singleton' "$tmp/sw-subpath.js"
+          grep -Fq 'super-chatty-jarvis-shell-v8-red-queen-pwa-update' "$tmp/sw-subpath.js"
           grep -Eiq '^cache-control: no-cache, must-revalidate' "$tmp/sw-subpath.headers"
 
           fetch_asset "/manifest.webmanifest" "$tmp/manifest.json" "$tmp/manifest.headers" "application/manifest+json"
