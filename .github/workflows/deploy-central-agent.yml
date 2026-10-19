@@ -145,7 +145,23 @@ jobs:
           trap 'rm -f "$tmp"' EXIT
           code="$(curl --silent --show-error --max-time 15 --output "$tmp" --write-out '%{http_code}' "$CENTRAL_AGENT_URL/health")"
           test "$code" = "200" || { echo "::error::Central Agent health failed with HTTP $code"; exit 1; }
-          node -e 'const fs=require("node:fs"); const x=JSON.parse(fs.readFileSync(process.argv[1],"utf8")); if(x.ok!==true||x.capabilities?.directWebSearchFallback!==true||x.capabilities?.gatewaySearchConfigured!==true) throw Error("Central live-search fallback or gateway is not configured"); console.log(JSON.stringify({ok:x.ok,directWebSearchFallback:x.capabilities.directWebSearchFallback,tavilySearchConfigured:x.capabilities.tavilySearchConfigured,gatewaySearchConfigured:x.capabilities.gatewaySearchConfigured}));' "$tmp"
+          node - "$tmp" <<'NODE'
+          const fs=require("node:fs");
+          const x=JSON.parse(fs.readFileSync(process.argv[2],"utf8"));
+          const expected=["tavily","duckduckgo-html","bing-news-rss","google-news-rss","gdelt-doc-api"];
+          const chain=x.capabilities?.liveSearchProviderChain;
+          if(x.ok!==true||x.capabilities?.directWebSearchFallback!==true||x.capabilities?.gatewaySearchConfigured!==true||
+             !Array.isArray(chain)||!expected.every(p=>chain.includes(p))||
+             x.capabilities?.searchProviderReachabilityChecked!==false) {
+            throw new Error("Deployed Worker is missing the multi-provider live-search contract; deployment may be stale.");
+          }
+          console.log(JSON.stringify({
+            ok:x.ok,
+            configured:{tavilySearchConfigured:x.capabilities.tavilySearchConfigured,gatewaySearchConfigured:x.capabilities.gatewaySearchConfigured},
+            liveSearchProviderChain:chain,
+            reachability:"configuration-only; authenticated query smoke test required"
+          }));
+          NODE
 
       - name: Initialize owner password when needed
         shell: bash
