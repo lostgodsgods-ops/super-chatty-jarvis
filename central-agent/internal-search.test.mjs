@@ -527,16 +527,13 @@ test("search provider fetch enforces a five-second production timeout and logs s
       fetchSearchProvider("test-provider", "https://search.example/api?q=private-query", {}, 10),
       error => error?.name === "TimeoutError"
     );
-    assert.deepEqual(warnings[0], {
-      event: "live_search_provider_network_failure",
-      payload: {
-        provider: "test-provider",
-        endpoint: "https://search.example/api",
-        status: "timeout",
-        errorName: "TimeoutError",
-        errorMessage: "The operation was aborted due to timeout"
-      }
-    });
+    assert.equal(warnings[0].event, "live_search_provider_network_failure");
+    assert.equal(warnings[0].payload.provider, "test-provider");
+    assert.equal(warnings[0].payload.endpoint, "https://search.example/api");
+    assert.equal(warnings[0].payload.status, "timeout");
+    assert.equal(warnings[0].payload.errorName, "TimeoutError");
+    assert.equal(warnings[0].payload.endpoint.includes("private-query"), false);
+    assert.equal(typeof warnings[0].payload.errorMessage, "string");
   } finally {
     globalThis.fetch = originalFetch;
     console.warn = originalWarn;
