@@ -137,9 +137,9 @@ async function fetchDirectWebSearch(query) {
           if (!found) return "";
           return decodeHtmlEntities(found[1].replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g, "$1").replace(/<[^>]+>/g, " ")).trim();
         };
-        const publishedMatch = block.match(/<(?:pubDate|dc:date|published)\b[^>]*>([\s\S]*?)<\/(?:pubDate|dc:date|published)>/i);
+        const publishedMatch = block.match(/pubDate>([^<]*)/i);
         const publishedDate = publishedMatch
-          ? decodeHtmlEntities(publishedMatch[1].replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g, "$1").replace(/<[^>]+>/g, " ")).trim()
+          ? decodeHtmlEntities(publishedMatch[1]).trim()
           : field("pubDate");
         return {
           title: field("title"),
