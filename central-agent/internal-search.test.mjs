@@ -513,11 +513,11 @@ test("internal chat preserves provider diagnostics when every live provider thro
 });
 
 
-test("search provider fetch enforces a five-second production timeout and logs sanitized endpoint diagnostics", async () => {
+test("search provider fetch enforces a 2.5-second production timeout and logs sanitized endpoint diagnostics", async () => {
   const originalFetch = globalThis.fetch;
   const originalWarn = console.warn;
   const warnings = [];
-  assert.equal(SEARCH_PROVIDER_TIMEOUT_MS, 5000);
+  assert.equal(SEARCH_PROVIDER_TIMEOUT_MS, 2500);
   console.warn = (event, payload) => warnings.push({ event, payload });
   globalThis.fetch = async (_url, options = {}) => new Promise((_resolve, reject) => {
     options.signal.addEventListener("abort", () => reject(options.signal.reason), { once: true });
