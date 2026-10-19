@@ -474,3 +474,34 @@ test("search gateway returns sanitized provider diagnostics when every live sear
     assert.equal(body.providers.some(item => JSON.stringify(item).includes("quota")), false);
   } finally { globalThis.fetch = originalFetch; }
 });
+
+
+test("internal chat preserves provider diagnostics when every live provider throws a network error", async () => {
+  const originalFetch = globalThis.fetch;
+  const requested = [];
+  globalThis.fetch = async (url, options = {}) => {
+    requested.push({ url: String(url), timeoutSignal: options.signal instanceof AbortSignal });
+    throw new TypeError("simulated outbound network failure");
+  };
+  try {
+    const response = await worker.fetch(new Request("https://agent.example/internal/chat", {
+      method: "POST",
+      headers: { "content-type": "application/json", authorization: "Bearer correct-token" },
+      body: JSON.stringify({ message: "What is the latest NASA Artemis news today?", language: "en-US" })
+    }), {
+      SEARCH_BRIDGE_TOKEN: "correct-token",
+      AI: { run: async () => ({ response: "Should not be called before live evidence." }) }
+    });
+    const body = await response.json();
+    assert.equal(response.status, 502);
+    assert.equal(body.code, "LIVE_SEARCH_ALL_PROVIDERS_FAILED");
+    assert.ok(Array.isArray(body.providers));
+    assert.ok(body.providers.some(item => item.provider === "duckduckgo-html" && item.status === "network-error"));
+    assert.ok(body.providers.some(item => item.provider === "google-news-rss" && item.status === "network-error"));
+    assert.ok(requested.length >= 4);
+    assert.ok(requested.every(item => item.timeoutSignal));
+    assert.ok(requested.every(item => !item.url.includes("correct-token")));
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
