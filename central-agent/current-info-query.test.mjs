@@ -19,3 +19,21 @@ test("routes specific regional factual claims to live evidence search", () => {
     "क्या कमला जलविद्युत परियोजना को CCEA ने मंजूरी दी?"
   ]) assert.equal(requiresLiveSearch(q), true, q);
 });
+
+test("explicit live web search requests always route to external evidence", () => {
+  for (const q of [
+    "Tavily search for current AI agent news",
+    "Search the web for today's Cloudflare Workers status",
+    "Please browse for the latest Android update",
+    "Use live search to find current news"
+  ]) assert.equal(requiresLiveSearch(q), true, q);
+});
+
+test("explicit Hindi/Hinglish search requests always route to external evidence", () => {
+  for (const q of [
+    "टैविली सर्च करो अभी की जानकारी",
+    "इंटरनेट पर खोजकर ताज़ा जानकारी बताओ",
+    "इसका लाइव सर्च करके बताओ",
+    "आज की लाइव जानकारी खोजो"
+  ]) assert.equal(requiresLiveSearch(q), true, q);
+});

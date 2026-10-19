@@ -11,7 +11,8 @@ export function buildTavilyQuery(message) {
   let query = message.normalize("NFKC").replace(FILLER, " ").replace(/\s+/g, " ").trim();
   query = query.replace(/^(?:(?:hey|hi)\s+)?(?:chatty|jarvis)[,!:;\s]+/i, "");
   query = query.replace(/^[,;:\s]+/, "").replace(/^(?:can you|could you|would you|please)\s+/i, "");
-  query = query.replace(/^(?:please\s+)?(?:search(?: the web)? for|look up|find(?: me)?(?: the)?|tell me about|give me information about|what is the latest on)\s+/i, "");
+  query = query.replace(/^(?:please\s+)?(?:tavily\s+search(?:\s+for)?|search(?: the)? (?:web|internet|online)(?:\s+for)?|web search(?:\s+for)?|internet search(?:\s+for)?|browse(?: the)? web(?:\s+for)?|live search(?:\s+for)?|search(?: the web)? for|look up(?: online)?|find(?: me)?(?: the)?|tell me about|give me information about|what is the latest on)\s+/i, "");
+  query = query.replace(/^(?:इंटरनेट पर|ऑनलाइन|लाइव सर्च|टैविली सर्च|सर्च करके|खोजकर|खोजो)\s*/i, "");
   query = query.replace(/^[,;:\s]+|[,;:\s]+$/g, "").replace(/\s+/g, " ").trim().replace(/[.!?]+$/g, "").trim().replace(/^(?:the|a|an)\s+/i, "");
   if (!query || /^(?:please|thanks|thank you)$/i.test(query)) return "";
   return query.slice(0, 400);

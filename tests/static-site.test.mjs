@@ -107,7 +107,7 @@ test("NEXUS agent HUD is live-wired to the production SSE event bus", () => {
 
 
 test("installed PWA force-updates stale shells and revalidates HTML assets", () => {
-  assert.match(serviceWorker, /CACHE_NAME\s*=\s*"super-chatty-jarvis-shell-v8-red-queen-pwa-update"/, "shell cache must be version-bumped for the install UX release");
+  assert.match(serviceWorker, /CACHE_NAME\s*=\s*"super-chatty-jarvis-shell-v9-live-search-update-fix"/, "shell cache must be version-bumped for the install UX release");
   assert.match(serviceWorker, /self\.skipWaiting\(\)/, "new worker must activate without waiting for an old tab to close");
   assert.match(serviceWorker, /self\.clients\.claim\(\)/, "new worker must claim open PWA clients");
   assert.match(serviceWorker, /key !== CACHE_NAME.*caches\.delete\(key\)/s, "activation must delete older Super Chatty shell caches");
@@ -220,7 +220,7 @@ test("PWA provides a direct native install prompt and a safe fallback", () => {
   assert.match(jarvisHtml, /display-mode:\s*standalone/, "installed standalone mode must be detected");
   assert.ok(centralWorker.includes('url.pathname === "/icon-192.png"'), "Worker must allow the public 192px install icon");
   assert.ok(centralWorker.includes('url.pathname === "/icon-512.png"'), "Worker must allow the public 512px install icon");
-  assert.match(serviceWorker, /CACHE_NAME\s*=\s*"super-chatty-jarvis-shell-v8-red-queen-pwa-update"/, "install UX release must invalidate old shell cache");
+  assert.match(serviceWorker, /CACHE_NAME\s*=\s*"super-chatty-jarvis-shell-v9-live-search-update-fix"/, "install UX release must invalidate old shell cache");
 });
 
 test("owner gate prevents health checks and SSE from starting before session verification", () => {
@@ -244,7 +244,7 @@ test("first-screen one-click install uses the browser-native prompt when eligibl
   assert.match(jarvisHtml, /addEventListener\("appinstalled"/, "successful install must be handled");
   assert.match(jarvisHtml, /Chrome has not offered the native install prompt yet/i, "unavailable prompt state must be honest");
   assert.match(jarvisHtml, /application-version" content="NEXUS-2026\.10\.19-RED-QUEEN-PWA-UPDATE"/, "app version must identify this shell release");
-  assert.match(serviceWorker, /CACHE_NAME\s*=\s*"super-chatty-jarvis-shell-v8-red-queen-pwa-update"/, "shell cache must be invalidated");
+  assert.match(serviceWorker, /CACHE_NAME\s*=\s*"super-chatty-jarvis-shell-v9-live-search-update-fix"/, "shell cache must be invalidated");
 });
 
 test("PWA notifications require explicit opt-in and only notify for live foreground SSE events", () => {
@@ -390,4 +390,19 @@ test("scheduled intel is proposal-only and never self-deploys or self-grants", (
   assert.match(centralWorker, /upgradeExecution:\s*false/);
   assert.match(centralWorker, /INTEL_CRON_ENABLED/);
   assert.match(centralWranglerConfig, /"GITHUB_REPOSITORY":\s*"lostgodsgods-ops\/super-chatty-jarvis"/);
+});
+
+
+test("PWA update activation reloads after controllerchange and never leaves the update button stuck", () => {
+  assert.match(jarvisHtml, /navigator\.serviceWorker\.addEventListener\(["']controllerchange["']/);
+  assert.match(jarvisHtml, /location\.reload\(\)/);
+  assert.match(jarvisHtml, /UPDATE APP NOW/);
+  assert.match(jarvisHtml, /PWA update failed:/);
+});
+
+test("owner chat recognizes explicit live-search intent and returns dated source metadata", () => {
+  assert.match(centralWorker, /LIVE_SEARCH_FRESH_RESULTS_UNAVAILABLE/);
+  assert.match(centralWorker, /fetchTavilyWithRetry\(searchQuery, env\)/);
+  assert.match(centralWorker, /publishedDate/);
+  assert.match(centralWorker, /webSearchExecuted: needsLiveSearch/);
 });
