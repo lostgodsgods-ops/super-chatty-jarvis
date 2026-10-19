@@ -883,7 +883,7 @@ export default {
         version: VERSION,
         capabilities: {
           workersAIConfigured: Boolean(env.AI),
-          tavilySearchConfigured: Boolean(env.SEARCH_API_KEY),
+          tavilySearchConfigured: Boolean((typeof env.SEARCH_API_KEY === "string" && env.SEARCH_API_KEY.trim()) || (typeof env.TAVILY_API_KEY === "string" && env.TAVILY_API_KEY.trim())),
           directWebSearchFallback: true,
           liveSearchProviderChain: ["tavily", "duckduckgo-html", "bing-news-rss", "google-news-rss", "gdelt-doc-api"],
           searchProviderReachabilityChecked: false,
