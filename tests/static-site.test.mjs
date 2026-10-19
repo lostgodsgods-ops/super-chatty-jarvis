@@ -420,3 +420,12 @@ test("live evidence search includes the Bing News RSS fallback", () => {
   assert.match(centralWorker, /name: "bing-news-rss"/);
   assert.match(centralWorker, /x-search-provider.*provider\.name/);
 });
+
+
+test("live-search failures report sanitized per-provider diagnostics", () => {
+  assert.match(centralWorker, /providerFailures\.push\(\{ provider: "duckduckgo-html"/);
+  assert.match(centralWorker, /providerFailures\.push\(\{ provider: provider\.name/);
+  assert.match(centralWorker, /providerFailures\.push\(\{ provider: "gdelt-doc-api"/);
+  assert.match(centralWorker, /code: "LIVE_SEARCH_NETWORK_ERROR", providerFailures/);
+  assert.match(centralWorker, /console\.error\("live-search-failed"/);
+});
