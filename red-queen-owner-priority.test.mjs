@@ -6,6 +6,7 @@ const pwa = await readFile(new URL("./jarvis/index.html", import.meta.url), "utf
 const worker = await readFile(new URL("./central-agent/worker.mjs", import.meta.url), "utf8");
 const ownerControl = await readFile(new URL("./central-agent/architecture/owner-control-service.mjs", import.meta.url), "utf8");
 const registry = await readFile(new URL("./central-agent/architecture/red-queen-registry.mjs", import.meta.url), "utf8");
+const serviceWorker = await readFile(new URL("./jarvis/sw.js", import.meta.url), "utf8");
 
 test("PWA exposes Owner Priority and starts with honest locked/unverified module status", () => {
   assert.match(pwa, /id="redQueenTitle"[^>]*>Red Queen · Owner Priority/);
@@ -36,4 +37,20 @@ test("Owner priority is enabled but non-overridable security rules remain protec
   assert.match(ownerControl, /ownerPriority: true/);
   assert.match(ownerControl, /NON_OVERRIDABLE_RULE_IDS\.has\(rule\.id\)/);
   assert.match(ownerControl, /NON_OVERRIDABLE_RULE/);
+});
+
+test("PWA update button checks for the latest service worker and applies available updates", () => {
+  assert.match(pwa, /id="updateAppBtn"[^>]*>UPDATE APP NOW/);
+  assert.match(pwa, /async function applyPwaUpdate\(\)/);
+  assert.match(pwa, /registration\.update\(\)/);
+  assert.match(pwa, /registration\.waiting\.postMessage\(\{ type: "SKIP_WAITING" \}\)/);
+  assert.match(pwa, /fetch\("\.\/index\.html", \{ cache: "no-store" \}\)/);
+  assert.match(pwa, /id="updateAppBtn"[^;]*addEventListener\("click", applyPwaUpdate\)/);
+});
+
+test("service worker cache version changes and explicit activation messages are handled", () => {
+  assert.match(serviceWorker, /super-chatty-jarvis-shell-v8-red-queen-pwa-update/);
+  assert.match(serviceWorker, /event\.data\.type === "SKIP_WAITING"/);
+  assert.match(serviceWorker, /self\.skipWaiting\(\)/);
+  assert.match(serviceWorker, /self\.clients\.claim\(\)/);
 });
