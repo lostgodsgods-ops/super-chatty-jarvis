@@ -113,7 +113,7 @@ test("installed PWA force-updates stale shells and revalidates HTML assets", () 
   assert.match(serviceWorker, /self\.clients\.claim\(\)/, "new worker must claim open PWA clients");
   assert.match(serviceWorker, /key !== CACHE_NAME.*caches\.delete\(key\)/s, "activation must delete older Super Chatty shell caches");
   assert.match(serviceWorker, /new Request\(request,\s*\{\s*cache:\s*"no-store"\s*\}\)/, "navigation must bypass stale browser HTTP cache");
-  assert.match(jarvisHtml, /application-version" content="NEXUS-2026\.10\.19-LIVE-SEARCH-PWA-SYNC"/, "frontend version must be bumped");
+  assert.match(jarvisHtml, /application-version" content="NEXUS-2026\.10\.19-LIVE-SEARCH-BUDGET-PWA-V11"/, "frontend version must be bumped");
   assert.match(jarvisHtml, /registration\.update\(\)/, "PWA must check for worker updates");
   assert.match(jarvisHtml, /controllerchange/, "active sessions must detect the new worker controller");
   assert.match(jarvisHtml, /location\.reload\(\)/, "active sessions must reload after a worker update");
@@ -244,7 +244,7 @@ test("first-screen one-click install uses the browser-native prompt when eligibl
   assert.match(jarvisHtml, /installEvent\.prompt\(\)/, "tap must invoke the captured native prompt");
   assert.match(jarvisHtml, /addEventListener\("appinstalled"/, "successful install must be handled");
   assert.match(jarvisHtml, /Chrome has not offered the native install prompt yet/i, "unavailable prompt state must be honest");
-  assert.match(jarvisHtml, /application-version" content="NEXUS-2026\.10\.19-LIVE-SEARCH-PWA-SYNC"/, "app version must identify this shell release");
+  assert.match(jarvisHtml, /application-version" content="NEXUS-2026\.10\.19-LIVE-SEARCH-BUDGET-PWA-V11"/, "app version must identify this shell release");
   assert.match(serviceWorker, /CACHE_NAME\s*=\s*"super-chatty-jarvis-shell-v11-live-search-budget-fix"/, "shell cache must be invalidated");
 });
 
