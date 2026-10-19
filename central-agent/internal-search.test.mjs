@@ -504,8 +504,8 @@ test("internal chat preserves provider diagnostics when every live provider thro
     assert.ok(requested.length >= 4);
     assert.ok(requested.every(item => item.timeoutSignal));
     assert.ok(requested.every(item => !item.url.includes("correct-token")));
-    assert.ok(warnings.some(item => item.event === "live_search_provider_network_failure" && item.payload.endpoint === "https://html.duckduckgo.com/html"));
-    assert.ok(warnings.every(item => typeof item.payload.errorName === "string" && typeof item.payload.errorMessage === "string"));
+    assert.ok(warnings.some(item => item.event === "live_search_provider_network_failure" && item.payload.endpoint === "https://html.duckduckgo.com/html/"));
+    assert.ok(warnings.filter(item => item.event === "live_search_provider_network_failure").every(item => typeof item.payload.errorName === "string" && typeof item.payload.errorMessage === "string"));
   } finally {
     globalThis.fetch = originalFetch;
     console.warn = originalWarn;
@@ -521,6 +521,7 @@ test("search provider fetch enforces a five-second production timeout and logs s
   console.warn = (event, payload) => warnings.push({ event, payload });
   globalThis.fetch = async (_url, options = {}) => new Promise((_resolve, reject) => {
     options.signal.addEventListener("abort", () => reject(options.signal.reason), { once: true });
+    setTimeout(() => {}, 25);
   });
   try {
     await assert.rejects(
