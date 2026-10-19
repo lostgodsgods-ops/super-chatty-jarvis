@@ -7,7 +7,7 @@
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="application-version" content="NEXUS-2026.10.18-EVENT-NOTIFICATIONS">
+  <meta name="application-version" content="NEXUS-2026.10.19-RED-QUEEN-PWA-UPDATE">
   <meta name="description" content="Super Chatty Jarvis — voice-first AI command interface.">
   <meta name="color-scheme" content="dark">
   <title>Super Chatty Jarvis · Neural Console</title>
@@ -124,6 +124,7 @@ body{background:radial-gradient(ellipse at 50% 38%,#50330f45 0,transparent 35%),
 @media(max-width:600px){.cinema-layout{grid-template-columns:1fr;grid-template-rows:minmax(0,1fr) auto}.cinema-core-dock{min-height:118px;display:grid;grid-template-columns:100px 1fr;grid-template-rows:auto auto auto;justify-items:start;text-align:left;column-gap:12px}.cinema-core-wrap{width:95px;grid-row:1/4;grid-column:1}.cinema-core-dock strong,.cinema-core-dock>span,.cinema-core-dock p{grid-column:2;margin:0}.cinema-stage{min-height:35vh}}
 
 .red-queen-panel{grid-column:1/-1}.red-queen-priority{display:flex;flex-direction:column;gap:4px;margin:0 0 12px;color:var(--muted);font-size:12px}.red-queen-priority strong{color:var(--gold);letter-spacing:.08em;font-size:12px}.red-queen-meta{font-size:11px;color:var(--muted);margin:8px 0 12px}.red-queen-modules{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:9px}.red-queen-module{border:1px solid #ffce7830;border-radius:12px;padding:11px;background:#00000020;min-width:0}.red-queen-module strong,.red-queen-module span{display:block;overflow-wrap:anywhere}.red-queen-module strong{font-size:11px;color:var(--text);margin-bottom:5px}.red-queen-module span{font-size:10px;color:var(--muted)}.red-queen-note{font-size:10px;line-height:1.5;color:var(--muted);margin:12px 0 0}
+.pwa-update-btn{min-height:34px;padding:7px 10px;font-size:10px;letter-spacing:.04em;white-space:nowrap}.pwa-update-btn[aria-busy="true"]{opacity:.75}@media(max-width:560px){.topbar{align-items:flex-start;flex-wrap:wrap}.topbar .telemetry{width:100%;justify-content:flex-start}.pwa-update-btn{flex:1;min-width:150px}}
 </style>
 </head>
 <body>
@@ -140,6 +141,7 @@ body{background:radial-gradient(ellipse at 50% 38%,#50330f45 0,transparent 35%),
     <header class="topbar">
       <div class="brand"><div class="brandmark" aria-hidden="true">✦</div><div class="brandname">SUPER <span>CHATTY</span> / JARVIS<small class="owner-brand-tag">OWNER · LOSS GODS</small></div></div>
       <div class="telemetry" aria-label="System status">
+        <button class="action-btn secondary pwa-update-btn" id="updateAppBtn" type="button" aria-label="Check and apply the latest app update">UPDATE APP NOW</button>
         <span class="status warn" id="workerStatus"><i class="dot"></i><span>CF: CHECKING</span></span>
         <span class="status warn" id="pipelineStatus"><i class="dot"></i><span>CI/CD: NOT CONNECTED</span></span>
       </div>
@@ -383,7 +385,7 @@ body{background:radial-gradient(ellipse at 50% 38%,#50330f45 0,transparent 35%),
     });
     const $ = (id) => document.getElementById(id);
     const els = {
-      workerStatus:$("workerStatus"), pipelineStatus:$("pipelineStatus"), core:$("core"), coreState:$("coreState"),
+      workerStatus:$("workerStatus"), pipelineStatus:$("pipelineStatus"), updateAppBtn:$("updateAppBtn"), core:$("core"), coreState:$("coreState"),
       micMetric:$("micMetric"), audioMetric:$("audioMetric"), uptimeMetric:$("uptimeMetric"), wave:$("wave"),
       terminal:$("terminal"), streamStatus:$("streamStatus"), logCount:$("logCount"), workerUrl:$("workerUrl"),
       eventsUrl:$("eventsUrl"), connectBtn:$("connectBtn"), disconnectBtn:$("disconnectBtn"), connectState:$("connectState"),
@@ -1542,7 +1544,62 @@ body{background:radial-gradient(ellipse at 50% 38%,#50330f45 0,transparent 35%),
     els.sendBtn.addEventListener("click",submitCommand);
     els.commandInput.addEventListener("keydown",event=>{if(event.key==="Enter"){event.preventDefault();submitCommand();}});
     els.connectBtn.addEventListener("click",connect);
+    async function applyPwaUpdate() {
+      if (!("serviceWorker" in navigator) || location.protocol === "file:") {
+        toast("App update requires an installed HTTPS PWA.");
+        return;
+      }
+      const button = els.updateAppBtn;
+      if (button.disabled) return;
+      button.disabled = true;
+      button.setAttribute("aria-busy", "true");
+      const originalLabel = "UPDATE APP NOW";
+      button.textContent = "CHECKING UPDATE…";
+      try {
+        const registration = await navigator.serviceWorker.getRegistration("./");
+        if (!registration) throw new Error("Service worker is not registered. Reopen the app online and try again.");
+        await registration.update();
+        if (registration.waiting) {
+          registration.waiting.postMessage({ type: "SKIP_WAITING" });
+          toast("New version found. Activating the update…");
+          return;
+        }
+        const installing = registration.installing;
+        if (installing) {
+          await new Promise((resolve, reject) => {
+            const timeout = setTimeout(() => reject(new Error("Update check timed out. Check your connection and retry.")), 15000);
+            const onStateChange = () => {
+              if (installing.state === "installed" || installing.state === "activated") {
+                clearTimeout(timeout);
+                installing.removeEventListener("statechange", onStateChange);
+                resolve();
+              } else if (installing.state === "redundant") {
+                clearTimeout(timeout);
+                installing.removeEventListener("statechange", onStateChange);
+                reject(new Error("Browser could not install the new app version."));
+              }
+            };
+            installing.addEventListener("statechange", onStateChange);
+            onStateChange();
+          });
+          if (registration.waiting) registration.waiting.postMessage({ type: "SKIP_WAITING" });
+          toast("Update installed. Refreshing the app…");
+          return;
+        }
+        toast("Update check complete. Reloading the latest app files…");
+        const response = await fetch("./index.html", { cache: "no-store" });
+        if (!response.ok) throw new Error("Latest app files could not be fetched (HTTP " + response.status + ").");
+        location.reload();
+      } catch (error) {
+        toast("Update failed: " + (error?.message || "unknown error"));
+        log("PWA update failed: " + (error?.message || "unknown error"), "warn", "PWA");
+        button.disabled = false;
+        button.removeAttribute("aria-busy");
+        button.textContent = originalLabel;
+      }
+    }
     els.enableNotificationsBtn.addEventListener("click", enableEventNotifications);
+    els.updateAppBtn.addEventListener("click", applyPwaUpdate);
     els.refreshRedQueenBtn.addEventListener("click", refreshRedQueenStatus);
     els.disconnectBtn.addEventListener("click",()=>{disconnectEvents();clearInterval(state.healthTimer);log("Live SSE connection closed by user.","warn","STREAM");});
     $("clearLogs").addEventListener("click",()=>{els.terminal.replaceChildren();state.eventsCount=0;els.logCount.textContent="0 events";log("Terminal cleared.","info","UI");});
