@@ -442,3 +442,30 @@ test("live search tries Bing News RSS as an independent fallback before Google N
     assert.ok(urls.some(url => url.startsWith("https://www.bing.com/news/search")));
   } finally { globalThis.fetch = originalFetch; }
 });
+
+
+test("failed live providers return sanitized per-provider diagnostics instead of an opaque 502", async () => {
+  const originalFetch = globalThis.fetch;
+  const urls = [];
+  globalThis.fetch = async url => {
+    const value = String(url);
+    urls.push(value);
+    return new Response("temporarily unavailable", { status: 503 });
+  };
+  try {
+    const response = await worker.fetch(new Request("https://agent.example/internal/search", {
+      method: "POST",
+      headers: { "content-type": "application/json", authorization: "Bearer correct-token" },
+      body: JSON.stringify({ query: "What happened in 2024?" })
+    }), { SEARCH_BRIDGE_TOKEN: "correct-token" });
+    const body = await response.json();
+    assert.equal(response.status, 502);
+    assert.equal(body.code, "SEARCH_PROVIDER_NETWORK_ERROR");
+    assert.deepEqual(body.providerFailures.map(item => item.provider), [
+      "duckduckgo-html", "bing-news-rss", "google-news-rss", "gdelt-doc-api"
+    ]);
+    assert.ok(body.providerFailures.every(item => /^http-\d{3}$/.test(item.reason)));
+    assert.ok(urls.length >= 4);
+    assert.equal(JSON.stringify(body).includes("correct-token"), false);
+  } finally { globalThis.fetch = originalFetch; }
+});
