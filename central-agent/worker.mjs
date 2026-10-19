@@ -116,6 +116,7 @@ async function fetchDirectWebSearch(query) {
   }
 
   // Freshness-sensitive searches use independent news feeds before failing closed.
+  if (requiresLiveSearch(cleanQuery)) {
   const newsProviders = [
     { name: "bing-news-rss", endpoint: "https://www.bing.com/news/search" },
     { name: "google-news-rss", endpoint: "https://news.google.com/rss/search" }
