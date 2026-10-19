@@ -590,3 +590,35 @@ test("all-provider network failures return structured per-provider diagnostics",
     console.warn = originalWarn;
   }
 });
+
+
+test("explicit TAVILY_API_KEY takes precedence over a stale legacy SEARCH_API_KEY", async () => {
+  const originalFetch = globalThis.fetch;
+  let authorization = "";
+  globalThis.fetch = async (url, options = {}) => {
+    assert.equal(String(url), "https://api.tavily.com/search");
+    authorization = options.headers.authorization;
+    return new Response(JSON.stringify({ results: [
+      { title: "Current source", url: "https://example.com/current-source", content: "Verified source", score: 0.99 }
+    ] }), { status: 200, headers: { "content-type": "application/json" } });
+  };
+  try {
+    const response = await worker.fetch(new Request("https://agent.example/internal/search", {
+      method: "POST",
+      headers: { "content-type": "application/json", authorization: "Bearer correct-token" },
+      body: JSON.stringify({ query: "latest 2026 official update" })
+    }), {
+      SEARCH_BRIDGE_TOKEN: "correct-token",
+      SEARCH_API_KEY: "legacy-exhausted-key",
+      TAVILY_API_KEY: "current-tavily-key"
+    });
+    assert.equal(response.status, 200);
+    assert.equal(authorization, "Bearer current-tavily-key");
+    const body = await response.json();
+    assert.equal(body.provider, "tavily");
+    assert.equal(JSON.stringify(body).includes("current-tavily-key"), false);
+    assert.equal(JSON.stringify(body).includes("legacy-exhausted-key"), false);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
