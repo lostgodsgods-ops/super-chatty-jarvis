@@ -115,6 +115,9 @@ async function fetchDirectWebSearch(query) {
     // Continue to the structured no-key fallback below.
   }
 
+  // Do not substitute encyclopedia pages for live evidence on time-sensitive queries.
+  if (requiresLiveSearch(cleanQuery)) throw new Error("LIVE_SEARCH_FRESH_RESULTS_UNAVAILABLE");
+
   // Wikipedia's public MediaWiki search API requires no API key and returns
   // structured URLs/snippets. It is a broad-web fallback, not a guarantee of
   // breaking-news coverage; callers still cite the actual page and its dates.
