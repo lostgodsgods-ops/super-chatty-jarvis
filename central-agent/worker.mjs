@@ -297,7 +297,7 @@ async function fetchTavilyWithRetry(query, env) {
   if (!tavilyKey) return fetchDirectWebSearch(query);
   const endpoint = "https://api.tavily.com/search";
   let response;
-  for (let attempt = 0; attempt < 2; attempt++) {
+  for (let attempt = 0; attempt < 3; attempt++) {
     try {
       response = await fetchSearchProvider("tavily", endpoint, {
         method: "POST",
