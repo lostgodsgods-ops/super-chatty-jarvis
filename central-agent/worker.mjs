@@ -287,9 +287,11 @@ async function fetchDirectWebSearch(query, initialDiagnostics = []) {
 async function fetchTavilyWithRetry(query, env) {
   // Accept both legacy SEARCH_API_KEY and the explicit TAVILY_API_KEY name.
   // Never expose the key in logs or provider diagnostics.
-  const tavilyKey = typeof env.SEARCH_API_KEY === "string" && env.SEARCH_API_KEY.trim()
-    ? env.SEARCH_API_KEY.trim()
-    : (typeof env.TAVILY_API_KEY === "string" ? env.TAVILY_API_KEY.trim() : "");
+  // Prefer the explicitly named current Tavily binding over the legacy alias.
+  // If both exist, a stale/exhausted SEARCH_API_KEY must not shadow TAVILY_API_KEY.
+  const tavilyKey = typeof env.TAVILY_API_KEY === "string" && env.TAVILY_API_KEY.trim()
+    ? env.TAVILY_API_KEY.trim()
+    : (typeof env.SEARCH_API_KEY === "string" ? env.SEARCH_API_KEY.trim() : "");
   // Direct public web search is the no-key fallback. Public search engines can still
   // rate-limit or change HTML; callers must surface a clear failure if both paths fail.
   if (!tavilyKey) return fetchDirectWebSearch(query);
