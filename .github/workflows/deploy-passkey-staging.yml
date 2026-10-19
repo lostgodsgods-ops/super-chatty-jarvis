@@ -1,0 +1,164 @@
+name: Deploy passkey authentication to staging only
+# D1 schemas are managed separately with a D1-authorized credential; this token deploys Workers only.
+
+on:
+  # Isolated staging branch only. Production deployments remain on their separate workflow.
+  push:
+    branches:
+      - staging/passkey-webauthn
+  workflow_dispatch:
+    inputs:
+      confirm_staging_only:
+        description: "Confirm this deploy targets the isolated passkey staging Worker only"
+        required: true
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+jobs:
+  deploy-staging:
+    if: github.ref == 'refs/heads/staging/passkey-webauthn'
+    runs-on: ubuntu-latest
+    environment: staging
+    steps:
+      - name: Require explicit staging confirmation
+        if: github.event_name == 'workflow_dispatch' && inputs.confirm_staging_only != true
+        run: |
+          echo "Deployment stopped: confirm_staging_only must be checked."
+          exit 1
+      - name: Check out repository
+        uses: actions/checkout@v5
+      - name: Set up Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: "22"
+      - name: Install dependencies
+        run: npm install --ignore-scripts --no-audit --no-fund
+      - name: Validate required secrets exist
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          OWNER_SETUP_TOKEN: ${{ secrets.OWNER_SETUP_TOKEN }}
+        run: |
+          test -n "$CLOUDFLARE_API_TOKEN" || { echo "Missing CLOUDFLARE_API_TOKEN repository secret"; exit 1; }
+          test -n "$CLOUDFLARE_ACCOUNT_ID" || { echo "Missing CLOUDFLARE_ACCOUNT_ID repository secret"; exit 1; }
+          test -n "$OWNER_SETUP_TOKEN" || { echo "Missing OWNER_SETUP_TOKEN repository secret"; exit 1; }
+      - name: Verify Cloudflare credentials
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: npx wrangler whoami
+      - name: Deploy isolated passkey staging Worker
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: npx wrangler deploy --config staging/wrangler.jsonc
+      - name: Set private bootstrap token without logging it
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          OWNER_SETUP_TOKEN: ${{ secrets.OWNER_SETUP_TOKEN }}
+        run: printf '%s' "$OWNER_SETUP_TOKEN" | npx wrangler secret put OWNER_SETUP_TOKEN --config staging/wrangler.jsonc
+      - name: Configure agent gateway token when supplied
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          AGENT_GATEWAY_TOKEN: ${{ secrets.AGENT_GATEWAY_TOKEN }}
+        run: |
+          if [ -n "$AGENT_GATEWAY_TOKEN" ]; then
+            printf '%s' "$AGENT_GATEWAY_TOKEN" | npx wrangler secret put AGENT_GATEWAY_TOKEN --config staging/wrangler.jsonc
+          else
+            echo "No repository token supplied; preserving any existing private Worker binding."
+          fi
+      - name: Configure optional public web-search provider
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          SEARCH_API_KEY: ${{ secrets.SEARCH_API_KEY }}
+        run: |
+          if [ -n "$SEARCH_API_KEY" ]; then
+            printf '%s' "$SEARCH_API_KEY" | npx wrangler secret put SEARCH_API_KEY --config staging/wrangler.jsonc
+            echo "Configured private SEARCH_API_KEY secret."
+          else
+            echo "SEARCH_API_KEY not supplied; live web search remains disabled fail-closed."
+          fi
+      - name: Smoke-test deployed staging routes without enrolling a credential
+        env:
+          STAGING_BASE_URL: https://super-chatty-passkey-staging.lostgodsgods.workers.dev
+          AGENT_GATEWAY_TOKEN: ${{ secrets.AGENT_GATEWAY_TOKEN }}
+        run: |
+          node --input-type=module <<'NODE'
+          import assert from "node:assert/strict";
+          const base = process.env.STAGING_BASE_URL;
+          const origin = base;
+          async function check(path, init, expectedStatus, expectedBody = {}) {
+            const response = await fetch(new URL(path, base), init);
+            const body = await response.json().catch(() => ({}));
+            assert.equal(response.status, expectedStatus, `${path}: unexpected HTTP status ${response.status}; body=${JSON.stringify(body)}`);
+            for (const [key, value] of Object.entries(expectedBody)) {
+              assert.equal(body[key], value, `${path}: unexpected ${key}`);
+            }
+            console.log(`PASS ${path}: HTTP ${response.status}`);
+          }
+          const health = await fetch(new URL("/health", base), { cache: "no-store" });
+          assert.equal(health.status, 200, "/health must return HTTP 200");
+          assert.deepEqual(await health.json(), { ok: true, component: "passkey-auth-staging", production: false });
+          console.log("PASS /health: staging identity verified");
+          const owner = await fetch(new URL("/owner", base), { cache: "no-store" });
+          assert.equal(owner.status, 200, "/owner must return HTTP 200");
+          const html = await owner.text();
+          assert.ok(html.includes("Set up this device's passkey"), "passkey enrollment UI missing");
+          assert.ok(html.includes("Sign in with passkey"), "passkey sign-in UI missing");
+          console.log("PASS /owner: passkey UI present");
+          await check("/auth/status", { method: "GET" }, 401, { authenticated: false });
+          await check("/tasks", { method: "GET", headers: { Origin: origin } }, 401, { error: "Owner authentication required" });
+          await check("/results", { method: "GET", headers: { Origin: origin } }, 401, { error: "Owner authentication required" });
+          await check("/memory", { method: "GET", headers: { Origin: origin } }, 401, { error: "Owner authentication required" });
+          await check("/audit", { method: "GET", headers: { Origin: origin } }, 401, { error: "Owner authentication required" });
+          const app = await fetch(new URL("/app", base), { redirect: "manual", cache: "no-store" });
+          assert.equal(app.status, 303, "/app must redirect unauthenticated requests");
+          assert.equal(new URL(app.headers.get("location"), base).pathname, "/owner");
+          console.log("PASS /app: unauthenticated access redirected");
+          for (const [path, payload, disabledError] of [
+            ["/results", { taskId: "test", result: { summary: "test" } }, "Agent result submission is disabled until gateway authentication is configured"],
+            ["/tasks/claim", {}, "Agent task claiming is disabled until gateway authentication is configured"],
+          ]) {
+            const response = await fetch(new URL(path, base), {
+              method: "POST",
+              headers: { "content-type": "application/json" },
+              body: JSON.stringify(payload),
+            });
+            const body = await response.json().catch(() => ({}));
+            if (response.status === 401) {
+              assert.equal(body.error, "Agent gateway authorization failed");
+              console.log(`PASS ${path}: configured gateway rejects missing token`);
+            } else {
+              assert.equal(response.status, 503, `${path}: expected 401 or 503, got ${response.status}; body=${JSON.stringify(body)}`);
+              assert.equal(body.error, disabledError);
+              console.log(`PASS ${path}: gateway remains disabled fail-closed`);
+            }
+          }
+          await check("/passkey/register/options", {
+            method: "POST",
+            headers: { Origin: origin, "content-type": "application/json" },
+            body: "{}"
+          }, 401, { error: "Owner bootstrap authorization failed" });
+          await check("/passkey/register/verify", {
+            method: "POST",
+            headers: { Origin: origin, "content-type": "application/json" },
+            body: "{}"
+          }, 401, { error: "Owner bootstrap authorization failed" });
+          await check("/passkey/login/verify", {
+            method: "POST",
+            headers: { Origin: origin, "content-type": "application/json" },
+            body: "{}"
+          }, 400, { error: "challengeId and assertion response are required" });
+          await check("/passkey/login/options", {
+            method: "POST",
+            headers: { Origin: "https://evil.example", "content-type": "application/json" },
+            body: "{}"
+          }, 400, { error: "Request rejected" });
+          console.log("PASS all live staging smoke checks; no token used and no passkey enrolled");
+          NODE
