@@ -563,6 +563,9 @@ body{background:radial-gradient(ellipse at 50% 38%,#50330f45 0,transparent 35%),
       if (state.chatController) state.chatController.abort();
       state.chatController = null; state.chatBusy = false;
       state.ownerToken = "";
+      setRedQueenStatus("LOCKED", "warn");
+      if (els.redQueenMeta) els.redQueenMeta.textContent = "Owner session locked. Sign in to retrieve authenticated module status.";
+      if (els.redQueenModules) els.redQueenModules.replaceChildren();
       els.commandInput.value = ""; els.chatReply.textContent = ""; els.chatReply.classList.add("hidden");
       els.voiceLabel.textContent = "CHAT WITH CHATTY · OWNER: LOSS GODS";
       disconnectEvents();
