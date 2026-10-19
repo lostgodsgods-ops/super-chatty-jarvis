@@ -1,6 +1,9 @@
 /**
  * Validation helpers for the owner-control API.
  * Authentication, persistence and audit remain responsibilities of the Worker.
+ *
+ * Owner-customizable rules are intentionally separate from platform invariants:
+ * no custom rule may shadow a non-overridable security boundary.
  */
 export const DEFAULT_OWNER_CONTROL_SETTINGS = Object.freeze({
   mode: "normal",
@@ -17,6 +20,7 @@ export const DEFAULT_OWNER_CONTROL_SETTINGS = Object.freeze({
   ])
 });
 
+const NON_OVERRIDABLE_RULE_IDS = new Set(DEFAULT_OWNER_CONTROL_SETTINGS.nonOverridable);
 const ALLOWED_ACTIONS = new Set(["takeover", "emergency-stop", "update-rules"]);
 
 export function normalizeOwnerControlCommand(input) {
@@ -51,6 +55,9 @@ export function validateOwnerControlSettings(input, current = DEFAULT_OWNER_CONT
         typeof rule.description !== "string" || !rule.description.trim() ||
         rule.description.length > 240) {
       return { ok: false, error: "INVALID_CUSTOM_RULE" };
+    }
+    if (NON_OVERRIDABLE_RULE_IDS.has(rule.id)) {
+      return { ok: false, error: "NON_OVERRIDABLE_RULE" };
     }
     seen.add(rule.id);
     normalized.push({ id: rule.id, enabled: rule.enabled, description: rule.description.trim() });
