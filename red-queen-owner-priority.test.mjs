@@ -49,7 +49,7 @@ test("PWA update button checks for the latest service worker and applies availab
 });
 
 test("service worker cache version changes and explicit activation messages are handled", () => {
-  assert.match(serviceWorker, /super-chatty-jarvis-shell-v10-live-search-fallback-sync/);
+  assert.match(serviceWorker, /super-chatty-jarvis-shell-v11-live-search-budget-fix/);
   assert.match(serviceWorker, /event\.data\.type === "SKIP_WAITING"/);
   assert.match(serviceWorker, /self\.skipWaiting\(\)/);
   assert.match(serviceWorker, /self\.clients\.claim\(\)/);
