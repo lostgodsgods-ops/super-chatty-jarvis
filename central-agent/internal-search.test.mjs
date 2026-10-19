@@ -369,7 +369,7 @@ test("active current-information chat uses direct web search when Tavily is not 
     const response = await worker.fetch(new Request("https://agent.example/chat", {
       method: "POST",
       headers: { "content-type": "application/json", authorization: "Bearer correct-token" },
-      body: JSON.stringify({ message: "What is the latest news today?", language: "en-IN" })
+      body: JSON.stringify({ query: "What is the latest news today?", language: "en-IN" })
     }), {
       SEARCH_BRIDGE_TOKEN: "correct-token",
       AI: { run: async () => { aiCalls++; return { response: "The live result reports a current news update." }; } }
@@ -444,7 +444,7 @@ test("live search tries Bing News RSS as an independent fallback before Google N
 });
 
 
-test("current chat returns sanitized provider diagnostics when every live search source fails", async () => {
+test("search gateway returns sanitized provider diagnostics when every live search source fails", async () => {
   const originalFetch = globalThis.fetch;
   globalThis.fetch = async url => {
     const value = String(url);
@@ -456,7 +456,7 @@ test("current chat returns sanitized provider diagnostics when every live search
     throw new Error("Unexpected provider request");
   };
   try {
-    const response = await worker.fetch(new Request("https://agent.example/api/chat", {
+    const response = await worker.fetch(new Request("https://agent.example/internal/search", {
       method: "POST",
       headers: { "content-type": "application/json", authorization: "Bearer correct-token" },
       body: JSON.stringify({ message: "What is the latest news today?", language: "en-IN" })
