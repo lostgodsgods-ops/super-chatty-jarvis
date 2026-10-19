@@ -115,6 +115,8 @@ async function fetchDirectWebSearch(query) {
     // Continue to the structured no-key fallback below.
   }
 
+  // News-specific providers are used for queries that require freshness; keep the general knowledge fallback unchanged.
+  if (requiresLiveSearch(cleanQuery)) {
   // Independent no-key fallback #2: Google News RSS. It returns source URLs and publication dates.
   try {
     const newsUrl = new URL("https://news.google.com/rss/search");
@@ -185,6 +187,8 @@ async function fetchDirectWebSearch(query) {
     }
   } catch {
     // Never invent an answer when all live evidence providers fail.
+  }
+
   }
 
   // Do not substitute encyclopedia pages for live evidence on time-sensitive queries.
