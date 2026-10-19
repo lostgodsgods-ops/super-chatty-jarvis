@@ -123,6 +123,7 @@ body{background:radial-gradient(ellipse at 50% 38%,#50330f45 0,transparent 35%),
 .cinema-core-orb{width:43%;aspect-ratio:1;border-radius:50%;display:grid;place-items:center;color:#fff8d9;font-size:24px;background:radial-gradient(circle at 34% 25%,#fffce9 0,#ffe5a0 8%,#dca13e 24%,#80501d 45%,#21180d 72%);border:1px solid #fff0bd;box-shadow:0 0 28px #ffc85d88,0 0 65px #ffb72c40}
 @media(max-width:600px){.cinema-layout{grid-template-columns:1fr;grid-template-rows:minmax(0,1fr) auto}.cinema-core-dock{min-height:118px;display:grid;grid-template-columns:100px 1fr;grid-template-rows:auto auto auto;justify-items:start;text-align:left;column-gap:12px}.cinema-core-wrap{width:95px;grid-row:1/4;grid-column:1}.cinema-core-dock strong,.cinema-core-dock>span,.cinema-core-dock p{grid-column:2;margin:0}.cinema-stage{min-height:35vh}}
 
+.red-queen-panel{grid-column:1/-1}.red-queen-priority{display:flex;flex-direction:column;gap:4px;margin:0 0 12px;color:var(--muted);font-size:12px}.red-queen-priority strong{color:var(--gold);letter-spacing:.08em;font-size:12px}.red-queen-meta{font-size:11px;color:var(--muted);margin:8px 0 12px}.red-queen-modules{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:9px}.red-queen-module{border:1px solid #ffce7830;border-radius:12px;padding:11px;background:#00000020;min-width:0}.red-queen-module strong,.red-queen-module span{display:block;overflow-wrap:anywhere}.red-queen-module strong{font-size:11px;color:var(--text);margin-bottom:5px}.red-queen-module span{font-size:10px;color:var(--muted)}.red-queen-note{font-size:10px;line-height:1.5;color:var(--muted);margin:12px 0 0}
 </style>
 </head>
 <body>
@@ -190,7 +191,23 @@ body{background:radial-gradient(ellipse at 50% 38%,#50330f45 0,transparent 35%),
     </div>
 
 
-  <section class="agent-army" aria-label="Live agent army HUD">
+  <section class="panel dashboard-panel red-queen-panel" aria-labelledby="redQueenTitle">
+  <div class="panel-head"><div class="panel-title" id="redQueenTitle">Red Queen · Owner Priority</div><span class="status warn" id="redQueenStatus"><i class="dot"></i><span>LOCKED</span></span></div>
+  <div class="panel-body">
+    <p class="red-queen-priority"><strong>OWNER PRIORITY: HIGH</strong><span>Authorized Owner goals are prioritized by the orchestrator. Authentication, audit integrity, emergency stop, and bounded execution remain enforced.</span></p>
+    <div class="red-queen-meta" id="redQueenMeta" role="status" aria-live="polite">Registry has not been loaded. Sign in to retrieve authenticated module status.</div>
+    <div class="red-queen-modules" id="redQueenModules" aria-label="Red Queen module status">
+      <div class="red-queen-module"><strong>Owner session</strong><span>LOCKED · Sign in required</span></div>
+      <div class="red-queen-module"><strong>Mission orchestration</strong><span>NOT VERIFIED</span></div>
+      <div class="red-queen-module"><strong>Memory and integrations</strong><span>NOT VERIFIED</span></div>
+      <div class="red-queen-module"><strong>Sentinel and audit</strong><span>NOT VERIFIED</span></div>
+    </div>
+    <div class="owner-actions"><button class="action-btn secondary" id="refreshRedQueenBtn" type="button">Refresh module status</button></div>
+    <p class="red-queen-note">Status is sourced from the authenticated backend registry. It describes declared software/configuration, not proof of live execution or physical hardware readiness.</p>
+  </div>
+</section>
+
+<section class="agent-army" aria-label="Live agent army HUD">
     <article class="agent-hud">
       <div class="agent-hud-head"><div><h2>Code Mutator Agent</h2><p class="agent-hud-sub">Commit and deployment telemetry</p></div><span class="agent-hud-status" id="hudCodeStatus"><i class="agent-dot"></i>AWAITING EVENTS</span></div>
       <div class="agent-hud-metric"><strong id="hudCommitCount">0</strong><span>repository events</span></div>
@@ -380,7 +397,7 @@ body{background:radial-gradient(ellipse at 50% 38%,#50330f45 0,transparent 35%),
       ownerBiometricLogin:$("ownerBiometricLogin"), ownerSetupOpen:$("ownerSetupOpen"),
       ownerLogout:$("ownerLogout"), ownerBadge:$("ownerBadge"), ownerSessionStatus:$("ownerSessionStatus"),
       refreshTelemetry:$("refreshTelemetry"), factSearchForm:$("factSearchForm"), factQuery:$("factQuery"),
-      researchSearchBtn:$("researchSearchBtn"), researchSearchStatus:$("researchSearchStatus"), sourceResults:$("sourceResults")
+      researchSearchBtn:$("researchSearchBtn"), researchSearchStatus:$("researchSearchStatus"), sourceResults:$("sourceResults"), redQueenStatus:$("redQueenStatus"), redQueenMeta:$("redQueenMeta"), redQueenModules:$("redQueenModules"), refreshRedQueenBtn:$("refreshRedQueenBtn")
     };
     const MAX_RECOGNITION_RETRIES = 4;
     const state = { events:null, recognition:null, recognitionStarting:false, recognitionRetryTimer:0, recognitionRetryCount:0, recognitionStartTimer:0, listening:false, handsFree:false, speaking:false, chatBusy:false, chatController:null, eventsCount:0, connected:false, notificationsEnabled:false, started:Date.now(), healthTimer:0, toastTimer:0, ownerToken:"", telemetryTimer:0, researchBusy:false, memoryHistory:[], turnId:0 };
@@ -455,8 +472,73 @@ body{background:radial-gradient(ellipse at 50% 38%,#50330f45 0,transparent 35%),
       if (!response.ok) throw new Error(payload.error || ("Request failed: HTTP " + response.status));
       return payload;
     }
+    function setRedQueenStatus(label, kind="warn") {
+      if (!els.redQueenStatus) return;
+      els.redQueenStatus.className = "status " + kind;
+      const textNode = els.redQueenStatus.querySelector("span");
+      if (textNode) textNode.textContent = label;
+    }
+    function renderRedQueenModules(registry) {
+      const modules = [
+        ...(Array.isArray(registry?.missionModules) ? registry.missionModules : []),
+        ...(Array.isArray(registry?.platformModules) ? registry.platformModules : [])
+      ];
+      if (!els.redQueenModules) return;
+      els.redQueenModules.replaceChildren();
+      if (!modules.length) {
+        const empty = document.createElement("div");
+        empty.className = "red-queen-module";
+        const title = document.createElement("strong");
+        title.textContent = "Module registry";
+        const detail = document.createElement("span");
+        detail.textContent = "No module entries returned by backend.";
+        empty.append(title, detail);
+        els.redQueenModules.append(empty);
+        return;
+      }
+      for (const module of modules.slice(0, 30)) {
+        const card = document.createElement("div");
+        card.className = "red-queen-module";
+        const title = document.createElement("strong");
+        title.textContent = String(module?.label || module?.name || module?.id || "Unnamed module");
+        const detail = document.createElement("span");
+        const mode = module?.executionMode ? " · " + String(module.executionMode) : "";
+        detail.textContent = String(module?.status || "declared; status unspecified") + mode;
+        card.append(title, detail);
+        els.redQueenModules.append(card);
+      }
+    }
+    async function refreshRedQueenStatus() {
+      if (!state.ownerToken) {
+        setRedQueenStatus("LOCKED", "warn");
+        if (els.redQueenMeta) els.redQueenMeta.textContent = "Owner sign-in required. No module status has been inferred or cached.";
+        return false;
+      }
+      setRedQueenStatus("CHECKING", "warn");
+      if (els.redQueenMeta) els.redQueenMeta.textContent = "Fetching the authenticated Red Queen registry…";
+      try {
+        const payload = await ownerFetch("/api/red-queen/status");
+        if (!payload?.ok || !payload.registry) throw new Error("Backend returned no Red Queen registry.");
+        renderRedQueenModules(payload.registry);
+        setRedQueenStatus("REGISTRY LOADED", "ok");
+        if (els.redQueenMeta) {
+          const summary = payload.registry.platformModuleSummary;
+          els.redQueenMeta.textContent = "Backend registry loaded · " +
+            (summary && typeof summary === "object" ? Object.entries(summary).map(([key, value]) => key + ": " + value).join(" · ") : "module declarations available") +
+            (payload.audit?.recorded ? " · status read audited" : " · audit receipt not supplied");
+        }
+        log("Authenticated Red Queen module registry loaded; status remains descriptive, not a live execution claim.","good","RED QUEEN");
+        return true;
+      } catch (error) {
+        setRedQueenStatus("BLOCKED / UNVERIFIED", "warn");
+        if (els.redQueenMeta) els.redQueenMeta.textContent = "Registry unavailable: " + (error.message || "unknown error") + ". Displayed defaults are not live telemetry.";
+        log("Red Queen status could not be verified: " + (error.message || "unknown error"),"warn","RED QUEEN");
+        return false;
+      }
+    }
     async function restoreConversationMemory() {
       if (!state.ownerToken) return;
+      refreshRedQueenStatus();
       try {
         const data = await ownerFetch("/api/memory");
         const saved = (Array.isArray(data.memories) ? data.memories : []).find(item => item.memory_type === "conversation_state");
@@ -481,6 +563,9 @@ body{background:radial-gradient(ellipse at 50% 38%,#50330f45 0,transparent 35%),
       if (state.chatController) state.chatController.abort();
       state.chatController = null; state.chatBusy = false;
       state.ownerToken = "";
+      setRedQueenStatus("LOCKED", "warn");
+      if (els.redQueenMeta) els.redQueenMeta.textContent = "Owner session locked. Sign in to retrieve authenticated module status.";
+      if (els.redQueenModules) els.redQueenModules.replaceChildren();
       els.commandInput.value = ""; els.chatReply.textContent = ""; els.chatReply.classList.add("hidden");
       els.voiceLabel.textContent = "CHAT WITH CHATTY · OWNER: LOSS GODS";
       disconnectEvents();
@@ -1458,6 +1543,7 @@ body{background:radial-gradient(ellipse at 50% 38%,#50330f45 0,transparent 35%),
     els.commandInput.addEventListener("keydown",event=>{if(event.key==="Enter"){event.preventDefault();submitCommand();}});
     els.connectBtn.addEventListener("click",connect);
     els.enableNotificationsBtn.addEventListener("click", enableEventNotifications);
+    els.refreshRedQueenBtn.addEventListener("click", refreshRedQueenStatus);
     els.disconnectBtn.addEventListener("click",()=>{disconnectEvents();clearInterval(state.healthTimer);log("Live SSE connection closed by user.","warn","STREAM");});
     $("clearLogs").addEventListener("click",()=>{els.terminal.replaceChildren();state.eventsCount=0;els.logCount.textContent="0 events";log("Terminal cleared.","info","UI");});
     function resizeCanvas(){const c=els.wave,r=c.getBoundingClientRect(),d=Math.min(window.devicePixelRatio||1,2);c.width=Math.round(r.width*d);c.height=Math.round(r.height*d);}
