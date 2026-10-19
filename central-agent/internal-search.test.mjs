@@ -540,3 +540,53 @@ test("search provider fetch enforces a five-second production timeout and logs s
     console.warn = originalWarn;
   }
 });
+
+
+test("TAVILY_API_KEY alias is bound and used without exposing the key", async () => {
+  const originalFetch = globalThis.fetch;
+  let authorization = "";
+  globalThis.fetch = async (url, options = {}) => {
+    assert.equal(String(url), "https://api.tavily.com/search");
+    authorization = options.headers.authorization;
+    return new Response(JSON.stringify({ results: [
+      { title: "2026 official update", url: "https://example.com/2026-update", content: "Current sourced update", score: 0.99 }
+    ] }), { status: 200, headers: { "content-type": "application/json" } });
+  };
+  try {
+    const response = await worker.fetch(new Request("https://agent.example/internal/search", {
+      method: "POST",
+      headers: { "content-type": "application/json", authorization: "Bearer correct-token" },
+      body: JSON.stringify({ query: "latest 2026 official update" })
+    }), { SEARCH_BRIDGE_TOKEN: "correct-token", TAVILY_API_KEY: "alias-test-secret" });
+    assert.equal(response.status, 200);
+    assert.equal(authorization, "Bearer alias-test-secret");
+    const body = await response.json();
+    assert.equal(body.provider, "tavily");
+    assert.equal(JSON.stringify(body).includes("alias-test-secret"), false);
+  } finally { globalThis.fetch = originalFetch; }
+});
+
+test("all-provider network failures return structured per-provider diagnostics", async () => {
+  const originalFetch = globalThis.fetch;
+  const originalWarn = console.warn;
+  globalThis.fetch = async () => { throw new TypeError("simulated upstream network failure"); };
+  console.warn = () => {};
+  try {
+    const response = await worker.fetch(new Request("https://agent.example/internal/search", {
+      method: "POST",
+      headers: { "content-type": "application/json", authorization: "Bearer correct-token" },
+      body: JSON.stringify({ query: "latest 2026 official update" })
+    }), { SEARCH_BRIDGE_TOKEN: "correct-token", SEARCH_API_KEY: "test-key" });
+    assert.equal(response.status, 502);
+    const body = await response.json();
+    assert.equal(body.code, "LIVE_SEARCH_ALL_PROVIDERS_FAILED");
+    const providers = body.providers.map(item => item.provider);
+    for (const provider of ["tavily", "duckduckgo-html", "bing-news-rss", "google-news-rss", "gdelt-doc-api"]) {
+      assert.ok(providers.includes(provider), "missing diagnostic for " + provider);
+    }
+    assert.equal(JSON.stringify(body).includes("test-key"), false);
+  } finally {
+    globalThis.fetch = originalFetch;
+    console.warn = originalWarn;
+  }
+});

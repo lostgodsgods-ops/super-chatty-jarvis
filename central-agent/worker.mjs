@@ -285,27 +285,51 @@ async function fetchDirectWebSearch(query, initialDiagnostics = []) {
 }
 
 async function fetchTavilyWithRetry(query, env) {
+  // Accept both legacy SEARCH_API_KEY and the explicit TAVILY_API_KEY name.
+  // Never expose the key in logs or provider diagnostics.
+  const tavilyKey = typeof env.SEARCH_API_KEY === "string" && env.SEARCH_API_KEY.trim()
+    ? env.SEARCH_API_KEY.trim()
+    : (typeof env.TAVILY_API_KEY === "string" ? env.TAVILY_API_KEY.trim() : "");
   // Direct public web search is the no-key fallback. Public search engines can still
   // rate-limit or change HTML; callers must surface a clear failure if both paths fail.
-  if (!env.SEARCH_API_KEY) return fetchDirectWebSearch(query);
+  if (!tavilyKey) return fetchDirectWebSearch(query);
   const endpoint = "https://api.tavily.com/search";
   let response;
   for (let attempt = 0; attempt < 3; attempt++) {
     try {
       response = await fetchSearchProvider("tavily", endpoint, {
         method: "POST",
-        headers: { authorization: "Bearer " + env.SEARCH_API_KEY, "content-type": "application/json", accept: "application/json" },
+        headers: { authorization: "Bearer " + tavilyKey, "content-type": "application/json", accept: "application/json" },
         body: JSON.stringify({ query: buildTavilyQuery(query) || query.slice(0, 400), search_depth: "basic", max_results: 5, include_answer: false, include_raw_content: false })
       });
     } catch (error) {
-      return fetchDirectWebSearch(query, [{ provider: "tavily", status: error?.name === "TimeoutError" || error?.name === "AbortError" ? "timeout" : "network-error" }]);
+      const initial = [{ provider: "tavily", status: error?.name === "TimeoutError" || error?.name === "AbortError" ? "timeout" : "network-error" }];
+      try {
+        return await fetchDirectWebSearch(query, initial);
+      } catch (fallbackError) {
+        // Preserve primary-provider failure details when every fallback fails.
+        const later = Array.isArray(fallbackError?.providerDiagnostics) ? fallbackError.providerDiagnostics : [];
+        fallbackError.providerDiagnostics = [...initial, ...later];
+        fallbackError.code = fallbackError.code || "LIVE_SEARCH_ALL_PROVIDERS_FAILED";
+        throw fallbackError;
+      }
     }
     if (response.ok) {
       const headers = new Headers(response.headers);
       headers.set("x-search-provider", "tavily");
       return new Response(response.body, { status: response.status, statusText: response.statusText, headers });
     }
-    if (![429, 500, 502, 503, 504].includes(response.status) || attempt === 2) return fetchDirectWebSearch(query, [{ provider: "tavily", status: "http-" + response.status }]);
+    if (![429, 500, 502, 503, 504].includes(response.status) || attempt === 2) {
+      const initial = [{ provider: "tavily", status: "http-" + response.status }];
+      try {
+        return await fetchDirectWebSearch(query, initial);
+      } catch (fallbackError) {
+        const later = Array.isArray(fallbackError?.providerDiagnostics) ? fallbackError.providerDiagnostics : [];
+        fallbackError.providerDiagnostics = [...initial, ...later];
+        fallbackError.code = fallbackError.code || "LIVE_SEARCH_ALL_PROVIDERS_FAILED";
+        throw fallbackError;
+      }
+    }
     const retryAfter = Number(response.headers.get("retry-after"));
     const delay = Number.isFinite(retryAfter) && retryAfter > 0
       ? Math.min(500, Math.max(100, retryAfter * 1000))
@@ -859,7 +883,7 @@ export default {
         version: VERSION,
         capabilities: {
           workersAIConfigured: Boolean(env.AI),
-          tavilySearchConfigured: Boolean(env.SEARCH_API_KEY),
+          tavilySearchConfigured: Boolean((typeof env.SEARCH_API_KEY === "string" && env.SEARCH_API_KEY.trim()) || (typeof env.TAVILY_API_KEY === "string" && env.TAVILY_API_KEY.trim())),
           directWebSearchFallback: true,
           liveSearchProviderChain: ["tavily", "duckduckgo-html", "bing-news-rss", "google-news-rss", "gdelt-doc-api"],
           searchProviderReachabilityChecked: false,
