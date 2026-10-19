@@ -26,7 +26,7 @@ import { DEFAULT_OWNER_CONTROL_SETTINGS, normalizeOwnerControlCommand, validateO
 import { createSandboxLedger, postSandboxTransaction } from "./architecture/finance-sandbox.mjs";
 import { assessRobotSimulatorCommand } from "./architecture/robotics-simulator.mjs";
 
-const VERSION = "1.4.0";
+const VERSION = "1.4.1";
 const OWNER_IDENTITY = Object.freeze({ key: "loss-gods", displayName: "Loss Gods" });
 const DEFAULT_WORKERS_AI_MODEL = "@cf/meta/llama-3.1-8b-instruct-fast";
 export const PASSWORD_ITERATIONS = 100000;
