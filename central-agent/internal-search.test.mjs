@@ -442,3 +442,35 @@ test("live search tries Bing News RSS as an independent fallback before Google N
     assert.ok(urls.some(url => url.startsWith("https://www.bing.com/news/search")));
   } finally { globalThis.fetch = originalFetch; }
 });
+
+
+test("search gateway returns sanitized provider diagnostics when every live search source fails", async () => {
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async url => {
+    const value = String(url);
+    if (value === "https://api.tavily.com/search") return new Response("quota", { status: 432 });
+    if (value.startsWith("https://html.duckduckgo.com/html/")) return new Response("blocked", { status: 503 });
+    if (value.startsWith("https://www.bing.com/news/search")) return new Response("blocked", { status: 503 });
+    if (value.startsWith("https://news.google.com/rss/search")) return new Response("blocked", { status: 503 });
+    if (value.startsWith("https://api.gdeltproject.org/api/v2/doc/doc")) return new Response("blocked", { status: 503 });
+    throw new Error("Unexpected provider request");
+  };
+  try {
+    const response = await worker.fetch(new Request("https://agent.example/internal/search", {
+      method: "POST",
+      headers: { "content-type": "application/json", authorization: "Bearer correct-token" },
+      body: JSON.stringify({ query: "What is the latest news today?", language: "en-IN" })
+    }), {
+      SEARCH_BRIDGE_TOKEN: "correct-token",
+      SEARCH_API_KEY: "test-tavily-key",
+      AI: { run: async () => ({ response: "This should not run." }) }
+    });
+    const body = await response.json();
+    assert.equal(response.status, 502);
+    assert.equal(body.code, "LIVE_SEARCH_ALL_PROVIDERS_FAILED");
+    assert.ok(body.providers.some(item => item.provider === "tavily" && item.status === "http-432"));
+    assert.ok(body.providers.some(item => item.provider === "google-news-rss" && item.status === "http-503"));
+    assert.ok(body.providers.some(item => item.provider === "gdelt-doc-api" && item.status === "http-503"));
+    assert.equal(body.providers.some(item => JSON.stringify(item).includes("quota")), false);
+  } finally { globalThis.fetch = originalFetch; }
+});

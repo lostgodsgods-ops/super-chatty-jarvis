@@ -85,9 +85,11 @@ export function parseDuckDuckGoHtml(html, query = "") {
   return rankTavilyResults(query, results);
 }
 
-async function fetchDirectWebSearch(query) {
+async function fetchDirectWebSearch(query, initialDiagnostics = []) {
   const cleanQuery = buildTavilyQuery(query) || String(query || "").trim().slice(0, 400);
   if (!cleanQuery) throw new Error("LIVE_SEARCH_EMPTY_QUERY");
+  const diagnostics = [...initialDiagnostics];
+  const diagnostic = (provider, status) => diagnostics.push({ provider, status });
 
   // First try the no-key DuckDuckGo HTML endpoint. It may intermittently block
   // automated requests, so do not make it the only path to live evidence.
@@ -110,9 +112,10 @@ async function fetchDirectWebSearch(query) {
         status: 200,
         headers: { "content-type": "application/json; charset=utf-8", "cache-control": "no-store", "x-search-provider": "duckduckgo-html" }
       });
-    }
-  } catch {
-    // Continue to the structured no-key fallback below.
+      diagnostic("duckduckgo-html", "no-usable-results");
+    } else diagnostic("duckduckgo-html", "http-" + response.status);
+  } catch (error) {
+    diagnostic("duckduckgo-html", error?.name === "TimeoutError" ? "timeout" : "network-error");
   }
 
   // Freshness-sensitive searches use independent news feeds before failing closed.
@@ -136,7 +139,7 @@ async function fetchDirectWebSearch(query) {
         headers: { accept: "application/rss+xml, application/xml, text/xml" },
         signal: AbortSignal.timeout(7000)
       });
-      if (!newsResponse.ok) continue;
+      if (!newsResponse.ok) { diagnostic(provider.name, "http-" + newsResponse.status); continue; }
       const xml = (await newsResponse.text()).slice(0, 1_000_000);
       const items = [...xml.matchAll(/<item\b[^>]*>([\s\S]*?)<\/item>/gi)].map(match => {
         const itemXml = match[1];
@@ -158,8 +161,9 @@ async function fetchDirectWebSearch(query) {
         status: 200,
         headers: { "content-type": "application/json; charset=utf-8", "cache-control": "no-store", "x-search-provider": provider.name }
       });
-    } catch {
-      // Try the next independent provider.
+      diagnostic(provider.name, "no-usable-results");
+    } catch (error) {
+      diagnostic(provider.name, error?.name === "TimeoutError" ? "timeout" : "network-error");
     }
   }
 
@@ -193,15 +197,21 @@ async function fetchDirectWebSearch(query) {
         status: 200,
         headers: { "content-type": "application/json; charset=utf-8", "cache-control": "no-store", "x-search-provider": "gdelt-doc-api" }
       });
-    }
-  } catch {
-    // Never invent an answer when all live evidence providers fail.
+      diagnostic("gdelt-doc-api", "no-usable-results");
+    } else diagnostic("gdelt-doc-api", "http-" + gdeltResponse.status);
+  } catch (error) {
+    diagnostic("gdelt-doc-api", error?.name === "TimeoutError" ? "timeout" : "network-error");
   }
 
   }
 
   // Do not substitute encyclopedia pages for live evidence on time-sensitive queries.
-  if (requiresLiveSearch(cleanQuery)) throw new Error("LIVE_SEARCH_FRESH_RESULTS_UNAVAILABLE");
+  if (requiresLiveSearch(cleanQuery)) {
+    const error = new Error("LIVE_SEARCH_FRESH_RESULTS_UNAVAILABLE");
+    error.code = "LIVE_SEARCH_ALL_PROVIDERS_FAILED";
+    error.providerDiagnostics = diagnostics;
+    throw error;
+  }
 
   // Wikipedia's public MediaWiki search API requires no API key and returns
   // structured URLs/snippets. It is a broad-web fallback, not a guarantee of
@@ -253,7 +263,7 @@ async function fetchTavilyWithRetry(query, env) {
         signal: AbortSignal.timeout(8000)
       });
     } catch {
-      if (attempt === 2) return fetchDirectWebSearch(query);
+      if (attempt === 2) return fetchDirectWebSearch(query, [{ provider: "tavily", status: "network-error" }]);
       await new Promise(resolve => setTimeout(resolve, 250 * (2 ** attempt)));
       continue;
     }
@@ -262,7 +272,7 @@ async function fetchTavilyWithRetry(query, env) {
       headers.set("x-search-provider", "tavily");
       return new Response(response.body, { status: response.status, statusText: response.statusText, headers });
     }
-    if (![429, 500, 502, 503, 504].includes(response.status) || attempt === 2) return fetchDirectWebSearch(query);
+    if (![429, 500, 502, 503, 504].includes(response.status) || attempt === 2) return fetchDirectWebSearch(query, [{ provider: "tavily", status: "http-" + response.status }]);
     const retryAfter = Number(response.headers.get("retry-after"));
     const delay = Number.isFinite(retryAfter) && retryAfter > 0
       ? Math.min(1500, Math.max(250, retryAfter * 1000))
@@ -738,8 +748,14 @@ export default {
         let searchResponse;
         try {
           searchResponse = await fetchTavilyWithRetry(searchQuery, env);
-        } catch {
-          return json({ error: "Live search failed. No stale-model fallback was used.", code: "LIVE_SEARCH_NETWORK_ERROR" }, 502, cors);
+        } catch (error) {
+          const diagnostics = Array.isArray(error?.providerDiagnostics) ? error.providerDiagnostics : [];
+          console.warn("central_live_search_all_providers_failed", { code: typeof error?.code === "string" ? error.code : "LIVE_SEARCH_NETWORK_ERROR", providers: diagnostics });
+          return json({
+            error: "Live search is temporarily unavailable because all configured public search providers failed. No stale-model fallback was used.",
+            code: typeof error?.code === "string" ? error.code : "LIVE_SEARCH_NETWORK_ERROR",
+            providers: diagnostics
+          }, 502, cors);
         }
         if (!searchResponse.ok) {
           const failure = classifyTavilyFailure(searchResponse.status);
@@ -852,10 +868,16 @@ export default {
       try {
         providerResponse = await fetchTavilyWithRetry(query, env);
       } catch (error) {
+        const diagnostics = Array.isArray(error?.providerDiagnostics) ? error.providerDiagnostics : [];
         console.warn("internal_search_provider_network_error", {
-          errorName: typeof error?.name === "string" ? error.name : "Error"
+          code: typeof error?.code === "string" ? error.code : "SEARCH_PROVIDER_NETWORK_ERROR",
+          providers: diagnostics
         });
-        return json({ error: "Live search provider could not be reached after bounded retries.", code: "SEARCH_PROVIDER_NETWORK_ERROR" }, 502, cors);
+        return json({
+          error: "Live search providers could not return usable evidence.",
+          code: typeof error?.code === "string" ? error.code : "SEARCH_PROVIDER_NETWORK_ERROR",
+          providers: diagnostics
+        }, 502, cors);
       }
       if (!providerResponse.ok) {
         const failure = classifyTavilyFailure(providerResponse.status);
