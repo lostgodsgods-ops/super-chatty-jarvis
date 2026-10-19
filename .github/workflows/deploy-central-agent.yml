@@ -209,7 +209,24 @@ jobs:
           node -e 'process.stdout.write(JSON.stringify({message:"What is the latest news about NASA Artemis today?",language:"en-US"}))' > "$tmp/chat-request.json"
           chat_code="$(curl --silent --show-error --max-time 35 -H "Authorization: Bearer $token" -H 'content-type: application/json' \
             --data-binary "@$tmp/chat-request.json" -o "$tmp/chat-response.json" -w '%{http_code}' "$CENTRAL_AGENT_URL/api/chat")"
-          test "$chat_code" = "200" || { echo "::error::Authenticated live-search chat failed: HTTP $chat_code"; cat "$tmp/chat-response.json"; exit 1; }
+          if [ "$chat_code" != "200" ]; then
+            echo "::error::Authenticated live-search chat failed: HTTP $chat_code"
+            node - "$tmp/chat-response.json" <<'NODE'
+          const fs=require("node:fs");
+          let x={};
+          try { x=JSON.parse(fs.readFileSync(process.argv[2],"utf8")); } catch {}
+          console.error(JSON.stringify({
+            code:x.code || "UNKNOWN_ERROR",
+            error:x.error || "No error message returned",
+            providers:Array.isArray(x.providers)?x.providers:[],
+            diagnosticContractPresent:Array.isArray(x.providers)
+          }));
+          if(!Array.isArray(x.providers)) {
+            console.error("Live-search failure response omitted provider diagnostics; verify that the latest Central Agent Worker version is deployed.");
+          }
+          NODE
+            exit 1
+          fi
           node - "$tmp/chat-response.json" <<'NODE'
           const fs=require("node:fs");
           const x=JSON.parse(fs.readFileSync(process.argv[2],"utf8"));
