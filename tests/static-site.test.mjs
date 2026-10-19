@@ -391,3 +391,17 @@ test("scheduled intel is proposal-only and never self-deploys or self-grants", (
   assert.match(centralWorker, /INTEL_CRON_ENABLED/);
   assert.match(centralWranglerConfig, /"GITHUB_REPOSITORY":\s*"lostgodsgods-ops\/super-chatty-jarvis"/);
 });
+
+
+test("PWA update activation reloads after controllerchange and never leaves the update button stuck", () => {
+  assert.match(jarvisHtml, /navigator\.serviceWorker\.addEventListener\(["']controllerchange["']/);
+  assert.match(jarvisHtml, /location\.reload\(\)/);
+  assert.match(jarvisHtml, /UPDATE APP NOW/);
+  assert.match(jarvisHtml, /PWA update failed:/);
+});
+
+test("owner chat recognizes explicit live-search intent and returns dated source metadata", () => {
+  assert.match(centralWorker, /tavily\|web search\|internet search\|live search/i);
+  assert.match(centralWorker, /publishedDate/);
+  assert.match(centralWorker, /webSearchExecuted: needsLiveSearch/);
+});
