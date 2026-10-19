@@ -44,12 +44,12 @@ test("PWA update button checks for the latest service worker and applies availab
   assert.match(pwa, /async function applyPwaUpdate\(\)/);
   assert.match(pwa, /registration\.update\(\)/);
   assert.match(pwa, /registration\.waiting\.postMessage\(\{ type: "SKIP_WAITING" \}\)/);
-  assert.match(pwa, /fetch\("\.\/index\.html", \{ cache: "no-store" \}\)/);
+  assert.match(pwa, /navigator\.serviceWorker\.addEventListener\("controllerchange"/);
   assert.match(pwa, /els\.updateAppBtn\.addEventListener\("click", applyPwaUpdate\)/);
 });
 
 test("service worker cache version changes and explicit activation messages are handled", () => {
-  assert.match(serviceWorker, /super-chatty-jarvis-shell-v8-red-queen-pwa-update/);
+  assert.match(serviceWorker, /super-chatty-jarvis-shell-v9-live-search-update-fix/);
   assert.match(serviceWorker, /event\.data\.type === "SKIP_WAITING"/);
   assert.match(serviceWorker, /self\.skipWaiting\(\)/);
   assert.match(serviceWorker, /self\.clients\.claim\(\)/);
