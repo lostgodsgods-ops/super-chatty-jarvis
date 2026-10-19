@@ -88,6 +88,7 @@ export function parseDuckDuckGoHtml(html, query = "") {
 async function fetchDirectWebSearch(query) {
   const cleanQuery = buildTavilyQuery(query) || String(query || "").trim().slice(0, 400);
   if (!cleanQuery) throw new Error("LIVE_SEARCH_EMPTY_QUERY");
+  const providerFailures = [];
 
   // First try the no-key DuckDuckGo HTML endpoint. It may intermittently block
   // automated requests, so do not make it the only path to live evidence.
@@ -110,9 +111,12 @@ async function fetchDirectWebSearch(query) {
         status: 200,
         headers: { "content-type": "application/json; charset=utf-8", "cache-control": "no-store", "x-search-provider": "duckduckgo-html" }
       });
+      providerFailures.push({ provider: "duckduckgo-html", reason: "no-parseable-results" });
+    } else {
+      providerFailures.push({ provider: "duckduckgo-html", reason: "http-" + response.status });
     }
-  } catch {
-    // Continue to the structured no-key fallback below.
+  } catch (error) {
+    providerFailures.push({ provider: "duckduckgo-html", reason: error?.name === "TimeoutError" ? "timeout" : "network-error" });
   }
 
   // Freshness-sensitive searches use independent news feeds before failing closed.
@@ -136,7 +140,7 @@ async function fetchDirectWebSearch(query) {
         headers: { accept: "application/rss+xml, application/xml, text/xml" },
         signal: AbortSignal.timeout(7000)
       });
-      if (!newsResponse.ok) continue;
+      if (!newsResponse.ok) { providerFailures.push({ provider: provider.name, reason: "http-" + newsResponse.status }); continue; }
       const xml = (await newsResponse.text()).slice(0, 1_000_000);
       const items = [...xml.matchAll(/<item\b[^>]*>([\s\S]*?)<\/item>/gi)].map(match => {
         const itemXml = match[1];
@@ -158,8 +162,9 @@ async function fetchDirectWebSearch(query) {
         status: 200,
         headers: { "content-type": "application/json; charset=utf-8", "cache-control": "no-store", "x-search-provider": provider.name }
       });
-    } catch {
-      // Try the next independent provider.
+      providerFailures.push({ provider: provider.name, reason: "no-parseable-results" });
+    } catch (error) {
+      providerFailures.push({ provider: provider.name, reason: error?.name === "TimeoutError" ? "timeout" : "network-or-parse-error" });
     }
   }
 
@@ -193,15 +198,22 @@ async function fetchDirectWebSearch(query) {
         status: 200,
         headers: { "content-type": "application/json; charset=utf-8", "cache-control": "no-store", "x-search-provider": "gdelt-doc-api" }
       });
+      providerFailures.push({ provider: "gdelt-doc-api", reason: "no-parseable-results" });
+    } else {
+      providerFailures.push({ provider: "gdelt-doc-api", reason: "http-" + gdeltResponse.status });
     }
-  } catch {
-    // Never invent an answer when all live evidence providers fail.
+  } catch (error) {
+    providerFailures.push({ provider: "gdelt-doc-api", reason: error?.name === "TimeoutError" ? "timeout" : "network-or-parse-error" });
   }
 
   }
 
   // Do not substitute encyclopedia pages for live evidence on time-sensitive queries.
-  if (requiresLiveSearch(cleanQuery)) throw new Error("LIVE_SEARCH_FRESH_RESULTS_UNAVAILABLE");
+  if (requiresLiveSearch(cleanQuery)) {
+    const error = new Error("LIVE_SEARCH_FRESH_RESULTS_UNAVAILABLE");
+    error.providerFailures = providerFailures;
+    throw error;
+  }
 
   // Wikipedia's public MediaWiki search API requires no API key and returns
   // structured URLs/snippets. It is a broad-web fallback, not a guarantee of
@@ -738,8 +750,10 @@ export default {
         let searchResponse;
         try {
           searchResponse = await fetchTavilyWithRetry(searchQuery, env);
-        } catch {
-          return json({ error: "Live search failed. No stale-model fallback was used.", code: "LIVE_SEARCH_NETWORK_ERROR" }, 502, cors);
+        } catch (error) {
+          const providerFailures = Array.isArray(error?.providerFailures) ? error.providerFailures : [];
+          console.error("live-search-failed", JSON.stringify({ code: error?.message || "unknown", providerFailures }));
+          return json({ error: "Live search failed. No stale-model fallback was used.", code: "LIVE_SEARCH_NETWORK_ERROR", providerFailures }, 502, cors);
         }
         if (!searchResponse.ok) {
           const failure = classifyTavilyFailure(searchResponse.status);
