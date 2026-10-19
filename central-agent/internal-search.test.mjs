@@ -459,7 +459,7 @@ test("search gateway returns sanitized provider diagnostics when every live sear
     const response = await worker.fetch(new Request("https://agent.example/internal/search", {
       method: "POST",
       headers: { "content-type": "application/json", authorization: "Bearer correct-token" },
-      body: JSON.stringify({ message: "What is the latest news today?", language: "en-IN" })
+      body: JSON.stringify({ query: "What is the latest news today?", language: "en-IN" })
     }), {
       SEARCH_BRIDGE_TOKEN: "correct-token",
       SEARCH_API_KEY: "test-tavily-key",
