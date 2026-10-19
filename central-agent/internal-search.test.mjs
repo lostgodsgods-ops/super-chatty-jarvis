@@ -412,3 +412,33 @@ test("live historical queries use Google News RSS with source URLs after DuckDuc
     assert.ok(urls.some(url => url.startsWith("https://news.google.com/rss/search")));
   } finally { globalThis.fetch = originalFetch; }
 });
+
+
+test("live search tries Bing News RSS as an independent fallback before Google News", async () => {
+  const originalFetch = globalThis.fetch;
+  const urls = [];
+  globalThis.fetch = async url => {
+    const value = String(url);
+    urls.push(value);
+    if (value.startsWith("https://html.duckduckgo.com/html/")) return new Response("blocked", { status: 503 });
+    if (value.startsWith("https://www.bing.com/news/search")) {
+      return new Response(`<?xml version="1.0"?><rss><channel><item><title>2025 policy report</title><link>https://example.com/2025-report</link><description>Current source for a 2025 report.</description><pubDate>Wed, 12 Mar 2025 09:00:00 GMT</pubDate></item></channel></rss>`, { status: 200, headers: { "content-type": "application/rss+xml" } });
+    }
+    throw new Error("Unexpected provider request: " + value);
+  };
+  try {
+    const response = await worker.fetch(new Request("https://agent.example/internal/search", {
+      method: "POST",
+      headers: { "content-type": "application/json", authorization: "Bearer correct-token" },
+      body: JSON.stringify({ query: "2025 policy report" })
+    }), {
+      SEARCH_BRIDGE_TOKEN: "correct-token",
+      AI: { run: async () => ({ response: "The source covers the 2025 report." }) }
+    });
+    const body = await response.json();
+    assert.equal(response.status, 200, JSON.stringify(body));
+    assert.equal(body.provider, "bing-news-rss");
+    assert.equal(body.sources[0].url, "https://example.com/2025-report");
+    assert.ok(urls.some(url => url.startsWith("https://www.bing.com/news/search")));
+  } finally { globalThis.fetch = originalFetch; }
+});
