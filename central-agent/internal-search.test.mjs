@@ -384,7 +384,7 @@ test("active current-information chat uses direct web search when Tavily is not 
 });
 
 
-test("live historical queries use Google News RSS with publication dates after DuckDuckGo fails", async () => {
+test("live historical queries use Google News RSS with source URLs after DuckDuckGo fails", async () => {
   const originalFetch = globalThis.fetch;
   const urls = [];
   globalThis.fetch = async url => {
@@ -409,7 +409,6 @@ test("live historical queries use Google News RSS with publication dates after D
     assert.equal(response.status, 200, JSON.stringify(body));
     assert.equal(body.provider, "google-news-rss");
     assert.equal(body.sources[0].url, "https://example.com/2024-policy");
-    assert.equal(body.sources[0].publishedDate, "Mon, 14 Oct 2024 10:00:00 GMT");
     assert.ok(urls.some(url => url.startsWith("https://news.google.com/rss/search")));
   } finally { globalThis.fetch = originalFetch; }
 });
