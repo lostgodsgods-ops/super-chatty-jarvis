@@ -131,7 +131,7 @@ async function fetchDirectWebSearch(query) {
       const items = [...xml.matchAll(/<item\b[^>]*>([\s\S]*?)<\/item>/gi)].map(match => {
         const block = match[1];
         const field = (name) => {
-          const found = block.match(new RegExp("<" + name + "(?:\\\\s+[^>]*)?>([\\\\s\\\\S]*?)<\\\\/" + name + ">", "i"));
+          const found = block.match(new RegExp("<" + name + "(?:\\s+[^>]*)?>([\\s\\S]*?)<\\/" + name + ">", "i"));
           if (!found) return "";
           return decodeHtmlEntities(found[1].replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g, "$1").replace(/<[^>]+>/g, " ")).trim();
         };
