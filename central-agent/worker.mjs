@@ -861,7 +861,7 @@ export default {
         score: item.score, publishedDate: item.publishedDate
       }));
 
-      const sources = results.map(item => ({ title: item.title, url: item.url, description: item.content }));
+      const sources = results.map(item => ({ title: item.title, url: item.url, description: item.content, publishedDate: item.publishedDate }));
       if (!sources.length) {
         return json({
           ok: true,
