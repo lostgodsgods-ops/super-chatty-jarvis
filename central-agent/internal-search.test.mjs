@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import worker, { parseDuckDuckGoHtml } from "./worker.mjs";
+import worker, { fetchSearchProvider, SEARCH_PROVIDER_TIMEOUT_MS, parseDuckDuckGoHtml } from "./worker.mjs";
 
 test("internal Tavily search rejects missing or incorrect gateway tokens", async () => {
   const response = await worker.fetch(new Request("https://agent.example/internal/search", {
@@ -473,4 +473,70 @@ test("search gateway returns sanitized provider diagnostics when every live sear
     assert.ok(body.providers.some(item => item.provider === "gdelt-doc-api" && item.status === "http-503"));
     assert.equal(body.providers.some(item => JSON.stringify(item).includes("quota")), false);
   } finally { globalThis.fetch = originalFetch; }
+});
+
+
+test("internal chat preserves provider diagnostics when every live provider throws a network error", async () => {
+  const originalFetch = globalThis.fetch;
+  const originalWarn = console.warn;
+  const warnings = [];
+  const requested = [];
+  console.warn = (event, payload) => warnings.push({ event, payload });
+  globalThis.fetch = async (url, options = {}) => {
+    requested.push({ url: String(url), timeoutSignal: options.signal instanceof AbortSignal });
+    throw new TypeError("simulated outbound network failure");
+  };
+  try {
+    const response = await worker.fetch(new Request("https://agent.example/internal/chat", {
+      method: "POST",
+      headers: { "content-type": "application/json", authorization: "Bearer correct-token" },
+      body: JSON.stringify({ message: "What is the latest NASA Artemis news today?", language: "en-US" })
+    }), {
+      SEARCH_BRIDGE_TOKEN: "correct-token",
+      AI: { run: async () => ({ response: "Should not be called before live evidence." }) }
+    });
+    const body = await response.json();
+    assert.equal(response.status, 502);
+    assert.equal(body.code, "LIVE_SEARCH_ALL_PROVIDERS_FAILED");
+    assert.ok(Array.isArray(body.providers));
+    assert.ok(body.providers.some(item => item.provider === "duckduckgo-html" && item.status === "network-error"));
+    assert.ok(body.providers.some(item => item.provider === "google-news-rss" && item.status === "network-error"));
+    assert.ok(requested.length >= 4);
+    assert.ok(requested.every(item => item.timeoutSignal));
+    assert.ok(requested.every(item => !item.url.includes("correct-token")));
+    assert.ok(warnings.some(item => item.event === "live_search_provider_network_failure" && item.payload.endpoint === "https://html.duckduckgo.com/html/"));
+    assert.ok(warnings.filter(item => item.event === "live_search_provider_network_failure").every(item => typeof item.payload.errorName === "string" && typeof item.payload.errorMessage === "string"));
+  } finally {
+    globalThis.fetch = originalFetch;
+    console.warn = originalWarn;
+  }
+});
+
+
+test("search provider fetch enforces a five-second production timeout and logs sanitized endpoint diagnostics", async () => {
+  const originalFetch = globalThis.fetch;
+  const originalWarn = console.warn;
+  const warnings = [];
+  assert.equal(SEARCH_PROVIDER_TIMEOUT_MS, 5000);
+  console.warn = (event, payload) => warnings.push({ event, payload });
+  globalThis.fetch = async (_url, options = {}) => new Promise((_resolve, reject) => {
+    options.signal.addEventListener("abort", () => reject(options.signal.reason), { once: true });
+    setTimeout(() => {}, 25);
+  });
+  try {
+    await assert.rejects(
+      fetchSearchProvider("test-provider", "https://search.example/api?q=private-query", {}, 10),
+      error => error?.name === "TimeoutError"
+    );
+    assert.equal(warnings[0].event, "live_search_provider_network_failure");
+    assert.equal(warnings[0].payload.provider, "test-provider");
+    assert.equal(warnings[0].payload.endpoint, "https://search.example/api");
+    assert.equal(warnings[0].payload.status, "timeout");
+    assert.equal(warnings[0].payload.errorName, "TimeoutError");
+    assert.equal(warnings[0].payload.endpoint.includes("private-query"), false);
+    assert.equal(typeof warnings[0].payload.errorMessage, "string");
+  } finally {
+    globalThis.fetch = originalFetch;
+    console.warn = originalWarn;
+  }
 });
