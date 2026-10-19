@@ -85,7 +85,7 @@ export function parseDuckDuckGoHtml(html, query = "") {
   return rankTavilyResults(query, results);
 }
 
-const SEARCH_PROVIDER_TIMEOUT_MS = 5000;
+export const SEARCH_PROVIDER_TIMEOUT_MS = 5000;
 
 function safeSearchEndpoint(endpoint) {
   try {
@@ -96,12 +96,12 @@ function safeSearchEndpoint(endpoint) {
   }
 }
 
-async function fetchSearchProvider(provider, endpoint, options = {}) {
+export async function fetchSearchProvider(provider, endpoint, options = {}, timeoutMs = SEARCH_PROVIDER_TIMEOUT_MS) {
   const safeEndpoint = safeSearchEndpoint(endpoint);
   try {
     const response = await fetch(endpoint, {
       ...options,
-      signal: AbortSignal.timeout(SEARCH_PROVIDER_TIMEOUT_MS)
+      signal: AbortSignal.timeout(timeoutMs)
     });
     if (!response.ok) {
       console.warn("live_search_provider_http_failure", {
