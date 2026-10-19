@@ -382,3 +382,34 @@ test("active current-information chat uses direct web search when Tavily is not 
     assert.equal(aiCalls, 1);
   } finally { globalThis.fetch = originalFetch; }
 });
+
+
+test("live historical queries use Google News RSS with publication dates after DuckDuckGo fails", async () => {
+  const originalFetch = globalThis.fetch;
+  const urls = [];
+  globalThis.fetch = async url => {
+    const value = String(url);
+    urls.push(value);
+    if (value.startsWith("https://html.duckduckgo.com/html/")) return new Response("blocked", { status: 503 });
+    if (value.startsWith("https://news.google.com/rss/search")) {
+      return new Response(`<?xml version="1.0"?><rss><channel><item><title>2024 technology policy update</title><link>https://example.com/2024-policy</link><description>Published report about technology policy.</description><pubDate>Mon, 14 Oct 2024 10:00:00 GMT</pubDate></item></channel></rss>`, { status: 200, headers: { "content-type": "application/rss+xml" } });
+    }
+    throw new Error("Unexpected provider request: " + value);
+  };
+  try {
+    const response = await worker.fetch(new Request("https://agent.example/internal/search", {
+      method: "POST",
+      headers: { "content-type": "application/json", authorization: "Bearer correct-token" },
+      body: JSON.stringify({ query: "What happened in 2024?" })
+    }), {
+      SEARCH_BRIDGE_TOKEN: "correct-token",
+      AI: { run: async () => ({ response: "The source reports a 2024 policy update." }) }
+    });
+    const body = await response.json();
+    assert.equal(response.status, 200, JSON.stringify(body));
+    assert.equal(body.provider, "google-news-rss");
+    assert.equal(body.sources[0].url, "https://example.com/2024-policy");
+    assert.equal(body.sources[0].publishedDate, "Mon, 14 Oct 2024 10:00:00 GMT");
+    assert.ok(urls.some(url => url.startsWith("https://news.google.com/rss/search")));
+  } finally { globalThis.fetch = originalFetch; }
+});
