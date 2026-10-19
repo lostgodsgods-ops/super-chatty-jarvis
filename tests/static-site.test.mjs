@@ -107,12 +107,12 @@ test("NEXUS agent HUD is live-wired to the production SSE event bus", () => {
 
 
 test("installed PWA force-updates stale shells and revalidates HTML assets", () => {
-  assert.match(serviceWorker, /CACHE_NAME\s*=\s*"super-chatty-jarvis-shell-v6-voice-singleton"/, "shell cache must be version-bumped for the install UX release");
+  assert.match(serviceWorker, /CACHE_NAME\s*=\s*"super-chatty-jarvis-shell-v7-event-notifications"/, "shell cache must be version-bumped for the install UX release");
   assert.match(serviceWorker, /self\.skipWaiting\(\)/, "new worker must activate without waiting for an old tab to close");
   assert.match(serviceWorker, /self\.clients\.claim\(\)/, "new worker must claim open PWA clients");
   assert.match(serviceWorker, /key !== CACHE_NAME.*caches\.delete\(key\)/s, "activation must delete older Super Chatty shell caches");
   assert.match(serviceWorker, /new Request\(request,\s*\{\s*cache:\s*"no-store"\s*\}\)/, "navigation must bypass stale browser HTTP cache");
-  assert.match(jarvisHtml, /application-version" content="NEXUS-2026\.10\.18-VOICE-SINGLETON"/, "frontend version must be bumped");
+  assert.match(jarvisHtml, /application-version" content="NEXUS-2026\.10\.18-EVENT-NOTIFICATIONS"/, "frontend version must be bumped");
   assert.match(jarvisHtml, /registration\.update\(\)/, "PWA must check for worker updates");
   assert.match(jarvisHtml, /controllerchange/, "active sessions must detect the new worker controller");
   assert.match(jarvisHtml, /location\.reload\(\)/, "active sessions must reload after a worker update");
@@ -220,7 +220,7 @@ test("PWA provides a direct native install prompt and a safe fallback", () => {
   assert.match(jarvisHtml, /display-mode:\s*standalone/, "installed standalone mode must be detected");
   assert.ok(centralWorker.includes('url.pathname === "/icon-192.png"'), "Worker must allow the public 192px install icon");
   assert.ok(centralWorker.includes('url.pathname === "/icon-512.png"'), "Worker must allow the public 512px install icon");
-  assert.match(serviceWorker, /CACHE_NAME\s*=\s*"super-chatty-jarvis-shell-v6-voice-singleton"/, "install UX release must invalidate old shell cache");
+  assert.match(serviceWorker, /CACHE_NAME\s*=\s*"super-chatty-jarvis-shell-v7-event-notifications"/, "install UX release must invalidate old shell cache");
 });
 
 test("owner gate prevents health checks and SSE from starting before session verification", () => {
@@ -243,8 +243,19 @@ test("first-screen one-click install uses the browser-native prompt when eligibl
   assert.match(jarvisHtml, /installEvent\.prompt\(\)/, "tap must invoke the captured native prompt");
   assert.match(jarvisHtml, /addEventListener\("appinstalled"/, "successful install must be handled");
   assert.match(jarvisHtml, /Chrome has not offered the native install prompt yet/i, "unavailable prompt state must be honest");
-  assert.match(jarvisHtml, /application-version" content="NEXUS-2026\.10\.18-VOICE-SINGLETON"/, "app version must identify this shell release");
-  assert.match(serviceWorker, /CACHE_NAME\s*=\s*"super-chatty-jarvis-shell-v6-voice-singleton"/, "shell cache must be invalidated");
+  assert.match(jarvisHtml, /application-version" content="NEXUS-2026\.10\.18-EVENT-NOTIFICATIONS"/, "app version must identify this shell release");
+  assert.match(serviceWorker, /CACHE_NAME\s*=\s*"super-chatty-jarvis-shell-v7-event-notifications"/, "shell cache must be invalidated");
+});
+
+test("PWA notifications require explicit opt-in and only notify for live foreground SSE events", () => {
+  assert.match(jarvisHtml, /id="enableNotificationsBtn"/, "notifications need an explicit user control");
+  assert.match(jarvisHtml, /function enableEventNotifications\(/, "permission flow must be initiated by a user click");
+  assert.match(jarvisHtml, /Notification\.requestPermission\(\)/, "permission must be requested explicitly");
+  assert.match(jarvisHtml, /state\.notificationsEnabled/, "event notifications must remain opt-in");
+  assert.match(jarvisHtml, /showNotification\(/, "notifications must use the registered service worker");
+  assert.match(jarvisHtml, /foreground event alerts only/i, "UI must disclose that background push is not configured");
+  assert.match(serviceWorker, /notificationclick/, "notification click must return to the PWA");
+  assert.doesNotMatch(jarvisHtml, /new Notification\(/, "do not create unscoped page-level notifications");
 });
 
 test("PWA install icons and standalone asset paths are consistent", () => {
