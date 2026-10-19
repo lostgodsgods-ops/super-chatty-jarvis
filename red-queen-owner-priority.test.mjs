@@ -45,7 +45,7 @@ test("PWA update button checks for the latest service worker and applies availab
   assert.match(pwa, /registration\.update\(\)/);
   assert.match(pwa, /registration\.waiting\.postMessage\(\{ type: "SKIP_WAITING" \}\)/);
   assert.match(pwa, /fetch\("\.\/index\.html", \{ cache: "no-store" \}\)/);
-  assert.match(pwa, /id="updateAppBtn"[^;]*addEventListener\("click", applyPwaUpdate\)/);
+  assert.match(pwa, /els\.updateAppBtn\.addEventListener\("click", applyPwaUpdate\)/);
 });
 
 test("service worker cache version changes and explicit activation messages are handled", () => {
