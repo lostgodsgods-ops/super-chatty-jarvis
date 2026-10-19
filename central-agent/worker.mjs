@@ -868,10 +868,16 @@ export default {
       try {
         providerResponse = await fetchTavilyWithRetry(query, env);
       } catch (error) {
+        const diagnostics = Array.isArray(error?.providerDiagnostics) ? error.providerDiagnostics : [];
         console.warn("internal_search_provider_network_error", {
-          errorName: typeof error?.name === "string" ? error.name : "Error"
+          code: typeof error?.code === "string" ? error.code : "SEARCH_PROVIDER_NETWORK_ERROR",
+          providers: diagnostics
         });
-        return json({ error: "Live search provider could not be reached after bounded retries.", code: "SEARCH_PROVIDER_NETWORK_ERROR" }, 502, cors);
+        return json({
+          error: "Live search providers could not return usable evidence.",
+          code: typeof error?.code === "string" ? error.code : "SEARCH_PROVIDER_NETWORK_ERROR",
+          providers: diagnostics
+        }, 502, cors);
       }
       if (!providerResponse.ok) {
         const failure = classifyTavilyFailure(providerResponse.status);
