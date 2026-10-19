@@ -478,7 +478,10 @@ test("search gateway returns sanitized provider diagnostics when every live sear
 
 test("internal chat preserves provider diagnostics when every live provider throws a network error", async () => {
   const originalFetch = globalThis.fetch;
+  const originalWarn = console.warn;
+  const warnings = [];
   const requested = [];
+  console.warn = (event, payload) => warnings.push({ event, payload });
   globalThis.fetch = async (url, options = {}) => {
     requested.push({ url: String(url), timeoutSignal: options.signal instanceof AbortSignal });
     throw new TypeError("simulated outbound network failure");
@@ -501,7 +504,10 @@ test("internal chat preserves provider diagnostics when every live provider thro
     assert.ok(requested.length >= 4);
     assert.ok(requested.every(item => item.timeoutSignal));
     assert.ok(requested.every(item => !item.url.includes("correct-token")));
+    assert.ok(warnings.some(item => item.event === "live_search_provider_network_failure" && item.payload.endpoint === "https://html.duckduckgo.com/html"));
+    assert.ok(warnings.every(item => typeof item.payload.errorName === "string" && typeof item.payload.errorMessage === "string"));
   } finally {
     globalThis.fetch = originalFetch;
+    console.warn = originalWarn;
   }
 });
