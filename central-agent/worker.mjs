@@ -85,7 +85,7 @@ export function parseDuckDuckGoHtml(html, query = "") {
   return rankTavilyResults(query, results);
 }
 
-export const SEARCH_PROVIDER_TIMEOUT_MS = 5000;
+export const SEARCH_PROVIDER_TIMEOUT_MS = 2500;
 
 function safeSearchEndpoint(endpoint) {
   try {
@@ -297,7 +297,7 @@ async function fetchTavilyWithRetry(query, env) {
   if (!tavilyKey) return fetchDirectWebSearch(query);
   const endpoint = "https://api.tavily.com/search";
   let response;
-  for (let attempt = 0; attempt < 3; attempt++) {
+  for (let attempt = 0; attempt < 2; attempt++) {
     try {
       response = await fetchSearchProvider("tavily", endpoint, {
         method: "POST",
@@ -334,8 +334,8 @@ async function fetchTavilyWithRetry(query, env) {
     }
     const retryAfter = Number(response.headers.get("retry-after"));
     const delay = Number.isFinite(retryAfter) && retryAfter > 0
-      ? Math.min(500, Math.max(100, retryAfter * 1000))
-      : 150 * (2 ** attempt);
+      ? Math.min(250, Math.max(100, retryAfter * 1000))
+      : 100 * (2 ** attempt);
     await new Promise(resolve => setTimeout(resolve, delay));
   }
   return fetchDirectWebSearch(query);
