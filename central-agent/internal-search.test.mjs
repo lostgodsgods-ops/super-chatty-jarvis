@@ -369,7 +369,7 @@ test("active current-information chat uses direct web search when Tavily is not 
     const response = await worker.fetch(new Request("https://agent.example/chat", {
       method: "POST",
       headers: { "content-type": "application/json", authorization: "Bearer correct-token" },
-      body: JSON.stringify({ query: "What is the latest news today?", language: "en-IN" })
+      body: JSON.stringify({ message: "What is the latest news today?", language: "en-IN" })
     }), {
       SEARCH_BRIDGE_TOKEN: "correct-token",
       AI: { run: async () => { aiCalls++; return { response: "The live result reports a current news update." }; } }
