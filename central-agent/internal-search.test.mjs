@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import worker, { parseDuckDuckGoHtml } from "./worker.mjs";
+import worker, { fetchSearchProvider, SEARCH_PROVIDER_TIMEOUT_MS, parseDuckDuckGoHtml } from "./worker.mjs";
 
 test("internal Tavily search rejects missing or incorrect gateway tokens", async () => {
   const response = await worker.fetch(new Request("https://agent.example/internal/search", {
@@ -506,6 +506,37 @@ test("internal chat preserves provider diagnostics when every live provider thro
     assert.ok(requested.every(item => !item.url.includes("correct-token")));
     assert.ok(warnings.some(item => item.event === "live_search_provider_network_failure" && item.payload.endpoint === "https://html.duckduckgo.com/html"));
     assert.ok(warnings.every(item => typeof item.payload.errorName === "string" && typeof item.payload.errorMessage === "string"));
+  } finally {
+    globalThis.fetch = originalFetch;
+    console.warn = originalWarn;
+  }
+});
+
+
+test("search provider fetch enforces a five-second production timeout and logs sanitized endpoint diagnostics", async () => {
+  const originalFetch = globalThis.fetch;
+  const originalWarn = console.warn;
+  const warnings = [];
+  assert.equal(SEARCH_PROVIDER_TIMEOUT_MS, 5000);
+  console.warn = (event, payload) => warnings.push({ event, payload });
+  globalThis.fetch = async (_url, options = {}) => new Promise((_resolve, reject) => {
+    options.signal.addEventListener("abort", () => reject(options.signal.reason), { once: true });
+  });
+  try {
+    await assert.rejects(
+      fetchSearchProvider("test-provider", "https://search.example/api?q=private-query", {}, 10),
+      error => error?.name === "TimeoutError"
+    );
+    assert.deepEqual(warnings[0], {
+      event: "live_search_provider_network_failure",
+      payload: {
+        provider: "test-provider",
+        endpoint: "https://search.example/api",
+        status: "timeout",
+        errorName: "TimeoutError",
+        errorMessage: "The operation was aborted due to timeout"
+      }
+    });
   } finally {
     globalThis.fetch = originalFetch;
     console.warn = originalWarn;
