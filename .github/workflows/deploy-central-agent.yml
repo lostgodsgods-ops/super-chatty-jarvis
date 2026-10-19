@@ -111,6 +111,7 @@ jobs:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           OWNER_SETUP_TOKEN: ${{ secrets.OWNER_SETUP_TOKEN }}
           SEARCH_API_KEY: ${{ secrets.SEARCH_API_KEY }}
+          TAVILY_API_KEY: ${{ secrets.TAVILY_API_KEY }}
           AGENT_GATEWAY_TOKEN: ${{ secrets.AGENT_GATEWAY_TOKEN }}
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
         run: |
@@ -123,7 +124,8 @@ jobs:
           const path = process.argv[2];
           const payload = {
             OWNER_SETUP_TOKEN: process.env.OWNER_SETUP_TOKEN,
-            SEARCH_API_KEY: process.env.SEARCH_API_KEY || undefined,
+            SEARCH_API_KEY: process.env.SEARCH_API_KEY || process.env.TAVILY_API_KEY || undefined,
+            TAVILY_API_KEY: process.env.TAVILY_API_KEY || process.env.SEARCH_API_KEY || undefined,
             SEARCH_BRIDGE_TOKEN: process.env.AGENT_GATEWAY_TOKEN,
           };
           if (process.env.GEMINI_API_KEY) payload.GEMINI_API_KEY = process.env.GEMINI_API_KEY;
