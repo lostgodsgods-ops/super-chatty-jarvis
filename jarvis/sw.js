@@ -1,5 +1,5 @@
 "use strict";
-const CACHE_NAME = "super-chatty-jarvis-shell-v7-event-notifications";
+const CACHE_NAME = "super-chatty-jarvis-shell-v8-red-queen-pwa-update";
 const SHELL = ["./", "./index.html", "./manifest.webmanifest", "./icon.svg", "./icon-192.png", "./icon-512.png"];
 const LEGACY_CACHE_PREFIXES = ["super-chatty-jarvis-shell-", "super-chatty-jarvis-", "chatty-jarvis-"];
 self.addEventListener("install", (event) => {
@@ -21,6 +21,9 @@ self.addEventListener("activate", (event) => {
   })());
 });
 self.addEventListener("message", (event) => {
+  if (event.data && event.data.type === "SKIP_WAITING") {
+    event.waitUntil(self.skipWaiting());
+  }
   if (event.data && event.data.type === "PURGE_LEGACY_CACHES") {
     event.waitUntil((async () => {
       const keys = await caches.keys();
