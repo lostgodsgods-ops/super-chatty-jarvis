@@ -37,3 +37,14 @@ test("explicit Hindi/Hinglish search requests always route to external evidence"
     "आज की लाइव जानकारी खोजो"
   ]) assert.equal(requiresLiveSearch(q), true, q);
 });
+
+test("routes explicit historical year-range questions to live evidence", () => {
+  for (const q of [
+    "What changed between 2023 and 2026?",
+    "Give me verified updates from 2024",
+    "2025 AI agent releases",
+    "2023-26 India current affairs",
+    "2023 से 2026 तक की ताज़ा और ऐतिहासिक जानकारी",
+    "2024 में क्या हुआ था?"
+  ]) assert.equal(requiresLiveSearch(q), true, q);
+});

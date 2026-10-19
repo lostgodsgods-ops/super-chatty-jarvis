@@ -406,3 +406,11 @@ test("owner chat recognizes explicit live-search intent and returns dated source
   assert.match(centralWorker, /publishedDate/);
   assert.match(centralWorker, /webSearchExecuted: needsLiveSearch/);
 });
+
+
+test("live search has independent no-key news fallbacks after Tavily and DuckDuckGo fail", () => {
+  assert.match(centralWorker, /news\.google\.com\/rss\/search/);
+  assert.match(centralWorker, /api\.gdeltproject\.org\/api\/v2\/doc\/doc/);
+  assert.match(centralWorker, /x-search-provider.*google-news-rss|x-search-provider.*gdelt/i);
+  assert.match(centralWorker, /LIVE_SEARCH_FRESH_RESULTS_UNAVAILABLE/);
+});
