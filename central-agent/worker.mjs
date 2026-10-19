@@ -1254,8 +1254,27 @@ export default {
         const searchQuery = buildTavilyQuery(message) || message.slice(0, 400);
         let searchResponse;
         try { searchResponse = await fetchTavilyWithRetry(searchQuery, env); }
-        catch {
-          return json({ error: "Live search failed. No stale-model fallback was used.", code: "LIVE_SEARCH_NETWORK_ERROR" }, 502, cors);
+        catch (error) {
+          // Keep the browser-facing /api/chat route diagnostically equivalent to /chat.
+          // Provider names and coarse status labels are safe to expose; credentials and response bodies are not.
+          const diagnostics = Array.isArray(error?.providerDiagnostics)
+            ? error.providerDiagnostics.filter(item =>
+                item && typeof item.provider === "string" &&
+                typeof item.status === "string" &&
+                /^[a-z0-9-]{1,48}$/i.test(item.provider) &&
+                /^[a-z0-9-]{1,48}$/i.test(item.status)
+              ).slice(0, 8)
+            : [];
+          const code = typeof error?.code === "string" &&
+            /^LIVE_SEARCH_[A-Z0-9_]{1,64}$/.test(error.code)
+            ? error.code
+            : "LIVE_SEARCH_NETWORK_ERROR";
+          console.warn("central_api_chat_live_search_failed", { code, providers: diagnostics });
+          return json({
+            error: "Live search is temporarily unavailable. No stale-model fallback was used.",
+            code,
+            providers: diagnostics
+          }, 502, cors);
         }
         if (!searchResponse.ok) return json({
           error: "Live search provider failed. No stale-model fallback was used.",

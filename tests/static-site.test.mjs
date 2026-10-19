@@ -420,3 +420,15 @@ test("live evidence search includes the Bing News RSS fallback", () => {
   assert.match(centralWorker, /name: "bing-news-rss"/);
   assert.match(centralWorker, /x-search-provider.*provider\.name/);
 });
+
+
+test("PWA /api/chat reports safe live-search provider diagnostics instead of hiding the root cause", () => {
+  const routeStart = centralWorker.lastIndexOf('url.pathname === "/api/chat"');
+  const route = centralWorker.slice(routeStart);
+  assert.match(route, /central_api_chat_live_search_failed/);
+  assert.match(route, /error\.providerDiagnostics/);
+  assert.match(route, /LIVE_SEARCH_NETWORK_ERROR/);
+  assert.match(route, /providers:\s*diagnostics/);
+  assert.match(route, /No stale-model fallback was used/);
+  assert.doesNotMatch(route, /SEARCH_API_KEY|SEARCH_BRIDGE_TOKEN|authorization:\s*["']/);
+});
