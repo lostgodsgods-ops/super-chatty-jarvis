@@ -85,6 +85,46 @@ export function parseDuckDuckGoHtml(html, query = "") {
   return rankTavilyResults(query, results);
 }
 
+const SEARCH_PROVIDER_TIMEOUT_MS = 5000;
+
+function safeSearchEndpoint(endpoint) {
+  try {
+    const url = new URL(endpoint);
+    return url.origin + url.pathname;
+  } catch {
+    return "unknown";
+  }
+}
+
+async function fetchSearchProvider(provider, endpoint, options = {}) {
+  const safeEndpoint = safeSearchEndpoint(endpoint);
+  try {
+    const response = await fetchSearchProvider("tavily", endpoint, {
+      ...options,
+      signal: AbortSignal.timeout(SEARCH_PROVIDER_TIMEOUT_MS)
+    });
+    if (!response.ok) {
+      console.warn("live_search_provider_http_failure", {
+        provider,
+        endpoint: safeEndpoint,
+        status: response.status,
+        statusText: String(response.statusText || "").slice(0, 120)
+      });
+    }
+    return response;
+  } catch (error) {
+    const timeout = error?.name === "TimeoutError" || error?.name === "AbortError";
+    console.warn("live_search_provider_network_failure", {
+      provider,
+      endpoint: safeEndpoint,
+      status: timeout ? "timeout" : "network-error",
+      errorName: String(error?.name || "Error").slice(0, 80),
+      errorMessage: String(error?.message || error || "Unknown network error").slice(0, 180)
+    });
+    throw error;
+  }
+}
+
 async function fetchDirectWebSearch(query, initialDiagnostics = []) {
   const cleanQuery = buildTavilyQuery(query) || String(query || "").trim().slice(0, 400);
   if (!cleanQuery) throw new Error("LIVE_SEARCH_EMPTY_QUERY");
@@ -96,14 +136,13 @@ async function fetchDirectWebSearch(query, initialDiagnostics = []) {
   try {
     const url = new URL("https://html.duckduckgo.com/html/");
     url.searchParams.set("q", cleanQuery);
-    const response = await fetch(url.toString(), {
+    const response = await fetchSearchProvider("duckduckgo-html", url.toString(), {
       method: "GET",
       headers: {
         accept: "text/html,application/xhtml+xml",
         "accept-language": "en-US,en;q=0.8,hi;q=0.6",
         "user-agent": "Mozilla/5.0 (compatible; SuperChattyJarvis/1.0; +https://github.com/lostgodsgods-ops/super-chatty-jarvis)"
       },
-      signal: AbortSignal.timeout(8000)
     });
     if (response.ok) {
       const html = (await response.text()).slice(0, 1_000_000);
@@ -115,7 +154,7 @@ async function fetchDirectWebSearch(query, initialDiagnostics = []) {
       diagnostic("duckduckgo-html", "no-usable-results");
     } else diagnostic("duckduckgo-html", "http-" + response.status);
   } catch (error) {
-    diagnostic("duckduckgo-html", error?.name === "TimeoutError" ? "timeout" : "network-error");
+    diagnostic("duckduckgo-html", error?.name === "TimeoutError" || error?.name === "AbortError" ? "timeout" : "network-error");
   }
 
   // Freshness-sensitive searches use independent news feeds before failing closed.
@@ -135,9 +174,8 @@ async function fetchDirectWebSearch(query, initialDiagnostics = []) {
         newsUrl.searchParams.set("gl", "IN");
         newsUrl.searchParams.set("ceid", "IN:en");
       }
-      const newsResponse = await fetch(newsUrl.toString(), {
+      const newsResponse = await fetchSearchProvider(provider.name, newsUrl.toString(), {
         headers: { accept: "application/rss+xml, application/xml, text/xml" },
-        signal: AbortSignal.timeout(7000)
       });
       if (!newsResponse.ok) { diagnostic(provider.name, "http-" + newsResponse.status); continue; }
       const xml = (await newsResponse.text()).slice(0, 1_000_000);
@@ -180,9 +218,8 @@ async function fetchDirectWebSearch(query, initialDiagnostics = []) {
     gdeltUrl.searchParams.set("sort", "HybridRel");
     gdeltUrl.searchParams.set("startdatetime", startDate);
     gdeltUrl.searchParams.set("enddatetime", endDate);
-    const gdeltResponse = await fetch(gdeltUrl.toString(), {
+    const gdeltResponse = await fetchSearchProvider("gdelt-doc-api", gdeltUrl.toString(), {
       headers: { accept: "application/json" },
-      signal: AbortSignal.timeout(7000)
     });
     if (gdeltResponse.ok) {
       const payload = await gdeltResponse.json();
@@ -223,7 +260,7 @@ async function fetchDirectWebSearch(query, initialDiagnostics = []) {
   wikiUrl.searchParams.set("srlimit", "8");
   wikiUrl.searchParams.set("format", "json");
   wikiUrl.searchParams.set("utf8", "1");
-  const wikiResponse = await fetch(wikiUrl.toString(), {
+  const wikiResponse = await fetchSearchProvider("wikipedia-api", wikiUrl.toString(), {
     method: "GET",
     headers: {
       accept: "application/json",
@@ -254,29 +291,26 @@ async function fetchTavilyWithRetry(query, env) {
   if (!env.SEARCH_API_KEY) return fetchDirectWebSearch(query);
   const endpoint = "https://api.tavily.com/search";
   let response;
-  for (let attempt = 0; attempt < 3; attempt++) {
+  for (let attempt = 0; attempt < 2; attempt++) {
     try {
       response = await fetch(endpoint, {
         method: "POST",
         headers: { authorization: "Bearer " + env.SEARCH_API_KEY, "content-type": "application/json", accept: "application/json" },
         body: JSON.stringify({ query: buildTavilyQuery(query) || query.slice(0, 400), search_depth: "basic", max_results: 5, include_answer: false, include_raw_content: false }),
-        signal: AbortSignal.timeout(8000)
       });
-    } catch {
-      if (attempt === 2) return fetchDirectWebSearch(query, [{ provider: "tavily", status: "network-error" }]);
-      await new Promise(resolve => setTimeout(resolve, 250 * (2 ** attempt)));
-      continue;
+    } catch (error) {
+      return fetchDirectWebSearch(query, [{ provider: "tavily", status: error?.name === "TimeoutError" || error?.name === "AbortError" ? "timeout" : "network-error" }]);
     }
     if (response.ok) {
       const headers = new Headers(response.headers);
       headers.set("x-search-provider", "tavily");
       return new Response(response.body, { status: response.status, statusText: response.statusText, headers });
     }
-    if (![429, 500, 502, 503, 504].includes(response.status) || attempt === 2) return fetchDirectWebSearch(query, [{ provider: "tavily", status: "http-" + response.status }]);
+    if (![429, 500, 502, 503, 504].includes(response.status) || attempt === 1) return fetchDirectWebSearch(query, [{ provider: "tavily", status: "http-" + response.status }]);
     const retryAfter = Number(response.headers.get("retry-after"));
     const delay = Number.isFinite(retryAfter) && retryAfter > 0
-      ? Math.min(1500, Math.max(250, retryAfter * 1000))
-      : 250 * (2 ** attempt);
+      ? Math.min(500, Math.max(100, retryAfter * 1000))
+      : 150 * (2 ** attempt);
     await new Promise(resolve => setTimeout(resolve, delay));
   }
   return fetchDirectWebSearch(query);
@@ -982,8 +1016,12 @@ export default {
         let searchResponse;
         try {
           searchResponse = await fetchTavilyWithRetry(message, env);
-        } catch {
-          return json({ error: "Live search failed. No stale-model fallback was used.", code: "LIVE_SEARCH_NETWORK_ERROR" }, 502, cors);
+        } catch (error) {
+          const diagnostics = Array.isArray(error?.providerDiagnostics) ? error.providerDiagnostics : [];
+          const code = typeof error?.code === "string" && /^LIVE_SEARCH_[A-Z0-9_]{1,64}$/.test(error.code)
+            ? error.code : "LIVE_SEARCH_NETWORK_ERROR";
+          console.warn("central_legacy_chat_live_search_failed", { code, providers: diagnostics });
+          return json({ error: "Live search is temporarily unavailable. No stale-model fallback was used.", code, providers: diagnostics }, 502, cors);
         }
         if (!searchResponse.ok) return json({
           error: "Live search provider failed. No stale-model fallback was used.",
@@ -1819,8 +1857,12 @@ export default {
       let response;
       try {
         response = await fetchTavilyWithRetry(query, env);
-      } catch {
-        return json({ error: "Live search is temporarily unavailable. No unsourced answer was generated.", code: "LIVE_SEARCH_NETWORK_ERROR" }, 502, cors);
+      } catch (error) {
+        const diagnostics = Array.isArray(error?.providerDiagnostics) ? error.providerDiagnostics : [];
+        const code = typeof error?.code === "string" && /^LIVE_SEARCH_[A-Z0-9_]{1,64}$/.test(error.code)
+          ? error.code : "LIVE_SEARCH_NETWORK_ERROR";
+        console.warn("research_live_search_failed", { code, providers: diagnostics });
+        return json({ error: "Live search is temporarily unavailable. No unsourced answer was generated.", code, providers: diagnostics }, 502, cors);
       }
       if (!response.ok) {
         const failure = classifyTavilyFailure(response.status);
