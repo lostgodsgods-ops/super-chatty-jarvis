@@ -401,7 +401,8 @@ test("PWA update activation reloads after controllerchange and never leaves the 
 });
 
 test("owner chat recognizes explicit live-search intent and returns dated source metadata", () => {
-  assert.match(centralWorker, /tavily\|web search\|internet search\|live search/i);
+  assert.match(centralWorker, /LIVE_SEARCH_FRESH_RESULTS_UNAVAILABLE/);
+  assert.match(centralWorker, /fetchTavilyWithRetry\(searchQuery, env\)/);
   assert.match(centralWorker, /publishedDate/);
   assert.match(centralWorker, /webSearchExecuted: needsLiveSearch/);
 });
