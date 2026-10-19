@@ -124,7 +124,7 @@ jobs:
             node -e 'const fs=require("fs"); try { const x=JSON.parse(fs.readFileSync(process.argv[1],"utf8")); console.log(JSON.stringify({error:x.error||"Search request failed"})); } catch { console.log("Search response was not valid JSON."); }' "$tmp/search.json"
             exit 1
           fi
-          node -e 'const fs=require("fs"); const x=JSON.parse(fs.readFileSync(process.argv[1],"utf8")); if(x.ok!==true||!["tavily","duckduckgo-html","wikipedia-api"].includes(x.provider)||!Array.isArray(x.results)||x.results.length<1) throw Error("Expected ok=true, provider=tavily, and at least one result"); const urls=x.results.map(r=>r.url); if(urls.some(u=>typeof u!=="string"||!/^https?:\/\//i.test(u))) throw Error("One or more result URLs are invalid"); console.log(JSON.stringify({ok:x.ok,provider:x.provider,resultCount:x.results.length,sourceUrls:urls},null,2));' "$tmp/search.json"
+          node -e 'const fs=require("fs"); const x=JSON.parse(fs.readFileSync(process.argv[1],"utf8")); if(x.ok!==true||!["tavily","duckduckgo-html","bing-news-rss","google-news-rss","gdelt-doc-api","wikipedia-api"].includes(x.provider)||!Array.isArray(x.results)||x.results.length<1) throw Error("Expected a configured live-search provider and at least one result"); const urls=x.results.map(r=>r.url); if(urls.some(u=>typeof u!=="string"||!/^https?:\/\//i.test(u))) throw Error("One or more result URLs are invalid"); console.log(JSON.stringify({ok:x.ok,provider:x.provider,resultCount:x.results.length,sourceUrls:urls},null,2));' "$tmp/search.json"
 
       - name: Verify scoped PWA bridge search endpoint directly
         shell: bash
@@ -142,9 +142,9 @@ jobs:
             node -e 'const fs=require("fs"); try {const x=JSON.parse(fs.readFileSync(process.argv[1],"utf8")); console.log(JSON.stringify({error:x.error||"Bridge search failed",code:x.code||null}));} catch {console.log("Bridge response was not valid JSON.");}' "$tmp"
             exit 1
           fi
-          node -e 'const fs=require("fs"); const x=JSON.parse(fs.readFileSync(process.argv[1],"utf8")); if(x.ok!==true||x.core?.webSearchExecuted!==true||!["tavily","duckduckgo-html","wikipedia-api"].includes(x.core?.searchProvider)||!Array.isArray(x.sources)||x.sources.length<1) throw Error("Expected the protected bridge route to return live web sources"); console.log(JSON.stringify({ok:x.ok,provider:x.provider,sourceCount:x.sources.length,searchProvider:x.core.searchProvider}));' "$tmp"
+          node -e 'const fs=require("fs"); const x=JSON.parse(fs.readFileSync(process.argv[1],"utf8")); if(x.ok!==true||x.core?.webSearchExecuted!==true||!["tavily","duckduckgo-html","bing-news-rss","google-news-rss","gdelt-doc-api","wikipedia-api"].includes(x.core?.searchProvider)||!Array.isArray(x.sources)||x.sources.length<1) throw Error("Expected the protected bridge route to return live web sources"); console.log(JSON.stringify({ok:x.ok,provider:x.provider,sourceCount:x.sources.length,searchProvider:x.core.searchProvider}));' "$tmp"
 
-      - name: Verify current-information chat uses Tavily before model synthesis
+      - name: Verify current-information chat uses live web sources before model synthesis
         shell: bash
         env:
           CENTRAL_AGENT_URL: https://shrill-silence-164f.lostgodsgods.workers.dev
@@ -162,7 +162,7 @@ jobs:
               echo "::error::Current-information /chat failed with HTTP $code"; cat "$tmp"; exit 1
             fi
           else
-            node -e 'const fs=require("fs"); const x=JSON.parse(fs.readFileSync(process.argv[1],"utf8")); if(x.ok!==true||x.core?.intent!=="current_information"||x.core?.webSearchExecuted!==true||!["tavily","duckduckgo-html","wikipedia-api"].includes(x.core?.searchProvider)||!Array.isArray(x.sources)||x.sources.length<1) throw Error("Current-information chat did not prove live-web synthesis"); if(x.sources.some(s=>typeof s.url!=="string"||(!s.url.startsWith("https://")&&!s.url.startsWith("http://")))) throw Error("Invalid source URL"); console.log(JSON.stringify({ok:true,intent:x.core.intent,webSearchExecuted:x.core.webSearchExecuted,searchProvider:x.core.searchProvider,sourceCount:x.sources.length,externalActionsPerformed:x.core.externalActionsPerformed}));' "$tmp"
+            node -e 'const fs=require("fs"); const x=JSON.parse(fs.readFileSync(process.argv[1],"utf8")); if(x.ok!==true||x.core?.intent!=="current_information"||x.core?.webSearchExecuted!==true||!["tavily","duckduckgo-html","bing-news-rss","google-news-rss","gdelt-doc-api","wikipedia-api"].includes(x.core?.searchProvider)||!Array.isArray(x.sources)||x.sources.length<1) throw Error("Current-information chat did not prove live-web synthesis"); if(x.sources.some(s=>typeof s.url!=="string"||(!s.url.startsWith("https://")&&!s.url.startsWith("http://")))) throw Error("Invalid source URL"); console.log(JSON.stringify({ok:true,intent:x.core.intent,webSearchExecuted:x.core.webSearchExecuted,searchProvider:x.core.searchProvider,sourceCount:x.sources.length,externalActionsPerformed:x.core.externalActionsPerformed}));' "$tmp"
           fi
 
       - name: Probe Central Agent chat route dispatch without credentials
@@ -190,7 +190,7 @@ jobs:
           trap 'rm -rf "$tmp"; unset AGENT_GATEWAY_TOKEN' EXIT
           health_code="$(curl --silent --show-error --max-time 15 --output "$tmp/health.json" --write-out '%{http_code}' "$PASSKEY_WORKER_URL/health")"
           test "$health_code" = "200" || { echo "::error::Talk to Chatty PWA health failed with HTTP $health_code"; exit 1; }
-          node -e 'const fs=require("node:fs"); const x=JSON.parse(fs.readFileSync(process.argv[1],"utf8")); if(x.ok!==true||x.liveSearchConfigured!==true||!["tavily","duckduckgo-html","wikipedia-api"].includes(x.searchProvider)) throw Error("PWA live search gateway is not configured"); console.log(JSON.stringify({ok:x.ok,liveSearchConfigured:x.liveSearchConfigured,searchProvider:x.searchProvider}));' "$tmp/health.json"
+          node -e 'const fs=require("node:fs"); const x=JSON.parse(fs.readFileSync(process.argv[1],"utf8")); if(x.ok!==true||x.liveSearchConfigured!==true||!["tavily","duckduckgo-html","bing-news-rss","google-news-rss","gdelt-doc-api","wikipedia-api"].includes(x.searchProvider)) throw Error("PWA live search gateway is not configured"); console.log(JSON.stringify({ok:x.ok,liveSearchConfigured:x.liveSearchConfigured,searchProvider:x.searchProvider}));' "$tmp/health.json"
           chat_code="$(curl --silent --show-error --max-time 20 --output "$tmp/chat.json" --write-out '%{http_code}' -H 'content-type: application/json' -H "authorization: Bearer $AGENT_GATEWAY_TOKEN" -X POST "$PASSKEY_WORKER_URL/internal/chat-smoke" --data '{"message":"Reply with a short greeting for the Super Chatty Jarvis staging connectivity test.","language":"en-IN"}')"
           if [[ "$chat_code" != "200" ]]; then
             if node -e 'const fs=require("node:fs"); try {const x=JSON.parse(fs.readFileSync(process.argv[1],"utf8")); process.exit(x.code==="AI_QUOTA_EXHAUSTED"?0:1)} catch {process.exit(1)}' "$tmp/chat.json"; then
@@ -209,7 +209,7 @@ jobs:
             node -e 'const fs=require("node:fs"); try {const x=JSON.parse(fs.readFileSync(process.argv[1],"utf8")); console.log(JSON.stringify({error:x.error||"Search proxy failed",code:x.code||null,providerStatus:x.providerStatus||null,upstreamPath:x.upstreamPath||null}));} catch {console.log("Search response was not valid JSON.");}' "$tmp/search.json"
             exit 1
           fi
-          node -e 'const fs=require("node:fs"); const x=JSON.parse(fs.readFileSync(process.argv[1],"utf8")); if(x.ok!==true||x.core?.webSearchExecuted!==true||!["tavily","duckduckgo-html","wikipedia-api"].includes(x.core?.searchProvider)||!Array.isArray(x.sources)||x.sources.length<1) throw Error("Expected a live web result with at least one source"); if(x.sources.some(s=>typeof s.url!=="string"||!/^https?:\/\//i.test(s.url))) throw Error("Invalid source URL"); console.log(JSON.stringify({ok:x.ok,searchProvider:x.core.searchProvider,sourceCount:x.sources.length,sourceUrls:x.sources.map(s=>s.url)},null,2));' "$tmp/search.json"
+          node -e 'const fs=require("node:fs"); const x=JSON.parse(fs.readFileSync(process.argv[1],"utf8")); if(x.ok!==true||x.core?.webSearchExecuted!==true||!["tavily","duckduckgo-html","bing-news-rss","google-news-rss","gdelt-doc-api","wikipedia-api"].includes(x.core?.searchProvider)||!Array.isArray(x.sources)||x.sources.length<1) throw Error("Expected a live web result with at least one source"); if(x.sources.some(s=>typeof s.url!=="string"||!/^https?:\/\//i.test(s.url))) throw Error("Invalid source URL"); console.log(JSON.stringify({ok:x.ok,searchProvider:x.core.searchProvider,sourceCount:x.sources.length,sourceUrls:x.sources.map(s=>s.url)},null,2));' "$tmp/search.json"
 
       - name: Verify authenticated event bus and module registry
         shell: bash
