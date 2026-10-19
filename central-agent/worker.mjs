@@ -115,6 +115,78 @@ async function fetchDirectWebSearch(query) {
     // Continue to the structured no-key fallback below.
   }
 
+  // Independent no-key fallback #2: Google News RSS. It returns source URLs and publication dates.
+  try {
+    const newsUrl = new URL("https://news.google.com/rss/search");
+    newsUrl.searchParams.set("q", cleanQuery);
+    newsUrl.searchParams.set("hl", "en-IN");
+    newsUrl.searchParams.set("gl", "IN");
+    newsUrl.searchParams.set("ceid", "IN:en");
+    const newsResponse = await fetch(newsUrl.toString(), {
+      headers: { accept: "application/rss+xml, application/xml, text/xml" },
+      signal: AbortSignal.timeout(7000)
+    });
+    if (newsResponse.ok) {
+      const xml = (await newsResponse.text()).slice(0, 1_000_000);
+      const items = [...xml.matchAll(/<item\b[^>]*>([\s\S]*?)<\/item>/gi)].map(match => {
+        const block = match[1];
+        const field = (name) => {
+          const found = block.match(new RegExp("<" + name + "(?:\\\\s+[^>]*)?>([\\\\s\\\\S]*?)<\\\\/" + name + ">", "i"));
+          if (!found) return "";
+          return decodeHtmlEntities(found[1].replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g, "$1").replace(/<[^>]+>/g, " ")).trim();
+        };
+        return {
+          title: field("title"),
+          url: field("link"),
+          content: field("description").slice(0, 1200),
+          published_date: field("pubDate") || null
+        };
+      }).filter(item => item.title && item.url);
+      const results = rankTavilyResults(cleanQuery, items);
+      if (results.length) return new Response(JSON.stringify({ results }), {
+        status: 200,
+        headers: { "content-type": "application/json; charset=utf-8", "cache-control": "no-store", "x-search-provider": "google-news-rss" }
+      });
+    }
+  } catch {
+    // Continue to GDELT if Google News is blocked or its response changes.
+  }
+
+  // Independent no-key fallback #3: GDELT article search, scoped to the last 90 days.
+  try {
+    const now = new Date();
+    const endDate = now.toISOString().replace(/[-:TZ.]/g, "").slice(0, 14);
+    const startDate = new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000).toISOString().replace(/[-:TZ.]/g, "").slice(0, 14);
+    const gdeltUrl = new URL("https://api.gdeltproject.org/api/v2/doc/doc");
+    gdeltUrl.searchParams.set("query", cleanQuery);
+    gdeltUrl.searchParams.set("mode", "ArtList");
+    gdeltUrl.searchParams.set("format", "json");
+    gdeltUrl.searchParams.set("maxrecords", "10");
+    gdeltUrl.searchParams.set("sort", "HybridRel");
+    gdeltUrl.searchParams.set("startdatetime", startDate);
+    gdeltUrl.searchParams.set("enddatetime", endDate);
+    const gdeltResponse = await fetch(gdeltUrl.toString(), {
+      headers: { accept: "application/json" },
+      signal: AbortSignal.timeout(7000)
+    });
+    if (gdeltResponse.ok) {
+      const payload = await gdeltResponse.json();
+      const items = Array.isArray(payload?.articles) ? payload.articles.map(item => ({
+        title: typeof item?.title === "string" ? item.title : "",
+        url: typeof item?.url === "string" ? item.url : "",
+        content: [item?.domain, item?.sourcecountry, item?.language].filter(Boolean).join(" · "),
+        published_date: typeof item?.seendate === "string" ? item.seendate : null
+      })).filter(item => item.title && item.url) : [];
+      const results = rankTavilyResults(cleanQuery, items);
+      if (results.length) return new Response(JSON.stringify({ results }), {
+        status: 200,
+        headers: { "content-type": "application/json; charset=utf-8", "cache-control": "no-store", "x-search-provider": "gdelt-doc-api" }
+      });
+    }
+  } catch {
+    // Never invent an answer when all live evidence providers fail.
+  }
+
   // Do not substitute encyclopedia pages for live evidence on time-sensitive queries.
   if (requiresLiveSearch(cleanQuery)) throw new Error("LIVE_SEARCH_FRESH_RESULTS_UNAVAILABLE");
 
