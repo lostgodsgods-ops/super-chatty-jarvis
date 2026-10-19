@@ -1133,7 +1133,7 @@ body{background:radial-gradient(ellipse at 50% 38%,#50330f45 0,transparent 35%),
       }, Math.max(0, delay));
     }
     async function startListening() {
-      if (!state.handsFree || !state.ownerToken || state.listening || state.recognition || state.recognitionStarting || state.chatBusy) return;
+      if (!state.handsFree || !state.ownerToken || state.listening || state.recognition || state.chatBusy || state.recognitionStarting) return;
       const Recognition = speechApi();
       if (!Recognition) { stopHandsFree("Speech recognition is unavailable."); return; }
       let recognition;
