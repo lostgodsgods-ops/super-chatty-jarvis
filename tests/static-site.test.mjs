@@ -414,3 +414,9 @@ test("live search has independent no-key news fallbacks after Tavily and DuckDuc
   assert.match(centralWorker, /x-search-provider.*google-news-rss|x-search-provider.*gdelt/i);
   assert.match(centralWorker, /LIVE_SEARCH_FRESH_RESULTS_UNAVAILABLE/);
 });
+
+test("live evidence search includes the Bing News RSS fallback", () => {
+  assert.match(centralWorker, /www\.bing\.com\/news\/search/);
+  assert.match(centralWorker, /name: "bing-news-rss"/);
+  assert.match(centralWorker, /x-search-provider.*provider\.name/);
+});
