@@ -99,7 +99,7 @@ function safeSearchEndpoint(endpoint) {
 async function fetchSearchProvider(provider, endpoint, options = {}) {
   const safeEndpoint = safeSearchEndpoint(endpoint);
   try {
-    const response = await fetchSearchProvider("tavily", endpoint, {
+    const response = await fetch(endpoint, {
       ...options,
       signal: AbortSignal.timeout(SEARCH_PROVIDER_TIMEOUT_MS)
     });
@@ -293,10 +293,10 @@ async function fetchTavilyWithRetry(query, env) {
   let response;
   for (let attempt = 0; attempt < 2; attempt++) {
     try {
-      response = await fetch(endpoint, {
+      response = await fetchSearchProvider("tavily", endpoint, {
         method: "POST",
         headers: { authorization: "Bearer " + env.SEARCH_API_KEY, "content-type": "application/json", accept: "application/json" },
-        body: JSON.stringify({ query: buildTavilyQuery(query) || query.slice(0, 400), search_depth: "basic", max_results: 5, include_answer: false, include_raw_content: false }),
+        body: JSON.stringify({ query: buildTavilyQuery(query) || query.slice(0, 400), search_depth: "basic", max_results: 5, include_answer: false, include_raw_content: false })
       });
     } catch (error) {
       return fetchDirectWebSearch(query, [{ provider: "tavily", status: error?.name === "TimeoutError" || error?.name === "AbortError" ? "timeout" : "network-error" }]);
