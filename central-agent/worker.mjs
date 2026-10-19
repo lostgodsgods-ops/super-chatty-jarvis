@@ -115,50 +115,54 @@ async function fetchDirectWebSearch(query) {
     // Continue to the structured no-key fallback below.
   }
 
-  // News-specific providers are used for queries that require freshness; keep the general knowledge fallback unchanged.
-  if (requiresLiveSearch(cleanQuery)) {
-  // Independent no-key fallback #2: Google News RSS. It returns source URLs and publication dates.
-  try {
-    const newsUrl = new URL("https://news.google.com/rss/search");
-    newsUrl.searchParams.set("q", cleanQuery);
-    newsUrl.searchParams.set("hl", "en-IN");
-    newsUrl.searchParams.set("gl", "IN");
-    newsUrl.searchParams.set("ceid", "IN:en");
-    const newsResponse = await fetch(newsUrl.toString(), {
-      headers: { accept: "application/rss+xml, application/xml, text/xml" },
-      signal: AbortSignal.timeout(7000)
-    });
-    if (newsResponse.ok) {
+  // Freshness-sensitive searches use independent news feeds before failing closed.
+  const newsProviders = [
+    { name: "bing-news-rss", endpoint: "https://www.bing.com/news/search" },
+    { name: "google-news-rss", endpoint: "https://news.google.com/rss/search" }
+  ];
+  for (const provider of newsProviders) {
+    try {
+      const newsUrl = new URL(provider.endpoint);
+      newsUrl.searchParams.set("q", cleanQuery);
+      if (provider.name === "bing-news-rss") {
+        newsUrl.searchParams.set("format", "rss");
+      } else {
+        newsUrl.searchParams.set("hl", "en-IN");
+        newsUrl.searchParams.set("gl", "IN");
+        newsUrl.searchParams.set("ceid", "IN:en");
+      }
+      const newsResponse = await fetch(newsUrl.toString(), {
+        headers: { accept: "application/rss+xml, application/xml, text/xml" },
+        signal: AbortSignal.timeout(7000)
+      });
+      if (!newsResponse.ok) continue;
       const xml = (await newsResponse.text()).slice(0, 1_000_000);
       const items = [...xml.matchAll(/<item\b[^>]*>([\s\S]*?)<\/item>/gi)].map(match => {
-        const block = match[1];
+        const itemXml = match[1];
         const field = (name) => {
-          const found = block.match(new RegExp("<" + name + "(?:\\s+[^>]*)?>([\\s\\S]*?)<\\/" + name + ">", "i"));
+          const found = itemXml.match(new RegExp("<" + name + "(?:\\s+[^>]*)?>([\\s\\S]*?)<\\/" + name + ">", "i"));
           if (!found) return "";
           return decodeHtmlEntities(found[1].replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g, "$1").replace(/<[^>]+>/g, " ")).trim();
         };
-        const publishedMatch = block.match(/pubDate>([^<]*)/i);
-        const publishedDate = publishedMatch
-          ? decodeHtmlEntities(publishedMatch[1]).trim()
-          : field("pubDate");
+        const dateMatch = itemXml.match(/pubDate>([^<]*)/i);
         return {
           title: field("title"),
           url: field("link"),
           content: field("description").slice(0, 1200),
-          published_date: publishedDate || null
+          published_date: dateMatch ? decodeHtmlEntities(dateMatch[1]).trim() : field("pubDate") || null
         };
       }).filter(item => item.title && item.url);
       const results = rankTavilyResults(cleanQuery, items);
       if (results.length) return new Response(JSON.stringify({ results }), {
         status: 200,
-        headers: { "content-type": "application/json; charset=utf-8", "cache-control": "no-store", "x-search-provider": "google-news-rss" }
+        headers: { "content-type": "application/json; charset=utf-8", "cache-control": "no-store", "x-search-provider": provider.name }
       });
+    } catch {
+      // Try the next independent provider.
     }
-  } catch {
-    // Continue to GDELT if Google News is blocked or its response changes.
   }
 
-  // Independent no-key fallback #3: GDELT article search, scoped to the last 90 days.
+  // Independent no-key fallback #4: GDELT article search, scoped to the last 90 days.
   try {
     const now = new Date();
     const endDate = now.toISOString().replace(/[-:TZ.]/g, "").slice(0, 14);
@@ -807,7 +811,7 @@ export default {
           workersAIConfigured: Boolean(env.AI),
           tavilySearchConfigured: Boolean(env.SEARCH_API_KEY),
           directWebSearchFallback: true,
-          liveSearchProviderChain: ["tavily", "duckduckgo-html", "google-news-rss", "gdelt-doc-api"],
+          liveSearchProviderChain: ["tavily", "duckduckgo-html", "bing-news-rss", "google-news-rss", "gdelt-doc-api"],
           searchProviderReachabilityChecked: false,
           searchHealthMode: "configuration-only; a query is required to verify provider reachability",
           gatewaySearchConfigured: Boolean(env.SEARCH_BRIDGE_TOKEN),
