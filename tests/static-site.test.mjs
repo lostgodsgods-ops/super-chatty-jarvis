@@ -8,6 +8,7 @@ const jarvisHtml = await readFile(new URL("../jarvis/index.html", import.meta.ur
 const serviceWorker = await readFile(new URL("../jarvis/sw.js", import.meta.url), "utf8");
 const manifest = JSON.parse(await readFile(new URL("../jarvis/manifest.webmanifest", import.meta.url), "utf8"));
 const centralWorker = await readFile(new URL("../central-agent/worker.mjs", import.meta.url), "utf8");
+const centralDeployWorkflow = await readFile(new URL("../.github/workflows/deploy-central-agent.yml", import.meta.url), "utf8");
 const capabilityIngestionSource = await readFile(new URL("../central-agent/architecture/capability-ingestion.mjs", import.meta.url), "utf8");
 const readme = await readFile(new URL("../README_HI.txt", import.meta.url), "utf8");
 const agentBrief = await readFile(new URL("../AI_AGENT_PROMPT.md", import.meta.url), "utf8");
@@ -431,4 +432,14 @@ test("PWA /api/chat reports safe live-search provider diagnostics instead of hid
   assert.match(route, /providers:\s*diagnostics/);
   assert.match(route, /No stale-model fallback was used/);
   assert.doesNotMatch(route, /SEARCH_API_KEY|SEARCH_BRIDGE_TOKEN|authorization:\s*["']/);
+});
+
+
+test("Central Agent deployment rejects stale live-search health contracts and prints provider diagnostics", () => {
+  assert.match(centralDeployWorkflow, /liveSearchProviderChain/);
+  assert.match(centralDeployWorkflow, /bing-news-rss/);
+  assert.match(centralDeployWorkflow, /google-news-rss/);
+  assert.match(centralDeployWorkflow, /gdelt-doc-api/);
+  assert.match(centralDeployWorkflow, /diagnosticContractPresent/);
+  assert.match(centralDeployWorkflow, /latest Central Agent Worker version is deployed/);
 });

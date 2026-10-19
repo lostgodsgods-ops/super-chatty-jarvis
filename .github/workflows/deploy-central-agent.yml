@@ -145,7 +145,23 @@ jobs:
           trap 'rm -f "$tmp"' EXIT
           code="$(curl --silent --show-error --max-time 15 --output "$tmp" --write-out '%{http_code}' "$CENTRAL_AGENT_URL/health")"
           test "$code" = "200" || { echo "::error::Central Agent health failed with HTTP $code"; exit 1; }
-          node -e 'const fs=require("node:fs"); const x=JSON.parse(fs.readFileSync(process.argv[1],"utf8")); if(x.ok!==true||x.capabilities?.directWebSearchFallback!==true||x.capabilities?.gatewaySearchConfigured!==true) throw Error("Central live-search fallback or gateway is not configured"); console.log(JSON.stringify({ok:x.ok,directWebSearchFallback:x.capabilities.directWebSearchFallback,tavilySearchConfigured:x.capabilities.tavilySearchConfigured,gatewaySearchConfigured:x.capabilities.gatewaySearchConfigured}));' "$tmp"
+          node - "$tmp" <<'NODE'
+          const fs=require("node:fs");
+          const x=JSON.parse(fs.readFileSync(process.argv[2],"utf8"));
+          const expected=["tavily","duckduckgo-html","bing-news-rss","google-news-rss","gdelt-doc-api"];
+          const chain=x.capabilities?.liveSearchProviderChain;
+          if(x.ok!==true||x.capabilities?.directWebSearchFallback!==true||x.capabilities?.gatewaySearchConfigured!==true||
+             !Array.isArray(chain)||!expected.every(p=>chain.includes(p))||
+             x.capabilities?.searchProviderReachabilityChecked!==false) {
+            throw new Error("Deployed Worker is missing the multi-provider live-search contract; deployment may be stale.");
+          }
+          console.log(JSON.stringify({
+            ok:x.ok,
+            configured:{tavilySearchConfigured:x.capabilities.tavilySearchConfigured,gatewaySearchConfigured:x.capabilities.gatewaySearchConfigured},
+            liveSearchProviderChain:chain,
+            reachability:"configuration-only; authenticated query smoke test required"
+          }));
+          NODE
 
       - name: Initialize owner password when needed
         shell: bash
@@ -193,7 +209,24 @@ jobs:
           node -e 'process.stdout.write(JSON.stringify({message:"What is the latest news about NASA Artemis today?",language:"en-US"}))' > "$tmp/chat-request.json"
           chat_code="$(curl --silent --show-error --max-time 35 -H "Authorization: Bearer $token" -H 'content-type: application/json' \
             --data-binary "@$tmp/chat-request.json" -o "$tmp/chat-response.json" -w '%{http_code}' "$CENTRAL_AGENT_URL/api/chat")"
-          test "$chat_code" = "200" || { echo "::error::Authenticated live-search chat failed: HTTP $chat_code"; cat "$tmp/chat-response.json"; exit 1; }
+          if [ "$chat_code" != "200" ]; then
+            echo "::error::Authenticated live-search chat failed: HTTP $chat_code"
+            node - "$tmp/chat-response.json" <<'NODE'
+          const fs=require("node:fs");
+          let x={};
+          try { x=JSON.parse(fs.readFileSync(process.argv[2],"utf8")); } catch {}
+          console.error(JSON.stringify({
+            code:x.code || "UNKNOWN_ERROR",
+            error:x.error || "No error message returned",
+            providers:Array.isArray(x.providers)?x.providers:[],
+            diagnosticContractPresent:Array.isArray(x.providers)
+          }));
+          if(!Array.isArray(x.providers)) {
+            console.error("Live-search failure response omitted provider diagnostics; verify that the latest Central Agent Worker version is deployed.");
+          }
+          NODE
+            exit 1
+          fi
           node - "$tmp/chat-response.json" <<'NODE'
           const fs=require("node:fs");
           const x=JSON.parse(fs.readFileSync(process.argv[2],"utf8"));
