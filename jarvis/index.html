@@ -125,9 +125,25 @@ body{background:radial-gradient(ellipse at 50% 38%,#50330f45 0,transparent 35%),
 
 .red-queen-panel{grid-column:1/-1}.red-queen-priority{display:flex;flex-direction:column;gap:4px;margin:0 0 12px;color:var(--muted);font-size:12px}.red-queen-priority strong{color:var(--gold);letter-spacing:.08em;font-size:12px}.red-queen-meta{font-size:11px;color:var(--muted);margin:8px 0 12px}.red-queen-modules{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:9px}.red-queen-module{border:1px solid #ffce7830;border-radius:12px;padding:11px;background:#00000020;min-width:0}.red-queen-module strong,.red-queen-module span{display:block;overflow-wrap:anywhere}.red-queen-module strong{font-size:11px;color:var(--text);margin-bottom:5px}.red-queen-module span{font-size:10px;color:var(--muted)}.red-queen-note{font-size:10px;line-height:1.5;color:var(--muted);margin:12px 0 0}
 .pwa-update-btn{min-height:34px;padding:7px 10px;font-size:10px;letter-spacing:.04em;white-space:nowrap}.pwa-update-btn[aria-busy="true"]{opacity:.75}@media(max-width:560px){.topbar{align-items:flex-start;flex-wrap:wrap}.topbar .telemetry{width:100%;justify-content:flex-start}.pwa-update-btn{flex:1;min-width:150px}}
+
+/* REDULTRON authenticated-first gate: hide all private modules until server verification. */
+body.auth-locked .shell{padding-top:max(18px,env(safe-area-inset-top));}
+body.auth-locked .shell> :not(.dashboard-grid){display:none!important}
+body.auth-locked .dashboard-grid{display:block!important;grid-template-columns:1fr!important}
+body.auth-locked .dashboard-grid>section{display:none!important}
+body.auth-locked .dashboard-grid>section[aria-labelledby="ownerTitle"]{display:block!important;max-width:560px;margin:10vh auto 0}
+body.auth-locked #ownerTitle::after{content:" · ACCESS GATE";color:var(--cyan);font-size:.75em}
+body.auth-locked #ownerSessionStatus{font-weight:700}
+#runtimeDiagnostics{grid-column:1/-1}
+#runtimeDiagnostics .diag-list{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:9px}
+#runtimeDiagnostics .diag-row{padding:10px;border:1px solid var(--line);border-radius:10px;background:rgba(2,10,18,.62);overflow-wrap:anywhere}
+#runtimeDiagnostics .diag-row strong{display:block;font-size:.83rem}
+#runtimeDiagnostics .diag-row span{display:block;margin-top:4px;color:var(--muted);font-size:.78rem}
+#runtimeDiagnostics .diag-pass{color:var(--green)}#runtimeDiagnostics .diag-fail{color:var(--red)}#runtimeDiagnostics .diag-warn{color:var(--amber)}
+
 </style>
 </head>
-<body>
+<body class="auth-locked">
   <canvas id="particleMesh" aria-hidden="true"></canvas>
   <section class="install-banner" id="installBanner" role="region" aria-label="Install REDULTRON CORE 2.0">
     <div class="install-copy">
@@ -1721,5 +1737,6 @@ body{background:radial-gradient(ellipse at 50% 38%,#50330f45 0,transparent 35%),
     resumeOwnerSession();
   })();
   </script>
+<script src="./diagnostics.js" defer></script>
 </body>
 </html>
