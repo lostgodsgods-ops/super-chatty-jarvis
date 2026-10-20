@@ -100,7 +100,7 @@ jobs:
 
           code="$(curl --silent --show-error --max-time 15 -o "$tmp/health.json" -w '%{http_code}' "$PWA_URL/health")"
           test "$code" = "200" || { echo "::error::/health returned HTTP $code"; exit 1; }
-          node -e 'const h=require(process.argv[1]); if(h.ok!==true) throw Error("Worker health is not ok");' "$tmp/health.json"
+          node -e 'const h=require(process.argv[1]); if(h.ok!==true) throw Error("Worker health is not ok"); if(h.capabilities?.boundedAgentExecutionConfigured!==true) throw Error("Bounded agent execution dependencies are not configured");' "$tmp/health.json"
 
           echo "PWA asset routing PASS: root HTML, JavaScript MIME on both sw.js paths, manifest, and health verified."
 
@@ -451,6 +451,34 @@ jobs:
           const after=JSON.parse(fs.readFileSync(process.argv[3],"utf8"));
           if(before.revision!==after.revision||before.ledger.balanceMinor!==after.ledger.balanceMinor) throw new Error("Rejected live-payment attempt changed the simulation ledger.");
           console.log(JSON.stringify({financeLedgerReadback:"PASS",rejectedPaymentMutation:"NONE"}));
+          NODE
+
+          # Verify the actual bounded agent runner, not just its registry or deployment.
+          node -e 'process.stdout.write(JSON.stringify({role:"testing",input:"Verify the owner-authenticated bounded agent execution path. Return a small test plan."}))' > "$tmp/agent-run-request.json"
+          unauth_agent_code="$(curl --silent --show-error --max-time 20 -H 'content-type: application/json' --data-binary "@$tmp/agent-run-request.json" -o "$tmp/agent-unauth.json" -w '%{http_code}' -X POST "$CENTRAL_AGENT_URL/agents")"
+          test "$unauth_agent_code" = "401" || { echo "::error::Unauthenticated /agents request must be denied, got HTTP $unauth_agent_code"; exit 1; }
+
+          agent_code="$(curl --silent --show-error --max-time 35 -H "Authorization: Bearer $token" -H 'content-type: application/json' --data-binary "@$tmp/agent-run-request.json" -o "$tmp/agent-run-response.json" -w '%{http_code}' -X POST "$CENTRAL_AGENT_URL/agents")"
+          test "$agent_code" = "200" || { echo "::error::Authenticated bounded agent execution failed: HTTP $agent_code"; cat "$tmp/agent-run-response.json"; exit 1; }
+          node - "$tmp/agent-run-response.json" <<'NODE'
+          const fs=require("node:fs");
+          const x=JSON.parse(fs.readFileSync(process.argv[2],"utf8"));
+          const run=x.outcomes?.[0];
+          if(x.ok!==true||run?.ok!==true||run.role!=="testing"||run.status!=="completed"||!run.result||run.result.notExecuted!==true) {
+            throw new Error("Authenticated bounded agent runner did not complete with the expected safe result.");
+          }
+          console.log(JSON.stringify({ownerAuthEnforced:"PASS",boundedAgentExecution:"PASS",role:run.role,status:run.status,externalSideEffects:"NOT_EXECUTED"}));
+          NODE
+
+          agent_registry_code="$(curl --silent --show-error --max-time 20 -H "Authorization: Bearer $token" -o "$tmp/agent-registry.json" -w '%{http_code}' "$CENTRAL_AGENT_URL/agents?limit=1")"
+          test "$agent_registry_code" = "200" || { echo "::error::Agent run audit readback failed: HTTP $agent_registry_code"; exit 1; }
+          node - "$tmp/agent-registry.json" <<'NODE'
+          const fs=require("node:fs");
+          const x=JSON.parse(fs.readFileSync(process.argv[2],"utf8"));
+          if(x.ok!==true||!Array.isArray(x.recentRuns)||!x.recentRuns.some(run=>run.role==="testing"&&run.status==="completed")) {
+            throw new Error("Agent run did not appear in the persisted audit readback.");
+          }
+          console.log(JSON.stringify({agentRunAuditReadback:"PASS"}));
           NODE
 
           red_queen_code="$(curl --silent --show-error --max-time 20 -H "Authorization: Bearer $token" -o "$tmp/red-queen-status.json" -w '%{http_code}' "$CENTRAL_AGENT_URL/api/red-queen/status")"
