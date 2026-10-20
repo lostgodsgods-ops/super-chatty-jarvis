@@ -895,6 +895,8 @@ export default {
           ownerAuthentication: passwordConfigured,
           policyEndpoint: true,
           durableTaskQueue: Boolean(env.DB && typeof env.DB.prepare === "function" && typeof env.DB.batch === "function"),
+          // Configuration availability is distinct from autonomous child-agent execution.
+          boundedAgentExecutionConfigured: Boolean(env.DB && typeof env.DB.batch === "function" && env.AI && typeof env.AI.run === "function"),
           childAgentExecution: false,
           externalToolExecution: false,
           selfGrantedPermissions: false,
