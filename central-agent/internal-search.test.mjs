@@ -1,13 +1,55 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import worker, { fetchSearchProvider, SEARCH_PROVIDER_TIMEOUT_MS, parseDuckDuckGoHtml } from "./worker.mjs";
+import worker, { buildSystemDateContext, fetchSearchProvider, SEARCH_PROVIDER_TIMEOUT_MS, parseDuckDuckGoHtml } from "./worker.mjs";
+
+test("runtime date context uses the supplied clock and India timezone", () => {
+  const context = buildSystemDateContext(new Date("2026-10-20T08:00:00.000Z"));
+  assert.match(context, /2026-10-20/);
+  assert.match(context, /2026/);
+  assert.match(context, /Asia\/Kolkata/);
+  assert.doesNotMatch(context, /current date is 2023/i);
+});
+
+test("open-source SearXNG is used before any configured Tavily key", async () => {
+  const originalFetch = globalThis.fetch;
+  const requested = [];
+  globalThis.fetch = async (url, options = {}) => {
+    requested.push({ url: String(url), options });
+    assert.match(String(url), /^https:\/\/search\.example\/search\?/);
+    assert.equal(String(url).includes("format=json"), true);
+    assert.equal(options.headers?.authorization, undefined);
+    return new Response(JSON.stringify({ results: [
+      { title: "Current official source", url: "https://example.com/current", content: "Evidence from the open-source metasearch result.", publishedDate: "2026-10-20", score: 0.99 }
+    ] }), { status: 200, headers: { "content-type": "application/json" } });
+  };
+  try {
+    const response = await worker.fetch(new Request("https://agent.example/internal/search", {
+      method: "POST",
+      headers: { "content-type": "application/json", authorization: "Bearer correct-token" },
+      body: JSON.stringify({ query: "latest official current source" })
+    }), {
+      SEARCH_BRIDGE_TOKEN: "correct-token",
+      SEARXNG_BASE_URL: "https://search.example",
+      TAVILY_API_KEY: "must-not-be-used",
+      AI: { run: async () => ({ response: "The source provides current evidence." }) }
+    });
+    const body = await response.json();
+    assert.equal(response.status, 200, JSON.stringify(body));
+    assert.equal(body.provider, "searxng");
+    assert.equal(body.core.searchProvider, "searxng");
+    assert.equal(body.sources.length, 1);
+    assert.equal(body.sources[0].publishedDate, "2026-10-20");
+    assert.equal(requested.length, 1);
+    assert.equal(JSON.stringify(body).includes("must-not-be-used"), false);
+  } finally { globalThis.fetch = originalFetch; }
+});
 
 test("internal Tavily search rejects missing or incorrect gateway tokens", async () => {
   const response = await worker.fetch(new Request("https://agent.example/internal/search", {
     method: "POST",
     headers: { "content-type": "application/json", authorization: "Bearer wrong-token" },
     body: JSON.stringify({ query: "Cloudflare Workers" })
-  }), { SEARCH_BRIDGE_TOKEN: "correct-token", SEARCH_API_KEY: "test-tavily-key" });
+  }), { SEARCH_BRIDGE_TOKEN: "correct-token", SEARCH_PROVIDER_MODE: "tavily", SEARCH_API_KEY: "test-tavily-key" });
   assert.equal(response.status, 401);
   assert.deepEqual(await response.json(), { error: "Unauthorized" });
 });
@@ -34,7 +76,7 @@ test("internal Tavily search uses the server-side key, returns real source shape
       body: JSON.stringify({ query: "Cloudflare Workers documentation", language: "en-IN" })
     }), {
       SEARCH_BRIDGE_TOKEN: "correct-token",
-      SEARCH_API_KEY: "test-tavily-key",
+      SEARCH_PROVIDER_MODE: "tavily", SEARCH_API_KEY: "test-tavily-key",
       AI: {
         run: async (model, input) => {
           aiCalls++;
@@ -166,7 +208,7 @@ test("Tavily HTTP 432 falls back to direct web search without retrying the quota
       method: "POST",
       headers: { "content-type": "application/json", authorization: "Bearer correct-token" },
       body: JSON.stringify({ query: "Cloudflare Workers health checks" })
-    }), { SEARCH_BRIDGE_TOKEN: "correct-token", SEARCH_API_KEY: "test-tavily-key", AI: { run: async () => ({ response: "Official Cloudflare Workers docs cover health checks." }) } });
+    }), { SEARCH_BRIDGE_TOKEN: "correct-token", SEARCH_PROVIDER_MODE: "tavily", SEARCH_API_KEY: "test-tavily-key", AI: { run: async () => ({ response: "Official Cloudflare Workers docs cover health checks." }) } });
     const body = await response.json();
     assert.equal(response.status, 200, JSON.stringify(body));
     assert.equal(body.provider, "duckduckgo-html");
@@ -182,7 +224,7 @@ test("Tavily HTTP 432 falls back to direct web search without retrying the quota
 test("health reports gateway search and durable queue readiness without exposing secrets", async () => {
   const response = await worker.fetch(new Request("https://agent.example/health"), {
     SEARCH_BRIDGE_TOKEN: "gateway-test-token",
-    SEARCH_API_KEY: "private-tavily-key",
+    SEARCH_PROVIDER_MODE: "tavily", SEARCH_API_KEY: "private-tavily-key",
     AI: {},
     DB: { prepare: () => ({}), batch: async () => [] }
   });
@@ -288,7 +330,7 @@ test("legacy /search route also supports the scoped bridge token and preserves o
       body: JSON.stringify({ query: "Cloudflare Workers", language: "en-IN" })
     }), {
       SEARCH_BRIDGE_TOKEN: "bridge-token",
-      SEARCH_API_KEY: "test-tavily-key",
+      SEARCH_PROVIDER_MODE: "tavily", SEARCH_API_KEY: "test-tavily-key",
       AI: { run: async () => ({ response: "Cloudflare Workers docs are available." }) }
     });
     const body = await response.json();
@@ -309,7 +351,7 @@ test("legacy /search route rejects requests without owner session or bridge toke
     body: JSON.stringify({ query: "Cloudflare Workers" })
   }), {
     SEARCH_BRIDGE_TOKEN: "bridge-token",
-    SEARCH_API_KEY: "test-tavily-key",
+    SEARCH_PROVIDER_MODE: "tavily", SEARCH_API_KEY: "test-tavily-key",
     DB: { prepare: () => ({ first: async () => null }) },
     SESSIONS: { get: async () => null }
   });
@@ -337,10 +379,10 @@ test("active /chat and /internal/chat routes search Tavily before AI for current
         body: JSON.stringify({ message: "What is the latest 2026 update?", language: "en-IN" })
       }), {
         SEARCH_BRIDGE_TOKEN: "correct-token",
-        SEARCH_API_KEY: "test-tavily-key",
+        SEARCH_PROVIDER_MODE: "tavily", SEARCH_API_KEY: "test-tavily-key",
         AI: { run: async (_model, input) => {
           sequence.push("ai");
-          assert.match(input.messages[0].content, /current year is 2026/);
+          assert.match(input.messages[0].content, /Authoritative runtime date: 2026-10-20/);
           assert.match(input.messages[1].content, /Verified source text/);
           return { response: "The source reports a 2026 update." };
         } }
@@ -462,7 +504,7 @@ test("search gateway returns sanitized provider diagnostics when every live sear
       body: JSON.stringify({ query: "What is the latest news today?", language: "en-IN" })
     }), {
       SEARCH_BRIDGE_TOKEN: "correct-token",
-      SEARCH_API_KEY: "test-tavily-key",
+      SEARCH_PROVIDER_MODE: "tavily", SEARCH_API_KEY: "test-tavily-key",
       AI: { run: async () => ({ response: "This should not run." }) }
     });
     const body = await response.json();
@@ -557,7 +599,7 @@ test("TAVILY_API_KEY alias is bound and used without exposing the key", async ()
       method: "POST",
       headers: { "content-type": "application/json", authorization: "Bearer correct-token" },
       body: JSON.stringify({ query: "latest 2026 official update" })
-    }), { SEARCH_BRIDGE_TOKEN: "correct-token", TAVILY_API_KEY: "alias-test-secret" });
+    }), { SEARCH_BRIDGE_TOKEN: "correct-token", SEARCH_PROVIDER_MODE: "tavily", TAVILY_API_KEY: "alias-test-secret" });
     assert.equal(response.status, 200);
     assert.equal(authorization, "Bearer alias-test-secret");
     const body = await response.json();
@@ -576,7 +618,7 @@ test("all-provider network failures return structured per-provider diagnostics",
       method: "POST",
       headers: { "content-type": "application/json", authorization: "Bearer correct-token" },
       body: JSON.stringify({ query: "latest 2026 official update" })
-    }), { SEARCH_BRIDGE_TOKEN: "correct-token", SEARCH_API_KEY: "test-key" });
+    }), { SEARCH_BRIDGE_TOKEN: "correct-token", SEARCH_PROVIDER_MODE: "tavily", SEARCH_API_KEY: "test-key" });
     assert.equal(response.status, 502);
     const body = await response.json();
     assert.equal(body.code, "LIVE_SEARCH_ALL_PROVIDERS_FAILED");
@@ -609,8 +651,7 @@ test("explicit TAVILY_API_KEY takes precedence over a stale legacy SEARCH_API_KE
       body: JSON.stringify({ query: "latest 2026 official update" })
     }), {
       SEARCH_BRIDGE_TOKEN: "correct-token",
-      SEARCH_API_KEY: "legacy-exhausted-key",
-      TAVILY_API_KEY: "current-tavily-key"
+      SEARCH_PROVIDER_MODE: "tavily", SEARCH_API_KEY: "legacy-exhausted-key", TAVILY_API_KEY: "current-tavily-key"
     });
     assert.equal(response.status, 200);
     assert.equal(authorization, "Bearer current-tavily-key");
