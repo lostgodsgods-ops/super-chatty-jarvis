@@ -952,15 +952,29 @@ export default {
     if (url.pathname === "/health" && request.method === "GET") {
       let passwordConfigured = false;
       try { passwordConfigured = Boolean(await getCredentials(env)); } catch {}
+      const tavilySearchConfigured = Boolean(
+        (typeof env.SEARCH_API_KEY === "string" && env.SEARCH_API_KEY.trim()) ||
+        (typeof env.TAVILY_API_KEY === "string" && env.TAVILY_API_KEY.trim())
+      );
+      const tavilySearchEnabled = env.SEARCH_PROVIDER_MODE === "tavily" && tavilySearchConfigured;
+      const searxngSearchConfigured = typeof env.SEARXNG_BASE_URL === "string" && env.SEARXNG_BASE_URL.trim().length > 0;
+      const liveSearchProviderChain = tavilySearchEnabled
+        ? ["tavily", "duckduckgo-html", "bing-news-rss", "google-news-rss", "gdelt-doc-api"]
+        : searxngSearchConfigured
+          ? ["searxng", "duckduckgo-html", "bing-news-rss", "google-news-rss", "gdelt-doc-api", "wikipedia-api"]
+          : ["duckduckgo-html", "bing-news-rss", "google-news-rss", "gdelt-doc-api", "wikipedia-api"];
       return json({
         ok: true,
         service: "super-chatty-central-agent",
         version: VERSION,
         capabilities: {
           workersAIConfigured: Boolean(env.AI),
-          tavilySearchConfigured: Boolean((typeof env.SEARCH_API_KEY === "string" && env.SEARCH_API_KEY.trim()) || (typeof env.TAVILY_API_KEY === "string" && env.TAVILY_API_KEY.trim())),
+          tavilySearchConfigured,
+          tavilySearchEnabled,
+          searxngSearchConfigured,
+          searchProviderMode: tavilySearchEnabled ? "legacy-tavily-opt-in" : "open-source-first",
           directWebSearchFallback: true,
-          liveSearchProviderChain: ["tavily", "duckduckgo-html", "bing-news-rss", "google-news-rss", "gdelt-doc-api"],
+          liveSearchProviderChain,
           searchProviderReachabilityChecked: false,
           searchHealthMode: "configuration-only; a query is required to verify provider reachability",
           gatewaySearchConfigured: Boolean(env.SEARCH_BRIDGE_TOKEN),
