@@ -1,3 +1,4 @@
+import { buildRedQueenStatus } from "./red-queen-registry.mjs";
 import test from "node:test";
 import assert from "node:assert/strict";
 import { buildAccessReadiness } from "./access-readiness.mjs";
@@ -53,4 +54,12 @@ test("credential presence alone does not claim broad phone or physical access", 
   });
   assert.equal(report.deviceControl.status, "NOT_GRANTED");
   assert.equal(report.physicalActuation.status, "DISABLED");
+});
+
+test("owner status projection includes the read-only access readiness report", () => {
+  const status = buildRedQueenStatus({ DB: {}, SESSIONS: {}, TAVILY_API_KEY: "private-value" });
+  assert.equal(status.accessReadiness.services.find(item => item.id === "owner-data").status, "CONFIGURED");
+  assert.equal(status.accessReadiness.services.find(item => item.id === "web-research").status, "CONFIGURED");
+  assert.equal(JSON.stringify(status.accessReadiness).includes("private-value"), false);
+  assert.equal(status.accessReadiness.deviceControl.status, "NOT_GRANTED");
 });
