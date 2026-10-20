@@ -120,3 +120,40 @@ test("unavailable configured backup model does not turn quota exhaustion into a 
   assert.equal(db.state.audits.length, 1);
   assert.equal(db.state.memories.length, 1);
 });
+
+
+test("global scraper prefers TAVILY_API_KEY and falls back to SEARCH_API_KEY", async (t) => {
+  const db = dbMock();
+  const originalFetch = globalThis.fetch;
+  t.after(() => { globalThis.fetch = originalFetch; });
+  const calls = [];
+  globalThis.fetch = async (url, options) => {
+    calls.push({ url: String(url), authorization: options.headers.authorization, body: JSON.parse(options.body) });
+    return new Response(JSON.stringify({ results: [
+      { title: "Test source", url: "https://example.com/source", content: "Evidence snippet", published_date: "2026-10-20" }
+    ] }), { status: 200, headers: { "content-type": "application/json" } });
+  };
+  const preferred = await spawnAgents({
+    DB: db,
+    TAVILY_API_KEY: "new-key",
+    SEARCH_API_KEY: "legacy-key"
+  }, { role: "global_scraper", input: "latest verified test query" });
+  assert.equal(preferred.ok, true);
+  assert.equal(calls[0].authorization, "Bearer new-key");
+  assert.equal(calls[0].body.query, "latest verified test query");
+  assert.equal(preferred.outcomes[0].result.sourceCount, 1);
+
+  const fallback = await spawnAgents({
+    DB: db,
+    SEARCH_API_KEY: "legacy-key"
+  }, { role: "global_scraper", input: "legacy compatibility test" });
+  assert.equal(fallback.ok, true);
+  assert.equal(calls[1].authorization, "Bearer legacy-key");
+});
+
+test("global scraper fails closed when neither Tavily key binding exists", async () => {
+  const db = dbMock();
+  const result = await spawnAgents({ DB: db }, { role: "global_scraper", input: "search without credentials" });
+  assert.equal(result.ok, false);
+  assert.equal(result.outcomes[0].error, "SEARCH_PROVIDER_UNAVAILABLE");
+});
