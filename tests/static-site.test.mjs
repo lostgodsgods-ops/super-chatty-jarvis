@@ -336,7 +336,7 @@ test("PWA event counter increments numeric state and never reads an undefined DO
 });
 
 
-test("owner chat performs Tavily live search for current questions and exposes capability boundaries", () => {
+test("owner chat uses open-source live search by default and exposes capability boundaries", () => {
   const apiChatStart = centralWorker.indexOf('if (url.pathname === "/api/chat" && request.method === "POST")');
   const recoveryStart = centralWorker.indexOf('if (url.pathname === "/auth/recovery/codes" && request.method === "POST")', apiChatStart);
   assert.ok(apiChatStart >= 0 && recoveryStart > apiChatStart, "owner chat route should exist");
@@ -345,7 +345,7 @@ test("owner chat performs Tavily live search for current questions and exposes c
   assert.match(apiChat, /fetchTavilyWithRetry\(searchQuery, env\)/);
   assert.match(apiChat, /rankTavilyResults\(searchQuery/);
   assert.match(centralWorker, /directWebSearchFallback/);
-  assert.match(apiChat, /direct DuckDuckGo HTML search/);
+  assert.match(apiChat, /configured open-source SearXNG first/);
   assert.match(apiChat, /No stale-model fallback was used/);
   assert.match(apiChat, /WebAuthn passkey registration and assertion verification/);
   assert.match(apiChat, /speech barge-in cancels speech synthesis/);
