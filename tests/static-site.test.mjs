@@ -108,12 +108,12 @@ test("NEXUS agent HUD is live-wired to the production SSE event bus", () => {
 
 
 test("installed PWA force-updates stale shells and revalidates HTML assets", () => {
-  assert.match(serviceWorker, /CACHE_NAME\s*=\s*"super-chatty-jarvis-shell-v11-live-search-budget-fix"/, "shell cache must be version-bumped for the install UX release");
+  assert.match(serviceWorker, /CACHE_NAME\s*=\s*"redultron-core-shell-v12-cognitive-core"/, "shell cache must be version-bumped for the install UX release");
   assert.match(serviceWorker, /self\.skipWaiting\(\)/, "new worker must activate without waiting for an old tab to close");
   assert.match(serviceWorker, /self\.clients\.claim\(\)/, "new worker must claim open PWA clients");
   assert.match(serviceWorker, /key !== CACHE_NAME.*caches\.delete\(key\)/s, "activation must delete older Super Chatty shell caches");
   assert.match(serviceWorker, /new Request\(request,\s*\{\s*cache:\s*"no-store"\s*\}\)/, "navigation must bypass stale browser HTTP cache");
-  assert.match(jarvisHtml, /application-version" content="NEXUS-2026\.10\.19-LIVE-SEARCH-BUDGET-PWA-V11"/, "frontend version must be bumped");
+  assert.match(jarvisHtml, /application-version" content="REDULTRON-2026\.10\.20-COGNITIVE-CORE-V12"/, "frontend version must be bumped");
   assert.match(jarvisHtml, /registration\.update\(\)/, "PWA must check for worker updates");
   assert.match(jarvisHtml, /controllerchange/, "active sessions must detect the new worker controller");
   assert.match(jarvisHtml, /location\.reload\(\)/, "active sessions must reload after a worker update");
@@ -447,7 +447,7 @@ test("Central Agent deployment rejects stale live-search health contracts and pr
 
 test("REDULTRON CORE 2.0 is the canonical app identity with preferred male voice selection", () => {
   assert.match(jarvisHtml, /REDULTRON CORE 2\.0/, "the primary interface must use the new core identity");
-  assert.match(jarvisHtml, /name="REDULTRON CORE 2\.0"/, "the installable app name must use the new identity");
+  assert.equal(manifest.name, "REDULTRON CORE 2.0", "the installable app name must use the new identity");
   assert.match(jarvisHtml, /function selectPreferredMaleVoice\(/, "voice selection must prefer available male-sounding Hindi/Indian English voices");
   assert.match(jarvisHtml, /voiceschanged/, "voice selection must refresh when the device voice catalog loads");
   assert.match(jarvisHtml, /COGNITIVE CORE/, "the interface must expose cognitive-core framing");
