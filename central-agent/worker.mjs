@@ -794,7 +794,7 @@ document.getElementById("logoutButton").addEventListener("click",async()=>{try{i
 document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="hidden")lockOwnerPage("App backgrounded or screen locked. Sign in again.");});
 window.addEventListener("pagehide",()=>lockOwnerPage("Page hidden or closed. Sign in again."));
 document.addEventListener("freeze",()=>lockOwnerPage("Page frozen. Sign in again."));
-function lockOwnerPage(message){const token=ownerSessionToken;ownerSessionToken="";try{if(token)fetch("/auth/logout",{method:"POST",headers:{authorization:"Bearer "+token},credentials:"include",cache:"no-store",keepalive:true}).catch(()=>{});}catch{}document.getElementById("settings").classList.add("hidden");loginSection.classList.remove("hidden");say(message);}
+function lockOwnerPage(message){ownerSessionToken="";document.getElementById("settings").classList.add("hidden");loginSection.classList.remove("hidden");say(message);}
 
 </script></body></html>`;
   return new Response(html, {
