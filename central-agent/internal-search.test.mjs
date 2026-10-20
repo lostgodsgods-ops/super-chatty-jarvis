@@ -30,7 +30,7 @@ test("open-source SearXNG is used before any configured Tavily key", async () =>
     }), {
       SEARCH_BRIDGE_TOKEN: "correct-token",
       SEARXNG_BASE_URL: "https://search.example",
-      SEARCH_PROVIDER_MODE: "tavily", TAVILY_API_KEY: "must-not-be-used",
+      TAVILY_API_KEY: "must-not-be-used",
       AI: { run: async () => ({ response: "The source provides current evidence." }) }
     });
     const body = await response.json();
