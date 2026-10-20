@@ -1150,17 +1150,17 @@ body{background:radial-gradient(ellipse at 50% 38%,#50330f45 0,transparent 35%),
         const lang = String(voice.lang || "").toLowerCase();
         const name = String(voice.name || "");
         let score = 0;
-        if (lang === language) score += 80;
-        else if (language.startsWith("hi") && lang.startsWith("hi")) score += 70;
-        else if (language.startsWith("en-in") && lang === "en-in") score += 75;
-        else if (language.startsWith("en") && lang.startsWith("en")) score += 35;
-        if (maleHints.test(name)) score += 35;
-        if (femaleHints.test(name)) score -= 60;
+        if (lang === language) score += 45;
+        else if (language.startsWith("hi") && lang.startsWith("hi")) score += 40;
+        else if (language.startsWith("en-in") && lang === "en-in") score += 45;
+        else if (language.startsWith("en") && lang.startsWith("en")) score += 25;
+        if (maleHints.test(name)) score += 60;
+        if (femaleHints.test(name)) score -= 80;
         if (voice.default) score += 2;
         return { voice, score };
       }).sort((a, b) => b.score - a.score);
       const best = scored[0];
-      if (!best || best.score < 20) {
+      if (!best || best.score < 55) {
         if (els.voiceProfileState) els.voiceProfileState.textContent = "VOICE PROFILE · DEVICE DEFAULT (NO RELIABLE MALE VOICE MATCH)";
         return null;
       }
