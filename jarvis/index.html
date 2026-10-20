@@ -471,9 +471,15 @@ body{background:radial-gradient(ellipse at 50% 38%,#50330f45 0,transparent 35%),
       const payload = await response.json().catch(() => ({}));
       if (response.status === 401) {
         clearOwnerSession("Session expired or rejected. Sign in again.");
-        throw new Error(payload.error || "Owner session expired.");
+        const error = new Error((payload.error || "Owner session expired.") + (payload.code ? " [" + payload.code + "]" : ""));
+        error.status = 401; error.code = payload.code || "OWNER_SESSION_REQUIRED";
+        throw error;
       }
-      if (!response.ok) throw new Error(payload.error || ("Request failed: HTTP " + response.status));
+      if (!response.ok) {
+        const error = new Error((payload.error || ("Request failed: HTTP " + response.status)) + (payload.code ? " [" + payload.code + "]" : ""));
+        error.status = response.status; error.code = payload.code || "HTTP_" + response.status;
+        throw error;
+      }
       return payload;
     }
     function setRedQueenStatus(label, kind="warn") {
@@ -1160,12 +1166,18 @@ body{background:radial-gradient(ellipse at 50% 38%,#50330f45 0,transparent 35%),
         return { voice, score };
       }).sort((a, b) => b.score - a.score);
       const best = scored[0];
-      if (!best || best.score < 55) {
-        if (els.voiceProfileState) els.voiceProfileState.textContent = "VOICE PROFILE · DEVICE DEFAULT (NO RELIABLE MALE VOICE MATCH)";
+      // Prefer an explicitly male-labelled voice when the device exposes one. Otherwise
+      // choose the strongest Hindi/Indian-English language match and use a lower pitch.
+      // Browser voice metadata does not reliably expose gender, so never claim a guaranteed match.
+      if (!best || best.score < 35) {
+        if (els.voiceProfileState) els.voiceProfileState.textContent = "VOICE PROFILE · NO COMPATIBLE HINDI / INDIAN-ENGLISH DEVICE VOICE";
         return null;
       }
       utterance.voice = best.voice;
-      if (els.voiceProfileState) els.voiceProfileState.textContent = "VOICE PROFILE · " + best.voice.name + " · " + best.voice.lang;
+      const explicitlyMale = maleHints.test(String(best.voice.name || ""));
+      if (els.voiceProfileState) els.voiceProfileState.textContent =
+        (explicitlyMale ? "VOICE PROFILE · MALE-SOUNDING VOICE MATCH · " : "VOICE PROFILE · BEST LANGUAGE MATCH · LOWER PITCH · ") +
+        best.voice.name + " · " + best.voice.lang;
       return best.voice;
     }
     function refreshVoiceCatalog() {
@@ -1181,8 +1193,9 @@ body{background:radial-gradient(ellipse at 50% 38%,#50330f45 0,transparent 35%),
       const sentenceCount = (value.match(/[.!?।]+/g) || []).length;
       utterance.lang = ["hi-IN", "en-IN", "en-US"].includes(language) ? language : "en-IN";
       // Lightweight prosody adaptation only; this does not clone or imitate a real person's voice.
-      utterance.rate = value.length > 900 ? 0.92 : sentenceCount > 4 ? 0.96 : /[!?।]$/.test(value) ? 1.02 : 1.0;
-      utterance.pitch = /[?？]$/.test(value) ? 1.04 : /[!！]{1,}$/.test(value) ? 1.02 : 1.0;
+      utterance.rate = value.length > 900 ? 0.92 : sentenceCount > 4 ? 0.94 : /[!?।]$/.test(value) ? 0.96 : 0.94;
+      // Lower pitch gives a more mature, grounded delivery; the actual timbre remains device-dependent.
+      utterance.pitch = /[?？]$/.test(value) ? 0.90 : /[!！]{1,}$/.test(value) ? 0.92 : 0.86;
     }
     function speakText(text, onEnd, language = speechLanguage()) {
       if (!("speechSynthesis" in window) || typeof SpeechSynthesisUtterance === "undefined") {
