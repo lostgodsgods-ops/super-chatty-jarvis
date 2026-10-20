@@ -1738,7 +1738,9 @@ body.auth-locked #ownerSessionStatus{font-weight:700}
     addFeedItem(els.researchFeed,"Telemetry locked","Sign in with the owner password or registered passkey to initialize protected services.","info");
     resumeOwnerSession();
   })();
-  </script>
-<script src="./diagnostics.js" defer></script>
+  
+  // Load diagnostics as a deferred auxiliary module while preserving the single self-contained app script.
+  const diagnosticsScript = document.createElement("script"); diagnosticsScript.src = "./diagnostics.js"; diagnosticsScript.async = true; document.head.append(diagnosticsScript);
+</script>
 </body>
 </html>
