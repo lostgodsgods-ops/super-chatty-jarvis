@@ -91,10 +91,15 @@ async function askModel(env, role, input) {
 }
 async function runRole(env, role, input) {
   if (role === "global_scraper") {
-    if (!env.SEARCH_API_KEY) throw new Error("SEARCH_PROVIDER_UNAVAILABLE");
+    // Keep the agent router aligned with the central search router: the current
+    // binding wins, and the legacy alias remains a compatibility fallback.
+    const tavilyKey = typeof env.TAVILY_API_KEY === "string" && env.TAVILY_API_KEY.trim()
+      ? env.TAVILY_API_KEY.trim()
+      : (typeof env.SEARCH_API_KEY === "string" ? env.SEARCH_API_KEY.trim() : "");
+    if (!tavilyKey) throw new Error("SEARCH_PROVIDER_UNAVAILABLE");
     const response = await fetch("https://api.tavily.com/search", {
       method: "POST",
-      headers: { authorization: "Bearer " + env.SEARCH_API_KEY, "content-type": "application/json", accept: "application/json" },
+      headers: { authorization: "Bearer " + tavilyKey, "content-type": "application/json", accept: "application/json" },
       body: JSON.stringify({ query: input, search_depth: "basic", max_results: 5, include_answer: false, include_raw_content: false }),
       signal: AbortSignal.timeout(8000)
     });
