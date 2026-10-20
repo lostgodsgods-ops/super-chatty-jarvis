@@ -50,7 +50,7 @@ export function rankTavilyResults(query, results) {
       title: typeof item?.title === "string" ? item.title.trim().slice(0, 240) : "",
       url,
       content: typeof item?.content === "string" ? item.content.trim().slice(0, 1200) : "",
-      publishedDate: typeof item?.published_date === "string" ? item.published_date.slice(0, 80) : null,
+      publishedDate: typeof item?.published_date === "string" ? item.published_date.slice(0, 80) : typeof item?.publishedDate === "string" ? item.publishedDate.slice(0, 80) : null,
       score: Number.isFinite(item?.score) ? item.score : null
     };
     if (!normalized.title) return null;

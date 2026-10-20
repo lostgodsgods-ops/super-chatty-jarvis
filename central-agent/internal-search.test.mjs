@@ -684,3 +684,48 @@ test("explicit TAVILY_API_KEY takes precedence over a stale legacy SEARCH_API_KE
     globalThis.fetch = originalFetch;
   }
 });
+
+
+test("freshness-sensitive searches prioritize dated news feeds before generic DuckDuckGo results", async () => {
+  const originalFetch = globalThis.fetch;
+  const requestedUrls = [];
+  globalThis.fetch = async url => {
+    const value = String(url);
+    requestedUrls.push(value);
+    if (value.startsWith("https://www.bing.com/news/search?")) {
+      return new Response(`<rss><channel><item>
+        <title>Ukraine latest developments — Reuters</title>
+        <link>https://www.reuters.com/world/europe/ukraine-test-report/</link>
+        <description>Reuters reports on today's Ukraine developments.</description>
+        <pubDate>Tue, 20 Oct 2026 10:00:00 GMT</pubDate>
+      </item></channel></rss>`, { status: 200, headers: { "content-type": "application/rss+xml" } });
+    }
+    if (value.startsWith("https://html.duckduckgo.com/html/")) {
+      return new Response(`<div class="result">
+        <a class="result__a" href="https://example.com/undated">Ukraine generic result</a>
+        <a class="result__snippet">Undated generic search result.</a>
+      </div>`, { status: 200, headers: { "content-type": "text/html" } });
+    }
+    throw new Error("Unexpected provider request: " + value);
+  };
+  try {
+    const response = await worker.fetch(new Request("https://agent.example/internal/search", {
+      method: "POST",
+      headers: { "content-type": "application/json", authorization: "Bearer correct-token" },
+      body: JSON.stringify({ query: "What is the latest Reuters report about Ukraine today?" })
+    }), {
+      SEARCH_BRIDGE_TOKEN: "correct-token",
+      AI: { run: async () => ({ response: "Reuters reports on Ukraine today. Source: https://www.reuters.com/world/europe/ukraine-test-report/" }) }
+    });
+    const body = await response.json();
+    assert.equal(response.status, 200, JSON.stringify(body));
+    assert.equal(body.provider, "bing-news-rss");
+    assert.equal(body.sources.length, 1);
+    assert.equal(body.sources[0].url, "https://www.reuters.com/world/europe/ukraine-test-report/");
+    assert.equal(body.sources[0].publishedDate, "Tue, 20 Oct 2026 10:00:00 GMT");
+    assert.equal(requestedUrls.length, 1, "dated news feed should be used before generic web results");
+    assert.match(requestedUrls[0], /^https:\/\/www\.bing\.com\/news\/search\?/);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
