@@ -1,5 +1,6 @@
 import { MISSION_MODULES } from "./mission-grid.mjs";
 import { PLATFORM_MODULES, getPlatformModuleSummary } from "./platform-module-registry.mjs";
+import { buildCognitiveCoreProfile } from "./cognitive-core-contract.mjs";
 
 /**
  * Read-only Red Queen status projection.
@@ -7,7 +8,8 @@ import { PLATFORM_MODULES, getPlatformModuleSummary } from "./platform-module-re
  */
 export function buildRedQueenStatus(env = {}) {
   return {
-    version: "0.1.0",
+    version: "0.2.0",
+    cognitiveCore: buildCognitiveCoreProfile(),
     executionMode: "planning-and-simulation-only",
     infrastructure: {
       workers: { status: "current-worker-runtime", configured: true },
