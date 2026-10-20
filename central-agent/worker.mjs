@@ -166,8 +166,9 @@ async function fetchSearxngSearch(query, baseUrl) {
     published_date: item?.publishedDate || item?.published_date || null,
     score: item?.score
   })) : [];
-  const results = rankTavilyResults(cleanQuery, raw);
-  if (!results.length) throw new Error("SEARXNG_NO_USABLE_RESULTS");
+  const ranked = rankTavilyResults(cleanQuery, raw);
+  if (!ranked.length) throw new Error("SEARXNG_NO_USABLE_RESULTS");
+  const results = ranked.map(item => ({ title: item.title, url: item.url, content: item.content, published_date: item.publishedDate, score: item.score }));
   return new Response(JSON.stringify({ results }), {
     status: 200,
     headers: { "content-type": "application/json; charset=utf-8", "cache-control": "no-store", "x-search-provider": "searxng" }
