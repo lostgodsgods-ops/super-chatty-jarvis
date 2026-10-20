@@ -54,3 +54,10 @@ test("evidence records require a valid HTTP(S) source and bounded factual fields
     claims: []
   }).valid, false);
 });
+
+test("Red Queen status endpoint projection includes the canonical cognitive core profile", () => {
+  const status = buildRedQueenStatus({});
+  assert.equal(status.cognitiveCore.identity.name, "REDULTRON CORE 2.0");
+  assert.equal(status.cognitiveCore.execution.livePhysicalExecution, false);
+  assert.equal(status.livePhysicalExecution, false);
+});
