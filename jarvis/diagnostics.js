@@ -108,13 +108,15 @@
     started = true; panel(); run();
     timer = window.setInterval(() => { if (!document.body.classList.contains("auth-locked")) run(); }, 60000);
   }
-  document.addEventListener("DOMContentLoaded", () => {
+  function initDiagnostics() {
     panel();
     const form = $("ownerLoginForm");
     if (form) form.addEventListener("submit", () => setTimeout(onUnlock, 1200));
     const observer = new MutationObserver(onUnlock);
     observer.observe(document.body, {attributes:true,attributeFilter:["class"]});
     if (!document.body.classList.contains("auth-locked")) onUnlock();
-  });
+  }
+  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", initDiagnostics, {once:true});
+  else initDiagnostics();
   window.addEventListener("pagehide", () => { if (timer) clearInterval(timer); });
 })();
