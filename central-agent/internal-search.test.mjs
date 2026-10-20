@@ -232,10 +232,31 @@ test("health reports gateway search and durable queue readiness without exposing
   assert.equal(body.capabilities.gatewaySearchConfigured, true);
   assert.equal(body.capabilities.durableTaskQueue, true);
   assert.equal(body.capabilities.tavilySearchConfigured, true);
+  assert.equal(body.capabilities.tavilySearchEnabled, true);
+  assert.equal(body.capabilities.searchProviderMode, "legacy-tavily-opt-in");
+  assert.equal(body.capabilities.liveSearchProviderChain[0], "tavily");
   assert.equal(JSON.stringify(body).includes("gateway-test-token"), false);
   assert.equal(JSON.stringify(body).includes("private-tavily-key"), false);
 });
 
+
+test("health reports open-source-first mode even when a Tavily key is present", async () => {
+  const response = await worker.fetch(new Request("https://agent.example/health"), {
+    SEARCH_API_KEY: "configured-but-disabled-key",
+    SEARXNG_BASE_URL: "https://search.example",
+    AI: {},
+    DB: { prepare: () => ({}), batch: async () => [] }
+  });
+  const body = await response.json();
+  assert.equal(response.status, 200);
+  assert.equal(body.capabilities.tavilySearchConfigured, true);
+  assert.equal(body.capabilities.tavilySearchEnabled, false);
+  assert.equal(body.capabilities.searxngSearchConfigured, true);
+  assert.equal(body.capabilities.searchProviderMode, "open-source-first");
+  assert.deepEqual(body.capabilities.liveSearchProviderChain.slice(0, 2), ["searxng", "duckduckgo-html"]);
+  assert.equal(body.capabilities.liveSearchProviderChain.includes("tavily"), false);
+  assert.equal(JSON.stringify(body).includes("configured-but-disabled-key"), false);
+});
 
 test("internal chat rejects an incorrect gateway token", async () => {
   const response = await worker.fetch(new Request("https://agent.example/internal/chat", {
