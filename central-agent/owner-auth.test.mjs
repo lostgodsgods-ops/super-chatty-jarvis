@@ -582,3 +582,12 @@ test("Tavily plan and pay-as-you-go limits are explicit and never treated as tra
   assert.equal(classifyTavilyFailure(429).status, 429);
   assert.equal(classifyTavilyFailure(500).status, 502);
 });
+
+
+test("backgrounding or navigating away locks the owner page without revoking the HttpOnly session", async () => {
+  const workerSource = await readFile(new URL("./worker.mjs", import.meta.url), "utf8");
+  const lockFunction = workerSource.match(/function lockOwnerPage\\(message\\)\\{([\\s\\S]*?)\\n\\}/);
+  assert.ok(lockFunction, "owner page must define its in-memory lock handler");
+  assert.doesNotMatch(lockFunction[1], /auth\\/logout/, "pagehide/visibility lock must not revoke the server session cookie");
+  assert.match(lockFunction[1], /ownerSessionToken=""/, "the in-memory bearer token must still be cleared");
+});
