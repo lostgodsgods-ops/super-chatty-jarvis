@@ -221,7 +221,7 @@ test("PWA provides a direct native install prompt and a safe fallback", () => {
   assert.match(jarvisHtml, /display-mode:\s*standalone/, "installed standalone mode must be detected");
   assert.ok(centralWorker.includes('url.pathname === "/icon-192.png"'), "Worker must allow the public 192px install icon");
   assert.ok(centralWorker.includes('url.pathname === "/icon-512.png"'), "Worker must allow the public 512px install icon");
-  assert.match(serviceWorker, /CACHE_NAME\s*=\s*"super-chatty-jarvis-shell-v11-live-search-budget-fix"/, "install UX release must invalidate old shell cache");
+  assert.match(serviceWorker, /CACHE_NAME\s*=\s*"redultron-core-shell-v12-cognitive-core"/, "install UX release must invalidate old shell cache");
 });
 
 test("owner gate prevents health checks and SSE from starting before session verification", () => {
@@ -245,7 +245,7 @@ test("first-screen one-click install uses the browser-native prompt when eligibl
   assert.match(jarvisHtml, /addEventListener\("appinstalled"/, "successful install must be handled");
   assert.match(jarvisHtml, /Chrome has not offered the native install prompt yet/i, "unavailable prompt state must be honest");
   assert.match(jarvisHtml, /application-version" content="NEXUS-2026\.10\.19-LIVE-SEARCH-BUDGET-PWA-V11"/, "app version must identify this shell release");
-  assert.match(serviceWorker, /CACHE_NAME\s*=\s*"super-chatty-jarvis-shell-v11-live-search-budget-fix"/, "shell cache must be invalidated");
+  assert.match(serviceWorker, /CACHE_NAME\s*=\s*"redultron-core-shell-v12-cognitive-core"/, "shell cache must be invalidated");
 });
 
 test("PWA notifications require explicit opt-in and only notify for live foreground SSE events", () => {
