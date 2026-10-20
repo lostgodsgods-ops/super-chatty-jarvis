@@ -197,6 +197,7 @@ test("owner-authenticated search uses direct web search when the Tavily key is a
 
 test("Tavily search validates query and sends bounded requests with source URLs", async () => {
   const e = env();
+  e.SEARCH_PROVIDER_MODE = "tavily";
   e.SEARCH_API_KEY = "test-tavily-key";
   const token = await ownerToken(e);
   const originalFetch = globalThis.fetch;
@@ -318,6 +319,7 @@ test("PBKDF2 iteration count stays within the Cloudflare Workers Web Crypto limi
 
 test("owner-authenticated research query returns sourced evidence and rejects anonymous requests", async () => {
   const e = env();
+  e.SEARCH_PROVIDER_MODE = "tavily";
   e.SEARCH_API_KEY = "test-search-key";
   await call(e, "/auth/setup", { setupToken: "test-bootstrap-code", password: "a-long-memorable-password" });
   const anonymous = await call(e, "/research/query", { query: "Kamala Hydro Electric Project 1720 MW CCEA" });
@@ -347,6 +349,7 @@ test("owner-authenticated research query returns sourced evidence and rejects an
 
 test("authenticated research query retries upstream rate limits before returning evidence", async () => {
   const e = env();
+  e.SEARCH_PROVIDER_MODE = "tavily";
   e.SEARCH_API_KEY = "test-search-key";
   await call(e, "/auth/setup", { setupToken: "test-bootstrap-code", password: "a-long-memorable-password" });
   const login = await call(e, "/auth/login", { password: "a-long-memorable-password" });
