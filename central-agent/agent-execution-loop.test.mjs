@@ -121,3 +121,13 @@ test('audit failure after tool execution blocks completion', async () => {
   assert.equal(result.status, 'blocked');
   assert.equal(result.code, 'AUDIT_WRITE_FAILED');
 });
+
+
+test('reports timeout correctly when the tool rejects on its abort signal', async () => {
+  const s = await setup({ timeoutMs: 10, tools: { read_only_search: async (_input, context) => new Promise((resolve, reject) => {
+    context.signal.addEventListener('abort', () => reject(new Error('aborted by timeout')), { once: true });
+  }) } });
+  const result = await runExecutionLoop(s);
+  assert.equal(result.status, 'failed');
+  assert.equal(result.code, 'STEP_TIMEOUT');
+});
