@@ -382,7 +382,7 @@ test("active /chat and /internal/chat routes search Tavily before AI for current
         SEARCH_PROVIDER_MODE: "tavily", SEARCH_API_KEY: "test-tavily-key",
         AI: { run: async (_model, input) => {
           sequence.push("ai");
-          assert.match(input.messages[0].content, /current year is 2026/);
+          assert.match(input.messages[0].content, /Authoritative runtime date: 2026-10-20/);
           assert.match(input.messages[1].content, /Verified source text/);
           return { response: "The source reports a 2026 update." };
         } }
