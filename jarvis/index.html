@@ -7,10 +7,10 @@
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="application-version" content="NEXUS-2026.10.19-LIVE-SEARCH-BUDGET-PWA-V11">
-  <meta name="description" content="Super Chatty Jarvis — voice-first AI command interface.">
+  <meta name="application-version" content="REDULTRON-2026.10.20-COGNITIVE-CORE-V12">
+  <meta name="description" content="REDULTRON CORE 2.0 — voice-first AI command interface.">
   <meta name="color-scheme" content="dark">
-  <title>Super Chatty Jarvis · Neural Console</title>
+  <title>REDULTRON CORE 2.0 · Neural Console</title>
   <link rel="manifest" href="./manifest.webmanifest">
   <link rel="icon" href="./icon.svg" type="image/svg+xml">
   <link rel="apple-touch-icon" href="./icon-192.png">
@@ -129,9 +129,9 @@ body{background:radial-gradient(ellipse at 50% 38%,#50330f45 0,transparent 35%),
 </head>
 <body>
   <canvas id="particleMesh" aria-hidden="true"></canvas>
-  <section class="install-banner" id="installBanner" role="region" aria-label="Install Super Chatty Jarvis">
+  <section class="install-banner" id="installBanner" role="region" aria-label="Install REDULTRON CORE 2.0">
     <div class="install-copy">
-      <strong>INSTALL SUPER CHATTY JARVIS</strong>
+      <strong>INSTALL REDULTRON CORE 2.0</strong>
       <span id="installHint">Install for a dedicated app window. Chrome controls when its native install prompt is available.</span>
     </div>
     <button class="install-app-btn" id="installAppBtn" type="button" aria-describedby="installHint">INSTALL SUPER CHATTY APP</button>
@@ -149,14 +149,16 @@ body{background:radial-gradient(ellipse at 50% 38%,#50330f45 0,transparent 35%),
 
     <div class="grid">
       <section class="panel core-panel" aria-labelledby="coreHeading">
-        <div class="section-label">Neural interface · voice-first console</div>
+        <div class="section-label">COGNITIVE SYSTEM · V2.0</div>
         <div class="core-wrap" id="coreWrap" aria-label="Audio reactive neural core">
           <div class="ring"></div><div class="ring r2"></div><div class="ring r3"></div>
           <canvas class="wave" id="wave" aria-hidden="true"></canvas>
           <div class="core" id="core"><span class="core-glyph" aria-hidden="true">✦</span></div>
         </div>
-        <h1 class="core-title" id="coreHeading">Golden Neural Core</h1>
-        <div class="core-state" id="coreState" role="status" aria-live="polite">Standby · unlock Owner session, then enable hands-free voice</div><div class="chat-reply hidden" id="chatReply" role="status" aria-live="polite"></div>
+        <h1 class="core-title" id="coreHeading">REDULTRON CORE 2.0</h1>
+        <div class="section-label" style="margin-top:6px;letter-spacing:.1em">PERCEPTION · PLANNING · MEMORY · VERIFICATION</div>
+        <div class="core-state" id="voiceProfileState" aria-live="polite">VOICE PROFILE · PREFERRED MALE-SOUNDING HINDI / INDIAN ENGLISH</div>
+        <div class="core-state" id="coreState" role="status" aria-live="polite">CORE STANDBY · unlock Owner session to initialize the cognitive core</div><div class="chat-reply hidden" id="chatReply" role="status" aria-live="polite"></div>
         <div class="agent-hud-controls" aria-label="Reactor visual state preview">
           <button type="button" data-hud-state="IDLE">IDLE</button>
           <button type="button" data-hud-state="PROCESSING">PROCESSING</button>
@@ -297,7 +299,7 @@ body{background:radial-gradient(ellipse at 50% 38%,#50330f45 0,transparent 35%),
   </section>
   </main>
 
-  <section class="commandbar" aria-label="Voice-first conversation">
+  <section class="commandbar" aria-label="REDULTRON voice console">
     <div class="command-content">
       <div class="command-label" id="voiceLabel">CHAT WITH CHATTY · OWNER: LOSS GODS</div>
       <label class="sr-only" for="commandInput">Message Chatty</label>
@@ -327,8 +329,8 @@ body{background:radial-gradient(ellipse at 50% 38%,#50330f45 0,transparent 35%),
   </aside>
   <section class="cinema" id="cinemaOverlay" aria-label="Cinematic media viewer" aria-hidden="true">
     <div class="cinema-head"><span id="cinemaTitle">IMMERSIVE VIEW</span><button class="hud-btn" id="cinemaClose" type="button">EXIT VIEW ×</button></div>
-    <div class="cinema-layout"><div class="cinema-stage" id="cinemaStage"><div class="hud-hint">Choose a media item or open an article URL.</div></div><aside class="cinema-core-dock" aria-label="Golden Neural Core monitor"><div class="cinema-core-wrap"><div class="ring"></div><div class="ring r2"></div><div class="ring r3"></div><div class="cinema-core-orb">✦</div></div><strong>GOLDEN NEURAL CORE</strong><span>MONITORING · LIVE HUD</span><p id="cinemaCoreState">Standby monitoring</p></aside></div>
-    <div class="cinema-caption" id="cinemaCaption">The Golden Neural Core remains visible alongside this media view.</div>
+    <div class="cinema-layout"><div class="cinema-stage" id="cinemaStage"><div class="hud-hint">Choose a media item or open an article URL.</div></div><aside class="cinema-core-dock" aria-label="REDULTRON CORE 2.0 monitor"><div class="cinema-core-wrap"><div class="ring"></div><div class="ring r2"></div><div class="ring r3"></div><div class="cinema-core-orb">✦</div></div><strong>REDULTRON CORE 2.0</strong><span>MONITORING · LIVE HUD</span><p id="cinemaCoreState">Standby monitoring</p></aside></div>
+    <div class="cinema-caption" id="cinemaCaption">The REDULTRON CORE 2.0 remains visible alongside this media view.</div>
   </section>
 
 
@@ -350,7 +352,7 @@ body{background:radial-gradient(ellipse at 50% 38%,#50330f45 0,transparent 35%),
       installBanner.hidden = false;
       installBanner.dataset.installState = "ready";
       installHint.textContent = "Ready to install. Tap the button to open Chrome's native install dialog.";
-      installButton.setAttribute("aria-label", "Open native install dialog for Super Chatty Jarvis");
+      installButton.setAttribute("aria-label", "Open native install dialog for REDULTRON CORE 2.0");
     });
     if (installButton) installButton.addEventListener("click", async () => {
       if (isStandalone()) {
@@ -707,7 +709,7 @@ body{background:radial-gradient(ellipse at 50% 38%,#50330f45 0,transparent 35%),
         throw new Error("Passkeys require this app to be opened on its secure HTTPS origin.");
       }
       if (!options || options.origin !== origin) {
-        throw new Error("Passkey origin mismatch. Open Super Chatty Jarvis from its registered app URL.");
+        throw new Error("Passkey origin mismatch. Open REDULTRON CORE 2.0 from its registered app URL.");
       }
       const rpId = registration ? options.rp?.id : options.rpId;
       if (typeof rpId !== "string" || rpId !== window.location.hostname) {
@@ -915,7 +917,7 @@ body{background:radial-gradient(ellipse at 50% 38%,#50330f45 0,transparent 35%),
           return;
         }
         const registration = await navigator.serviceWorker.ready;
-        await registration.showNotification("Super Chatty Jarvis alerts enabled", {
+        await registration.showNotification("REDULTRON CORE 2.0 alerts enabled", {
           body: "Critical events can notify while this page is running and connected. Background push is not configured.",
           icon: "./icon-192.png",
           tag: "scj-notifications-enabled",
@@ -935,7 +937,7 @@ body{background:radial-gradient(ellipse at 50% 38%,#50330f45 0,transparent 35%),
           Notification.permission !== "granted" || document.visibilityState === "visible") return;
       if (!/(security|failed|degraded|blocked|alert|error)/i.test(String(eventName || ""))) return;
       navigator.serviceWorker.ready.then(registration => registration.showNotification(
-        "Super Chatty Jarvis · " + String(eventName).slice(0, 64),
+        "REDULTRON CORE 2.0 · " + String(eventName).slice(0, 64),
         {
           body: "A critical backend event arrived. Open the app to inspect the authenticated event log.",
           icon: "./icon-192.png",
@@ -1134,6 +1136,46 @@ body{background:radial-gradient(ellipse at 50% 38%,#50330f45 0,transparent 35%),
       const overlap = heard.filter(word => words.has(word)).length / heard.length;
       return overlap >= 0.8;
     }
+    function selectPreferredMaleVoice(utterance) {
+      if (!("speechSynthesis" in window) || !utterance) return null;
+      const voices = window.speechSynthesis.getVoices ? window.speechSynthesis.getVoices() : [];
+      if (!voices.length) {
+        if (els.voiceProfileState) els.voiceProfileState.textContent = "VOICE PROFILE · WAITING FOR DEVICE VOICE CATALOG";
+        return null;
+      }
+      const language = String(utterance.lang || "en-IN").toLowerCase();
+      const maleHints = new RegExp("\\b(male|madhur|prabhat|hemant|ravi|amit|arjun|rahul|aditya|rohit|kabir|daniel|david|james|mark|alex)\\b","i");
+      const femaleHints = new RegExp("\\b(female|zira|heera|samantha|karen|susan|veena)\\b","i");
+      const scored = voices.map(voice => {
+        const lang = String(voice.lang || "").toLowerCase();
+        const name = String(voice.name || "");
+        let score = 0;
+        if (lang === language) score += 80;
+        else if (language.startsWith("hi") && lang.startsWith("hi")) score += 70;
+        else if (language.startsWith("en-in") && lang === "en-in") score += 75;
+        else if (language.startsWith("en") && lang.startsWith("en")) score += 35;
+        if (maleHints.test(name)) score += 35;
+        if (femaleHints.test(name)) score -= 60;
+        if (voice.default) score += 2;
+        return { voice, score };
+      }).sort((a, b) => b.score - a.score);
+      const best = scored[0];
+      if (!best || best.score < 20) {
+        if (els.voiceProfileState) els.voiceProfileState.textContent = "VOICE PROFILE · DEVICE DEFAULT (NO RELIABLE MALE VOICE MATCH)";
+        return null;
+      }
+      utterance.voice = best.voice;
+      if (els.voiceProfileState) els.voiceProfileState.textContent = "VOICE PROFILE · " + best.voice.name + " · " + best.voice.lang;
+      return best.voice;
+    }
+    function refreshVoiceCatalog() {
+      if (!("speechSynthesis" in window)) return;
+      const probe = { lang: speechLanguage(), voice: null };
+      selectPreferredMaleVoice(probe);
+    }
+    if ("speechSynthesis" in window && typeof window.speechSynthesis.addEventListener === "function") {
+      window.speechSynthesis.addEventListener("voiceschanged", refreshVoiceCatalog);
+    }
     function adaptSpeechTone(utterance, text, language) {
       const value = String(text || "").trim();
       const sentenceCount = (value.match(/[.!?।]+/g) || []).length;
@@ -1154,6 +1196,7 @@ body{background:radial-gradient(ellipse at 50% 38%,#50330f45 0,transparent 35%),
         const utterance = new SpeechSynthesisUtterance(String(text).slice(0, 3000));
         state.currentSpeechText = utterance.text;
         adaptSpeechTone(utterance, utterance.text, language);
+        selectPreferredMaleVoice(utterance);
         utterance.onend = utterance.onerror = () => {
           if (generation !== state.speechGeneration) return;
           state.speaking = false; state.currentSpeechText = "";
@@ -1167,7 +1210,7 @@ body{background:radial-gradient(ellipse at 50% 38%,#50330f45 0,transparent 35%),
       }
     }
     function speakGreeting(onEnd) {
-      speakText("Welcome, Loss Gods. Super Chatty Jarvis is ready. Tap the microphone toggle when you want voice listening.", onEnd);
+      speakText("Namaste, Loss Gods. REDULTRON CORE 2.0 ready hai. Main pehle context samajhunga, plan banaunga, authorized actions karunga, aur result verify karke evidence dunga. Bataiye, mission kya hai?", onEnd);
     }
     function stopHandsFree(reason = "Hands-free voice stopped.") {
       state.handsFree = false;
@@ -1559,7 +1602,7 @@ body{background:radial-gradient(ellipse at 50% 38%,#50330f45 0,transparent 35%),
       const reloadOnControllerChange = () => {
         if (reloadScheduled) return;
         reloadScheduled = true;
-        toast("New version active. Reloading Super Chatty Jarvis…");
+        toast("New version active. Reloading REDULTRON CORE 2.0…");
         setTimeout(() => location.reload(), 150);
       };
       try {
