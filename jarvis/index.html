@@ -585,6 +585,7 @@ body.auth-locked #ownerSessionStatus{font-weight:700}
       els.ownerSessionStatus.textContent = message;
     }
     function clearOwnerSession(message="Signed out. Session token cleared from memory.") {
+      document.body.classList.add("auth-locked");
       stopHandsFree("Owner session locked.");
       if (state.chatController) state.chatController.abort();
       state.chatController = null; state.chatBusy = false;
@@ -695,6 +696,7 @@ body.auth-locked #ownerSessionStatus{font-weight:700}
       try {
         const session = await ownerFetch("/auth/session");
         if (session.authenticated !== true) throw new Error("Owner session verification failed.");
+        document.body.classList.remove("auth-locked");
       } catch (error) {
         state.ownerToken = "";
         throw error;
