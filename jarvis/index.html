@@ -127,12 +127,21 @@ body{background:radial-gradient(ellipse at 50% 38%,#50330f45 0,transparent 35%),
 .pwa-update-btn{min-height:34px;padding:7px 10px;font-size:10px;letter-spacing:.04em;white-space:nowrap}.pwa-update-btn[aria-busy="true"]{opacity:.75}@media(max-width:560px){.topbar{align-items:flex-start;flex-wrap:wrap}.topbar .telemetry{width:100%;justify-content:flex-start}.pwa-update-btn{flex:1;min-width:150px}}
 
 /* REDULTRON authenticated-first gate: hide all private modules until server verification. */
-body.auth-locked .shell{padding-top:max(18px,env(safe-area-inset-top));}
+body.auth-locked{min-height:100svh;background:radial-gradient(ellipse at 50% 12%,#0b3446 0,transparent 46%),linear-gradient(145deg,#04080e,#07111b 56%,#050b12)}
+body.auth-locked #installBanner{display:none!important}
+body.auth-locked .shell{min-height:100svh;padding:clamp(18px,6vh,64px) 14px calc(22px + var(--safe-bottom));justify-content:center}
 body.auth-locked .shell> :not(.dashboard-grid){display:none!important}
-body.auth-locked .dashboard-grid{display:block!important;grid-template-columns:1fr!important}
+body.auth-locked .dashboard-grid{display:block!important;grid-template-columns:1fr!important;width:min(100%,520px);margin:auto}
 body.auth-locked .dashboard-grid>section{display:none!important}
-body.auth-locked .dashboard-grid>section[aria-labelledby="ownerTitle"]{display:block!important;max-width:560px;margin:10vh auto 0}
+body.auth-locked .dashboard-grid>section[aria-labelledby="ownerTitle"]{display:block!important;max-width:520px;margin:0 auto;border-color:#53e8ff66;border-radius:24px;background:linear-gradient(150deg,rgba(7,25,40,.97),rgba(4,11,20,.97));box-shadow:0 20px 70px #0009,0 0 42px #53e8ff12}
+body.auth-locked .dashboard-grid>section[aria-labelledby="ownerTitle"]::before{content:"✦  REDULTRON CORE 2.0";display:block;padding:25px 18px 8px;text-align:center;color:var(--gold);font-size:clamp(16px,4vw,21px);font-weight:900;letter-spacing:.13em}
+body.auth-locked .dashboard-grid>section[aria-labelledby="ownerTitle"]::after{content:"COGNITIVE CORE  /  OWNER AUTHENTICATION";display:block;padding:0 18px 22px;text-align:center;color:var(--cyan);font-size:10px;font-weight:800;letter-spacing:.18em}
+body.auth-locked .dashboard-grid>section[aria-labelledby="ownerTitle"] .panel-head{justify-content:center;border-top:1px solid #53e8ff22}
 body.auth-locked #ownerTitle::after{content:" · ACCESS GATE";color:var(--cyan);font-size:.75em}
+body.auth-locked #ownerTitle{font-size:11px;letter-spacing:.16em}
+body.auth-locked .dashboard-grid>section[aria-labelledby="ownerTitle"] .panel-body{padding:20px}
+body.auth-locked #ownerPassword{min-height:50px;font-size:16px}
+body.auth-locked #ownerLogin{flex:1;min-height:46px}
 body.auth-locked #ownerSessionStatus{font-weight:700}
 #runtimeDiagnostics{grid-column:1/-1}
 #runtimeDiagnostics .diag-list{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:9px}
