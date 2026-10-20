@@ -587,7 +587,7 @@ test("Tavily plan and pay-as-you-go limits are explicit and never treated as tra
 test("backgrounding or navigating away locks the owner page without revoking the HttpOnly session", async () => {
   const workerSource = await readFile(new URL("./worker.mjs", import.meta.url), "utf8");
   const lockStart = workerSource.indexOf("function lockOwnerPage(message){");
-  const lockEnd = workerSource.indexOf("\\n}", lockStart);
+  const lockEnd = workerSource.indexOf("\n}", lockStart);
   assert.ok(lockStart >= 0 && lockEnd > lockStart, "owner page must define its in-memory lock handler");
   const lockBody = workerSource.slice(lockStart, lockEnd);
   assert.equal(lockBody.includes("/auth/logout"), false, "pagehide/visibility lock must not revoke the server session cookie");
