@@ -9,7 +9,7 @@ import { buildCognitiveCoreProfile } from "./cognitive-core-contract.mjs";
 export function buildRedQueenStatus(env = {}) {
   return {
     version: "0.2.0",
-    identity: buildCognitiveCoreProfile(),
+    cognitiveCore: buildCognitiveCoreProfile(),
     executionMode: "planning-and-simulation-only",
     infrastructure: {
       workers: { status: "current-worker-runtime", configured: true },
