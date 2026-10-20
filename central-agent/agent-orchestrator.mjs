@@ -140,7 +140,19 @@ async function executeOne(env, rawRole, rawInput) {
   let result = null, errorCode = null;
   try {
     await ensureAgentSchema(env.DB);
-    result = boundResult(await runRole(env, role, input));
+    const roleResult = await runRole(env, role, input);
+    // Plan-only roles must expose a server-enforced execution boundary; do not
+    // rely on a model-generated field to prove that no tests or side effects ran.
+    const normalizedResult = role === "testing"
+      ? {
+          ...(roleResult && typeof roleResult === "object" && !Array.isArray(roleResult)
+            ? roleResult
+            : { modelOutput: roleResult }),
+          executionMode: "plan-only",
+          notExecuted: true
+        }
+      : roleResult;
+    result = boundResult(normalizedResult);
     const completedAt = new Date().toISOString();
     const sourceCount = Number(result?.sourceCount) || 0;
     const itemCount = Array.isArray(result?.sources) ? result.sources.length : Array.isArray(result?.steps) ? result.steps.length : 1;
