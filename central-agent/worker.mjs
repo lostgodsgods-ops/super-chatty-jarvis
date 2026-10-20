@@ -196,34 +196,45 @@ async function fetchDirectWebSearch(query, initialDiagnostics = []) {
   const diagnostics = [...initialDiagnostics];
   const diagnostic = (provider, status) => diagnostics.push({ provider, status });
 
-  // First try the no-key DuckDuckGo HTML endpoint. It may intermittently block
-  // automated requests, so do not make it the only path to live evidence.
-  try {
-    const url = new URL("https://html.duckduckgo.com/html/");
-    url.searchParams.set("q", cleanQuery);
-    const response = await fetchSearchProvider("duckduckgo-html", url.toString(), {
-      method: "GET",
-      headers: {
-        accept: "text/html,application/xhtml+xml",
-        "accept-language": "en-US,en;q=0.8,hi;q=0.6",
-        "user-agent": "Mozilla/5.0 (compatible; SuperChattyJarvis/1.0; +https://github.com/lostgodsgods-ops/super-chatty-jarvis)"
-      },
-    });
-    if (response.ok) {
-      const html = (await response.text()).slice(0, 1_000_000);
-      const results = parseDuckDuckGoHtml(html, cleanQuery);
-      if (results.length) return new Response(JSON.stringify({ results }), {
-        status: 200,
-        headers: { "content-type": "application/json; charset=utf-8", "cache-control": "no-store", "x-search-provider": "duckduckgo-html" }
+  // Freshness-sensitive queries must try dated news sources before generic web results.
+  const freshnessSensitive = requiresLiveSearch(cleanQuery);
+  const fetchDuckDuckGo = async () => {
+    // No-key HTML search is a useful broad-web fallback, but its snippets have no
+    // trustworthy publication timestamp and must not pre-empt dedicated news feeds.
+    try {
+      const url = new URL("https://html.duckduckgo.com/html/");
+      url.searchParams.set("q", cleanQuery);
+      const response = await fetchSearchProvider("duckduckgo-html", url.toString(), {
+        method: "GET",
+        headers: {
+          accept: "text/html,application/xhtml+xml",
+          "accept-language": "en-US,en;q=0.8,hi;q=0.6",
+          "user-agent": "Mozilla/5.0 (compatible; SuperChattyJarvis/1.0; +https://github.com/lostgodsgods-ops/super-chatty-jarvis)"
+        },
       });
-      diagnostic("duckduckgo-html", "no-usable-results");
-    } else diagnostic("duckduckgo-html", "http-" + response.status);
-  } catch (error) {
-    diagnostic("duckduckgo-html", error?.name === "TimeoutError" || error?.name === "AbortError" ? "timeout" : "network-error");
+      if (response.ok) {
+        const html = (await response.text()).slice(0, 1_000_000);
+        const results = parseDuckDuckGoHtml(html, cleanQuery);
+        if (results.length) return new Response(JSON.stringify({ results }), {
+          status: 200,
+          headers: { "content-type": "application/json; charset=utf-8", "cache-control": "no-store", "x-search-provider": "duckduckgo-html" }
+        });
+        diagnostic("duckduckgo-html", "no-usable-results");
+      } else diagnostic("duckduckgo-html", "http-" + response.status);
+    } catch (error) {
+      diagnostic("duckduckgo-html", error?.name === "TimeoutError" || error?.name === "AbortError" ? "timeout" : "network-error");
+    }
+    return null;
+  };
+
+  // Timeless questions use generic search first; current/news questions use RSS/GDELT first.
+  if (!freshnessSensitive) {
+    const response = await fetchDuckDuckGo();
+    if (response) return response;
   }
 
-  // Freshness-sensitive searches use independent news feeds before failing closed.
-  if (requiresLiveSearch(cleanQuery)) {
+  // Freshness-sensitive searches use independent news feeds before falling back to generic web results.
+  if (freshnessSensitive) {
   const newsProviders = [
     { name: "bing-news-rss", endpoint: "https://www.bing.com/news/search" },
     { name: "google-news-rss", endpoint: "https://news.google.com/rss/search" }
@@ -307,8 +318,15 @@ async function fetchDirectWebSearch(query, initialDiagnostics = []) {
 
   }
 
+  // If dated news providers fail, generic live web search is the last resort.
+  // Do not use encyclopedia pages as a substitute for current news.
+  if (freshnessSensitive) {
+    const response = await fetchDuckDuckGo();
+    if (response) return response;
+  }
+
   // Do not substitute encyclopedia pages for live evidence on time-sensitive queries.
-  if (requiresLiveSearch(cleanQuery)) {
+  if (freshnessSensitive) {
     const error = new Error("LIVE_SEARCH_FRESH_RESULTS_UNAVAILABLE");
     error.code = "LIVE_SEARCH_ALL_PROVIDERS_FAILED";
     error.providerDiagnostics = diagnostics;
