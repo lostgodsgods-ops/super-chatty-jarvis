@@ -15,9 +15,10 @@ function clean(value, max = MAX_TEXT) {
 }
 
 function reportStatus(checks) {
-  if (!checks.length || checks.some(check => check.status === "NOT_TESTED")) return "NOT_TESTED";
+  if (!checks.length) return "NOT_TESTED";
   if (checks.some(check => check.status === "FAIL")) return "FAIL";
   if (checks.some(check => check.status === "BLOCKED")) return "BLOCKED";
+  if (checks.some(check => check.status === "NOT_TESTED")) return "NOT_TESTED";
   return "PASS";
 }
 
