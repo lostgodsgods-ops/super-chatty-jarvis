@@ -131,3 +131,12 @@ test('reports timeout correctly when the tool rejects on its abort signal', asyn
   assert.equal(result.status, 'failed');
   assert.equal(result.code, 'STEP_TIMEOUT');
 });
+
+
+test('rejects inherited prototype functions as tools', async () => {
+  const s = await setup({ plan: { ...validPlan(), steps: [{ id: 'inherited', tool: 'constructor', input: {} }] }, tools: {} });
+  s.approval = await validApproval(s.plan);
+  const result = await runExecutionLoop(s);
+  assert.equal(result.status, 'blocked');
+  assert.equal(result.code, 'TOOL_NOT_ALLOWLISTED');
+});
