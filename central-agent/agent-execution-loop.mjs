@@ -59,8 +59,8 @@ async function auditState(audit, event) {
 async function runWithTimeout(handler, input, context, timeoutMs) {
   let timer;
   let abortHandler;
-  const timeoutSignal = AbortSignal.timeout(timeoutMs);
-  const combinedSignal = context.signal ? AbortSignal.any([context.signal, timeoutSignal]) : timeoutSignal;
+  const timeoutController = new AbortController();
+  const combinedSignal = context.signal ? AbortSignal.any([context.signal, timeoutController.signal]) : timeoutController.signal;
   const interrupted = new Promise((_, reject) => {
     if (context.signal?.aborted) {
       reject(Object.assign(new Error('EMERGENCY_STOP'), { code: 'EMERGENCY_STOP' }));
@@ -72,7 +72,10 @@ async function runWithTimeout(handler, input, context, timeoutMs) {
     }
   });
   const timedOut = new Promise((_, reject) => {
-    timer = setTimeout(() => reject(Object.assign(new Error('STEP_TIMEOUT'), { code: 'STEP_TIMEOUT' })), timeoutMs);
+    timer = setTimeout(() => {
+      timeoutController.abort('STEP_TIMEOUT');
+      reject(Object.assign(new Error('STEP_TIMEOUT'), { code: 'STEP_TIMEOUT' }));
+    }, timeoutMs);
   });
   try {
     return await Promise.race([
