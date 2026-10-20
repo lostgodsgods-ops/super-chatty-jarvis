@@ -443,3 +443,13 @@ test("Central Agent deployment rejects stale live-search health contracts and pr
   assert.match(centralDeployWorkflow, /diagnosticContractPresent/);
   assert.match(centralDeployWorkflow, /latest Central Agent Worker version is deployed/);
 });
+
+
+test("REDULTRON CORE 2.0 is the canonical app identity with preferred male voice selection", () => {
+  assert.match(jarvisHtml, /REDULTRON CORE 2\.0/, "the primary interface must use the new core identity");
+  assert.match(jarvisHtml, /name="REDULTRON CORE 2\.0"/, "the installable app name must use the new identity");
+  assert.match(jarvisHtml, /function selectPreferredMaleVoice\(/, "voice selection must prefer available male-sounding Hindi/Indian English voices");
+  assert.match(jarvisHtml, /voiceschanged/, "voice selection must refresh when the device voice catalog loads");
+  assert.match(jarvisHtml, /COGNITIVE CORE/, "the interface must expose cognitive-core framing");
+  assert.match(centralWorker, /REDULTRON CORE 2\.0/, "backend system prompts must share the canonical identity");
+});
