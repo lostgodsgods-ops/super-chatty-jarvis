@@ -4,7 +4,9 @@
  */
 const hasValue = (env, key) => {
   const value = env?.[key];
-  return typeof value === "string" ? value.trim().length > 0 : value !== undefined && value !== null && typeof value === "object";
+  if (typeof value === "string") return value.trim().length > 0;
+  if (typeof value === "boolean") return value;
+  return value !== undefined && value !== null && typeof value === "object";
 };
 const configured = (env, keys) => keys.every(key => hasValue(env, key));
 const oneOfConfigured = (env, alternatives) => alternatives.some(keys => configured(env, keys));
