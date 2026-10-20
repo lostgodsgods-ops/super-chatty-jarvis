@@ -35,7 +35,7 @@ test("complete configuration is reported as configured, not as proof of live rea
     MCP_GITHUB_TOKEN: "configured",
     PINECONE_INDEX_HOST: "https://index.example.com",
     PINECONE_API_KEY: "configured",
-    CRON_ENABLED: true
+    SCHEDULED_TASKS_ENABLED: true
   });
   assert.equal(report.services.find(item => item.id === "web-research").status, "CONFIGURED");
   assert.equal(report.services.find(item => item.id === "github-automation").status, "CONFIGURED");
