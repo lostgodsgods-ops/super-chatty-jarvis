@@ -1,6 +1,6 @@
 "use strict";
-const CACHE_NAME = "redultron-core-shell-v12-cognitive-core";
-const SHELL = ["./", "./index.html", "./manifest.webmanifest", "./icon.svg", "./icon-192.png", "./icon-512.png"];
+const CACHE_NAME = "redultron-core-shell-v13-auth-diagnostics";
+const SHELL = ["./", "./index.html", "./manifest.webmanifest", "./icon.svg", "./icon-192.png", "./icon-512.png", "./diagnostics.js"];
 const LEGACY_CACHE_PREFIXES = ["super-chatty-jarvis-shell-", "super-chatty-jarvis-", "chatty-jarvis-"];
 self.addEventListener("install", (event) => {
   event.waitUntil((async () => {
