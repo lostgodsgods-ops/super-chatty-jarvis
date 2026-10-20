@@ -103,7 +103,7 @@ export async function runExecutionLoop({ plan: rawPlan, approval, ownerVerified,
   if (!approvalStore || typeof approvalStore.consumeOnce !== 'function') return { ok: false, status: 'blocked', code: 'APPROVAL_STORE_UNAVAILABLE' };
   if (!tools || typeof tools !== 'object' || Array.isArray(tools)) return { ok: false, status: 'blocked', code: 'TOOL_REGISTRY_UNAVAILABLE' };
   if (typeof verifyStep !== 'function') return { ok: false, status: 'blocked', code: 'VERIFIER_UNAVAILABLE' };
-  for (const step of plan.steps) if (typeof tools[step.tool] !== 'function') return { ok: false, status: 'blocked', code: 'TOOL_NOT_ALLOWLISTED', stepId: step.id };
+  for (const step of plan.steps) if (!Object.hasOwn(tools, step.tool) || typeof tools[step.tool] !== 'function') return { ok: false, status: 'blocked', code: 'TOOL_NOT_ALLOWLISTED', stepId: step.id };
   const timeout = Number.isFinite(timeoutMs) ? Math.max(10, Math.min(30000, Math.floor(timeoutMs))) : DEFAULT_STEP_TIMEOUT_MS;
   const runId = globalThis.crypto.randomUUID();
   const planDigest = await createPlanDigest(plan);
