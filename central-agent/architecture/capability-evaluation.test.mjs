@@ -33,6 +33,14 @@ test("a failed check prevents a passing overall report", () => {
   assert.match(report.nextActions[0], /privacy/);
 });
 
+test("confirmed failure takes precedence over other untested checks", () => {
+  const report = evaluateCapabilityRun({ checks: [
+    { id: "privacy", status: "FAIL", evidence: "ci://privacy" },
+    { id: "live-provider", status: "NOT_TESTED" }
+  ] });
+  assert.equal(report.status, "FAIL");
+});
+
 test("blocked checks remain distinct from failed checks", () => {
   const report = evaluateCapabilityRun({ checks: [
     { id: "live-provider", status: "BLOCKED", evidence: "run://17", detail: "credential missing" }
