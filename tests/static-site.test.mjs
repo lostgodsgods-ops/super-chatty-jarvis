@@ -456,7 +456,7 @@ test("REDULTRON CORE 2.0 is the canonical app identity with preferred male voice
 
 
 test("spoken replies clean markdown, raw links, code blocks, and decorative symbols", () => {
-  const declaration = jarvisHtml.match(/    function prepareSpeechText\(text\) \{[\\s\\S]*?\n    \}/);
+  const declaration = jarvisHtml.match(/    function prepareSpeechText\(text\) \{[\s\S]*?\n    \}/);
   assert.ok(declaration, "speech output needs a dedicated text-normalization function");
   const prepareSpeechText = vm.runInNewContext("(" + declaration[0].trim() + ")");
   const spoken = prepareSpeechText("# Latest update\n\n**Status:** Ready. [Read source](https://example.com/path)\n\n```js\nsecret code\n```\n- First item 🚀");
