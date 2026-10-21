@@ -111,7 +111,7 @@ test("installed PWA force-updates stale shells and revalidates HTML assets", () 
   assert.match(serviceWorker, /CACHE_NAME\s*=\s*"resultron-core-shell-v13-cognitive-core"/, "shell cache must be version-bumped for the install UX release");
   assert.match(serviceWorker, /self\.skipWaiting\(\)/, "new worker must activate without waiting for an old tab to close");
   assert.match(serviceWorker, /self\.clients\.claim\(\)/, "new worker must claim open PWA clients");
-  assert.match(serviceWorker, /key !== CACHE_NAME.*caches\.delete\(key\)/s, "activation must delete older Super Chatty shell caches");
+  assert.match(serviceWorker, /key !== CACHE_NAME.*caches\.delete\(key\)/s, "activation must delete older project shell caches");
   assert.match(serviceWorker, /new Request\(request,\s*\{\s*cache:\s*"no-store"\s*\}\)/, "navigation must bypass stale browser HTTP cache");
   assert.match(jarvisHtml, /application-version" content="RESULTRON-2026\.10\.21-COGNITIVE-CORE-V13"/, "frontend version must be bumped");
   assert.match(jarvisHtml, /registration\.update\(\)/, "PWA must check for worker updates");
@@ -446,10 +446,10 @@ test("Central Agent deployment rejects stale live-search health contracts and pr
 
 
 test("RESULTRON CORE 2.0 is the canonical app identity with preferred male voice selection", () => {
-  assert.match(jarvisHtml, /REDULTRON CORE 2\.0/, "the primary interface must use the new core identity");
+  assert.match(jarvisHtml, /RESULTRON CORE 2\.0/, "the primary interface must use the new core identity");
   assert.equal(manifest.name, "RESULTRON CORE 2.0", "the installable app name must use the new identity");
   assert.match(jarvisHtml, /function selectPreferredMaleVoice\(/, "voice selection must prefer available male-sounding Hindi/Indian English voices");
   assert.match(jarvisHtml, /voiceschanged/, "voice selection must refresh when the device voice catalog loads");
   assert.match(jarvisHtml, /COGNITIVE CORE/, "the interface must expose cognitive-core framing");
-  assert.match(centralWorker, /REDULTRON CORE 2\.0/, "backend system prompts must share the canonical identity");
+  assert.match(centralWorker, /RESULTRON CORE 2\.0/, "backend system prompts must share the canonical identity");
 });
