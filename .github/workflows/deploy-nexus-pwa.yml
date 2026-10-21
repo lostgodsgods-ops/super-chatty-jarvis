@@ -43,6 +43,14 @@ jobs:
           tmp="$(mktemp -d)"
           trap 'rm -rf "$tmp"' EXIT
 
+          # Derive the expected release markers from the checked-out source.
+          # Hard-coded versions caused false failures whenever the PWA cache
+          # or application version was bumped in a later release.
+          expected_version="$(grep -oE 'REDULTRON-[0-9]{4}\.[0-9]{2}\.[0-9]{2}-COGNITIVE-CORE-V[0-9]+' jarvis/index.html | head -n 1)"
+          expected_cache="$(grep -oE 'redultron-core-shell-v[0-9]+-cognitive-core' jarvis/sw.js | head -n 1)"
+          test -n "$expected_version" || { echo "::error::Could not derive the expected REDULTRON version from jarvis/index.html"; exit 1; }
+          test -n "$expected_cache" || { echo "::error::Could not derive the expected PWA cache from jarvis/sw.js"; exit 1; }
+
           fetch_asset() {
             local path="$1" output="$2" headers="$3" expected_type="$4"
             local status content_type
@@ -58,15 +66,15 @@ jobs:
           fetch_asset "/" "$tmp/index.html" "$tmp/root.headers" "text/html"
           grep -Fq 'REDULTRON CORE 2.0 · Neural Console' "$tmp/index.html"
           grep -Fq 'id="updateAppBtn"' "$tmp/index.html"
-          grep -Fq 'REDULTRON-2026.10.20-COGNITIVE-CORE-V12' "$tmp/index.html"
+          grep -Fq "$expected_version" "$tmp/index.html" || { echo "::error::Production HTML version does not match repository source ($expected_version)"; exit 1; }
 
           fetch_asset "/sw.js" "$tmp/sw-root.js" "$tmp/sw-root.headers" "javascript"
-          grep -Fq 'redultron-core-shell-v12-cognitive-core' "$tmp/sw-root.js"
+          grep -Fq "$expected_cache" "$tmp/sw-root.js" || { echo "::error::Root service worker cache does not match repository source ($expected_cache)"; exit 1; }
           grep -Eiq '^cache-control: no-cache, must-revalidate' "$tmp/root.headers"
           grep -Eiq '^cache-control: no-cache, must-revalidate' "$tmp/sw-root.headers"
 
           fetch_asset "/jarvis/sw.js" "$tmp/sw-subpath.js" "$tmp/sw-subpath.headers" "javascript"
-          grep -Fq 'redultron-core-shell-v12-cognitive-core' "$tmp/sw-subpath.js"
+          grep -Fq "$expected_cache" "$tmp/sw-subpath.js" || { echo "::error::Subpath service worker cache does not match repository source ($expected_cache)"; exit 1; }
           grep -Eiq '^cache-control: no-cache, must-revalidate' "$tmp/sw-subpath.headers"
 
           fetch_asset "/manifest.webmanifest" "$tmp/manifest.json" "$tmp/manifest.headers" "application/manifest+json"
@@ -79,4 +87,4 @@ jobs:
           test "$code" = "200" || { echo "::error::/health returned HTTP $code"; exit 1; }
           node -e 'const h=require(process.argv[1]); if(h.ok!==true) throw Error("Worker health is not ok");' "$tmp/health.json"
 
-          echo '{"ok":true,"deploymentMode":"Worker ASSETS binding","rootHTML":"PASS","serviceWorker":"PASS","manifest":"PASS","health":"PASS"}'
+          echo "{\"ok\":true,\"deploymentMode\":\"Worker ASSETS binding\",\"version\":\"$expected_version\",\"cache\":\"$expected_cache\",\"rootHTML\":\"PASS\",\"serviceWorker\":\"PASS\",\"manifest\":\"PASS\",\"health\":\"PASS\"}"
