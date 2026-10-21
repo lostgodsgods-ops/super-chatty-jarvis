@@ -24,7 +24,7 @@ function isValidProvider(provider) {
     typeof provider.id === "string" &&
     provider.id.trim() &&
     Array.isArray(provider.families) &&
-    provider.families.every(family => typeof family === "string") &&
+    Array.from(provider.families).every(family => typeof family === "string") &&
     typeof provider.implemented === "boolean" &&
     typeof provider.configured === "boolean"
   );
@@ -65,7 +65,8 @@ export function evaluateCapabilityReadiness({ requiredCapabilities, providers } 
   if (requiredCapabilities.length > MAX_REQUIREMENTS) return invalidResult("INPUT_LIMIT_EXCEEDED");
   if (providers.length > 100) return invalidResult("INPUT_LIMIT_EXCEEDED");
 
-  const normalized = requiredCapabilities.map(normalizeCapability);
+  // Array.from materializes sparse slots as undefined so malformed holes fail closed.
+  const normalized = Array.from(requiredCapabilities, normalizeCapability);
   if (normalized.some(capability => capability === null)) return invalidResult();
   const validProviders = providers.filter(isValidProvider);
   const capabilities = [...new Set(normalized)].map(capability =>
