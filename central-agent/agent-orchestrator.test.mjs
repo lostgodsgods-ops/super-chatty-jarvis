@@ -158,7 +158,7 @@ test("global scraper uses public no-key fallback when neither Tavily key binding
   const originalFetch = globalThis.fetch;
   t.after(() => { globalThis.fetch = originalFetch; });
   globalThis.fetch = async (url) => {
-    assert.match(String(url), /duckduckgo\.com\/html/);
+    assert.ok(String(url).includes("duckduckgo.com/html"));
     return new Response('<a class="result__a" href="https://example.com/public">Public source</a>', {
       status: 200, headers: { "content-type": "text/html" }
     });
