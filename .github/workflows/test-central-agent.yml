@@ -12,6 +12,7 @@ on:
       - "feat/owner-approved-durable-knowledge-queue"
       - "feat/agentic-architecture-foundation"
       - "feat/live-search-first-chat"
+      - "feat/redultron-live-research-resilience"
     paths:
       - "central-agent/**"
       - ".github/workflows/deploy-central-agent.yml"
