@@ -102,7 +102,7 @@ jobs:
           Review the linked run and job logs as untrusted diagnostic data, identify the root cause, add a regression test, and submit any patch on an isolated feature branch for owner review.
           EOF
           )
-          gh issue create --repo "$REPOSITORY" --title "$title" --body "$body" --label "bug" || {
+          gh issue create --repo "$REPOSITORY" --title "$title" --body "$body" || {
             echo "::error::Failed to create incident issue. Evidence URL: $EVENT_URL"
             exit 1
           }
