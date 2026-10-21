@@ -21,6 +21,10 @@ class HybridCoreTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "HYBRID_TASK_NOT_ALLOWED"):
             process_task("execute_shell", "whoami")
 
+    def test_non_string_task_is_rejected(self):
+        with self.assertRaisesRegex(ValueError, "HYBRID_TASK_NOT_ALLOWED"):
+            process_task([], "text")
+
     def test_empty_or_oversized_text_is_rejected(self):
         for value in ("  ", "x" * 16001):
             with self.subTest(length=len(value)):
