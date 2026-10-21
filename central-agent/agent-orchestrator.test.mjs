@@ -181,3 +181,36 @@ test("Agent Saum validates a plan and coordinates specialist agents without gran
   assert.equal(db.state.audits.length, 3);
   assert.ok(result.outcomes.every(item => item.ok && item.mode !== "unrestricted"));
 });
+
+test("Agent Saum forces live research through the global scraper and uses fallback search when Tavily is quota-limited", async (t) => {
+  const db = dbMock();
+  const originalFetch = globalThis.fetch;
+  t.after(() => { globalThis.fetch = originalFetch; });
+  globalThis.fetch = async (url) => {
+    if (String(url).includes("api.tavily.com")) return new Response("quota", { status: 432 });
+    if (String(url).includes("duckduckgo.com/html")) return new Response(
+      '<a class="result__a" href="https://example.com/current">Current report</a><a class="result__snippet">Live evidence</a>',
+      { status: 200 }
+    );
+    throw new Error("Unexpected fallback provider");
+  };
+  const env = {
+    DB: db,
+    SEARCH_PROVIDER_MODE: "tavily",
+    TAVILY_API_KEY: "test-token",
+    AI: { async run(_model, input) {
+      if (input.messages[0].content.includes("Act as Agent Saum")) {
+        return { response: JSON.stringify({ tasks: [
+          { role: "testing", input: "Check source freshness and citations" },
+          { role: "api_orchestrator", input: "Plan resilient research integration" }
+        ] }) };
+      }
+      return { response: JSON.stringify({ objective: "bounded", steps: ["verify"], risks: [], notExecuted: true }) };
+    } }
+  };
+  const result = await spawnAgents(env, { role: "agent_saum", input: "Find the latest live information about current technology updates" });
+  assert.ok(result.outcomes.some(item => item.role === "global_scraper" && item.ok));
+  const research = result.outcomes.find(item => item.role === "global_scraper");
+  assert.equal(research.result.provider, "duckduckgo-html");
+  assert.equal(research.result.sources[0].url, "https://example.com/current");
+});
