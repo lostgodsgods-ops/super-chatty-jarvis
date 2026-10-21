@@ -1,6 +1,6 @@
 # Super Chatty Central Agent
 
-Central Agent v1.3.0 adds an owner-defined password flow. It does not connect to Google Gemini.
+REDULTRON Central Agent v1.4.1 provides owner-scoped authentication, WebAuthn verification, live-search routing, durable task/memory services, agent orchestration, Sentinel monitoring, and a bounded scheduled improvement-proposal cycle. The runtime version reported by `/health` is maintained in `central-agent/worker.mjs`. It does not connect to Google Gemini.
 
 ## Owner password setup
 
@@ -47,11 +47,18 @@ Required GitHub Actions secrets:
 - Owner approval is per exact query, action, and one-time nonce. The scheduler only consumes rows already stored with `owner_approved = 1`.
 - `SEARCH_API_KEY` must be configured as a Worker secret. If D1 or the key is unavailable, task creation/execution fails closed.
 
+## Bounded continuous improvement (v1.4.1)
+
+- The scheduled cycle runs only after the Owner execution gate permits background work.
+- It reviews a bounded set of recent failed-run telemetry and records at most three repeated-signal proposals in D1 table `continuous_improvement_audit`.
+- Proposals are audit-only and marked `requiresOwnerApproval: true`; they do not edit source code, change Owner controls, grant capabilities, or execute upgrades.
+- Missing D1 or storage failures fail closed and are surfaced as degraded cycle events. This is not model-weight retraining and is not an unbounded `for (;;)` process.
+
 ## Security status and limitations
 
 - Tavily search runs server-side; the API key is a Cloudflare Worker secret and is never returned to clients.
 - No Gemini API key or Gemini provider is used.
 - Unknown actions fail closed; no child agents or external tools execute.
-- This is password authentication, not account recovery. WebAuthn/passkey or device biometric registration and signature verification are not implemented. If you forget the password, a separately reviewed owner recovery procedure is required.
+- Password and WebAuthn/passkey flows are implemented in the Central Agent. WebAuthn requires a valid HTTPS origin and matching relying-party configuration; deployment configuration must be verified against the actual app origin. Device biometrics are mediated by the platform authenticator and are not raw biometric data collected by the Worker. Keep recovery codes and owner recovery procedures protected.
 - Add rate limiting / abuse monitoring before treating this as a production internet-facing login.
 - Run `npm test` from the repository root. The owner auth tests use Node's built-in test runner.
