@@ -27,6 +27,7 @@ import { createOwnerControlState, setOwnerTakeover, setEmergencyStop } from "./a
 import { DEFAULT_OWNER_CONTROL_SETTINGS, normalizeOwnerControlCommand, validateOwnerControlSettings } from "./architecture/owner-control-service.mjs";
 import { createSandboxLedger, postSandboxTransaction } from "./architecture/finance-sandbox.mjs";
 import { executeHybridTask, HybridCoreError } from "./architecture/hybrid-core.mjs";
+import { listUniversalTools } from "./architecture/universal-tool-registry.mjs";
 import { assessRobotSimulatorCommand } from "./architecture/robotics-simulator.mjs";
 
 const VERSION = "1.4.1";
@@ -2039,6 +2040,16 @@ export default {
       if (!approvalResult.ok) return json({ error: approvalResult.error }, approvalResult.status, cors);
       try { return json({ ok: true, goal: await transitionGoal(env, goalTransition[1], target, body?.details || {}) }, 200, cors); }
       catch (error) { return json({ error: error instanceof GoalError ? error.code : "GOAL_TRANSITION_FAILED" }, error instanceof GoalError ? error.status : 503, cors); }
+    }
+
+    if (url.pathname === "/api/tools/registry" && request.method === "GET") {
+      if (!(await authorized(request, env))) return json({ ok: false, error: "Owner session required.", code: "OWNER_SESSION_REQUIRED" }, 401, cors);
+      return json({
+        ok: true,
+        providers: listUniversalTools(env),
+        liveVerificationPerformed: false,
+        note: "Registry reports catalog and binding presence only; configured does not mean authenticated, reachable, or operational."
+      }, 200, cors);
     }
 
     if (url.pathname === "/mcp/status" && request.method === "GET") {
