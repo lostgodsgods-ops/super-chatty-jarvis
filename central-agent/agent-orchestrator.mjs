@@ -132,6 +132,22 @@ async function persistRun(db, record) {
       .bind(id, role, status, JSON.stringify({ input }), result ? JSON.stringify(result).slice(0, MAX_OUTPUT) : null, errorCode, startedAt, completedAt)
   ]);
 }
+async function executeTracked(env, role, input) {
+  await publishEvent(env, { type: "agent.task.started", source: "agent-orchestrator", payload: { role, status: "running" } });
+  const outcome = await executeOne(env, role, input);
+  await publishEvent(env, {
+    type: outcome.ok ? "agent.task.completed" : "agent.task.failed",
+    source: "agent-orchestrator",
+    payload: {
+      role,
+      runId: outcome.id || null,
+      status: outcome.status || (outcome.ok ? "completed" : "failed"),
+      error: outcome.ok ? null : outcome.error || "AGENT_EXECUTION_FAILED"
+    }
+  });
+  return outcome;
+}
+
 async function executeOne(env, rawRole, rawInput) {
   const role = ALIASES[rawRole] || rawRole;
   if (!Object.hasOwn(ROLE_DEFINITIONS, role)) return { ok: false, status: 400, error: "UNSUPPORTED_AGENT_ROLE", allowedRoles: Object.keys(ROLE_DEFINITIONS) };
@@ -181,13 +197,13 @@ export async function spawnAgents(env, payload) {
     if (tasks.length !== 1) return { ok: false, status: 400, error: "SAUM_MUST_BE_SOLE_TOP_LEVEL_TASK" };
     const goal = safeString(saumTasks[0].input);
     if (!goal) return { ok: false, status: 400, error: "AGENT_INPUT_REQUIRED" };
-    const planner = await executeOne(env, "agent_saum", goal);
+    const planner = await executeTracked(env, "agent_saum", goal);
     if (!planner.ok) return { ok: false, status: 207, coordinator: planner, outcomes: [] };
     let delegation = normalizeSaumDelegation(planner.result);
     const usedFallback = !delegation.ok;
     if (usedFallback) delegation = fallbackSaumPlan(goal);
     if (!delegation.ok) return { ok: false, status: 400, coordinator: planner, error: delegation.error, outcomes: [] };
-    const outcomes = await Promise.all(delegation.tasks.map(task => executeOne(env, task.role, task.input)));
+    const outcomes = await Promise.all(delegation.tasks.map(task => executeTracked(env, task.role, task.input)));
     return {
       ok: outcomes.every(item => item.ok),
       status: outcomes.every(item => item.ok) ? 200 : 207,
@@ -197,7 +213,7 @@ export async function spawnAgents(env, payload) {
       outcomes
     };
   }
-  const outcomes = await Promise.all(tasks.map(task => executeOne(env, task.role, task.input)));
+  const outcomes = await Promise.all(tasks.map(task => executeTracked(env, task.role, task.input)));
   return { ok: outcomes.every(item => item.ok), status: outcomes.every(item => item.ok) ? 200 : 207, maxConcurrent: MAX_BATCH, outcomes };
 }
 export async function listRecentAgentRuns(db, limit = 10) {
