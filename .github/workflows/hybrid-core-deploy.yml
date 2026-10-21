@@ -30,7 +30,6 @@ jobs:
         uses: actions/setup-node@v5
         with:
           node-version: "22"
-          cache: npm
 
       - name: Validate required repository secrets
         env:
