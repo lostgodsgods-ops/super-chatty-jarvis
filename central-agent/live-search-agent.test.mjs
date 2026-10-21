@@ -91,3 +91,29 @@ test("runs independent fresh-news fallback providers concurrently after primary 
   assert.equal(result.provider, "google-news-rss");
   assert.equal(result.sources[0].url, "https://example.com/fresh");
 });
+
+
+test("open-source-first mode never spends Tavily credits when a key is configured", async () => {
+  const calls = [];
+  const fetchImpl = async url => {
+    const value = String(url);
+    calls.push(value);
+    if (value.includes("api.tavily.com")) return new Response(JSON.stringify({ results: [
+      { title: "Tavily-only result", url: "https://example.com/tavily", content: "Paid-provider result" }
+    ] }), { status: 200, headers: { "content-type": "application/json" } });
+    if (value.includes("bing.com/news")) return new Response("", { status: 503 });
+    if (value.includes("news.google.com")) return new Response("", { status: 503 });
+    if (value.includes("gdeltproject.org")) return new Response(JSON.stringify({ articles: [] }), { status: 200 });
+    if (value.includes("duckduckgo.com/html")) return new Response(
+      '<a class="result__a" href="https://example.com/public">Public source</a><a class="result__snippet">Open-source result</a>',
+      { status: 200, headers: { "content-type": "text/html" } }
+    );
+    throw new Error("Unexpected provider");
+  };
+  const result = await searchLiveWeb("latest public research today", {
+    SEARCH_PROVIDER_MODE: "open-source-first",
+    TAVILY_API_KEY: "configured-but-disabled"
+  }, { fetchImpl });
+  assert.equal(result.provider, "duckduckgo-html");
+  assert.equal(calls.some(url => url.includes("api.tavily.com")), false);
+});
