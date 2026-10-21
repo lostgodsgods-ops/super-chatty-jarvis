@@ -314,7 +314,3 @@ export async function searchLiveWeb(rawQuery, env = {}, options = {}) {
   }
 }
 
-/** Test-only cache reset without exposing cached search data. */
-export function clearLiveSearchCache() {
-  liveSearchCache.clear();
-}
