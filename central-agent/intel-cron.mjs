@@ -28,7 +28,7 @@ async function collectApprovedEndpoints(env, fetchImpl) {
     try {
       const response = await fetchImpl(url.toString(), {
         method: "GET", redirect: "error", cache: "no-store",
-        headers: { accept: "application/json", "user-agent": "SuperChattyJarvis-IntelCron/1.0" },
+        headers: { accept: "application/json", "user-agent": "RESULTRON-IntelCron/1.0" },
         signal: AbortSignal.timeout(4000)
       });
       if (!response.ok) { results.push({ host: url.hostname, path: url.pathname, ok: false, status: response.status }); continue; }
@@ -62,7 +62,7 @@ export async function runIntelCycle(env = {}, options = {}) {
   try {
     response = await (options.fetchImpl || globalThis.fetch)(url, {
       method: "GET", redirect: "error", cache: "no-store",
-      headers: { accept: "application/vnd.github+json", "x-github-api-version": "2022-11-28", "user-agent": "SuperChattyJarvis-IntelCron/1.0" },
+      headers: { accept: "application/vnd.github+json", "x-github-api-version": "2022-11-28", "user-agent": "RESULTRON-IntelCron/1.0" },
       signal: AbortSignal.timeout(5000)
     });
   } catch {
