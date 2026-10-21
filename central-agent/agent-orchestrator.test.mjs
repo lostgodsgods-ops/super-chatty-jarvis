@@ -263,7 +263,7 @@ test("collaborative builder coordinates architect, test analyst, code proposer, 
     AI: { async run(model, input) {
       const system = input.messages[0].content;
       if (system.includes("AI systems architect")) return { response: JSON.stringify({ mission: "build a bounded agent", architecture: "orchestrator plus specialist agents", components: ["router", "memory", "review"], acceptanceCriteria: ["audited"], safetyBoundaries: ["owner approval"] }) };
-      if (system.includes("test analyst")) return { response: JSON.stringify({ testCases: ["provider outage", "auth required"], expectedResults: ["safe failure"], regressionRisks: [], notExecuted: true }) };
+      if (system.startsWith("Act as a test analyst.")) return { response: JSON.stringify({ testCases: ["provider outage", "auth required"], expectedResults: ["safe failure"], regressionRisks: [], notExecuted: true }) };
       if (system.includes("code-change proposal agent")) return { response: JSON.stringify({ summary: "proposal only", filesToReview: ["worker.mjs"], proposedPatch: null, tests: ["auth", "fallback"], risks: [] }) };
       if (system.includes("independent adversarial technical reviewer")) return { response: JSON.stringify({ verdict: "revise", criticalRisks: ["provider quota"], missingEvidence: ["live smoke test"], failureModes: ["timeout"], requiredChanges: ["bounded retries"], testsToRequire: ["fallback test"] }) };
       if (system.startsWith("Act as the collaboration integrator")) return { response: JSON.stringify({ objective: "bounded AI builder", recommendedArchitecture: "specialists plus independent review", implementationPhases: ["design", "test", "review"], blockingRisks: ["live provider access"], verificationGate: ["CI PASS"], status: "proposal-only" }) };
