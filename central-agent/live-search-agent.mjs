@@ -126,7 +126,9 @@ export async function searchLiveWeb(rawQuery, env = {}, options = {}) {
   };
   const tavilyKey = typeof env.TAVILY_API_KEY === "string" && env.TAVILY_API_KEY.trim()
     ? env.TAVILY_API_KEY.trim() : typeof env.SEARCH_API_KEY === "string" ? env.SEARCH_API_KEY.trim() : "";
-  if (env.SEARCH_PROVIDER_MODE === "tavily" && tavilyKey) {
+  const providerMode = clean(env.SEARCH_PROVIDER_MODE, 40).toLowerCase();
+  const tavilyAllowed = providerMode !== "public" && providerMode !== "duckduckgo" && providerMode !== "no-key";
+  if (tavilyAllowed && tavilyKey) {
     const result = await attempt("tavily", async () => {
       const response = await request(fetchImpl, "TAVILY", "https://api.tavily.com/search", {
         method: "POST", headers: { authorization: "Bearer " + tavilyKey, "content-type": "application/json", accept: "application/json" },
