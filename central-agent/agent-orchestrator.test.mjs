@@ -225,3 +225,33 @@ test("Agent Saum forces live research through the global scraper and uses fallba
   assert.equal(research.result.provider, "duckduckgo-html");
   assert.equal(research.result.sources[0].url, "https://example.com/current");
 });
+
+test("Agent Saum forces live research for Hindi freshness requests", async (t) => {
+  const db = dbMock();
+  const originalFetch = globalThis.fetch;
+  t.after(() => { globalThis.fetch = originalFetch; });
+  globalThis.fetch = async (url) => {
+    assert.match(String(url), /duckduckgo\\.com\\/html/);
+    return new Response(
+      '<a class="result__a" href="https://example.com/hindi-current">Hindi current source</a>',
+      { status: 200, headers: { "content-type": "text/html" } }
+    );
+  };
+  const env = {
+    DB: db,
+    AI: { async run(_model, input) {
+      if (input.messages[0].content.includes("Act as Agent Saum")) {
+        return { response: JSON.stringify({ tasks: [
+          { role: "testing", input: "Check the Hindi current-information request" },
+          { role: "api_orchestrator", input: "Check routing integration" }
+        ] }) };
+      }
+      return { response: JSON.stringify({ objective: "bounded", steps: ["verify"], risks: [], notExecuted: true }) };
+    } }
+  };
+  const result = await spawnAgents(env, { role: "agent_saum", input: "आज की खबर और अभी की जानकारी बताओ" });
+  assert.equal(result.ok, true);
+  const research = result.outcomes.find(item => item.role === "global_scraper");
+  assert.ok(research?.ok, "Hindi freshness requests must include the global scraper");
+  assert.equal(research.result.sources[0].url, "https://example.com/hindi-current");
+});
