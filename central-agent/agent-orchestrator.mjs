@@ -14,7 +14,7 @@ const MAX_OUTPUT = 7000;
 const ROLE_DEFINITIONS = Object.freeze({
   agent_saum: { label: "Agent Saum", mode: "bounded-delegation", description: "Break an owner-approved goal into up to three bounded tasks for allowlisted specialist agents; cannot grant permissions or execute side effects." },
   code_mutator: { label: "Code Mutator", mode: "proposal-only", description: "Generate a reviewable code-change proposal; never writes repository files or deploys." },
-  global_scraper: { label: "Global Scraper", mode: "bounded-read-only-search", description: "Search public web results through the configured Tavily provider; no crawling or login bypass." },
+  global_scraper: { label: "Global Scraper", mode: "bounded-read-only-search", description: "Search public web results through the configured provider mode; no crawling or login bypass." },
   api_orchestrator: { label: "API Orchestrator", mode: "plan-only", description: "Produce a bounded API integration plan; does not invoke arbitrary URLs or external side effects." },
   testing: { label: "Test Analyst", mode: "plan-only", description: "Produce test cases and verification steps; does not claim tests were executed." }
 });
