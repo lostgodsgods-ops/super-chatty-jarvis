@@ -20,7 +20,7 @@ ALLOWED_TASKS = {"summarize", "extract_keywords", "classify_text"}
 
 def process_task(task: str, text: str):
     """Deterministic bounded transforms; no arbitrary code or tool execution."""
-    if task not in ALLOWED_TASKS:
+    if not isinstance(task, str) or task not in ALLOWED_TASKS:
         raise ValueError("HYBRID_TASK_NOT_ALLOWED")
     if not isinstance(text, str) or not text.strip() or len(text) > MAX_TEXT_CHARS:
         raise ValueError("HYBRID_TEXT_LENGTH_INVALID")
