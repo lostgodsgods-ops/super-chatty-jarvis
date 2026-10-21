@@ -8,7 +8,7 @@ test("registry catalogs provider families without claiming they are live", () =>
   assert.ok(tools.some(tool => tool.id === "openai"));
   assert.ok(tools.some(tool => tool.id === "cloudflare"));
   assert.ok(tools.some(tool => tool.id === "github"));
-  assert.ok(tools.every(tool => tool.status === "not_configured"));
+  assert.ok(tools.every(tool => ["not_configured", "public_metadata_only"].includes(tool.status)));
   assert.ok(tools.every(tool => tool.connectionAttempted === false));
 });
 
