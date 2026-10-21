@@ -17,7 +17,7 @@ function dbMock() {
 }
 test("agent catalogue exposes bounded executors and no self-granted side effects", () => {
   const roles = listAgentDefinitions();
-  assert.deepEqual(roles.map(role => role.id), ["code_mutator", "global_scraper", "api_orchestrator", "testing"]);
+  assert.deepEqual(roles.map(role => role.id), ["agent_saum", "code_mutator", "global_scraper", "api_orchestrator", "testing"]);
   assert.ok(roles.every(role => role.requiresOwnerSession && role.autoExecutesSideEffects === false));
 });
 test("agent spawn validates role and bounds parallel batch size", async () => {
@@ -156,4 +156,28 @@ test("global scraper fails closed when neither Tavily key binding exists", async
   const result = await spawnAgents({ DB: db }, { role: "global_scraper", input: "search without credentials" });
   assert.equal(result.ok, false);
   assert.equal(result.outcomes[0].error, "SEARCH_PROVIDER_UNAVAILABLE");
+});
+
+
+test("Agent Saum validates a plan and coordinates specialist agents without granting permissions", async () => {
+  const db = dbMock();
+  const env = {
+    DB: db,
+    AI: { async run(_model, input) {
+      if (input.messages[0].content.includes("Act as Agent Saum")) {
+        return { response: JSON.stringify({ tasks: [
+          { role: "testing", input: "Define auth regression tests" },
+          { role: "api_orchestrator", input: "Plan the progress-event integration" }
+        ] }) };
+      }
+      return { response: JSON.stringify({ objective: "Bounded specialist result", steps: ["review", "verify"], risks: [] }) };
+    } }
+  };
+  const result = await spawnAgents(env, { role: "agent_saum", input: "Improve RESULTRON progress reporting" });
+  assert.equal(result.ok, true);
+  assert.equal(result.coordinator.role, "agent_saum");
+  assert.equal(result.delegationMode, "model-plan-validated");
+  assert.deepEqual(result.outcomes.map(item => item.role), ["testing", "api_orchestrator"]);
+  assert.equal(db.state.audits.length, 3);
+  assert.ok(result.outcomes.every(item => item.ok && item.mode !== "unrestricted"));
 });

@@ -48,7 +48,7 @@ export function normalizeResearchItem(source, item) {
   return null;
 }
 async function fetchJson(url) {
-  const response = await fetch(url, { method: "GET", headers: { accept: "application/json", "user-agent": "Super-Chatty-Jarvis-ReadOnly-Research/1.0" }, signal: AbortSignal.timeout(RESEARCH_LIMITS.timeoutMs) });
+  const response = await fetch(url, { method: "GET", headers: { accept: "application/json", "user-agent": "RESULTRON-ReadOnly-Research/1.0" }, signal: AbortSignal.timeout(RESEARCH_LIMITS.timeoutMs) });
   if (!response.ok) {
     if (response.status === 403) {
       const remaining = response.headers.get("x-ratelimit-remaining");

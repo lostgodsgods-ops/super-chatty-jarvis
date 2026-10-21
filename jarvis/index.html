@@ -7,10 +7,10 @@
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="application-version" content="REDULTRON-2026.10.20-COGNITIVE-CORE-V12">
-  <meta name="description" content="REDULTRON CORE 2.0 — voice-first AI command interface.">
+  <meta name="application-version" content="RESULTRON-2026.10.21-COGNITIVE-CORE-V13">
+  <meta name="description" content="RESULTRON CORE 2.0 — voice-first AI command interface.">
   <meta name="color-scheme" content="dark">
-  <title>REDULTRON CORE 2.0 · Neural Console</title>
+  <title>RESULTRON CORE 2.0 · Neural Console</title>
   <link rel="manifest" href="./manifest.webmanifest">
   <link rel="icon" href="./icon.svg" type="image/svg+xml">
   <link rel="apple-touch-icon" href="./icon-192.png">
@@ -126,7 +126,7 @@ body{background:radial-gradient(ellipse at 50% 38%,#50330f45 0,transparent 35%),
 .red-queen-panel{grid-column:1/-1}.red-queen-priority{display:flex;flex-direction:column;gap:4px;margin:0 0 12px;color:var(--muted);font-size:12px}.red-queen-priority strong{color:var(--gold);letter-spacing:.08em;font-size:12px}.red-queen-meta{font-size:11px;color:var(--muted);margin:8px 0 12px}.red-queen-modules{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:9px}.red-queen-module{border:1px solid #ffce7830;border-radius:12px;padding:11px;background:#00000020;min-width:0}.red-queen-module strong,.red-queen-module span{display:block;overflow-wrap:anywhere}.red-queen-module strong{font-size:11px;color:var(--text);margin-bottom:5px}.red-queen-module span{font-size:10px;color:var(--muted)}.red-queen-note{font-size:10px;line-height:1.5;color:var(--muted);margin:12px 0 0}
 .pwa-update-btn{min-height:34px;padding:7px 10px;font-size:10px;letter-spacing:.04em;white-space:nowrap}.pwa-update-btn[aria-busy="true"]{opacity:.75}@media(max-width:560px){.topbar{align-items:flex-start;flex-wrap:wrap}.topbar .telemetry{width:100%;justify-content:flex-start}.pwa-update-btn{flex:1;min-width:150px}}
 
-/* REDULTRON authenticated-first gate: hide all private modules until server verification. */
+/* RESULTRON authenticated-first gate: hide all private modules until server verification. */
 body.auth-locked{min-height:100svh;background:radial-gradient(ellipse at 50% 12%,#0b3446 0,transparent 46%),linear-gradient(145deg,#04080e,#07111b 56%,#050b12)}
 body.auth-locked #installBanner{display:none!important}
 body.auth-locked .shell{min-height:100svh;padding:clamp(18px,6vh,64px) 14px calc(22px + var(--safe-bottom));justify-content:center}
@@ -134,7 +134,7 @@ body.auth-locked .shell> :not(.dashboard-grid){display:none!important}
 body.auth-locked .dashboard-grid{display:block!important;grid-template-columns:1fr!important;width:min(100%,520px);margin:auto}
 body.auth-locked .dashboard-grid>section{display:none!important}
 body.auth-locked .dashboard-grid>section[aria-labelledby="ownerTitle"]{display:block!important;max-width:520px;margin:0 auto;border-color:#53e8ff66;border-radius:24px;background:linear-gradient(150deg,rgba(7,25,40,.97),rgba(4,11,20,.97));box-shadow:0 20px 70px #0009,0 0 42px #53e8ff12}
-body.auth-locked .dashboard-grid>section[aria-labelledby="ownerTitle"]::before{content:"✦  REDULTRON CORE 2.0";display:block;padding:25px 18px 8px;text-align:center;color:var(--gold);font-size:clamp(16px,4vw,21px);font-weight:900;letter-spacing:.13em}
+body.auth-locked .dashboard-grid>section[aria-labelledby="ownerTitle"]::before{content:"✦  RESULTRON CORE 2.0";display:block;padding:25px 18px 8px;text-align:center;color:var(--gold);font-size:clamp(16px,4vw,21px);font-weight:900;letter-spacing:.13em}
 body.auth-locked .dashboard-grid>section[aria-labelledby="ownerTitle"]::after{content:"COGNITIVE CORE  /  OWNER AUTHENTICATION";display:block;padding:0 18px 22px;text-align:center;color:var(--cyan);font-size:10px;font-weight:800;letter-spacing:.18em}
 body.auth-locked .dashboard-grid>section[aria-labelledby="ownerTitle"] .panel-head{justify-content:center;border-top:1px solid #53e8ff22}
 body.auth-locked #ownerTitle::after{content:" · ACCESS GATE";color:var(--cyan);font-size:.75em}
@@ -154,17 +154,17 @@ body.auth-locked #ownerSessionStatus{font-weight:700}
 </head>
 <body class="auth-locked">
   <canvas id="particleMesh" aria-hidden="true"></canvas>
-  <section class="install-banner" id="installBanner" role="region" aria-label="Install REDULTRON CORE 2.0">
+  <section class="install-banner" id="installBanner" role="region" aria-label="Install RESULTRON CORE 2.0">
     <div class="install-copy">
-      <strong>INSTALL REDULTRON CORE 2.0</strong>
+      <strong>INSTALL RESULTRON CORE 2.0</strong>
       <span id="installHint">Install for a dedicated app window. Chrome controls when its native install prompt is available.</span>
     </div>
-    <button class="install-app-btn" id="installAppBtn" type="button" aria-describedby="installHint">INSTALL SUPER CHATTY APP</button>
+    <button class="install-app-btn" id="installAppBtn" type="button" aria-describedby="installHint">INSTALL RESULTRON APP</button>
     <button class="install-dismiss" id="installDismissBtn" type="button" aria-label="Dismiss install banner">×</button>
   </section>
   <main class="shell">
     <header class="topbar">
-      <div class="brand"><div class="brandmark" aria-hidden="true">✦</div><div class="brandname">REDULTRON <span>CORE 2.0</span> / COGNITIVE CORE<small class="owner-brand-tag">OWNER · LOSS GODS</small></div></div>
+      <div class="brand"><div class="brandmark" aria-hidden="true">✦</div><div class="brandname">RESULTRON <span>CORE 2.0</span> / COGNITIVE CORE<small class="owner-brand-tag">OWNER · LOSS GODS</small></div></div>
       <div class="telemetry" aria-label="System status">
         <button class="action-btn secondary pwa-update-btn" id="updateAppBtn" type="button" aria-label="Check and apply the latest app update">UPDATE APP NOW</button>
         <span class="status warn" id="workerStatus"><i class="dot"></i><span>CF: CHECKING</span></span>
@@ -180,7 +180,7 @@ body.auth-locked #ownerSessionStatus{font-weight:700}
           <canvas class="wave" id="wave" aria-hidden="true"></canvas>
           <div class="core" id="core"><span class="core-glyph" aria-hidden="true">✦</span></div>
         </div>
-        <h1 class="core-title" id="coreHeading">REDULTRON CORE 2.0</h1>
+        <h1 class="core-title" id="coreHeading">RESULTRON CORE 2.0</h1>
         <div class="section-label" style="margin-top:6px;letter-spacing:.1em">PERCEPTION · PLANNING · MEMORY · VERIFICATION</div>
         <div class="core-state" id="voiceProfileState" aria-live="polite">VOICE PROFILE · PREFERRED MALE-SOUNDING HINDI / INDIAN ENGLISH</div>
         <div class="core-state" id="coreState" role="status" aria-live="polite">CORE STANDBY · unlock Owner session to initialize the cognitive core</div><div class="chat-reply hidden" id="chatReply" role="status" aria-live="polite"></div>
@@ -324,7 +324,7 @@ body.auth-locked #ownerSessionStatus{font-weight:700}
   </section>
   </main>
 
-  <section class="commandbar" aria-label="REDULTRON voice console">
+  <section class="commandbar" aria-label="RESULTRON voice console">
     <div class="command-content">
       <div class="command-label" id="voiceLabel">CHAT WITH CHATTY · OWNER: LOSS GODS</div>
       <label class="sr-only" for="commandInput">Message Chatty</label>
@@ -354,8 +354,8 @@ body.auth-locked #ownerSessionStatus{font-weight:700}
   </aside>
   <section class="cinema" id="cinemaOverlay" aria-label="Cinematic media viewer" aria-hidden="true">
     <div class="cinema-head"><span id="cinemaTitle">IMMERSIVE VIEW</span><button class="hud-btn" id="cinemaClose" type="button">EXIT VIEW ×</button></div>
-    <div class="cinema-layout"><div class="cinema-stage" id="cinemaStage"><div class="hud-hint">Choose a media item or open an article URL.</div></div><aside class="cinema-core-dock" aria-label="REDULTRON CORE 2.0 monitor"><div class="cinema-core-wrap"><div class="ring"></div><div class="ring r2"></div><div class="ring r3"></div><div class="cinema-core-orb">✦</div></div><strong>REDULTRON CORE 2.0</strong><span>MONITORING · LIVE HUD</span><p id="cinemaCoreState">Standby monitoring</p></aside></div>
-    <div class="cinema-caption" id="cinemaCaption">The REDULTRON CORE 2.0 remains visible alongside this media view.</div>
+    <div class="cinema-layout"><div class="cinema-stage" id="cinemaStage"><div class="hud-hint">Choose a media item or open an article URL.</div></div><aside class="cinema-core-dock" aria-label="RESULTRON CORE 2.0 monitor"><div class="cinema-core-wrap"><div class="ring"></div><div class="ring r2"></div><div class="ring r3"></div><div class="cinema-core-orb">✦</div></div><strong>RESULTRON CORE 2.0</strong><span>MONITORING · LIVE HUD</span><p id="cinemaCoreState">Standby monitoring</p></aside></div>
+    <div class="cinema-caption" id="cinemaCaption">The RESULTRON CORE 2.0 remains visible alongside this media view.</div>
   </section>
 
 
@@ -377,7 +377,7 @@ body.auth-locked #ownerSessionStatus{font-weight:700}
       installBanner.hidden = false;
       installBanner.dataset.installState = "ready";
       installHint.textContent = "Ready to install. Tap the button to open Chrome's native install dialog.";
-      installButton.setAttribute("aria-label", "Open native install dialog for REDULTRON CORE 2.0");
+      installButton.setAttribute("aria-label", "Open native install dialog for RESULTRON CORE 2.0");
     });
     if (installButton) installButton.addEventListener("click", async () => {
       if (isStandalone()) {
@@ -742,7 +742,7 @@ body.auth-locked #ownerSessionStatus{font-weight:700}
         throw new Error("Passkeys require this app to be opened on its secure HTTPS origin.");
       }
       if (!options || options.origin !== origin) {
-        throw new Error("Passkey origin mismatch. Open REDULTRON CORE 2.0 from its registered app URL.");
+        throw new Error("Passkey origin mismatch. Open RESULTRON CORE 2.0 from its registered app URL.");
       }
       const rpId = registration ? options.rp?.id : options.rpId;
       if (typeof rpId !== "string" || rpId !== window.location.hostname) {
@@ -950,7 +950,7 @@ body.auth-locked #ownerSessionStatus{font-weight:700}
           return;
         }
         const registration = await navigator.serviceWorker.ready;
-        await registration.showNotification("REDULTRON CORE 2.0 alerts enabled", {
+        await registration.showNotification("RESULTRON CORE 2.0 alerts enabled", {
           body: "Critical events can notify while this page is running and connected. Background push is not configured.",
           icon: "./icon-192.png",
           tag: "scj-notifications-enabled",
@@ -970,7 +970,7 @@ body.auth-locked #ownerSessionStatus{font-weight:700}
           Notification.permission !== "granted" || document.visibilityState === "visible") return;
       if (!/(security|failed|degraded|blocked|alert|error)/i.test(String(eventName || ""))) return;
       navigator.serviceWorker.ready.then(registration => registration.showNotification(
-        "REDULTRON CORE 2.0 · " + String(eventName).slice(0, 64),
+        "RESULTRON CORE 2.0 · " + String(eventName).slice(0, 64),
         {
           body: "A critical backend event arrived. Open the app to inspect the authenticated event log.",
           icon: "./icon-192.png",
@@ -1250,7 +1250,7 @@ body.auth-locked #ownerSessionStatus{font-weight:700}
       }
     }
     function speakGreeting(onEnd) {
-      speakText("Namaste, Loss Gods. REDULTRON CORE 2.0 ready hai. Main pehle context samajhunga, plan banaunga, authorized actions karunga, aur result verify karke evidence dunga. Bataiye, mission kya hai?", onEnd);
+      speakText("Namaste, Loss Gods. RESULTRON CORE 2.0 ready hai. Main pehle context samajhunga, plan banaunga, authorized actions karunga, aur result verify karke evidence dunga. Bataiye, mission kya hai?", onEnd);
     }
     function stopHandsFree(reason = "Hands-free voice stopped.") {
       state.handsFree = false;
@@ -1642,7 +1642,7 @@ body.auth-locked #ownerSessionStatus{font-weight:700}
       const reloadOnControllerChange = () => {
         if (reloadScheduled) return;
         reloadScheduled = true;
-        toast("New version active. Reloading REDULTRON CORE 2.0…");
+        toast("New version active. Reloading RESULTRON CORE 2.0…");
         setTimeout(() => location.reload(), 150);
       };
       try {
