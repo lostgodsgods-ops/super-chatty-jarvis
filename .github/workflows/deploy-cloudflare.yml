@@ -30,6 +30,7 @@ jobs:
         uses: actions/setup-node@v5
         with:
           node-version: "22"
+          package-manager-cache: false
 
       - name: Run deployment safety tests
         run: npm test
@@ -62,7 +63,7 @@ jobs:
           printf 'api_token=%s\n' "$token" >> "$GITHUB_OUTPUT"
 
       - name: Deploy Worker
-        uses: cloudflare/wrangler-action@v3
+        uses: cloudflare/wrangler-action@v4
         with:
           apiToken: ${{ steps.deployment-credentials.outputs.api_token }}
           accountId: "6c0d1ab7b0d730f94359a89a77a0dcf2"
