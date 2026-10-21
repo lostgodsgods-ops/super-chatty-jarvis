@@ -70,3 +70,23 @@ test("empty requirements cannot produce a false ready result", () => {
   assert.deepEqual(result.capabilities, []);
   assert.deepEqual(result.blockers, []);
 });
+
+
+test("sparse requirement and provider-family arrays fail closed", () => {
+  const sparseRequirements = new Array(1);
+  const requirementsResult = evaluateCapabilityReadiness({
+    requiredCapabilities: sparseRequirements,
+    providers
+  });
+  assert.equal(requirementsResult.ok, false);
+  assert.equal(requirementsResult.ready, false);
+  assert.equal(requirementsResult.code, "INVALID_INPUT");
+
+  const sparseFamilies = new Array(1);
+  const providerResult = evaluateCapabilityReadiness({
+    requiredCapabilities: ["llm"],
+    providers: [{ id: "sparse", families: sparseFamilies, implemented: true, configured: true }]
+  });
+  assert.equal(providerResult.ready, false);
+  assert.equal(providerResult.capabilities[0].status, "missing");
+});
