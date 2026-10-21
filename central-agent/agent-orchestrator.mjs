@@ -188,6 +188,11 @@ export async function spawnAgents(env, payload) {
     const usedFallback = !delegation.ok;
     if (usedFallback) delegation = fallbackSaumPlan(goal);
     if (!delegation.ok) return { ok: false, status: 400, coordinator: planner, error: delegation.error, outcomes: [] };
+    const needsFreshResearch = /\b(current|live|latest|today|news|weather|price|release|outage|updated)\b/i.test(goal);
+    if (needsFreshResearch && !delegation.tasks.some(task => task.role === "global_scraper")) {
+      const researchTask = { role: "global_scraper", input: "Search live public web evidence for: " + goal.slice(0, 1800) };
+      delegation = { ...delegation, tasks: [...delegation.tasks.slice(0, MAX_BATCH - 1), researchTask] };
+    }
     const outcomes = await Promise.all(delegation.tasks.map(task => executeTracked(env, task.role, task.input)));
     return {
       ok: outcomes.every(item => item.ok),
