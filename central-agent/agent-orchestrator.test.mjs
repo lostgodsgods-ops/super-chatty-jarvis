@@ -231,7 +231,7 @@ test("Agent Saum forces live research for Hindi freshness requests", async (t) =
   const originalFetch = globalThis.fetch;
   t.after(() => { globalThis.fetch = originalFetch; });
   globalThis.fetch = async (url) => {
-    assert.match(String(url), /duckduckgo\\.com\\/html/);
+    assert.ok(String(url).includes("duckduckgo.com/html"));
     return new Response(
       '<a class="result__a" href="https://example.com/hindi-current">Hindi current source</a>',
       { status: 200, headers: { "content-type": "text/html" } }
