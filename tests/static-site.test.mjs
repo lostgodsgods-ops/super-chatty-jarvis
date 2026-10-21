@@ -211,7 +211,7 @@ test("standalone install metadata advertises app-window behavior and a branded l
 
 test("PWA provides a direct native install prompt and a safe fallback", () => {
   assert.match(jarvisHtml, /id="installBanner"/, "install banner must be present in the first-screen UI");
-  assert.match(jarvisHtml, /id="installAppBtn"[^>]*>INSTALL SUPER CHATTY APP</, "install button must be prominent and directly tappable");
+  assert.match(jarvisHtml, /id="installAppBtn"[^>]*>INSTALL RESULTRON APP</, "install button must be prominent and directly tappable");
   assert.match(jarvisHtml, /beforeinstallprompt/, "Chrome install prompt event must be captured");
   assert.match(jarvisHtml, /event\.preventDefault\(\)/, "browser prompt must be deferred until the user taps the button");
   assert.match(jarvisHtml, /installEvent\.prompt\(\)/, "button must invoke the native prompt from a user gesture");
@@ -238,7 +238,7 @@ test("owner gate prevents health checks and SSE from starting before session ver
 
 test("first-screen one-click install uses the browser-native prompt when eligible", () => {
   assert.match(jarvisHtml, /id="installBanner"/, "install banner must exist on the initial screen");
-  assert.match(jarvisHtml, /id="installAppBtn"[^>]*>INSTALL SUPER CHATTY APP<\/button>/, "prominent install action must be present");
+  assert.match(jarvisHtml, /id="installAppBtn"[^>]*>INSTALL RESULTRON APP<\/button>/, "prominent install action must be present");
   assert.match(jarvisHtml, /addEventListener\("beforeinstallprompt"/, "browser install eligibility must be captured");
   assert.match(jarvisHtml, /event\.preventDefault\(\)/, "default install UI must be deferred to the custom action");
   assert.match(jarvisHtml, /installEvent\.prompt\(\)/, "tap must invoke the captured native prompt");
