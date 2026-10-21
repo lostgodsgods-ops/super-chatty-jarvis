@@ -8,6 +8,7 @@ on:
       - ".github/workflows/test-central-agent.yml"
   push:
     branches:
+      - main
       - "feat/tavily-central-agent-search"
       - "feat/owner-approved-durable-knowledge-queue"
       - "feat/agentic-architecture-foundation"
