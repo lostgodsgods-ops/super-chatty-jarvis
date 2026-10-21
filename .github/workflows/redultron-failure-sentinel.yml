@@ -102,7 +102,7 @@ jobs:
           # Logical retry lock only. This workflow deliberately has no administration permission.
           title="[REDULTRON][FAIL] Recovery budget exhausted — run $RUN_ID"
           search_q="repo:$REPOSITORY in:title \"$RUN_ID\""
-          existing="$(gh api -X GET search/issues -f q="$search_q" --jq "[.items[] | select(.title == \"$title\" and .state == \"open\")] | length")"
+          existing="$(gh api -X GET search/issues -f q="$search_q" | jq --arg title "$title" '[.items[] | select(.title == $title and .state == "open")] | length')"
           if [[ "$existing" != "0" ]]; then
             echo "Existing incident found for run $RUN_ID; duplicate suppressed."
             exit 0
