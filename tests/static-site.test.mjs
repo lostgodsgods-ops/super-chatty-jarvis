@@ -445,6 +445,22 @@ test("Central Agent deployment rejects stale live-search health contracts and pr
 });
 
 
+test("Central Agent runtime and PWA shell release markers stay synchronized", () => {
+  const headerVersion = centralWorker.match(/REDULTRON Central Agent v([0-9]+\.[0-9]+\.[0-9]+)/)?.[1];
+  const runtimeVersion = centralWorker.match(/const VERSION = "([^"]+)"/)?.[1];
+  assert.ok(headerVersion, "Central Agent source header must declare a semantic version");
+  assert.ok(runtimeVersion, "Central Agent runtime must declare its health-reported version");
+  assert.equal(headerVersion, runtimeVersion, "source header and runtime health version must match");
+
+  const appVersion = jarvisHtml.match(/application-version" content="REDULTRON-[0-9]{4}\.[0-9]{2}\.[0-9]{2}-COGNITIVE-CORE-V([0-9]+)/)?.[1];
+  const cacheVersion = serviceWorker.match(/CACHE_NAME\s*=\s*"redultron-core-shell-v([0-9]+)-cognitive-core"/)?.[1];
+  assert.ok(appVersion, "PWA HTML must declare its release version");
+  assert.ok(cacheVersion, "service worker must declare its shell cache version");
+  assert.equal(appVersion, cacheVersion, "PWA app and service-worker cache versions must match");
+  assert.equal(manifest.name, "REDULTRON CORE 2.0", "install manifest identity must remain canonical");
+});
+
+
 test("REDULTRON CORE 2.0 is the canonical app identity with preferred male voice selection", () => {
   assert.match(jarvisHtml, /REDULTRON CORE 2\.0/, "the primary interface must use the new core identity");
   assert.equal(manifest.name, "REDULTRON CORE 2.0", "the installable app name must use the new identity");
