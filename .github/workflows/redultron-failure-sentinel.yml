@@ -1,0 +1,123 @@
+name: REDULTRON Failure Sentinel
+
+on:
+  workflow_run:
+    workflows:
+      - CI
+      - Test Central Agent
+    types:
+      - completed
+  workflow_dispatch:
+    inputs:
+      source_run_id:
+        description: "Failed GitHub Actions run ID to inspect (manual, bounded recovery)"
+        required: true
+        type: string
+
+permissions:
+  actions: write
+  contents: read
+  issues: write
+
+concurrency:
+  group: redultron-recovery-${{ github.event.workflow_run.id || inputs.source_run_id }
+  cancel-in-progress: false
+
+jobs:
+  triage-and-bounded-retry:
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.workflow_run.conclusion != 'success' &&
+       github.event.workflow_run.conclusion != 'cancelled' &&
+       github.event.workflow_run.conclusion != 'skipped')
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Resolve source run and attempt budget
+        id: source
+        env:
+          GH_TOKEN: ${{ github.token }
+          EVENT_NAME: ${{ github.event_name }
+          EVENT_RUN_ID: ${{ github.event.workflow_run.id }
+          EVENT_ATTEMPT: ${{ github.event.workflow_run.run_attempt }
+          INPUT_RUN_ID: ${{ inputs.source_run_id }
+          REPOSITORY: ${{ github.repository }
+        run: |
+          set -euo pipefail
+          if [[ "$EVENT_NAME" == "workflow_dispatch" ]]; then
+            [[ "$INPUT_RUN_ID" =~ ^[0-9]+$ ]] || { echo "::error::source_run_id must be numeric"; exit 2; }
+            run_id="$INPUT_RUN_ID"
+            run_json="$(gh api "repos/$REPOSITORY/actions/runs/$run_id")"
+            attempt="$(jq -r '.run_attempt // 1' <<< "$run_json")"
+            conclusion="$(jq -r '.conclusion // "unknown"' <<< "$run_json")"
+          else
+            run_id="$EVENT_RUN_ID"
+            attempt="$EVENT_ATTEMPT"
+            conclusion="${{ github.event.workflow_run.conclusion }"
+          fi
+          [[ "$run_id" =~ ^[0-9]+$ && "$attempt" =~ ^[0-9]+$ ]] || { echo "::error::Invalid run metadata"; exit 2; }
+          echo "run_id=$run_id" >> "$GITHUB_OUTPUT"
+          echo "attempt=$attempt" >> "$GITHUB_OUTPUT"
+          echo "conclusion=$conclusion" >> "$GITHUB_OUTPUT"
+          echo "Source run: $run_id; attempt: $attempt; conclusion: $conclusion"
+
+      - name: Retry failed jobs within the strict three-attempt budget
+        if: steps.source.outputs.attempt < 3 && steps.source.outputs.conclusion != 'success'
+        env:
+          GH_TOKEN: ${{ github.token }
+          REPOSITORY: ${{ github.repository }
+          RUN_ID: ${{ steps.source.outputs.run_id }
+        run: |
+          set -euo pipefail
+          gh run rerun "$RUN_ID" --failed --repo "$REPOSITORY"
+
+      - name: Record exhausted recovery budget as a FAIL incident
+        if: steps.source.outputs.attempt >= 3 && steps.source.outputs.conclusion != 'success'
+        env:
+          GH_TOKEN: ${{ github.token }
+          REPOSITORY: ${{ github.repository }
+          RUN_ID: ${{ steps.source.outputs.run_id }
+          ATTEMPT: ${{ steps.source.outputs.attempt }
+          CONCLUSION: ${{ steps.source.outputs.conclusion }
+          EVENT_URL: ${{ github.server_url }/${{ github.repository }/actions/runs/${{ steps.source.outputs.run_id }
+        run: |
+          set -euo pipefail
+          title="[REDULTRON][FAIL] Recovery budget exhausted — run $RUN_ID"
+          body=$(cat <<EOF
+          ## REDULTRON CI recovery incident
+
+          **Status:** [FAIL] — bounded recovery budget exhausted.  
+          **Source run:** $RUN_ID  
+          **Observed attempt:** $ATTEMPT of 3  
+          **Conclusion:** $CONCLUSION  
+          **Evidence:** $EVENT_URL
+
+          ### Safety actions
+          - No source files were modified by this workflow.
+          - No branch was merged and no deployment was triggered.
+          - No secrets or configuration values were read or changed.
+          - Further automated retries for this run are halted at the three-attempt limit.
+
+          ### Required follow-up
+          Review the linked run and job logs as untrusted diagnostic data, identify the root cause, add a regression test, and submit any patch on an isolated feature branch for owner review.
+          EOF
+          )
+          gh issue create --repo "$REPOSITORY" --title "$title" --body "$body" --label "bug" || {
+            echo "::error::Failed to create incident issue. Evidence URL: $EVENT_URL"
+            exit 1
+          }
+
+      - name: Report recovery decision
+        env:
+          RUN_ID: ${{ steps.source.outputs.run_id }
+          ATTEMPT: ${{ steps.source.outputs.attempt }
+          CONCLUSION: ${{ steps.source.outputs.conclusion }
+        run: |
+          set -euo pipefail
+          if [[ "$CONCLUSION" == "success" ]]; then
+            echo "Source run $RUN_ID succeeded; no retry needed."
+          elif (( ATTEMPT < 3 )); then
+            echo "Bounded retry requested for run $RUN_ID at attempt $ATTEMPT/3."
+          else
+            echo "::error::[FAIL] Run $RUN_ID exhausted attempt budget $ATTEMPT/3."
+          fi
