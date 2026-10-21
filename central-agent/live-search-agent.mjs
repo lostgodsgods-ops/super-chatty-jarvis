@@ -10,6 +10,13 @@ const TIMEOUT_MS = LIVE_SEARCH_TIMEOUT_MS;
 const STALE_CACHE_TTL_MS = 24 * 60 * 60 * 1000;
 const MAX_CACHE_ENTRIES = 100;
 const liveSearchCache = new Map();
+const fetchImplementationIds = new WeakMap();
+let nextFetchImplementationId = 1;
+function cacheNamespace(fetchImpl, providerMode) {
+  let id = fetchImplementationIds.get(fetchImpl);
+  if (!id) { id = nextFetchImplementationId++; fetchImplementationIds.set(fetchImpl, id); }
+  return String(providerMode || "default") + ":fetch-" + id;
+}
 
 function clean(value, max = 1200) {
   return typeof value === "string"
@@ -261,7 +268,9 @@ async function performLiveSearch(rawQuery, env = {}, options = {}) {
 export async function searchLiveWeb(rawQuery, env = {}, options = {}) {
   const query = clean(rawQuery, MAX_QUERY);
   if (!query) throw new Error("LIVE_SEARCH_EMPTY_QUERY");
-  const cacheKey = query.toLocaleLowerCase();
+  const fetchImpl = options.fetchImpl || fetch;
+  const namespace = cacheNamespace(fetchImpl, clean(env.SEARCH_PROVIDER_MODE, 40).toLowerCase());
+  const cacheKey = namespace + ":" + query.toLocaleLowerCase();
   try {
     const result = await performLiveSearch(query, env, options);
     if (result?.sources?.length) {
