@@ -464,12 +464,17 @@ export async function fetchTavilyWithRetry(query, env, options = {}) {
       error.providerDiagnostics = Array.isArray(result?.diagnostics) ? result.diagnostics : [];
       throw error;
     }
-    return new Response(JSON.stringify({ results }), {
+    return new Response(JSON.stringify({
+      results,
+      stale: result.stale === true,
+      cachedAt: result.stale === true ? result.cachedAt || null : null
+    }), {
       status: 200,
       headers: {
         "content-type": "application/json; charset=utf-8",
         "cache-control": "no-store",
-        "x-search-provider": String(result.provider || "unknown").slice(0, 80)
+        "x-search-provider": String(result.provider || "unknown").slice(0, 80),
+        "x-search-stale": result.stale === true ? "true" : "false"
       }
     });
   } catch (error) {
