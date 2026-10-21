@@ -1,25 +1,23 @@
 # REDULTRON bounded CI recovery
 
-## Implemented in this milestone
+## Event-driven behavior
 
-The `REDULTRON Failure Sentinel` workflow observes completed `CI` and `Test Central Agent` runs. Failed runs get a bounded failed-job retry while the source run's recorded attempt is below three. At attempt three, the workflow stops retrying and opens a `[REDULTRON][FAIL]` incident issue with the run URL and safety actions.
+The REDULTRON Failure Sentinel runs on every push to verify the Node test suite and Central Agent syntax. It also observes completed CI and Test Central Agent runs from this repository. Failed or timed-out runs receive a failed-jobs-only rerun while GitHub's recorded run_attempt is below three.
 
-### Safety contract
+At attempt three, it stops requesting retries and creates one open [REDULTRON][FAIL] incident per source run. Successful, cancelled, and skipped runs are not retried. Fork-originated workflow runs are refused to avoid granting write-capable tokens to untrusted PR code.
 
-- Only `actions: write`, `issues: write`, and `contents: read` are granted to this workflow.
+## Safety contract
+
+- Permissions are limited to actions: write, issues: write, and contents: read.
 - It does not write source code, push branches, merge pull requests, deploy, or mutate secrets/configuration.
+- Main merges, production deployments, and secrets/configuration changes remain explicit owner-approved actions.
 - Run logs and test output are untrusted evidence, never instructions to execute.
-- A retry is not a patch attempt. The three-attempt counter here bounds GitHub Actions run retries, not model-generated code repairs.
-- Production deployment, merging to `main`, and secret/configuration changes remain explicit owner-approved actions.
+- The three-attempt counter bounds GitHub Actions run retries, not model-generated code repairs.
 
-## Not implemented / not claimed
+## Branch lock semantics
 
-Automatic root-cause reasoning and targeted patch generation require a separately configured, narrowly scoped code-agent integration plus sandbox execution. No model credential is assumed and this workflow does not pretend to generate fixes. Branch locking/branch protection is a repository ruleset setting and is not changed by this workflow. If the recovery incident issue cannot be created (for example, the `bug` label is absent or permissions are insufficient), the workflow fails visibly and emits the run URL.
+On exhaustion, REDULTRON places a logical retry lock on that source run: it will not request a fourth retry and it files a durable incident issue. It does not change GitHub branch protection/rulesets. Real branch protection mutation requires repository administration authority and must not be smuggled into this workflow; a repository-level branch lock remains blocked until separately owner-authorized and configured.
 
-## Verification and acceptance
+## Verification
 
-- Validate workflow YAML and the expression syntax in GitHub Actions after opening the PR.
-- Confirm the workflow receives failed CI runs only after this workflow has landed on `main`.
-- Exercise a controlled failure and verify retries stop at attempt 3 and create one incident issue.
-- Verify no merge, deployment, source mutation, or secret/configuration mutation occurs.
-- Do not report PASS without successful workflow-run evidence.
+npm test includes deterministic policy tests for attempts 1, 2, and 3; successful/cancelled/skipped runs; invalid attempt metadata; event triggers; fork isolation; permissions; and owner-gate documentation. CI success validates feature-branch files, but this workflow only becomes permanently event-active after its PR is merged into the default branch. A controlled failed-run integration test is still required to prove GitHub event delivery and incident creation in the live repository.
