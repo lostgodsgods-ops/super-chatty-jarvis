@@ -44,3 +44,16 @@ test("rejects empty query and malformed result URLs", async () => {
   );
   await assert.rejects(searchLiveWeb("safe query", {}, { fetchImpl }), /LIVE_SEARCH_ALL_PROVIDERS_FAILED/);
 });
+
+test("uses configured Tavily credentials by default when provider mode is unset", async () => {
+  let authorization = "";
+  const fetchImpl = async (_url, init = {}) => {
+    authorization = init.headers.authorization;
+    return new Response(JSON.stringify({ results: [
+      { title: "Current source", url: "https://example.com/source", content: "Evidence" }
+    ] }), { status: 200, headers: { "content-type": "application/json" } });
+  };
+  const result = await searchLiveWeb("latest verified query", { TAVILY_API_KEY: "configured-key" }, { fetchImpl });
+  assert.equal(authorization, "Bearer configured-key");
+  assert.equal(result.provider, "tavily");
+});
