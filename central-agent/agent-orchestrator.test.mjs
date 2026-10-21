@@ -17,7 +17,7 @@ function dbMock() {
 }
 test("agent catalogue exposes bounded executors and no self-granted side effects", () => {
   const roles = listAgentDefinitions();
-  assert.deepEqual(roles.map(role => role.id), ["code_mutator", "global_scraper", "api_orchestrator", "testing"]);
+  assert.deepEqual(roles.map(role => role.id), ["agent_saum", "code_mutator", "global_scraper", "api_orchestrator", "testing"]);
   assert.ok(roles.every(role => role.requiresOwnerSession && role.autoExecutesSideEffects === false));
 });
 test("agent spawn validates role and bounds parallel batch size", async () => {
