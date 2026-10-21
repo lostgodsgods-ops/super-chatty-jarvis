@@ -57,8 +57,8 @@ function parseDdg(html) {
   return normalizeItems(results);
 }
 function isFreshnessQuery(query) {
-  return /\b(latest|today|tonight|now|current|live|breaking|recent|this week|this month|price|weather|news|score|election|outage|version|release|updated|202[5-9])\b/i.test(query)
-    || /आज|अभी|ताज़ा|ताजा|वर्तमान|मौजूदा|लेटेस्ट|लाइव|समाचार|खबर|ख़बर|कीमत|मूल्य|मौसम|नतीजे|परिणाम|स्कोर|अपडेट|इस हफ्ते|इस सप्ताह|इस महीने|इस साल|हालिया|ब्रेकिंग/i.test(query);
+  return /\b(latest|today|tonight|now|current|currently|live|breaking|recent|historical|history|this week|this month|this year|price|weather|news|score|election|outage|version|release|updated|20(?:2[3-9]|[3-9]\d))\b/i.test(query)
+    || /आज|अभी|ताज़ा|ताजा|वर्तमान|मौजूदा|लेटेस्ट|लाइव|समाचार|खबर|ख़बर|कीमत|मूल्य|मौसम|नतीजे|परिणाम|स्कोर|अपडेट|इस हफ्ते|इस सप्ताह|इस महीने|इस साल|हालिया|ब्रेकिंग|इतिहास|ऐतिहासिक/i.test(query);
 }
 async function request(fetchImpl, provider, url, init = {}) {
   const timeoutSignal = AbortSignal.timeout(TIMEOUT_MS);
@@ -119,12 +119,33 @@ export async function searchLiveWeb(rawQuery, env = {}, options = {}) {
   if (!query) throw new Error("LIVE_SEARCH_EMPTY_QUERY");
   const fetchImpl = options.fetchImpl || fetch;
   const diagnostics = [];
+  const endpointFor = name => ({
+    "duckduckgo-html": "https://html.duckduckgo.com/html/",
+    "bing-news-rss": "https://www.bing.com/news/search",
+    "google-news-rss": "https://news.google.com/rss/search",
+    "gdelt-doc-api": "https://api.gdeltproject.org/api/v2/doc/doc",
+    "wikipedia-api": "https://en.wikipedia.org/w/api.php",
+    tavily: "https://api.tavily.com/search"
+  })[name] || "unknown";
   const attempt = async (name, fn, signal) => {
-    try { const result = await fn(); if (result?.sources?.length) return result; diagnostics.push({ provider: name, status: "no-usable-results" }); }
-    catch (error) {
+    try {
+      const result = await fn();
+      if (result?.sources?.length) return result;
+      diagnostics.push({ provider: name, status: "no-usable-results" });
+    } catch (error) {
       if (signal?.aborted && error?.name === "AbortError") return null;
       const match = String(error?.message || "").match(/HTTP_(\d{3})/);
-      diagnostics.push({ provider: name, status: match ? "http-" + match[1] : error?.name === "TimeoutError" ? "timeout" : "network-error" });
+      const status = match ? "http-" + match[1] : error?.name === "TimeoutError" ? "timeout" : "network-error";
+      diagnostics.push({ provider: name, status });
+      if (match) {
+        console.warn("live_search_provider_http_failure", { provider: name, endpoint: endpointFor(name), status: Number(match[1]) });
+      } else {
+        console.warn("live_search_provider_network_failure", {
+          provider: name, endpoint: endpointFor(name), status,
+          errorName: String(error?.name || "Error").slice(0, 80),
+          errorMessage: String(error?.message || error || "Unknown network error").slice(0, 180)
+        });
+      }
     }
     return null;
   };
@@ -133,16 +154,39 @@ export async function searchLiveWeb(rawQuery, env = {}, options = {}) {
   const providerMode = clean(env.SEARCH_PROVIDER_MODE, 40).toLowerCase();
   const tavilyAllowed = !providerMode || providerMode === "tavily";
   if (tavilyAllowed && tavilyKey) {
-    const result = await attempt("tavily", async () => {
-      const response = await request(fetchImpl, "TAVILY", "https://api.tavily.com/search", {
-        method: "POST", headers: { authorization: "Bearer " + tavilyKey, "content-type": "application/json", accept: "application/json" },
-        body: JSON.stringify({ query, search_depth: "basic", max_results: MAX_RESULTS, include_answer: false, include_raw_content: false })
-      });
-      const payload = await response.json();
-      const sources = normalizeItems(payload?.results);
-      return sources.length ? { provider: "tavily", sources } : null;
-    });
-    if (result) return { ...result, query, diagnostics };
+    // Retry transient rate-limit/server responses, but never retry quota-exhaustion statuses.
+    for (let attemptNumber = 0; attemptNumber < 3; attemptNumber++) {
+      let response;
+      try {
+        response = await fetchImpl("https://api.tavily.com/search", {
+          method: "POST",
+          signal: AbortSignal.timeout(TIMEOUT_MS),
+          headers: { authorization: "Bearer " + tavilyKey, "content-type": "application/json", accept: "application/json" },
+          body: JSON.stringify({ query, search_depth: "basic", max_results: MAX_RESULTS, include_answer: false, include_raw_content: false })
+        });
+      } catch (error) {
+        await attempt("tavily", async () => { throw error; });
+        break;
+      }
+      if (response.ok) {
+        try {
+          const payload = await response.json();
+          const sources = normalizeItems(payload?.results);
+          if (sources.length) return { provider: "tavily", sources, query, diagnostics };
+          diagnostics.push({ provider: "tavily", status: "no-usable-results" });
+        } catch {
+          diagnostics.push({ provider: "tavily", status: "invalid-response" });
+        }
+        break;
+      }
+      diagnostics.push({ provider: "tavily", status: "http-" + response.status });
+      console.warn("live_search_provider_http_failure", { provider: "tavily", endpoint: endpointFor("tavily"), status: response.status });
+      const transient = response.status === 429 || [500, 502, 503, 504].includes(response.status);
+      if (!transient || attemptNumber === 2) break;
+      const retryAfter = Number(response.headers.get("retry-after"));
+      const delay = Number.isFinite(retryAfter) && retryAfter > 0 ? Math.min(250, Math.max(100, retryAfter * 1000)) : 100 * (2 ** attemptNumber);
+      await new Promise(resolve => setTimeout(resolve, delay));
+    }
   }
   const fresh = isFreshnessQuery(query);
   if (fresh) {
