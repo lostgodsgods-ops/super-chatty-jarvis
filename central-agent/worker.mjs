@@ -2056,7 +2056,7 @@ export default {
         if (present.size < 3) return json({ ok: true, enabled: env.AUTONOMOUS_RESEARCH_ENABLED === "true", initialized: false, lastRun: null, sentiment: [], signals: [] }, 200, cors);
         const [counts, recentRuns, sentiment, signals] = await Promise.all([
           env.DB.prepare("SELECT (SELECT COUNT(*) FROM agent_run_audit) AS audits, (SELECT COUNT(*) FROM research_observations) AS observations, (SELECT COUNT(*) FROM research_signals) AS signals").first(),
-          env.DB.prepare("SELECT status, source_count AS sourceCount, item_count AS itemCount, error_count AS errorCount, started_at AS startedAt, completed_at AS completedAt, details_json AS detailsJson FROM agent_run_audit ORDER BY completed_at DESC LIMIT 5").all(),
+          env.DB.prepare("SELECT status, source_count AS sourceCount, item_count AS itemCount, error_count AS errorCount, started_at AS startedAt, completed_at AS completedAt, details_json AS detailsJson FROM agent_run_audit WHERE agent_id = ? ORDER BY completed_at DESC LIMIT 5").bind("bounded-research-coordinator").all(),
           env.DB.prepare("SELECT sentiment_label AS label, COUNT(*) AS count, ROUND(AVG(sentiment_score),4) AS averageScore FROM research_observations GROUP BY sentiment_label ORDER BY count DESC").all(),
           env.DB.prepare("SELECT source, subject, metric, value, details_json AS detailsJson, observed_at AS observedAt FROM research_signals ORDER BY observed_at DESC LIMIT 10").all()
         ]);
