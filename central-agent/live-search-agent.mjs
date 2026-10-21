@@ -182,13 +182,20 @@ async function performLiveSearch(rawQuery, env = {}, options = {}) {
   const providerMode = clean(env.SEARCH_PROVIDER_MODE, 40).toLowerCase();
   const tavilyAllowed = !providerMode || providerMode === "tavily";
   if (tavilyAllowed && tavilyKey) {
-    // Retry transient rate-limit/server responses, but never retry quota-exhaustion statuses.
-    for (let attemptNumber = 0; attemptNumber < 1; attemptNumber++) {
+    // Retry transient rate-limit/server responses only within one 5-second total budget.
+    // A hung provider is aborted at the deadline so fallback providers can run immediately.
+    const tavilyDeadline = Date.now() + TIMEOUT_MS;
+    for (let attemptNumber = 0; attemptNumber < 3; attemptNumber++) {
+      const remainingMs = tavilyDeadline - Date.now();
+      if (remainingMs <= 0) {
+        diagnostics.push({ provider: "tavily", status: "timeout-budget-exhausted" });
+        break;
+      }
       let response;
       try {
         response = await fetchImpl("https://api.tavily.com/search", {
           method: "POST",
-          signal: AbortSignal.timeout(TIMEOUT_MS),
+          signal: AbortSignal.timeout(Math.max(1, Math.min(TIMEOUT_MS, remainingMs))),
           headers: { authorization: "Bearer " + tavilyKey, "content-type": "application/json", accept: "application/json" },
           body: JSON.stringify({ query, search_depth: "basic", max_results: MAX_RESULTS, include_answer: false, include_raw_content: false })
         });
@@ -212,8 +219,10 @@ async function performLiveSearch(rawQuery, env = {}, options = {}) {
       const transient = response.status === 429 || [500, 502, 503, 504].includes(response.status);
       if (!transient || attemptNumber === 2) break;
       const retryAfter = Number(response.headers.get("retry-after"));
-      const delay = Number.isFinite(retryAfter) && retryAfter > 0 ? Math.min(250, Math.max(100, retryAfter * 1000)) : 100 * (2 ** attemptNumber);
-      await new Promise(resolve => setTimeout(resolve, delay));
+      const requestedDelay = Number.isFinite(retryAfter) && retryAfter > 0 ? Math.min(250, Math.max(100, retryAfter * 1000)) : 100 * (2 ** attemptNumber);
+      const remainingAfterResponse = tavilyDeadline - Date.now();
+      if (attemptNumber >= 2 || remainingAfterResponse <= requestedDelay) break;
+      await new Promise(resolve => setTimeout(resolve, requestedDelay));
     }
   }
   // Brave is an independent indexed-search fallback. It is opt-in because it
