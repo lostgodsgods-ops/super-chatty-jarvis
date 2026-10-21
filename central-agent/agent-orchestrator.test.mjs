@@ -135,6 +135,7 @@ test("global scraper prefers TAVILY_API_KEY and falls back to SEARCH_API_KEY", a
   };
   const preferred = await spawnAgents({
     DB: db,
+    SEARCH_PROVIDER_MODE: "tavily",
     TAVILY_API_KEY: "new-key",
     SEARCH_API_KEY: "legacy-key"
   }, { role: "global_scraper", input: "latest verified test query" });
@@ -145,17 +146,27 @@ test("global scraper prefers TAVILY_API_KEY and falls back to SEARCH_API_KEY", a
 
   const fallback = await spawnAgents({
     DB: db,
+    SEARCH_PROVIDER_MODE: "tavily",
     SEARCH_API_KEY: "legacy-key"
   }, { role: "global_scraper", input: "legacy compatibility test" });
   assert.equal(fallback.ok, true);
   assert.equal(calls[1].authorization, "Bearer legacy-key");
 });
 
-test("global scraper fails closed when neither Tavily key binding exists", async () => {
+test("global scraper uses public no-key fallback when neither Tavily key binding exists", async (t) => {
   const db = dbMock();
+  const originalFetch = globalThis.fetch;
+  t.after(() => { globalThis.fetch = originalFetch; });
+  globalThis.fetch = async (url) => {
+    assert.match(String(url), /duckduckgo\.com\/html/);
+    return new Response('<a class="result__a" href="https://example.com/public">Public source</a>', {
+      status: 200, headers: { "content-type": "text/html" }
+    });
+  };
   const result = await spawnAgents({ DB: db }, { role: "global_scraper", input: "search without credentials" });
-  assert.equal(result.ok, false);
-  assert.equal(result.outcomes[0].error, "SEARCH_PROVIDER_UNAVAILABLE");
+  assert.equal(result.ok, true);
+  assert.equal(result.outcomes[0].result.provider, "duckduckgo-html");
+  assert.equal(result.outcomes[0].result.sourceCount, 1);
 });
 
 
