@@ -105,7 +105,10 @@ def main():
     secret = os.environ.get("OWNER_SECRET", "")
     if len(secret) < 32:
         raise SystemExit("OWNER_SECRET must be configured with at least 32 characters.")
-    server = ThreadingHTTPServer(("127.0.0.1", int(os.environ.get("PORT", "8788"))), Handler)
+    host = os.environ.get("HOST", "127.0.0.1")
+    if host not in {"127.0.0.1", "0.0.0.0"}:
+        raise SystemExit("HOST must be 127.0.0.1 or 0.0.0.0.")
+    server = ThreadingHTTPServer((host, int(os.environ.get("PORT", "8788"))), Handler)
     try:
         server.serve_forever()
     finally:
