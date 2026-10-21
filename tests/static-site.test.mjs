@@ -468,3 +468,14 @@ test("spoken replies clean markdown, raw links, code blocks, and decorative symb
   assert.doesNotMatch(spoken, /https:\/\/|secret code|```|🚀|\*\*|^#/m);
   assert.match(jarvisHtml, /prepareSpeechText\(text\)\.slice\(0, 3000\)/, "speech synthesis must use normalized text");
 });
+
+
+test("voice catalog refreshes immediately and supports both voice-change event APIs", () => {
+  const start = jarvisHtml.indexOf("function refreshVoiceCatalog()");
+  const end = jarvisHtml.indexOf("function adaptSpeechTone(", start);
+  assert.ok(start >= 0 && end > start, "voice catalog refresh function must exist");
+  const catalog = jarvisHtml.slice(start, end);
+  assert.match(catalog, /speechSynthesis\.addEventListener\("voiceschanged", refreshVoiceCatalog\)/);
+  assert.match(catalog, /speechSynthesis\.onvoiceschanged\s*=\s*refreshVoiceCatalog/);
+  assert.match(catalog, /refreshVoiceCatalog\(\);/, "voice selection should run once after setup");
+});
