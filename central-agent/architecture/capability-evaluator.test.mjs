@@ -61,3 +61,12 @@ test("malformed provider records are ignored rather than treated as capability",
   assert.equal(result.ready, false);
   assert.equal(result.capabilities[0].status, "missing");
 });
+
+test("empty requirements cannot produce a false ready result", () => {
+  const result = evaluateCapabilityReadiness({ requiredCapabilities: [], providers });
+  assert.equal(result.ok, false);
+  assert.equal(result.ready, false);
+  assert.equal(result.code, "NO_REQUIREMENTS");
+  assert.deepEqual(result.capabilities, []);
+  assert.deepEqual(result.blockers, []);
+});
