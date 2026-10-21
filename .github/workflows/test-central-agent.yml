@@ -34,5 +34,12 @@ jobs:
           node-version: "22"
           package-manager-cache: false
 
-      - name: Test policy, owner authentication, queue, provider routing, integrations and capability evaluation
-        run: node --test central-agent/policy.test.mjs central-agent/owner-auth.test.mjs central-agent/task-queue.test.mjs central-agent/architecture/architecture.test.mjs central-agent/architecture/worker-status.test.mjs central-agent/current-info-query.test.mjs central-agent/internal-search.test.mjs central-agent/architecture/integration-registry.test.mjs central-agent/architecture/goal-lifecycle.test.mjs central-agent/research-agents.test.mjs central-agent/architecture/capability-evaluation.test.mjs central-agent/saum-coordinator.test.mjs central-agent/live-search-agent.test.mjs
+      - name: Discover and run every Central Agent test
+        shell: bash
+        run: |
+          set -euo pipefail
+          mapfile -t tests < <(find central-agent -type f -name '*.test.mjs' -print | sort)
+          test "${tests[@]}" -gt 0 || { echo "::error::No Central Agent test files were discovered."; exit 1; }
+          printf 'Discovered %s Central Agent test files.\\n' "${#tests[@]}"
+          printf '  %s\\n' "${tests[@]}"
+          node --test "${tests[@]}"
