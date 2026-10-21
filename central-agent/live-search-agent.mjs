@@ -60,23 +60,25 @@ function isFreshnessQuery(query) {
   return /\b(latest|today|tonight|now|current|live|breaking|recent|this week|this month|price|weather|news|score|election|outage|version|release|updated|202[5-9])\b/i.test(query);
 }
 async function request(fetchImpl, provider, url, init = {}) {
-  const response = await fetchImpl(url, { ...init, signal: init.signal || AbortSignal.timeout(TIMEOUT_MS) });
+  const timeoutSignal = AbortSignal.timeout(TIMEOUT_MS);
+  const signal = init.signal ? AbortSignal.any([init.signal, timeoutSignal]) : timeoutSignal;
+  const response = await fetchImpl(url, { ...init, signal });
   if (!response.ok) throw new Error(provider + "_HTTP_" + response.status);
   return response;
 }
-async function ddg(query, fetchImpl) {
+async function ddg(query, fetchImpl, signal) {
   const url = new URL("https://html.duckduckgo.com/html/");
   url.searchParams.set("q", query);
-  const response = await request(fetchImpl, "DDG", url.toString(), { headers: { accept: "text/html", "accept-language": "en-IN,en;q=0.8,hi;q=0.6" } });
+  const response = await request(fetchImpl, "DDG", url.toString(), { headers: { accept: "text/html", "accept-language": "en-IN,en;q=0.8,hi;q=0.6" }, signal });
   const sources = parseDdg(await response.text());
   return sources.length ? { provider: "duckduckgo-html", sources } : null;
 }
-async function newsRss(query, fetchImpl, provider) {
+async function newsRss(query, fetchImpl, provider, signal) {
   const url = new URL(provider === "bing-news-rss" ? "https://www.bing.com/news/search" : "https://news.google.com/rss/search");
   url.searchParams.set("q", query);
   if (provider === "bing-news-rss") url.searchParams.set("format", "rss");
   else { url.searchParams.set("hl", "en-IN"); url.searchParams.set("gl", "IN"); url.searchParams.set("ceid", "IN:en"); }
-  const response = await request(fetchImpl, provider, url.toString(), { headers: { accept: "application/rss+xml, application/xml, text/xml" } });
+  const response = await request(fetchImpl, provider, url.toString(), { headers: { accept: "application/rss+xml, application/xml, text/xml" }, signal });
   const xml = (await response.text()).slice(0, 800000);
   const items = [...xml.matchAll(/<item\b[^>]*>([\s\S]*?)<\/item>/gi)].map(match => {
     const item = match[1];
@@ -89,14 +91,14 @@ async function newsRss(query, fetchImpl, provider) {
   const sources = normalizeItems(items);
   return sources.length ? { provider, sources } : null;
 }
-async function gdelt(query, fetchImpl) {
+async function gdelt(query, fetchImpl, signal) {
   const now = new Date();
   const format = date => date.toISOString().replace(/[-:TZ.]/g, "").slice(0, 14);
   const url = new URL("https://api.gdeltproject.org/api/v2/doc/doc");
   url.searchParams.set("query", query); url.searchParams.set("mode", "ArtList"); url.searchParams.set("format", "json");
   url.searchParams.set("maxrecords", String(MAX_RESULTS)); url.searchParams.set("sort", "HybridRel");
   url.searchParams.set("startdatetime", format(new Date(now.getTime() - 90 * 86400000))); url.searchParams.set("enddatetime", format(now));
-  const response = await request(fetchImpl, "GDELT", url.toString(), { headers: { accept: "application/json" } });
+  const response = await request(fetchImpl, "GDELT", url.toString(), { headers: { accept: "application/json" }, signal });
   const payload = await response.json();
   const sources = normalizeItems((payload?.articles || []).map(item => ({ title: item?.title, url: item?.url, content: [item?.domain, item?.sourcecountry, item?.language].filter(Boolean).join(" · "), published_date: item?.seendate })));
   return sources.length ? { provider: "gdelt-doc-api", sources } : null;
@@ -116,9 +118,10 @@ export async function searchLiveWeb(rawQuery, env = {}, options = {}) {
   if (!query) throw new Error("LIVE_SEARCH_EMPTY_QUERY");
   const fetchImpl = options.fetchImpl || fetch;
   const diagnostics = [];
-  const attempt = async (name, fn) => {
+  const attempt = async (name, fn, signal) => {
     try { const result = await fn(); if (result?.sources?.length) return result; diagnostics.push({ provider: name, status: "no-usable-results" }); }
     catch (error) {
+      if (signal?.aborted && error?.name === "AbortError") return null;
       const match = String(error?.message || "").match(/HTTP_(\d{3})/);
       diagnostics.push({ provider: name, status: match ? "http-" + match[1] : error?.name === "TimeoutError" ? "timeout" : "network-error" });
     }
@@ -142,9 +145,25 @@ export async function searchLiveWeb(rawQuery, env = {}, options = {}) {
   }
   const fresh = isFreshnessQuery(query);
   if (fresh) {
-    for (const provider of ["bing-news-rss", "google-news-rss", "gdelt-doc-api"]) {
-      const result = await attempt(provider, () => provider === "gdelt-doc-api" ? gdelt(query, fetchImpl) : newsRss(query, fetchImpl, provider));
-      if (result) return { ...result, query, diagnostics };
+    // Fan out independent freshness providers together. Return the first usable source set
+    // and cancel the remaining read-only requests instead of paying each timeout serially.
+    const controller = new AbortController();
+    const providers = [
+      ["bing-news-rss", signal => newsRss(query, fetchImpl, "bing-news-rss", signal)],
+      ["google-news-rss", signal => newsRss(query, fetchImpl, "google-news-rss", signal)],
+      ["gdelt-doc-api", signal => gdelt(query, fetchImpl, signal)]
+    ];
+    const attempts = providers.map(async ([name, run]) => {
+      const result = await attempt(name, () => run(controller.signal), controller.signal);
+      if (!result) throw new Error("NO_USABLE_RESULTS");
+      return result;
+    });
+    try {
+      const result = await Promise.any(attempts);
+      controller.abort();
+      return { ...result, query, diagnostics };
+    } catch {
+      controller.abort();
     }
   }
   const broad = await attempt("duckduckgo-html", () => ddg(query, fetchImpl));
