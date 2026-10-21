@@ -1,6 +1,6 @@
 /**
  * Read-only live search for Agent Saum's research specialist.
- * Uses configured Tavily only when explicitly selected, then independent public sources.
+ * Uses Tavily only for explicit legacy opt-in (or an unset legacy mode); named open-source-first/public modes use public sources.
  * No credentials are returned or written to audit logs.
  */
 const MAX_QUERY = 400;
@@ -130,7 +130,7 @@ export async function searchLiveWeb(rawQuery, env = {}, options = {}) {
   const tavilyKey = typeof env.TAVILY_API_KEY === "string" && env.TAVILY_API_KEY.trim()
     ? env.TAVILY_API_KEY.trim() : typeof env.SEARCH_API_KEY === "string" ? env.SEARCH_API_KEY.trim() : "";
   const providerMode = clean(env.SEARCH_PROVIDER_MODE, 40).toLowerCase();
-  const tavilyAllowed = providerMode !== "public" && providerMode !== "duckduckgo" && providerMode !== "no-key";
+  const tavilyAllowed = !providerMode || providerMode === "tavily";
   if (tavilyAllowed && tavilyKey) {
     const result = await attempt("tavily", async () => {
       const response = await request(fetchImpl, "TAVILY", "https://api.tavily.com/search", {
