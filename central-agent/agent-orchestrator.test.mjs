@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { spawnAgents, listAgentDefinitions } from "./agent-orchestrator.mjs";
+import { spawnAgents, listAgentDefinitions, runCollaborativeBuilder } from "./agent-orchestrator.mjs";
 
 function dbMock() {
   const state = { audits: [], memories: [], tasks: [] };
@@ -17,7 +17,7 @@ function dbMock() {
 }
 test("agent catalogue exposes bounded executors and no self-granted side effects", () => {
   const roles = listAgentDefinitions();
-  assert.deepEqual(roles.map(role => role.id), ["agent_saum", "code_mutator", "global_scraper", "api_orchestrator", "testing"]);
+  assert.deepEqual(roles.map(role => role.id), ["agent_saum", "code_mutator", "global_scraper", "api_orchestrator", "testing", "model_builder", "independent_reviewer", "integrator"]);
   assert.ok(roles.every(role => role.requiresOwnerSession && role.autoExecutesSideEffects === false));
 });
 test("agent spawn validates role and bounds parallel batch size", async () => {
@@ -254,4 +254,34 @@ test("Agent Saum forces live research for Hindi freshness requests", async (t) =
   const research = result.outcomes.find(item => item.role === "global_scraper");
   assert.ok(research?.ok, "Hindi freshness requests must include the global scraper");
   assert.equal(research.result.sources[0].url, "https://example.com/hindi-current");
+});
+
+test("collaborative builder coordinates architect, test analyst, code proposer, independent reviewer and integrator", async () => {
+  const db = dbMock();
+  const env = {
+    DB: db,
+    AI: { async run(model, input) {
+      const system = input.messages[0].content;
+      if (system.includes("AI systems architect")) return { response: JSON.stringify({ mission: "build a bounded agent", architecture: "orchestrator plus specialist agents", components: ["router", "memory", "review"], acceptanceCriteria: ["audited"], safetyBoundaries: ["owner approval"] }) };
+      if (system.startsWith("Act as a test analyst.")) return { response: JSON.stringify({ testCases: ["provider outage", "auth required"], expectedResults: ["safe failure"], regressionRisks: [], notExecuted: true }) };
+      if (system.includes("code-change proposal agent")) return { response: JSON.stringify({ summary: "proposal only", filesToReview: ["worker.mjs"], proposedPatch: null, tests: ["auth", "fallback"], risks: [] }) };
+      if (system.includes("independent adversarial technical reviewer")) return { response: JSON.stringify({ verdict: "revise", criticalRisks: ["provider quota"], missingEvidence: ["live smoke test"], failureModes: ["timeout"], requiredChanges: ["bounded retries"], testsToRequire: ["fallback test"] }) };
+      if (system.startsWith("Act as the collaboration integrator")) return { response: JSON.stringify({ objective: "bounded AI builder", recommendedArchitecture: "specialists plus independent review", implementationPhases: ["design", "test", "review"], blockingRisks: ["live provider access"], verificationGate: ["CI PASS"], status: "proposal-only" }) };
+      throw new Error("Unexpected specialist prompt");
+    } }
+  };
+  const result = await runCollaborativeBuilder(env, "Build a better AI that can plan, review and test its own proposed improvements.");
+  assert.equal(result.ok, true);
+  assert.equal(result.mode, "collaborative-proposal-only");
+  assert.deepEqual(result.collaboration, ["model_builder", "testing", "code_mutator", "independent_reviewer", "integrator"]);
+  assert.equal(result.stages.length, 5);
+  assert.equal(result.finalProposal.status, "proposal-only");
+  assert.equal(result.guarantees.codeChanged, false);
+  assert.equal(result.guarantees.testsExecuted, false);
+  assert.equal(result.guarantees.ownerApprovalRequiredForImplementation, true);
+  assert.equal(db.state.audits.length, 5);
+});
+test("collaborative builder rejects empty goal and missing durable audit storage", async () => {
+  assert.equal((await runCollaborativeBuilder({}, " ")).error, "AI_BUILD_GOAL_REQUIRED");
+  assert.equal((await runCollaborativeBuilder({}, "Build an AI")).error, "AGENT_STORAGE_UNAVAILABLE");
 });
