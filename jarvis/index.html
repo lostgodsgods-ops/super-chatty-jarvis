@@ -1224,6 +1224,30 @@ body.auth-locked #ownerSessionStatus{font-weight:700}
       // Lower pitch gives a more mature, grounded delivery; the actual timbre remains device-dependent.
       utterance.pitch = /[?？]$/.test(value) ? 0.90 : /[!！]{1,}$/.test(value) ? 0.92 : 0.86;
     }
+    function prepareSpeechText(text) {
+      let value = String(text == null ? "" : text);
+      value = value
+        .replace(/\x60{3}[\s\S]*?\x60{3}/g, "\nCode details are shown on screen.\n")
+        .replace(/\x60([^\x60]+)\x60/g, "$1")
+        .replace(/!\[([^\]]*)\]\([^)]+\)/g, "$1")
+        .replace(/\[([^\]]+)\]\(https?:\/\/[^)]+\)/g, "$1")
+        .replace(/https?:\/\/[^\s)]+/gi, " link shown on screen ")
+        .replace(/^\s{0,3}#{1,6}\s+/gm, "")
+        .replace(/^\s*>\s?/gm, "")
+        .replace(/^\s*[-*+]\s+/gm, "")
+        .replace(/\*\*([^*]+)\*\*/g, "$1")
+        .replace(/__([^_]+)__/g, "$1")
+        .replace(/(^|[^*])\*([^*]+)\*(?!\*)/g, "$1$2")
+        .replace(/~~([^~]+)~~/g, "$1")
+        .replace(/[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}]/gu, "")
+        .replace(/[ \t]+/g, " ")
+        .replace(/ *\n */g, "\n")
+        .replace(/\n{3,}/g, "\n\n")
+        .replace(/\s+([,.;!?।])/g, "$1")
+        .trim();
+      return value;
+    }
+
     function speakText(text, onEnd, language = speechLanguage()) {
       if (!("speechSynthesis" in window) || typeof SpeechSynthesisUtterance === "undefined") {
         if (typeof onEnd === "function") onEnd();
@@ -1233,7 +1257,13 @@ body.auth-locked #ownerSessionStatus{font-weight:700}
         state.speechGeneration = (state.speechGeneration || 0) + 1;
         const generation = state.speechGeneration;
         window.speechSynthesis.cancel();
-        const utterance = new SpeechSynthesisUtterance(String(text).slice(0, 3000));
+        const speechText = prepareSpeechText(text).slice(0, 3000);
+        if (!speechText) {
+          state.speaking = false;
+          if (typeof onEnd === "function") onEnd();
+          return false;
+        }
+        const utterance = new SpeechSynthesisUtterance(speechText);
         state.currentSpeechText = utterance.text;
         adaptSpeechTone(utterance, utterance.text, language);
         selectPreferredMaleVoice(utterance);
