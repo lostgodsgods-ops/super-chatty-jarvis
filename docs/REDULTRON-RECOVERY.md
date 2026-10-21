@@ -16,7 +16,7 @@ At attempt three, it stops requesting retries and creates one open [REDULTRON][F
 
 ## Branch lock semantics
 
-On exhaustion, REDULTRON places a logical retry lock on that source run: it will not request a fourth retry and it files a durable incident issue. It does not change GitHub branch protection/rulesets. Real branch protection mutation requires repository administration authority and must not be smuggled into this workflow; a repository-level branch lock remains blocked until separately owner-authorized and configured.
+On exhaustion, REDULTRON places a logical retry lock on that source run: it will not request a fourth retry and it files a durable incident issue. It is not a GitHub branch-protection change and does not modify repository rulesets. Real branch protection mutation requires repository administration authority and must not be smuggled into this workflow; a repository-level branch lock remains blocked until separately owner-authorized and configured.
 
 ## Verification
 
