@@ -1,8 +1,8 @@
 {
-  "name": "super-chatty-jarvis-public-site",
+  "name": "resultron-public-site",
   "version": "0.1.0",
   "private": true,
-  "description": "Static project profile and safety smoke tests for Super Chatty Jarvis",
+  "description": "Static project profile and safety smoke tests for RESULTRON",
   "scripts": {
     "test": "node --test"
   },
