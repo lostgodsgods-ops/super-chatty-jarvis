@@ -1,10 +1,11 @@
 /**
- * Bounded dynamic agent runners for RESULTRON.
+ * Bounded dynamic agent runners for REDULTRON.
  * All runs require a verified owner session at the HTTP boundary.
  * Code mutation is proposal-only; external side effects are never executed here.
  */
 import { normalizeSaumDelegation, fallbackSaumPlan } from "./saum-coordinator.mjs";
 import { publishEvent } from "./event-bus.mjs";
+import { searchLiveWeb } from "./live-search-agent.mjs";
 const MODEL = "@cf/meta/llama-3.1-8b-instruct-fast";
 const MAX_INPUT = 2400;
 const MAX_BATCH = 3;
