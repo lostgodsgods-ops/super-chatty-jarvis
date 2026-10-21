@@ -41,6 +41,7 @@
     "AUTONOMOUS_RESEARCH_ENABLED": "true",
     "INTEL_CRON_ENABLED": "true",
     "GITHUB_REPOSITORY": "lostgodsgods-ops/super-chatty-jarvis",
-    "CAPABILITY_SPEC_HOSTS": ""
+    "CAPABILITY_SPEC_HOSTS": "",
+    "SEARCH_PROVIDER_MODE": "open-source-first"
   }
 }
