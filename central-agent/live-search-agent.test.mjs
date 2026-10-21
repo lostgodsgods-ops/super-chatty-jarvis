@@ -117,3 +117,24 @@ test("open-source-first mode never spends Tavily credits when a key is configure
   assert.equal(result.provider, "duckduckgo-html");
   assert.equal(calls.some(url => url.includes("api.tavily.com")), false);
 });
+
+
+test("Hindi freshness queries use parallel dated-news providers before broad web fallback", async () => {
+  const calls = [];
+  const fetchImpl = async url => {
+    const value = String(url);
+    calls.push(value);
+    if (value.includes("bing.com/news")) return new Response(
+      '<rss><channel><item><title>ताज़ा समाचार</title><link>https://example.com/hindi-news</link><description>नई जानकारी</description><pubDate>Wed, 21 Oct 2026 00:00:00 GMT</pubDate></item></channel></rss>',
+      { status: 200, headers: { "content-type": "application/rss+xml" } }
+    );
+    if (value.includes("news.google.com")) return new Response("", { status: 503 });
+    if (value.includes("gdeltproject.org")) return new Response(JSON.stringify({ articles: [] }), { status: 200 });
+    throw new Error("Hindi freshness query should use news providers before generic fallback: " + value);
+  };
+  const result = await searchLiveWeb("आज की ताज़ा खबरें", { SEARCH_PROVIDER_MODE: "public" }, { fetchImpl });
+  assert.equal(result.provider, "bing-news-rss");
+  assert.ok(calls.some(url => url.includes("bing.com/news")));
+  assert.equal(calls.some(url => url.includes("duckduckgo.com/html")), false);
+  assert.equal(calls.some(url => url.includes("wikipedia.org")), false);
+});
