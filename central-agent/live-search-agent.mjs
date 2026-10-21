@@ -104,15 +104,12 @@ async function gdelt(query, fetchImpl, signal) {
   const sources = normalizeItems((payload?.articles || []).map(item => ({ title: item?.title, url: item?.url, content: [item?.domain, item?.sourcecountry, item?.language].filter(Boolean).join(" · "), published_date: item?.seendate })));
   return sources.length ? { provider: "gdelt-doc-api", sources } : null;
 }
-async function braveSearch(query, fetchImpl) {
+async function braveSearch(query, fetchImpl, apiKey) {
   const url = new URL("https://api.search.brave.com/res/v1/web/search");
   url.searchParams.set("q", query);
   url.searchParams.set("count", String(MAX_RESULTS));
   const response = await request(fetchImpl, "BRAVE", url.toString(), {
-    headers: {
-      "accept": "application/json",
-      "X-Subscription-Token": ""
-    }
+    headers: { accept: "application/json", "X-Subscription-Token": apiKey }
   });
   const payload = await response.json();
   const sources = normalizeItems((payload?.web?.results || []).map(item => ({
@@ -212,22 +209,7 @@ export async function searchLiveWeb(rawQuery, env = {}, options = {}) {
   // requires its own credential and must never be assumed available by registry metadata.
   const braveKey = typeof env.BRAVE_SEARCH_API_KEY === "string" ? env.BRAVE_SEARCH_API_KEY.trim() : "";
   if (braveKey) {
-    const brave = await attempt("brave-search", async () => {
-      const url = new URL("https://api.search.brave.com/res/v1/web/search");
-      url.searchParams.set("q", query);
-      url.searchParams.set("count", String(MAX_RESULTS));
-      const response = await request(fetchImpl, "BRAVE", url.toString(), {
-        headers: { accept: "application/json", "X-Subscription-Token": braveKey }
-      });
-      const payload = await response.json();
-      const sources = normalizeItems((payload?.web?.results || []).map(item => ({
-        title: item?.title,
-        url: item?.url,
-        content: item?.description,
-        published_date: item?.page_age || item?.page_fetched
-      })));
-      return sources.length ? { provider: "brave-search", sources } : null;
-    });
+    const brave = await attempt("brave-search", () => braveSearch(query, fetchImpl, braveKey));
     if (brave) return { ...brave, query, diagnostics };
   }
 
