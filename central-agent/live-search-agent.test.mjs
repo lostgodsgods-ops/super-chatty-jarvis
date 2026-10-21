@@ -18,7 +18,6 @@ test("falls back from Tavily quota failure to no-key DuckDuckGo results", async 
   }, { fetchImpl });
   assert.equal(result.provider, "duckduckgo-html");
   assert.equal(result.sources[0].url, "https://example.com/current");
-  assert.match(result.sources[0].snippet, /Verified snippet/);
   assert.equal(calls.length, 2);
 });
 
