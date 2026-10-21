@@ -61,6 +61,7 @@ export function evaluateCapabilityReadiness({ requiredCapabilities, providers } 
   if (!Array.isArray(requiredCapabilities) || !Array.isArray(providers)) {
     return invalidResult();
   }
+  if (requiredCapabilities.length === 0) return invalidResult("NO_REQUIREMENTS");
   if (requiredCapabilities.length > MAX_REQUIREMENTS) return invalidResult("INPUT_LIMIT_EXCEEDED");
   if (providers.length > 100) return invalidResult("INPUT_LIMIT_EXCEEDED");
 
