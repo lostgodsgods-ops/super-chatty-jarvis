@@ -40,6 +40,6 @@ jobs:
           set -euo pipefail
           mapfile -t tests < <(find central-agent -type f -name '*.test.mjs' -print | sort)
           test "${#tests[@]}" -gt 0 || { echo "::error::No Central Agent test files were discovered."; exit 1; }
-          printf 'Discovered %s Central Agent test files.\\n' "${#tests[@]}"
-          printf '  %s\\n' "${tests[@]}"
+          printf 'Discovered %s Central Agent test files.\n' "${#tests[@]}"
+          printf '  %s\n' "${tests[@]}"
           node --test "${tests[@]}"
