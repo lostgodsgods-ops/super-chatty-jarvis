@@ -15,7 +15,7 @@ import { buildTavilyQuery, rankTavilyResults } from "./search-context.mjs";
 import { searchLiveWeb } from "./live-search-agent.mjs";
 import { runBoundedResearchCycle } from "./research-agents.mjs";
 import { runContinuousImprovementCycle } from "./continuous-improvement.mjs";
-import { spawnAgents, listAgentDefinitions, listRecentAgentRuns } from "./agent-orchestrator.mjs";
+import { spawnAgents, listAgentDefinitions, listRecentAgentRuns, runCollaborativeBuilder } from "./agent-orchestrator.mjs";
 import { guardRequest } from "./edge-guard.mjs";
 import { runSentinelCycle, getSentinelStatus } from "./sentinel.mjs";
 import { publishEvent, listModules, eventStreamResponse } from "./event-bus.mjs";
@@ -884,7 +884,7 @@ export default {
       }
     } catch {
       const protectedPath = url.pathname.startsWith("/auth/") || url.pathname.startsWith("/api/") ||
-        url.pathname === "/agents" || url.pathname === "/search" || url.pathname.startsWith("/research/") ||
+        url.pathname === "/agents" || url.pathname.startsWith("/agents/") || url.pathname === "/search" || url.pathname.startsWith("/research/") ||
         url.pathname === "/chat" || url.pathname.startsWith("/internal/");
       if (protectedPath) return json({ error: "Defensive edge controls are temporarily unavailable." }, 503, cors);
     }
@@ -2118,6 +2118,22 @@ export default {
       } catch {
         return json({ error: "Research telemetry is temporarily unavailable." }, 503, cors);
       }
+    }
+
+    if (url.pathname === "/agents/collaborate" && request.method === "POST") {
+      if (!(await authorized(request, env))) return json({ ok: false, error: "OWNER_AUTHENTICATION_REQUIRED" }, 401, cors);
+      if (!(request.headers.get("content-type") || "").toLowerCase().includes("application/json")) return json({ ok: false, error: "CONTENT_TYPE_JSON_REQUIRED" }, 415, cors);
+      let body;
+      try {
+        const raw = await request.text();
+        if (new TextEncoder().encode(raw).byteLength > 9000) return json({ ok: false, error: "REQUEST_TOO_LARGE" }, 413, cors);
+        body = JSON.parse(raw);
+      } catch { return json({ ok: false, error: "INVALID_JSON" }, 400, cors); }
+      if (typeof body?.goal !== "string" || !body.goal.trim()) return json({ ok: false, error: "AI_BUILD_GOAL_REQUIRED" }, 400, cors);
+      await publishEvent(env, { type: "agent.collaboration.started", source: "collaborative-builder", payload: { goalLength: Math.min(body.goal.length, 1800), mode: "proposal-only" } });
+      const result = await runCollaborativeBuilder(env, body.goal);
+      await publishEvent(env, { type: result.ok ? "agent.collaboration.completed" : "agent.collaboration.degraded", source: "collaborative-builder", payload: { ok: result.ok === true, status: result.status, stageCount: Array.isArray(result.stages) ? result.stages.length : 0, mode: result.mode || "proposal-only" } });
+      return json(result, result.status || (result.ok ? 200 : 400), cors);
     }
 
     if (url.pathname === "/agents" && request.method === "GET") {
