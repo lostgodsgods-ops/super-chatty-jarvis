@@ -723,8 +723,10 @@ test("freshness-sensitive searches prioritize dated news feeds before generic Du
     assert.equal(body.sources.length, 1);
     assert.equal(body.sources[0].url, "https://www.reuters.com/world/europe/ukraine-test-report/");
     assert.equal(body.sources[0].publishedDate, "Tue, 20 Oct 2026 10:00:00 GMT");
-    assert.equal(requestedUrls.length, 1, "dated news feed should be used before generic web results");
-    assert.match(requestedUrls[0], /^https:\/\/www\.bing\.com\/news\/search\?/);
+    assert.ok(requestedUrls.some(url => url.startsWith("https://www.bing.com/news/search?")));
+    assert.ok(requestedUrls.some(url => url.startsWith("https://news.google.com/rss/search?")), "Google News should start concurrently as a fallback");
+    assert.ok(requestedUrls.some(url => url.startsWith("https://api.gdeltproject.org/api/v2/doc/doc?")), "GDELT should start concurrently as a fallback");
+    assert.equal(requestedUrls.some(url => url.startsWith("https://html.duckduckgo.com/html/")), false, "generic web search must not pre-empt usable dated news");
   } finally {
     globalThis.fetch = originalFetch;
   }
