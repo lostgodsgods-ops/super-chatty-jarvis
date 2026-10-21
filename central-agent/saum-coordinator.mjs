@@ -1,5 +1,5 @@
 /**
- * Agent Saum: bounded delegation policy for RESULTRON.
+ * Agent Saum: bounded delegation policy for REDULTRON.
  * This module validates plans; it never grants permissions or executes side effects.
  */
 const MAX_TASKS = 3;
@@ -43,9 +43,9 @@ export function fallbackSaumPlan(goal) {
   return {
     ok: true,
     tasks: [
-      { role: "global_scraper", input: "Research reliable evidence and existing solutions for this RESULTRON goal: " + normalizedGoal },
-      { role: "api_orchestrator", input: "Create a bounded implementation plan, dependencies, and risks for this RESULTRON goal: " + normalizedGoal },
-      { role: "testing", input: "Define test cases, acceptance criteria, and regressions to verify for this RESULTRON goal: " + normalizedGoal }
+      { role: "global_scraper", input: "Research reliable evidence and existing solutions for this REDULTRON goal: " + normalizedGoal },
+      { role: "api_orchestrator", input: "Create a bounded implementation plan, dependencies, and risks for this REDULTRON goal: " + normalizedGoal },
+      { role: "testing", input: "Define test cases, acceptance criteria, and regressions to verify for this REDULTRON goal: " + normalizedGoal }
     ]
   };
 }
