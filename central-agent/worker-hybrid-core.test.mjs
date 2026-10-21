@@ -61,3 +61,24 @@ test("hybrid execution rejects unsupported tasks before contacting Python", asyn
   assert.equal(response.status, 400);
   assert.equal((await response.json()).code, "HYBRID_TASK_NOT_ALLOWED");
 });
+
+
+test("universal tool registry status is owner-session gated", async () => {
+  const response = await worker.fetch(new Request("https://example.test/api/tools/registry", { method: "GET" }), env(new FakeDB()));
+  assert.equal(response.status, 401);
+});
+
+test("universal tool registry reports binding presence without exposing secret values", async () => {
+  const token = "valid-owner-session-for-registry-test";
+  const DB = new FakeDB({ token_hash: await tokenHash(token), status: "active", expires_at: Date.now() + 60_000 });
+  const response = await worker.fetch(new Request("https://example.test/api/tools/registry", {
+    headers: { authorization: "Bearer " + token }
+  }), { ...env(DB), OPENAI_API_KEY: "never-return-this" });
+  assert.equal(response.status, 200);
+  const payload = await response.json();
+  assert.equal(payload.ok, true);
+  const openai = payload.providers.find(provider => provider.id === "openai");
+  assert.equal(openai.status, "configured_not_verified");
+  assert.equal(openai.liveVerified, false);
+  assert.equal(JSON.stringify(payload).includes("never-return-this"), false);
+});
