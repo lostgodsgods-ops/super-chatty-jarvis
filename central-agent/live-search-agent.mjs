@@ -5,7 +5,11 @@
  */
 const MAX_QUERY = 400;
 const MAX_RESULTS = 5;
-const TIMEOUT_MS = 6500;
+export const LIVE_SEARCH_TIMEOUT_MS = 5000;
+const TIMEOUT_MS = LIVE_SEARCH_TIMEOUT_MS;
+const STALE_CACHE_TTL_MS = 24 * 60 * 60 * 1000;
+const MAX_CACHE_ENTRIES = 100;
+const liveSearchCache = new Map();
 
 function clean(value, max = 1200) {
   return typeof value === "string"
@@ -131,7 +135,7 @@ async function wikipedia(query, fetchImpl) {
   return sources.length ? { provider: "wikipedia-api", sources } : null;
 }
 
-export async function searchLiveWeb(rawQuery, env = {}, options = {}) {
+async function performLiveSearch(rawQuery, env = {}, options = {}) {
   const query = clean(rawQuery, MAX_QUERY);
   if (!query) throw new Error("LIVE_SEARCH_EMPTY_QUERY");
   const fetchImpl = options.fetchImpl || fetch;
@@ -172,7 +176,7 @@ export async function searchLiveWeb(rawQuery, env = {}, options = {}) {
   const tavilyAllowed = !providerMode || providerMode === "tavily";
   if (tavilyAllowed && tavilyKey) {
     // Retry transient rate-limit/server responses, but never retry quota-exhaustion statuses.
-    for (let attemptNumber = 0; attemptNumber < 3; attemptNumber++) {
+    for (let attemptNumber = 0; attemptNumber < 1; attemptNumber++) {
       let response;
       try {
         response = await fetchImpl("https://api.tavily.com/search", {
@@ -246,4 +250,53 @@ export async function searchLiveWeb(rawQuery, env = {}, options = {}) {
   error.code = "LIVE_SEARCH_ALL_PROVIDERS_FAILED";
   error.providerDiagnostics = diagnostics.slice(0, 8);
   throw error;
+}
+
+
+/**
+ * Resilient search wrapper. Successful live results are cached per normalized query.
+ * If all live providers fail, return a bounded-age stale result rather than throwing.
+ * Cached data is explicitly marked stale so callers must not present it as current.
+ */
+export async function searchLiveWeb(rawQuery, env = {}, options = {}) {
+  const query = clean(rawQuery, MAX_QUERY);
+  if (!query) throw new Error("LIVE_SEARCH_EMPTY_QUERY");
+  const cacheKey = query.toLocaleLowerCase();
+  try {
+    const result = await performLiveSearch(query, env, options);
+    if (result?.sources?.length) {
+      liveSearchCache.delete(cacheKey);
+      liveSearchCache.set(cacheKey, { result, cachedAt: Date.now() });
+      while (liveSearchCache.size > MAX_CACHE_ENTRIES) {
+        liveSearchCache.delete(liveSearchCache.keys().next().value);
+      }
+    }
+    return result;
+  } catch (error) {
+    const cached = liveSearchCache.get(cacheKey);
+    if (cached && Date.now() - cached.cachedAt <= STALE_CACHE_TTL_MS) {
+      return {
+        ...cached.result,
+        stale: true,
+        cachedAt: new Date(cached.cachedAt).toISOString(),
+        diagnostics: [
+          ...(Array.isArray(error?.providerDiagnostics) ? error.providerDiagnostics : []),
+          { provider: "stale-cache", status: "served-stale" }
+        ]
+      };
+    }
+    if (cached) liveSearchCache.delete(cacheKey);
+    if (error && typeof error === "object") {
+      error.code = error.code || "LIVE_SEARCH_ALL_PROVIDERS_FAILED";
+      error.providerDiagnostics = Array.isArray(error.providerDiagnostics)
+        ? error.providerDiagnostics.slice(0, 8)
+        : [];
+    }
+    throw error;
+  }
+}
+
+/** Test-only cache reset without exposing cached search data. */
+export function clearLiveSearchCache() {
+  liveSearchCache.clear();
 }
