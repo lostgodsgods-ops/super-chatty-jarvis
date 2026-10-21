@@ -42,5 +42,5 @@ test("rejects empty query and malformed result URLs", async () => {
     '<a class="result__a" href="/relative/path">bad</a><a class="result__snippet">bad</a>',
     { status: 200 }
   );
-  await assert.rejects(searchLiveWeb("safe query", {}, { fetchImpl }), /DIRECT_WEB_SEARCH_NO_RESULTS/);
+  await assert.rejects(searchLiveWeb("safe query", {}, { fetchImpl }), /LIVE_SEARCH_ALL_PROVIDERS_FAILED/);
 });
