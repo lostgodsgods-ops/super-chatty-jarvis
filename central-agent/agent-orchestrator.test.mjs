@@ -173,7 +173,7 @@ test("Agent Saum validates a plan and coordinates specialist agents without gran
       return { response: JSON.stringify({ objective: "Bounded specialist result", steps: ["review", "verify"], risks: [] }) };
     } }
   };
-  const result = await spawnAgents(env, { role: "agent_saum", input: "Improve RESULTRON progress reporting" });
+  const result = await spawnAgents(env, { role: "agent_saum", input: "Improve REDULTRON progress reporting" });
   assert.equal(result.ok, true);
   assert.equal(result.coordinator.role, "agent_saum");
   assert.equal(result.delegationMode, "model-plan-validated");
