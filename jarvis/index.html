@@ -1212,8 +1212,13 @@ body.auth-locked #ownerSessionStatus{font-weight:700}
       const probe = { lang: speechLanguage(), voice: null };
       selectPreferredMaleVoice(probe);
     }
-    if ("speechSynthesis" in window && typeof window.speechSynthesis.addEventListener === "function") {
-      window.speechSynthesis.addEventListener("voiceschanged", refreshVoiceCatalog);
+    if ("speechSynthesis" in window) {
+      if (typeof window.speechSynthesis.addEventListener === "function") {
+        window.speechSynthesis.addEventListener("voiceschanged", refreshVoiceCatalog);
+      } else {
+        window.speechSynthesis.onvoiceschanged = refreshVoiceCatalog;
+      }
+      refreshVoiceCatalog();
     }
     function adaptSpeechTone(utterance, text, language) {
       const value = String(text || "").trim();
