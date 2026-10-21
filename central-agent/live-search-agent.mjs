@@ -57,7 +57,8 @@ function parseDdg(html) {
   return normalizeItems(results);
 }
 function isFreshnessQuery(query) {
-  return /\b(latest|today|tonight|now|current|live|breaking|recent|this week|this month|price|weather|news|score|election|outage|version|release|updated|202[5-9])\b/i.test(query);
+  return /\b(latest|today|tonight|now|current|live|breaking|recent|this week|this month|price|weather|news|score|election|outage|version|release|updated|202[5-9])\b/i.test(query)
+    || /आज|अभी|ताज़ा|ताजा|वर्तमान|मौजूदा|लेटेस्ट|लाइव|समाचार|खबर|ख़बर|कीमत|मूल्य|मौसम|नतीजे|परिणाम|स्कोर|अपडेट|इस हफ्ते|इस सप्ताह|इस महीने|इस साल|हालिया|ब्रेकिंग/i.test(query);
 }
 async function request(fetchImpl, provider, url, init = {}) {
   const timeoutSignal = AbortSignal.timeout(TIMEOUT_MS);
