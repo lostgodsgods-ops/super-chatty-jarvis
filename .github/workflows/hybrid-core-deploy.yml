@@ -1,0 +1,92 @@
+name: Hybrid Core Worker Deploy
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - feat/live-integration-roundtrips
+    paths:
+      - "wrangler.jsonc"
+      - "src/**"
+      - "central-agent/**"
+      - ".github/workflows/hybrid-core-deploy.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: hybrid-core-deploy-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v5
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: "22"
+          cache: npm
+
+      - name: Validate required repository secrets
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          PYTHON_CORE_URL: ${{ secrets.PYTHON_CORE_URL }}
+          OWNER_SECRET: ${{ secrets.OWNER_SECRET }}
+        run: |
+          set -euo pipefail
+          for name in CLOUDFLARE_API_TOKEN CLOUDFLARE_ACCOUNT_ID PYTHON_CORE_URL OWNER_SECRET; do
+            if [ -z "${!name:-}" ]; then
+              echo "::error::Required GitHub Actions secret is missing or empty: ${name}"
+              exit 1
+            fi
+          done
+          node -e 'const u = new URL(process.env.PYTHON_CORE_URL); if (u.protocol !== "https:") process.exit(2); console.log("Required secret names present; PYTHON_CORE_URL uses HTTPS. Values are not printed.")'
+
+      - name: Install Wrangler
+        run: npm install --no-save wrangler@4
+
+      - name: Bind Python Core URL to Worker
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          PYTHON_CORE_URL: ${{ secrets.PYTHON_CORE_URL }}
+        run: |
+          set -euo pipefail
+          printf '%s' "$PYTHON_CORE_URL" | npx wrangler secret put PYTHON_CORE_URL --config wrangler.jsonc
+
+      - name: Bind Owner bridge secret to Worker
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          OWNER_SECRET: ${{ secrets.OWNER_SECRET }}
+        run: |
+          set -euo pipefail
+          printf '%s' "$OWNER_SECRET" | npx wrangler secret put OWNER_SECRET --config wrangler.jsonc
+
+      - name: Deploy Worker and PWA assets
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          set -euo pipefail
+          npx wrangler deploy --config wrangler.jsonc
+
+      - name: Verify production health endpoint
+        run: |
+          set -euo pipefail
+          body="$(mktemp)"
+          status="$(curl --silent --show-error --max-time 20 --output "$body" --write-out '%{http_code}' https://shrill-silence-164f.lostgodsgods.workers.dev/health)"
+          cat "$body"
+          echo
+          if [ "$status" != "200" ]; then
+            echo "::error::Worker health returned HTTP $status"
+            exit 1
+          fi
+          node -e 'const fs=require("node:fs"); const data=JSON.parse(fs.readFileSync(process.argv[1],"utf8")); if (data.ok !== true) process.exit(1); console.log("Health assertion: PASS")' "$body"
+          rm -f "$body"
