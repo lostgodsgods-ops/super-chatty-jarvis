@@ -6,6 +6,7 @@
 import { normalizeSaumDelegation, fallbackSaumPlan } from "./saum-coordinator.mjs";
 import { publishEvent } from "./event-bus.mjs";
 import { searchLiveWeb } from "./live-search-agent.mjs";
+import { requiresLiveSearch } from "./current-info-query.mjs";
 const MODEL = "@cf/meta/llama-3.1-8b-instruct-fast";
 const MAX_INPUT = 2400;
 const MAX_BATCH = 3;
@@ -188,7 +189,7 @@ export async function spawnAgents(env, payload) {
     const usedFallback = !delegation.ok;
     if (usedFallback) delegation = fallbackSaumPlan(goal);
     if (!delegation.ok) return { ok: false, status: 400, coordinator: planner, error: delegation.error, outcomes: [] };
-    const needsFreshResearch = /\b(current|live|latest|today|news|weather|price|release|outage|updated)\b/i.test(goal);
+    const needsFreshResearch = requiresLiveSearch(goal);
     if (needsFreshResearch && !delegation.tasks.some(task => task.role === "global_scraper")) {
       const researchTask = { role: "global_scraper", input: "Search live public web evidence for: " + goal.slice(0, 1800) };
       delegation = { ...delegation, tasks: [...delegation.tasks.slice(0, MAX_BATCH - 1), researchTask] };
