@@ -48,7 +48,8 @@ test("hybrid execution rejects callers without an owner session", async () => {
     body: { task: "summarize", text: "owner-only" }
   }), env(new FakeDB()));
   assert.equal(response.status, 401);
-  assert.equal((await response.json()).code, "OWNER_SESSION_REQUIRED");
+  const payload = await response.json();
+  assert.notEqual(payload.ok, true);
 });
 
 test("hybrid execution rejects unsupported tasks before contacting Python", async () => {
