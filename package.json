@@ -1,8 +1,8 @@
 {
-  "name": "resultron-public-site",
+  "name": "redultron-public-site",
   "version": "0.1.0",
   "private": true,
-  "description": "Static project profile and safety smoke tests for RESULTRON",
+  "description": "Static project profile and safety smoke tests for REDULTRON",
   "scripts": {
     "test": "node --test"
   },

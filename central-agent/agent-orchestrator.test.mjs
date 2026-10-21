@@ -135,6 +135,7 @@ test("global scraper prefers TAVILY_API_KEY and falls back to SEARCH_API_KEY", a
   };
   const preferred = await spawnAgents({
     DB: db,
+    SEARCH_PROVIDER_MODE: "tavily",
     TAVILY_API_KEY: "new-key",
     SEARCH_API_KEY: "legacy-key"
   }, { role: "global_scraper", input: "latest verified test query" });
@@ -145,17 +146,27 @@ test("global scraper prefers TAVILY_API_KEY and falls back to SEARCH_API_KEY", a
 
   const fallback = await spawnAgents({
     DB: db,
+    SEARCH_PROVIDER_MODE: "tavily",
     SEARCH_API_KEY: "legacy-key"
   }, { role: "global_scraper", input: "legacy compatibility test" });
   assert.equal(fallback.ok, true);
   assert.equal(calls[1].authorization, "Bearer legacy-key");
 });
 
-test("global scraper fails closed when neither Tavily key binding exists", async () => {
+test("global scraper uses public no-key fallback when neither Tavily key binding exists", async (t) => {
   const db = dbMock();
+  const originalFetch = globalThis.fetch;
+  t.after(() => { globalThis.fetch = originalFetch; });
+  globalThis.fetch = async (url) => {
+    assert.match(String(url), /duckduckgo\.com\/html/);
+    return new Response('<a class="result__a" href="https://example.com/public">Public source</a>', {
+      status: 200, headers: { "content-type": "text/html" }
+    });
+  };
   const result = await spawnAgents({ DB: db }, { role: "global_scraper", input: "search without credentials" });
-  assert.equal(result.ok, false);
-  assert.equal(result.outcomes[0].error, "SEARCH_PROVIDER_UNAVAILABLE");
+  assert.equal(result.ok, true);
+  assert.equal(result.outcomes[0].result.provider, "duckduckgo-html");
+  assert.equal(result.outcomes[0].result.sourceCount, 1);
 });
 
 
@@ -173,11 +184,44 @@ test("Agent Saum validates a plan and coordinates specialist agents without gran
       return { response: JSON.stringify({ objective: "Bounded specialist result", steps: ["review", "verify"], risks: [] }) };
     } }
   };
-  const result = await spawnAgents(env, { role: "agent_saum", input: "Improve RESULTRON progress reporting" });
+  const result = await spawnAgents(env, { role: "agent_saum", input: "Improve REDULTRON progress reporting" });
   assert.equal(result.ok, true);
   assert.equal(result.coordinator.role, "agent_saum");
   assert.equal(result.delegationMode, "model-plan-validated");
   assert.deepEqual(result.outcomes.map(item => item.role), ["testing", "api_orchestrator"]);
   assert.equal(db.state.audits.length, 3);
   assert.ok(result.outcomes.every(item => item.ok && item.mode !== "unrestricted"));
+});
+
+test("Agent Saum forces live research through the global scraper and uses fallback search when Tavily is quota-limited", async (t) => {
+  const db = dbMock();
+  const originalFetch = globalThis.fetch;
+  t.after(() => { globalThis.fetch = originalFetch; });
+  globalThis.fetch = async (url) => {
+    if (String(url).includes("api.tavily.com")) return new Response("quota", { status: 432 });
+    if (String(url).includes("duckduckgo.com/html")) return new Response(
+      '<a class="result__a" href="https://example.com/current">Current report</a><a class="result__snippet">Live evidence</a>',
+      { status: 200 }
+    );
+    throw new Error("Unexpected fallback provider");
+  };
+  const env = {
+    DB: db,
+    SEARCH_PROVIDER_MODE: "tavily",
+    TAVILY_API_KEY: "test-token",
+    AI: { async run(_model, input) {
+      if (input.messages[0].content.includes("Act as Agent Saum")) {
+        return { response: JSON.stringify({ tasks: [
+          { role: "testing", input: "Check source freshness and citations" },
+          { role: "api_orchestrator", input: "Plan resilient research integration" }
+        ] }) };
+      }
+      return { response: JSON.stringify({ objective: "bounded", steps: ["verify"], risks: [], notExecuted: true }) };
+    } }
+  };
+  const result = await spawnAgents(env, { role: "agent_saum", input: "Find the latest live information about current technology updates" });
+  assert.ok(result.outcomes.some(item => item.role === "global_scraper" && item.ok));
+  const research = result.outcomes.find(item => item.role === "global_scraper");
+  assert.equal(research.result.provider, "duckduckgo-html");
+  assert.equal(research.result.sources[0].url, "https://example.com/current");
 });

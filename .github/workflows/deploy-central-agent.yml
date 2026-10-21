@@ -82,10 +82,10 @@ jobs:
           }
 
           fetch_asset "/" "$tmp/index.html" "$tmp/root.headers" "text/html"
-          grep -Fq 'RESULTRON CORE 2.0 · Neural Console' "$tmp/index.html"
+          grep -Fq 'REDULTRON CORE 2.0 · Neural Console' "$tmp/index.html"
 
           fetch_asset "/sw.js" "$tmp/sw-root.js" "$tmp/sw-root.headers" "application/javascript"
-          expected_cache="$(grep -oE 'resultron-core-shell-v[0-9]+[^"]*' jarvis/sw.js | head -n 1)"
+          expected_cache="$(grep -oE 'redultron-core-shell-v[0-9]+[^"]*' jarvis/sw.js | head -n 1)"
           test -n "$expected_cache" || { echo "::error::Could not read the expected PWA cache name from jarvis/sw.js"; exit 1; }
           grep -Fq "$expected_cache" "$tmp/sw-root.js" || { echo "::error::Root service worker cache name does not match repository source"; exit 1; }
 
@@ -93,7 +93,7 @@ jobs:
           grep -Fq "$expected_cache" "$tmp/sw-subpath.js" || { echo "::error::Subpath service worker cache name does not match repository source"; exit 1; }
 
           fetch_asset "/manifest.webmanifest" "$tmp/manifest.json" "$tmp/manifest.headers" "application/manifest+json"
-          node -e 'const m=require(process.argv[1]); if(m.name!=="RESULTRON CORE 2.0"||m.scope!=="./") throw Error("PWA manifest identity/scope mismatch");' "$tmp/manifest.json"
+          node -e 'const m=require(process.argv[1]); if(m.name!=="REDULTRON CORE 2.0"||m.scope!=="./") throw Error("PWA manifest identity/scope mismatch");' "$tmp/manifest.json"
           fetch_asset "/icon-192.png" "$tmp/icon-192.png" "$tmp/icon-192.headers" "image/png"
           fetch_asset "/icon-512.png" "$tmp/icon-512.png" "$tmp/icon-512.headers" "image/png"
           node -e 'const m=require(process.argv[1]); for(const [size,name] of [[192,"icon-192.png"],[512,"icon-512.png"]]) if(!m.icons.some(i=>i.src==="./"+name&&i.sizes===size+"x"+size&&i.type==="image/png")) throw Error("Missing install icon: "+name);' "$tmp/manifest.json"

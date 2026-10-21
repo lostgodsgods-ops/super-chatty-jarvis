@@ -29,7 +29,7 @@ test("public page contains the core project sections", () => {
   for (const id of ["about", "capabilities", "agents", "invest", "contact"]) {
     assert.ok(html.indexOf("id=" + String.fromCharCode(34) + id + String.fromCharCode(34)) >= 0, "missing section: " + id);
   }
-  assert.match(html, /RESULTRON/);
+  assert.match(html, /REDULTRON/);
   assert.match(html, /Project owner:\s*<strong>Lost God<\/strong>/);
 });
 
@@ -108,12 +108,12 @@ test("NEXUS agent HUD is live-wired to the production SSE event bus", () => {
 
 
 test("installed PWA force-updates stale shells and revalidates HTML assets", () => {
-  assert.match(serviceWorker, /CACHE_NAME\s*=\s*"resultron-core-shell-v13-cognitive-core"/, "shell cache must be version-bumped for the install UX release");
+  assert.match(serviceWorker, /CACHE_NAME\s*=\s*"redultron-core-shell-v14-cognitive-core"/, "shell cache must be version-bumped for the install UX release");
   assert.match(serviceWorker, /self\.skipWaiting\(\)/, "new worker must activate without waiting for an old tab to close");
   assert.match(serviceWorker, /self\.clients\.claim\(\)/, "new worker must claim open PWA clients");
   assert.match(serviceWorker, /key !== CACHE_NAME.*caches\.delete\(key\)/s, "activation must delete older project shell caches");
   assert.match(serviceWorker, /new Request\(request,\s*\{\s*cache:\s*"no-store"\s*\}\)/, "navigation must bypass stale browser HTTP cache");
-  assert.match(jarvisHtml, /application-version" content="RESULTRON-2026\.10\.21-COGNITIVE-CORE-V13"/, "frontend version must be bumped");
+  assert.match(jarvisHtml, /application-version" content="REDULTRON-2026\.10\.21-COGNITIVE-CORE-V14"/, "frontend version must be bumped");
   assert.match(jarvisHtml, /registration\.update\(\)/, "PWA must check for worker updates");
   assert.match(jarvisHtml, /controllerchange/, "active sessions must detect the new worker controller");
   assert.match(jarvisHtml, /location\.reload\(\)/, "active sessions must reload after a worker update");
@@ -211,7 +211,7 @@ test("standalone install metadata advertises app-window behavior and a branded l
 
 test("PWA provides a direct native install prompt and a safe fallback", () => {
   assert.match(jarvisHtml, /id="installBanner"/, "install banner must be present in the first-screen UI");
-  assert.match(jarvisHtml, /id="installAppBtn"[^>]*>INSTALL RESULTRON APP</, "install button must be prominent and directly tappable");
+  assert.match(jarvisHtml, /id="installAppBtn"[^>]*>INSTALL REDULTRON APP</, "install button must be prominent and directly tappable");
   assert.match(jarvisHtml, /beforeinstallprompt/, "Chrome install prompt event must be captured");
   assert.match(jarvisHtml, /event\.preventDefault\(\)/, "browser prompt must be deferred until the user taps the button");
   assert.match(jarvisHtml, /installEvent\.prompt\(\)/, "button must invoke the native prompt from a user gesture");
@@ -221,7 +221,7 @@ test("PWA provides a direct native install prompt and a safe fallback", () => {
   assert.match(jarvisHtml, /display-mode:\s*standalone/, "installed standalone mode must be detected");
   assert.ok(centralWorker.includes('url.pathname === "/icon-192.png"'), "Worker must allow the public 192px install icon");
   assert.ok(centralWorker.includes('url.pathname === "/icon-512.png"'), "Worker must allow the public 512px install icon");
-  assert.match(serviceWorker, /CACHE_NAME\s*=\s*"resultron-core-shell-v13-cognitive-core"/, "install UX release must invalidate old shell cache");
+  assert.match(serviceWorker, /CACHE_NAME\s*=\s*"redultron-core-shell-v14-cognitive-core"/, "install UX release must invalidate old shell cache");
 });
 
 test("owner gate prevents health checks and SSE from starting before session verification", () => {
@@ -238,14 +238,14 @@ test("owner gate prevents health checks and SSE from starting before session ver
 
 test("first-screen one-click install uses the browser-native prompt when eligible", () => {
   assert.match(jarvisHtml, /id="installBanner"/, "install banner must exist on the initial screen");
-  assert.match(jarvisHtml, /id="installAppBtn"[^>]*>INSTALL RESULTRON APP<\/button>/, "prominent install action must be present");
+  assert.match(jarvisHtml, /id="installAppBtn"[^>]*>INSTALL REDULTRON APP<\/button>/, "prominent install action must be present");
   assert.match(jarvisHtml, /addEventListener\("beforeinstallprompt"/, "browser install eligibility must be captured");
   assert.match(jarvisHtml, /event\.preventDefault\(\)/, "default install UI must be deferred to the custom action");
   assert.match(jarvisHtml, /installEvent\.prompt\(\)/, "tap must invoke the captured native prompt");
   assert.match(jarvisHtml, /addEventListener\("appinstalled"/, "successful install must be handled");
   assert.match(jarvisHtml, /Chrome has not offered the native install prompt yet/i, "unavailable prompt state must be honest");
-  assert.match(jarvisHtml, /application-version" content="RESULTRON-2026\.10\.21-COGNITIVE-CORE-V13"/, "app version must identify this shell release");
-  assert.match(serviceWorker, /CACHE_NAME\s*=\s*"resultron-core-shell-v13-cognitive-core"/, "shell cache must be invalidated");
+  assert.match(jarvisHtml, /application-version" content="REDULTRON-2026\.10\.21-COGNITIVE-CORE-V14"/, "app version must identify this shell release");
+  assert.match(serviceWorker, /CACHE_NAME\s*=\s*"redultron-core-shell-v14-cognitive-core"/, "shell cache must be invalidated");
 });
 
 test("PWA notifications require explicit opt-in and only notify for live foreground SSE events", () => {
@@ -445,11 +445,11 @@ test("Central Agent deployment rejects stale live-search health contracts and pr
 });
 
 
-test("RESULTRON CORE 2.0 is the canonical app identity with preferred male voice selection", () => {
-  assert.match(jarvisHtml, /RESULTRON CORE 2\.0/, "the primary interface must use the new core identity");
-  assert.equal(manifest.name, "RESULTRON CORE 2.0", "the installable app name must use the new identity");
+test("REDULTRON CORE 2.0 is the canonical app identity with preferred male voice selection", () => {
+  assert.match(jarvisHtml, /REDULTRON CORE 2\.0/, "the primary interface must use the new core identity");
+  assert.equal(manifest.name, "REDULTRON CORE 2.0", "the installable app name must use the new identity");
   assert.match(jarvisHtml, /function selectPreferredMaleVoice\(/, "voice selection must prefer available male-sounding Hindi/Indian English voices");
   assert.match(jarvisHtml, /voiceschanged/, "voice selection must refresh when the device voice catalog loads");
   assert.match(jarvisHtml, /COGNITIVE CORE/, "the interface must expose cognitive-core framing");
-  assert.match(centralWorker, /RESULTRON CORE 2\.0/, "backend system prompts must share the canonical identity");
+  assert.match(centralWorker, /REDULTRON CORE 2\.0/, "backend system prompts must share the canonical identity");
 });
