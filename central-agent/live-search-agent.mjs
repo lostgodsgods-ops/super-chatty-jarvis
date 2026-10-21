@@ -104,6 +104,26 @@ async function gdelt(query, fetchImpl, signal) {
   const sources = normalizeItems((payload?.articles || []).map(item => ({ title: item?.title, url: item?.url, content: [item?.domain, item?.sourcecountry, item?.language].filter(Boolean).join(" · "), published_date: item?.seendate })));
   return sources.length ? { provider: "gdelt-doc-api", sources } : null;
 }
+async function braveSearch(query, fetchImpl) {
+  const url = new URL("https://api.search.brave.com/res/v1/web/search");
+  url.searchParams.set("q", query);
+  url.searchParams.set("count", String(MAX_RESULTS));
+  const response = await request(fetchImpl, "BRAVE", url.toString(), {
+    headers: {
+      "accept": "application/json",
+      "X-Subscription-Token": ""
+    }
+  });
+  const payload = await response.json();
+  const sources = normalizeItems((payload?.web?.results || []).map(item => ({
+    title: item?.title,
+    url: item?.url,
+    content: item?.description,
+    published_date: item?.page_age || item?.page_fetched
+  })));
+  return sources.length ? { provider: "brave-search", sources } : null;
+}
+
 async function wikipedia(query, fetchImpl) {
   const url = new URL("https://en.wikipedia.org/w/api.php");
   url.searchParams.set("action", "query"); url.searchParams.set("list", "search"); url.searchParams.set("srsearch", query);
@@ -188,6 +208,29 @@ export async function searchLiveWeb(rawQuery, env = {}, options = {}) {
       await new Promise(resolve => setTimeout(resolve, delay));
     }
   }
+  // Brave is an independent indexed-search fallback. It is opt-in because it
+  // requires its own credential and must never be assumed available by registry metadata.
+  const braveKey = typeof env.BRAVE_SEARCH_API_KEY === "string" ? env.BRAVE_SEARCH_API_KEY.trim() : "";
+  if (braveKey) {
+    const brave = await attempt("brave-search", async () => {
+      const url = new URL("https://api.search.brave.com/res/v1/web/search");
+      url.searchParams.set("q", query);
+      url.searchParams.set("count", String(MAX_RESULTS));
+      const response = await request(fetchImpl, "BRAVE", url.toString(), {
+        headers: { accept: "application/json", "X-Subscription-Token": braveKey }
+      });
+      const payload = await response.json();
+      const sources = normalizeItems((payload?.web?.results || []).map(item => ({
+        title: item?.title,
+        url: item?.url,
+        content: item?.description,
+        published_date: item?.page_age || item?.page_fetched
+      })));
+      return sources.length ? { provider: "brave-search", sources } : null;
+    });
+    if (brave) return { ...brave, query, diagnostics };
+  }
+
   const fresh = isFreshnessQuery(query);
   if (fresh) {
     // Fan out independent freshness providers together. Return the first usable source set
