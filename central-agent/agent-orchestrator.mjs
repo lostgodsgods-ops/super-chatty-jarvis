@@ -1,5 +1,5 @@
 /**
- * Bounded dynamic agent runners for Super Chatty Jarvis.
+ * Bounded dynamic agent runners for RESULTRON.
  * All runs require a verified owner session at the HTTP boundary.
  * Code mutation is proposal-only; external side effects are never executed here.
  */
