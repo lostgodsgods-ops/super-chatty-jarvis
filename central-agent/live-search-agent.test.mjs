@@ -57,3 +57,37 @@ test("uses configured Tavily credentials by default when provider mode is unset"
   assert.equal(authorization, "Bearer configured-key");
   assert.equal(result.provider, "tavily");
 });
+
+
+test("runs independent fresh-news fallback providers concurrently after primary search is unavailable", async () => {
+  const started = [];
+  let releaseGoogle;
+  const googleGate = new Promise(resolve => { releaseGoogle = resolve; });
+  const fetchImpl = async url => {
+    const value = String(url);
+    if (value.includes("bing.com/news")) {
+      started.push("bing");
+      return new Response("", { status: 503 });
+    }
+    if (value.includes("news.google.com")) {
+      started.push("google");
+      await googleGate;
+      return new Response(
+        '<rss><channel><item><title>Latest verified update</title><link>https://example.com/fresh</link><description>Fresh source evidence</description><pubDate>Wed, 21 Oct 2026 00:00:00 GMT</pubDate></item></channel></rss>',
+        { status: 200, headers: { "content-type": "application/rss+xml" } }
+      );
+    }
+    if (value.includes("gdeltproject.org")) {
+      started.push("gdelt");
+      return new Response(JSON.stringify({ articles: [] }), { status: 200 });
+    }
+    throw new Error("Unexpected provider: " + value);
+  };
+  const pending = searchLiveWeb("latest news today", { SEARCH_PROVIDER_MODE: "public" }, { fetchImpl });
+  await new Promise(resolve => setTimeout(resolve, 0));
+  assert.deepEqual(new Set(started), new Set(["bing", "google", "gdelt"]));
+  releaseGoogle();
+  const result = await pending;
+  assert.equal(result.provider, "google-news-rss");
+  assert.equal(result.sources[0].url, "https://example.com/fresh");
+});
