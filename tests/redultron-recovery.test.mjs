@@ -29,6 +29,7 @@ test("workflow is permanent, event-driven, bounded, and fork-isolated", async ()
   assert.match(w, /steps\.source\.outputs\.attempt >= 3/);
   assert.match(w, /\[REDULTRON\]\[FAIL\]/);
   assert.match(w, /head_repository\.full_name == github\.repository/);
+  assert.match(w, /jq --arg title/);
   assert.doesNotMatch(w, /administration: write|contents: write/);
 });
 test("owner gate and honest lock scope are documented", async () => {
