@@ -13,6 +13,7 @@ import { createGoal, listGoals, transitionGoal, GoalError } from "./architecture
 import { requiresLiveSearch } from "./current-info-query.mjs";
 import { buildTavilyQuery, rankTavilyResults } from "./search-context.mjs";
 import { runBoundedResearchCycle } from "./research-agents.mjs";
+import { runContinuousImprovementCycle } from "./continuous-improvement.mjs";
 import { spawnAgents, listAgentDefinitions, listRecentAgentRuns } from "./agent-orchestrator.mjs";
 import { guardRequest } from "./edge-guard.mjs";
 import { runSentinelCycle, getSentinelStatus } from "./sentinel.mjs";
@@ -2255,8 +2256,20 @@ export default {
       const recovery = await recoverStaleKnowledgeTasks(env, 20);
       const processing = await processApprovedKnowledgeTasks(env, 3);
       const research = await runBoundedResearchCycle(env);
-      await publishEvent(env, { type: "scheduler.cycle.completed", source: "central-scheduler", payload: { sentinelOk: sentinel.ok === true, recoveredTasks: Number(recovery?.recovered || recovery?.count || 0), processedTasks: Number(processing?.processed || processing?.count || 0), researchOk: research?.ok !== false } });
-      return { intel, sentinel, recovery, processing, research };
+      const improvement = await runContinuousImprovementCycle(env);
+      await publishEvent(env, {
+        type: improvement.ok ? "improvement.cycle.completed" : "improvement.cycle.degraded",
+        source: "continuous-improvement",
+        payload: {
+          ok: improvement.ok === true,
+          status: improvement.status || "degraded",
+          proposalCount: Number(improvement.proposalCount) || 0,
+          upgradeExecution: false,
+          requiresOwnerApproval: true
+        }
+      });
+      await publishEvent(env, { type: "scheduler.cycle.completed", source: "central-scheduler", payload: { sentinelOk: sentinel.ok === true, recoveredTasks: Number(recovery?.recovered || recovery?.count || 0), processedTasks: Number(processing?.processed || processing?.count || 0), researchOk: research?.ok !== false, improvementOk: improvement?.ok === true } });
+      return { intel, sentinel, recovery, processing, research, improvement };
     })();
     if (ctx && typeof ctx.waitUntil === "function") ctx.waitUntil(work);
     else await work;
