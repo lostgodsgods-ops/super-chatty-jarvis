@@ -12,6 +12,7 @@ import { listMcpCapabilities, listVectorCapabilities, connectMcpAndListTools, ve
 import { createGoal, listGoals, transitionGoal, GoalError } from "./architecture/goal-lifecycle.mjs";
 import { requiresLiveSearch } from "./current-info-query.mjs";
 import { buildTavilyQuery, rankTavilyResults } from "./search-context.mjs";
+import { searchLiveWeb } from "./live-search-agent.mjs";
 import { runBoundedResearchCycle } from "./research-agents.mjs";
 import { runContinuousImprovementCycle } from "./continuous-improvement.mjs";
 import { spawnAgents, listAgentDefinitions, listRecentAgentRuns } from "./agent-orchestrator.mjs";
@@ -426,13 +427,57 @@ async function fetchTavilyLegacy(query, env) {
 }
 
 
-async function fetchTavilyWithRetry(query, env) {
-  // Default to open-source SearXNG (when configured) and no-key public web/news sources.
-  // Tavily is a deliberate legacy opt-in only; its presence as a binding never enables it.
-  if (env?.SEARCH_PROVIDER_MODE === "tavily") return fetchTavilyLegacy(query, env);
-  return fetchOpenSourceSearch(query, env);
-}
+export async function fetchTavilyWithRetry(query, env, options = {}) {
+  // Keep one tested provider chain for chat, research, and explicit search routes.
+  // The owner-configured mode is preserved: public/open-source-first never spends Tavily credits.
+  const fetchImpl = typeof options.fetchImpl === "function" ? options.fetchImpl : fetch;
+  const providerMode = env?.SEARCH_PROVIDER_MODE === "tavily" ? "tavily" : "open-source-first";
 
+  // Prefer an explicitly configured SearXNG endpoint, but never let it block public fallbacks.
+  const searxngBaseUrl = typeof env?.SEARXNG_BASE_URL === "string" ? env.SEARXNG_BASE_URL.trim() : "";
+  if (providerMode !== "tavily" && searxngBaseUrl) {
+    try {
+      const searxngResponse = await fetchSearxngSearch(query, searxngBaseUrl);
+      if (searxngResponse?.ok) return searxngResponse;
+    } catch (error) {
+      console.warn("live_search_provider_fallback", {
+        provider: "searxng",
+        status: error?.name === "TimeoutError" || error?.name === "AbortError" ? "timeout" : "unavailable"
+      });
+    }
+  }
+
+  try {
+    const result = await searchLiveWeb(query, {
+      ...env,
+      SEARCH_PROVIDER_MODE: providerMode
+    }, { fetchImpl });
+    const results = (Array.isArray(result?.sources) ? result.sources : []).map(item => ({
+      title: item.title,
+      url: item.url,
+      content: item.snippet || item.content || "",
+      published_date: item.publishedDate || item.published_date || null
+    }));
+    if (!results.length) {
+      const error = new Error("LIVE_SEARCH_ALL_PROVIDERS_FAILED");
+      error.code = "LIVE_SEARCH_ALL_PROVIDERS_FAILED";
+      error.providerDiagnostics = Array.isArray(result?.diagnostics) ? result.diagnostics : [];
+      throw error;
+    }
+    return new Response(JSON.stringify({ results }), {
+      status: 200,
+      headers: {
+        "content-type": "application/json; charset=utf-8",
+        "cache-control": "no-store",
+        "x-search-provider": String(result.provider || "unknown").slice(0, 80)
+      }
+    });
+  } catch (error) {
+    if (!error.code) error.code = "LIVE_SEARCH_ALL_PROVIDERS_FAILED";
+    if (!Array.isArray(error.providerDiagnostics)) error.providerDiagnostics = Array.isArray(error.diagnostics) ? error.diagnostics : [];
+    throw error;
+  }
+}
 
 
 export function classifyTavilyFailure(status) {
