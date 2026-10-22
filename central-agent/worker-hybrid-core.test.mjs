@@ -194,3 +194,27 @@ test("internal hybrid probe uses guarded local fallback when the sidecar is unco
   assert.equal(payload.hybridPythonCoreExecutionVerified, false);
   assert.equal(payload.result.mode, "guarded-local-fallback");
 });
+
+
+test("authenticated /search returns explicitly labeled guarded fallback when every provider is unavailable", async () => {
+  const token = "valid-owner-session-for-search-fallback";
+  const DB = new FakeDB({ token_hash: await tokenHash(token), status: "active", expires_at: Date.now() + 60_000 });
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async () => new Response("provider unavailable", { status: 503 });
+  try {
+    const response = await worker.fetch(request("/search", {
+      token, body: { query: "Cloudflare Workers health checks" }
+    }), { ...env(DB), SEARCH_PROVIDER_MODE: "tavily", TAVILY_API_KEY: "test-key" });
+    assert.equal(response.status, 200);
+    const payload = await response.json();
+    assert.equal(payload.ok, true);
+    assert.equal(payload.provider, "guarded-fallback");
+    assert.equal(payload.fallback, true);
+    assert.equal(payload.liveSearchVerified, false);
+    assert.equal(payload.results[0].kind, "status");
+    assert.equal(payload.results[0].isSearchResult, false);
+    assert.match(payload.fallbackReason, /^[A-Z0-9_]+$/);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
