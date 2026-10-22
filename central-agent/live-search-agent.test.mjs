@@ -154,7 +154,11 @@ test("serves a bounded-age stale cache when the same provider context fails late
   const first = await searchLiveWeb(query, env, { fetchImpl });
   assert.equal(first.sources[0].url, "https://example.com/cached-source");
   shouldFail = true;
-  const stale = await searchLiveWeb(query, env, { fetchImpl });
+  await assert.rejects(
+    searchLiveWeb(query, env, { fetchImpl }),
+    error => error.code === "LIVE_SEARCH_ALL_PROVIDERS_FAILED"
+  );
+  const stale = await searchLiveWeb(query, env, { fetchImpl, allowStale: true });
   assert.equal(stale.stale, true);
   assert.ok(stale.cachedAt);
   assert.equal(stale.sources[0].url, "https://example.com/cached-source");
