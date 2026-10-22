@@ -44,3 +44,16 @@ test("provider registry rejects malformed binding values as not configured", () 
   assert.equal(result.configured, false);
   assert.deepEqual(result.missingBindings, ["ANTHROPIC_API_KEY"]);
 });
+
+test("registry exposes blockchain simulation and quantum adapter without claiming live verification", () => {
+  const tools = listUniversalTools({});
+  const blockchain = tools.find(tool => tool.id === "blockchain-simulation");
+  const quantum = tools.find(tool => tool.id === "quantum-compute");
+  assert.ok(blockchain);
+  assert.ok(blockchain.capabilities.includes("simulation-only"));
+  assert.equal(blockchain.liveVerified, false);
+  assert.ok(quantum);
+  assert.equal(quantum.status, "not_configured");
+  assert.equal(quantum.liveVerified, false);
+  assert.deepEqual(quantum.missingBindings, ["QUANTUM_API_URL", "QUANTUM_API_KEY"]);
+});
