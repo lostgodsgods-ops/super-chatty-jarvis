@@ -2174,8 +2174,10 @@ export default {
         try {
           const parsed = new URL(quantumUrl);
           const host = parsed.hostname.toLowerCase();
-          const privateHost = host === "localhost" || host.endsWith(".local") || host === "127.0.0.1" ||
-            host === "::1" || /^10\./.test(host) || /^192\.168\./.test(host) || /^172\.(1[6-9]|2\d|3[01])\./.test(host);
+          const privateHost = host === "localhost" || host.endsWith(".local") || host.endsWith(".localhost") ||
+            host.endsWith(".internal") || host.endsWith(".test") || host.startsWith("[") ||
+            /^0\./.test(host) || /^10\./.test(host) || /^127\./.test(host) || /^169\.254\./.test(host) ||
+            /^192\.168\./.test(host) || /^172\.(1[6-9]|2\d|3[01])\./.test(host);
           if (parsed.protocol === "https:" && !parsed.username && !parsed.password && !parsed.hash && !privateHost) {
             provider = {
               execute: async (job, { signal }) => {
