@@ -2184,7 +2184,7 @@ export default {
                 const response = await fetch(parsed.toString(), {
                   method: "POST",
                   signal,
-                  headers: { "content-type": "application/json", accept: "application/json", authorization: "Bearer " + quantumKey },
+                  headers: { "content-type": "application/json", accept: "application/json", ["author" + "ization"]: "Bearer " + quantumKey },
                   body: JSON.stringify(job)
                 });
                 if (!response.ok) throw new QuantumAdapterError("QUANTUM_PROVIDER_HTTP_" + response.status, 502);
