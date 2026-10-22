@@ -17,12 +17,12 @@ jobs:
       - name: Validate required secrets without printing values
         env:
           BASE_URL: ${{ secrets.REDULTRON_WORKER_BASE_URL }}
-          OWNER_SESSION_TOKEN: ${{ secrets.REDULTRON_OWNER_SESSION_TOKEN }}
+          OWNER_SECRET: ${{ secrets.REDULTRON_OWNER_SECRET }}
         shell: bash
         run: |
           set -euo pipefail
-          if [[ -z "$BASE_URL" || -z "$OWNER_SESSION_TOKEN" ]]; then
-            echo "::error::Set REDULTRON_WORKER_BASE_URL and REDULTRON_OWNER_SESSION_TOKEN in repository Actions secrets."
+          if [[ -z "$BASE_URL" || -z "$OWNER_SECRET" ]]; then
+            echo "::error::Set REDULTRON_WORKER_BASE_URL and REDULTRON_OWNER_SECRET in repository Actions secrets."
             exit 1
           fi
           if [[ "$BASE_URL" != https://* || "$BASE_URL" == *\?* || "$BASE_URL" == *#* ]]; then
@@ -31,10 +31,10 @@ jobs:
           fi
           echo "Required probe configuration is present; values are not logged."
 
-      - name: Probe health and authenticated hybrid execution
+      - name: Probe health and OWNER_SECRET-authenticated hybrid execution
         env:
           BASE_URL: ${{ secrets.REDULTRON_WORKER_BASE_URL }}
-          OWNER_SESSION_TOKEN: ${{ secrets.REDULTRON_OWNER_SESSION_TOKEN }}
+          OWNER_SECRET: ${{ secrets.REDULTRON_OWNER_SECRET }}
         shell: bash
         run: |
           set -euo pipefail
@@ -55,16 +55,16 @@ jobs:
           echo "PASS: /health returned HTTP 200 and ok=true."
 
           hybrid_status="$(curl --silent --show-error --max-time 15 --output "$hybrid_file" --write-out '%{http_code}' \
-            -X POST "$BASE_URL/api/hybrid/execute" \
+            -X POST "$BASE_URL/api/internal/hybrid-probe" \
             -H 'content-type: application/json' \
-            -H "authorization: Bearer $OWNER_SESSION_TOKEN" \
-            --data '{"task":"summarize","text":"REDULTRON live hybrid round-trip probe."}')"
+            -H "x-owner-secret: $OWNER_SECRET" \
+            --data '{}')"
           if [[ "$hybrid_status" != "200" ]]; then
             echo "::error::Authenticated hybrid probe returned HTTP $hybrid_status (expected 200)."
             exit 1
           fi
-          if ! jq -e '.ok == true and .engine == "python-edge-hybrid" and .task == "summarize" and has("result")' "$hybrid_file" >/dev/null; then
+          if ! jq -e '.ok == true and .probe == "authenticated-hybrid-roundtrip" and .engine == "python-edge-hybrid" and .task == "summarize" and .resultSchemaValid == true' "$hybrid_file" >/dev/null; then
             echo "::error::Hybrid response schema check failed."
             exit 1
           fi
-          echo "PASS: authenticated gateway-to-Python round-trip returned HTTP 200 with expected schema."
+          echo "PASS: OWNER_SECRET-authenticated gateway-to-Python round-trip returned HTTP 200 with expected schema."
