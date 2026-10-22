@@ -27,7 +27,7 @@ test("Python endpoint must be HTTPS and cannot embed credentials or query string
   }
 });
 
-test("sends server-side owner secret and validates Python response contract", async () => {
+test("sends server-side owner secret and a browser-compatible user agent, and validates Python response contract", async () => {
   let request;
   const result = await executeHybridTask(
     { task: "summarize", text: "A safe bounded task." },
@@ -39,6 +39,7 @@ test("sends server-side owner secret and validates Python response contract", as
   );
   assert.equal(request.url, "https://python.example/v1/execute");
   assert.equal(request.options.headers["x-owner-secret"], "secret-value-not-for-client");
+  assert.match(request.options.headers["user-agent"], /^REDULTRON-HybridCore\//);
   assert.equal(request.options.headers.authorization, undefined);
   assert.deepEqual(JSON.parse(request.options.body), { task: "summarize", text: "A safe bounded task." });
   assert.deepEqual(result, { ok: true, engine: "python-edge-hybrid", task: "summarize", result: "A safe bounded task." });
