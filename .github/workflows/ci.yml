@@ -25,6 +25,12 @@ jobs:
           package-manager-cache: false
       - name: Run test suite
         run: npm test
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+      - name: Run Python hybrid core tests
+        run: python -m unittest discover -s hybrid-core -p "test_*.py" -v
       - name: Check Central Agent module syntax
         run: |
           node --check central-agent/worker.mjs

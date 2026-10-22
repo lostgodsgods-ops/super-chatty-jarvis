@@ -138,3 +138,29 @@ test("Hindi freshness queries use parallel dated-news providers before broad web
   assert.equal(calls.some(url => url.includes("duckduckgo.com/html")), false);
   assert.equal(calls.some(url => url.includes("wikipedia.org")), false);
 });
+
+
+test("serves a bounded-age stale cache when the same provider context fails later", async () => {
+  let shouldFail = false;
+  const fetchImpl = async url => {
+    if (shouldFail) throw new TypeError("simulated provider outage");
+    if (String(url).includes("api.tavily.com")) return new Response(JSON.stringify({ results: [
+      { title: "Previously found source", url: "https://example.com/cached-source", content: "Cached evidence" }
+    ] }), { status: 200, headers: { "content-type": "application/json" } });
+    throw new Error("Unexpected provider: " + String(url));
+  };
+  const env = { SEARCH_PROVIDER_MODE: "tavily", TAVILY_API_KEY: "cache-test-key" };
+  const query = "cache fallback regression test";
+  const first = await searchLiveWeb(query, env, { fetchImpl });
+  assert.equal(first.sources[0].url, "https://example.com/cached-source");
+  shouldFail = true;
+  await assert.rejects(
+    searchLiveWeb(query, env, { fetchImpl }),
+    error => error.code === "LIVE_SEARCH_ALL_PROVIDERS_FAILED"
+  );
+  const stale = await searchLiveWeb(query, env, { fetchImpl, allowStale: true });
+  assert.equal(stale.stale, true);
+  assert.ok(stale.cachedAt);
+  assert.equal(stale.sources[0].url, "https://example.com/cached-source");
+  assert.ok(stale.diagnostics.some(item => item.provider === "stale-cache" && item.status === "served-stale"));
+});

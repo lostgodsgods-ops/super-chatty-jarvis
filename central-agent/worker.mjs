@@ -27,6 +27,7 @@ import { createOwnerControlState, setOwnerTakeover, setEmergencyStop } from "./a
 import { DEFAULT_OWNER_CONTROL_SETTINGS, normalizeOwnerControlCommand, validateOwnerControlSettings } from "./architecture/owner-control-service.mjs";
 import { createSandboxLedger, postSandboxTransaction } from "./architecture/finance-sandbox.mjs";
 import { executeHybridTask, HybridCoreError } from "./architecture/hybrid-core.mjs";
+import { listUniversalTools } from "./architecture/universal-tool-registry.mjs";
 import { assessRobotSimulatorCommand } from "./architecture/robotics-simulator.mjs";
 
 const VERSION = "1.4.1";
@@ -452,7 +453,7 @@ export async function fetchTavilyWithRetry(query, env, options = {}) {
     const result = await searchLiveWeb(query, {
       ...env,
       SEARCH_PROVIDER_MODE: providerMode
-    }, { fetchImpl });
+    }, { fetchImpl, allowStale: options.allowStale === true });
     const results = (Array.isArray(result?.sources) ? result.sources : []).map(item => ({
       title: item.title,
       url: item.url,
@@ -465,12 +466,17 @@ export async function fetchTavilyWithRetry(query, env, options = {}) {
       error.providerDiagnostics = Array.isArray(result?.diagnostics) ? result.diagnostics : [];
       throw error;
     }
-    return new Response(JSON.stringify({ results }), {
+    return new Response(JSON.stringify({
+      results,
+      stale: result.stale === true,
+      cachedAt: result.stale === true ? result.cachedAt || null : null
+    }), {
       status: 200,
       headers: {
         "content-type": "application/json; charset=utf-8",
         "cache-control": "no-store",
-        "x-search-provider": String(result.provider || "unknown").slice(0, 80)
+        "x-search-provider": String(result.provider || "unknown").slice(0, 80),
+        "x-search-stale": result.stale === true ? "true" : "false"
       }
     });
   } catch (error) {
@@ -1054,7 +1060,10 @@ export default {
           selfGrantedPermissions: false,
           sentinelMonitoring: true,
           kvHotState: Boolean(env.SESSIONS),
-          realtimeOwnerEvents: true
+          realtimeOwnerEvents: true,
+          hybridPythonCoreConfigured: Boolean(typeof env.PYTHON_CORE_URL === "string" && env.PYTHON_CORE_URL.trim() && typeof env.OWNER_SECRET === "string" && env.OWNER_SECRET.trim()),
+          hybridPythonCoreExecutionVerified: false,
+          universalToolRegistry: true
         }
       }, 200, cors);
     }
@@ -2034,6 +2043,16 @@ export default {
       catch (error) { return json({ error: error instanceof GoalError ? error.code : "GOAL_TRANSITION_FAILED" }, error instanceof GoalError ? error.status : 503, cors); }
     }
 
+    if (url.pathname === "/api/tools/registry" && request.method === "GET") {
+      if (!(await authorized(request, env))) return json({ ok: false, error: "Owner session required.", code: "OWNER_SESSION_REQUIRED" }, 401, cors);
+      return json({
+        ok: true,
+        providers: listUniversalTools(env),
+        liveVerificationPerformed: false,
+        note: "Registry reports catalog and binding presence only; configured does not mean authenticated, reachable, or operational."
+      }, 200, cors);
+    }
+
     if (url.pathname === "/mcp/status" && request.method === "GET") {
       return json({
         ok: true,
@@ -2072,10 +2091,10 @@ export default {
       const body = await request.json().catch(() => null);
       const query = typeof body?.query === "string" ? body.query.trim() : "";
       if (!query || query.length > 400) return json({ error: "Query must contain 1–400 characters.", code: "INVALID_RESEARCH_QUERY" }, 400, cors);
-      // Direct public web search is available without a Tavily key.
+      // Explicit research requests may opt into stale results, which are always marked as stale.
       let response;
       try {
-        response = await fetchTavilyWithRetry(query, env);
+        response = await fetchTavilyWithRetry(query, env, { allowStale: true });
       } catch (error) {
         const diagnostics = Array.isArray(error?.providerDiagnostics) ? error.providerDiagnostics : [];
         const code = typeof error?.code === "string" && /^LIVE_SEARCH_[A-Z0-9_]{1,64}$/.test(error.code)
@@ -2107,6 +2126,8 @@ export default {
       }).filter(item => item.title && item.url).slice(0, 5);
       return json({
         ok: true, provider: searchProvider, query, fetchedAt: new Date().toISOString(),
+        stale: payload?.stale === true || response.headers.get("x-search-stale") === "true",
+        cachedAt: typeof payload?.cachedAt === "string" ? payload.cachedAt : null,
         sourceCount: sources.length, sources,
         note: sources.length ? "Search evidence only. Confirm claims against the linked source; no claim is verified solely by appearing in search results." : "No usable sources returned; the query could not be verified."
       }, 200, cors);

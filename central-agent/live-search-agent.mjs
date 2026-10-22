@@ -5,7 +5,18 @@
  */
 const MAX_QUERY = 400;
 const MAX_RESULTS = 5;
-const TIMEOUT_MS = 6500;
+export const LIVE_SEARCH_TIMEOUT_MS = 5000;
+const TIMEOUT_MS = LIVE_SEARCH_TIMEOUT_MS;
+const STALE_CACHE_TTL_MS = 24 * 60 * 60 * 1000;
+const MAX_CACHE_ENTRIES = 100;
+const liveSearchCache = new Map();
+const fetchImplementationIds = new WeakMap();
+let nextFetchImplementationId = 1;
+function cacheNamespace(fetchImpl, providerMode) {
+  let id = fetchImplementationIds.get(fetchImpl);
+  if (!id) { id = nextFetchImplementationId++; fetchImplementationIds.set(fetchImpl, id); }
+  return String(providerMode || "default") + ":fetch-" + id;
+}
 
 function clean(value, max = 1200) {
   return typeof value === "string"
@@ -131,7 +142,7 @@ async function wikipedia(query, fetchImpl) {
   return sources.length ? { provider: "wikipedia-api", sources } : null;
 }
 
-export async function searchLiveWeb(rawQuery, env = {}, options = {}) {
+async function performLiveSearch(rawQuery, env = {}, options = {}) {
   const query = clean(rawQuery, MAX_QUERY);
   if (!query) throw new Error("LIVE_SEARCH_EMPTY_QUERY");
   const fetchImpl = options.fetchImpl || fetch;
@@ -171,13 +182,20 @@ export async function searchLiveWeb(rawQuery, env = {}, options = {}) {
   const providerMode = clean(env.SEARCH_PROVIDER_MODE, 40).toLowerCase();
   const tavilyAllowed = !providerMode || providerMode === "tavily";
   if (tavilyAllowed && tavilyKey) {
-    // Retry transient rate-limit/server responses, but never retry quota-exhaustion statuses.
+    // Retry transient rate-limit/server responses only within one 5-second total budget.
+    // A hung provider is aborted at the deadline so fallback providers can run immediately.
+    const tavilyDeadline = Date.now() + TIMEOUT_MS;
     for (let attemptNumber = 0; attemptNumber < 3; attemptNumber++) {
+      const remainingMs = tavilyDeadline - Date.now();
+      if (remainingMs <= 0) {
+        diagnostics.push({ provider: "tavily", status: "timeout-budget-exhausted" });
+        break;
+      }
       let response;
       try {
         response = await fetchImpl("https://api.tavily.com/search", {
           method: "POST",
-          signal: AbortSignal.timeout(TIMEOUT_MS),
+          signal: AbortSignal.timeout(Math.max(1, Math.min(TIMEOUT_MS, remainingMs))),
           headers: { authorization: "Bearer " + tavilyKey, "content-type": "application/json", accept: "application/json" },
           body: JSON.stringify({ query, search_depth: "basic", max_results: MAX_RESULTS, include_answer: false, include_raw_content: false })
         });
@@ -201,8 +219,10 @@ export async function searchLiveWeb(rawQuery, env = {}, options = {}) {
       const transient = response.status === 429 || [500, 502, 503, 504].includes(response.status);
       if (!transient || attemptNumber === 2) break;
       const retryAfter = Number(response.headers.get("retry-after"));
-      const delay = Number.isFinite(retryAfter) && retryAfter > 0 ? Math.min(250, Math.max(100, retryAfter * 1000)) : 100 * (2 ** attemptNumber);
-      await new Promise(resolve => setTimeout(resolve, delay));
+      const requestedDelay = Number.isFinite(retryAfter) && retryAfter > 0 ? Math.min(250, Math.max(100, retryAfter * 1000)) : 100 * (2 ** attemptNumber);
+      const remainingAfterResponse = tavilyDeadline - Date.now();
+      if (attemptNumber >= 2 || remainingAfterResponse <= requestedDelay) break;
+      await new Promise(resolve => setTimeout(resolve, requestedDelay));
     }
   }
   // Brave is an independent indexed-search fallback. It is opt-in because it
@@ -247,3 +267,50 @@ export async function searchLiveWeb(rawQuery, env = {}, options = {}) {
   error.providerDiagnostics = diagnostics.slice(0, 8);
   throw error;
 }
+
+
+/**
+ * Resilient search wrapper. Successful live results are cached per normalized query.
+ * If all live providers fail, return a bounded-age stale result rather than throwing.
+ * Cached data is explicitly marked stale so callers must not present it as current.
+ */
+export async function searchLiveWeb(rawQuery, env = {}, options = {}) {
+  const query = clean(rawQuery, MAX_QUERY);
+  if (!query) throw new Error("LIVE_SEARCH_EMPTY_QUERY");
+  const fetchImpl = options.fetchImpl || fetch;
+  const namespace = cacheNamespace(fetchImpl, clean(env.SEARCH_PROVIDER_MODE, 40).toLowerCase());
+  const cacheKey = namespace + ":" + query.toLocaleLowerCase();
+  try {
+    const result = await performLiveSearch(query, env, options);
+    if (result?.sources?.length) {
+      liveSearchCache.delete(cacheKey);
+      liveSearchCache.set(cacheKey, { result, cachedAt: Date.now() });
+      while (liveSearchCache.size > MAX_CACHE_ENTRIES) {
+        liveSearchCache.delete(liveSearchCache.keys().next().value);
+      }
+    }
+    return result;
+  } catch (error) {
+    const cached = liveSearchCache.get(cacheKey);
+    if (options.allowStale === true && cached && Date.now() - cached.cachedAt <= STALE_CACHE_TTL_MS) {
+      return {
+        ...cached.result,
+        stale: true,
+        cachedAt: new Date(cached.cachedAt).toISOString(),
+        diagnostics: [
+          ...(Array.isArray(error?.providerDiagnostics) ? error.providerDiagnostics : []),
+          { provider: "stale-cache", status: "served-stale" }
+        ]
+      };
+    }
+    if (cached && Date.now() - cached.cachedAt > STALE_CACHE_TTL_MS) liveSearchCache.delete(cacheKey);
+    if (error && typeof error === "object") {
+      error.code = error.code || "LIVE_SEARCH_ALL_PROVIDERS_FAILED";
+      error.providerDiagnostics = Array.isArray(error.providerDiagnostics)
+        ? error.providerDiagnostics.slice(0, 8)
+        : [];
+    }
+    throw error;
+  }
+}
+
