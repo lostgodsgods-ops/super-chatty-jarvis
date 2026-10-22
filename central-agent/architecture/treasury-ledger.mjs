@@ -35,6 +35,11 @@ export async function ensureTreasurySchema(DB) {
     created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
   )`).run();
   await DB.prepare("CREATE INDEX IF NOT EXISTS idx_treasury_events_created_at ON treasury_events(created_at)").run();
+  await DB.prepare(`CREATE TRIGGER IF NOT EXISTS treasury_daily_cap_guard
+    BEFORE INSERT ON treasury_events
+    WHEN COALESCE((SELECT SUM(amount_minor) FROM treasury_events
+      WHERE status = 'simulated' AND created_at >= datetime('now', '-1 day')), 0) + NEW.amount_minor > 5000
+    BEGIN SELECT RAISE(ABORT, 'TREASURY_DAILY_SPENDING_CAP_EXCEEDED'); END`).run();
 }
 
 function validateInput(input) {
@@ -69,9 +74,7 @@ function validateInput(input) {
     amountMinor: input.amountMinor,
     currency: expectedCurrency,
     network: input.network,
-    destinationFingerprint: input.destination || input.contractAddress
-      ? "sha256:" + (input.destination || input.contractAddress).slice(0, 8) + ":" + (input.destination || input.contractAddress).length
-      : null,
+    destinationFingerprint: null,
     status: "simulated",
     details: { simulationOnly: true, externalTransferExecuted: false, livePaymentsEnabled: false }
   };
