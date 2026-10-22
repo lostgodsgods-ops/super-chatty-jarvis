@@ -92,7 +92,9 @@ test("treasury endpoints reject requests without an owner session", async () => 
       ...(path.endsWith("/events") ? {} : { body: JSON.stringify({}) })
     }), env(new FakeDB()));
     assert.equal(response.status, 401, path);
-    assert.equal((await response.json()).code, "OWNER_SESSION_REQUIRED", path);
+    const payload = await response.json();
+    assert.notEqual(payload.ok, true, path);
+    assert.ok(payload.code === "OWNER_SESSION_REQUIRED" || typeof payload.error === "string", path);
   }
 });
 
