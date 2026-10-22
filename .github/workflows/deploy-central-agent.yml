@@ -33,7 +33,9 @@ jobs:
           package-manager-cache: false
 
       - name: Run full repository test suite
-        run: npm test
+        run: |
+          node --test central-agent/architecture/hybrid-core.test.mjs
+          npm test
 
       - name: Validate required secrets
         shell: bash
@@ -43,6 +45,8 @@ jobs:
           SETUP_TOKEN: ${{ secrets.OWNER_SETUP_TOKEN }}
           SEARCH_KEY: ${{ secrets.SEARCH_API_KEY }}
           BRIDGE_TOKEN: ${{ secrets.AGENT_GATEWAY_TOKEN }}
+          PYTHON_CORE_URL: ${{ secrets.PYTHON_CORE_URL }}
+          OWNER_SECRET: ${{ secrets.OWNER_SECRET }}
         run: |
           set -euo pipefail
           test -n "$CF_TOKEN" || { echo "Missing CLOUDFLARE_API_TOKEN"; exit 1; }
@@ -50,7 +54,9 @@ jobs:
           test -n "$SETUP_TOKEN" || { echo "Missing OWNER_SETUP_TOKEN"; exit 1; }
           echo "SEARCH_API_KEY is optional; direct DuckDuckGo search is the fallback."
           test -n "$BRIDGE_TOKEN" || { echo "Missing AGENT_GATEWAY_TOKEN"; exit 1; }
-          echo "Required secret values are present (values not displayed)."
+          test -n "$PYTHON_CORE_URL" || { echo "Missing PYTHON_CORE_URL"; exit 1; }
+          test -n "$OWNER_SECRET" || { echo "Missing OWNER_SECRET"; exit 1; }
+          node -e 'const u=new URL(process.env.PYTHON_CORE_URL); if(u.protocol!=="https:"||u.username||u.password||u.search||u.hash) process.exit(2); console.log("Hybrid Core secrets present; URL is HTTPS. Values are not printed.")'
 
       - name: Deploy isolated Central Agent
         shell: bash
@@ -115,6 +121,8 @@ jobs:
           TAVILY_API_KEY: ${{ secrets.TAVILY_API_KEY }}
           AGENT_GATEWAY_TOKEN: ${{ secrets.AGENT_GATEWAY_TOKEN }}
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          PYTHON_CORE_URL: ${{ secrets.PYTHON_CORE_URL }}
+          OWNER_SECRET: ${{ secrets.OWNER_SECRET }}
         run: |
           set -euo pipefail
           umask 077
@@ -128,9 +136,11 @@ jobs:
             SEARCH_API_KEY: process.env.SEARCH_API_KEY || process.env.TAVILY_API_KEY || undefined,
             TAVILY_API_KEY: process.env.TAVILY_API_KEY || process.env.SEARCH_API_KEY || undefined,
             SEARCH_BRIDGE_TOKEN: process.env.AGENT_GATEWAY_TOKEN,
+            PYTHON_CORE_URL: process.env.PYTHON_CORE_URL,
+            OWNER_SECRET: process.env.OWNER_SECRET,
           };
           if (process.env.GEMINI_API_KEY) payload.GEMINI_API_KEY = process.env.GEMINI_API_KEY;
-          if (!payload.OWNER_SETUP_TOKEN || !payload.SEARCH_BRIDGE_TOKEN) {
+          if (!payload.OWNER_SETUP_TOKEN || !payload.SEARCH_BRIDGE_TOKEN || !payload.PYTHON_CORE_URL || !payload.OWNER_SECRET) {
             throw new Error("Required Worker secret values are missing.");
           }
           fs.writeFileSync(path, JSON.stringify(payload), { mode: 0o600 });
@@ -181,6 +191,53 @@ jobs:
         run: |
           set -euo pipefail
           node central-agent/bootstrap-owner.mjs
+
+      - name: Verify authenticated Python Hybrid Core round-trip
+        shell: bash
+        env:
+          OWNER_PASSWORD: ${{ secrets.CENTRAL_AGENT_OWNER_PASSWORD }}
+          CENTRAL_AGENT_URL: https://shrill-silence-164f.lostgodsgods.workers.dev
+        run: |
+          set -euo pipefail
+          umask 077
+          tmp="$(mktemp -d)"
+          trap 'rm -rf "$tmp"' EXIT
+          test -n "$OWNER_PASSWORD" || { echo "::error::Missing CENTRAL_AGENT_OWNER_PASSWORD"; exit 1; }
+
+          unauth_code="$(curl --silent --show-error --max-time 20 -X POST \
+            -H 'content-type: application/json' --data '{"task":"classify_text","text":"unauthenticated probe"}' \
+            -D "$tmp/unauth.headers" -o "$tmp/unauth.json" -w '%{http_code}' \
+            "$CENTRAL_AGENT_URL/api/hybrid/execute")"
+          test "$unauth_code" = "401" || { echo "::error::Hybrid route did not reject unauthenticated access (HTTP $unauth_code)"; exit 1; }
+
+          node -e 'process.stdout.write(JSON.stringify({password:process.env.OWNER_PASSWORD}))' > "$tmp/login-request.json"
+          login_code="$(curl --silent --show-error --max-time 20 -H 'content-type: application/json' \
+            --data-binary "@$tmp/login-request.json" -o "$tmp/login.json" -w '%{http_code}' "$CENTRAL_AGENT_URL/auth/login")"
+          test "$login_code" = "200" || { echo "::error::Owner login failed: HTTP $login_code"; exit 1; }
+          token="$(node -e 'const x=require(process.argv[1]); if(typeof x.token!=="string"||!x.token) process.exit(1); process.stdout.write(x.token)' "$tmp/login.json")"
+
+          node -e 'process.stdout.write(JSON.stringify({task:"classify_text",text:"REDULTRON authenticated hybrid verification"}))' > "$tmp/hybrid-request.json"
+          set +e
+          curl --silent --show-error --max-time 15 -X POST \
+            -H "Authorization: Bearer $token" -H 'content-type: application/json' \
+            --data-binary "@$tmp/hybrid-request.json" -D "$tmp/hybrid.headers" \
+            -o "$tmp/hybrid.json" -w 'HTTP_CODE=%{http_code}\n' "$CENTRAL_AGENT_URL/api/hybrid/execute"
+          curl_exit=$?
+          set -e
+          echo "CURL_EXIT_CODE=$curl_exit"
+          grep -iE '^(cf-ray|content-type):' "$tmp/hybrid.headers" | tr -d '\r' || true
+          test "$curl_exit" -eq 0 || { echo "::error::Hybrid HTTP transport failed with curl exit $curl_exit"; exit 1; }
+          node - "$tmp/hybrid.json" <<'NODE'
+          const fs=require("node:fs");
+          const x=JSON.parse(fs.readFileSync(process.argv[2],"utf8"));
+          if(x.ok!==true||x.engine!=="python-edge-hybrid"||x.task!=="classify_text"||!x.result||typeof x.result!=="object") {
+            console.error(JSON.stringify({ok:x.ok,code:x.code||null,error:x.error||null,engine:x.engine||null,task:x.task||null}));
+            throw new Error("Authenticated Python Hybrid Core round-trip failed.");
+          }
+          console.log(JSON.stringify({hybridRoundTrip:"PASS",ownerAuth:"PASS",engine:x.engine,task:x.task,result:x.result}));
+          NODE
+          echo "Hybrid Core round-trip PASS; no Owner token or secret was printed."
+          curl --silent --show-error --max-time 15 -X POST -H "Authorization: Bearer $token" -o /dev/null "$CENTRAL_AGENT_URL/auth/logout" || true
 
       - name: Deploy staging PWA chat and Tavily proxy
         shell: bash
