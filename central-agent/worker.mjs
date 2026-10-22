@@ -2092,7 +2092,7 @@ export default {
         // available when the external sidecar is down. It is explicitly labeled
         // as local fallback and never claims Python execution was verified.
         if (status >= 500) {
-          const words = probeText.trim().split(/\\s+/).filter(Boolean);
+          const words = probeText.trim().split(/\s+/).filter(Boolean);
           const localResult = {
             summary: words.slice(0, 12).join(" ") + (words.length > 12 ? "…" : ""),
             mode: "guarded-local-fallback",
