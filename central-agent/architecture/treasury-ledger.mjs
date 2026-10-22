@@ -39,6 +39,9 @@ export async function ensureTreasurySchema(DB) {
 
 function validateInput(input) {
   if (!input || typeof input !== "object" || Array.isArray(input)) throw new TreasuryError("TREASURY_EVENT_INVALID");
+  if (input.livePayment === true || input.executeOnChain === true || input.broadcastTransaction === true) {
+    throw new TreasuryError("TREASURY_LIVE_TRANSFERS_DISABLED", 403);
+  }
   if (typeof input.idempotencyKey !== "string" || !KEY_RE.test(input.idempotencyKey)) throw new TreasuryError("TREASURY_IDEMPOTENCY_KEY_REQUIRED");
   if (!["bitcoin","lightning","web3","compute"].includes(input.source)) throw new TreasuryError("TREASURY_SOURCE_INVALID");
   if (!["scan","payment_intent","liquidity_event","compute_funding_intent"].includes(input.eventType)) throw new TreasuryError("TREASURY_EVENT_TYPE_INVALID");
@@ -80,11 +83,17 @@ export async function appendTreasuryEvent(DB, input) {
   const totals = await DB.prepare("SELECT COALESCE(SUM(amount_minor), 0) AS total FROM treasury_events WHERE status = 'simulated' AND created_at >= datetime('now', '-1 day')").first();
   const total = Number(totals?.total || 0);
   if (!Number.isSafeInteger(total) || total + event.amountMinor > MAX_DAILY_MINOR) throw new TreasuryError("TREASURY_DAILY_SPENDING_CAP_EXCEEDED", 403);
-  const result = await DB.prepare(`INSERT OR IGNORE INTO treasury_events
+  let result;
+  try { result = await DB.prepare(`INSERT OR IGNORE INTO treasury_events
     (idempotency_key, source, event_type, amount_minor, currency, network, destination_fingerprint, status, details_json)
     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`)
     .bind(event.idempotencyKey, event.source, event.eventType, event.amountMinor, event.currency, event.network, event.destinationFingerprint, event.status, JSON.stringify(event.details))
-    .run();
+    .run(); } catch (error) {
+    if (String(error?.message || error).includes("TREASURY_DAILY_SPENDING_CAP_EXCEEDED")) {
+      throw new TreasuryError("TREASURY_DAILY_SPENDING_CAP_EXCEEDED", 403);
+    }
+    throw new TreasuryError("TREASURY_LEDGER_WRITE_FAILED", 503);
+  }
   const changes = Number(result?.meta?.changes || 0);
   if (changes !== 1) throw new TreasuryError("TREASURY_DUPLICATE_IDEMPOTENCY_KEY", 409);
   return { ok: true, event: { ...event, id: result?.meta?.last_row_id ?? null }, ledgerMode: "simulation-only" };
