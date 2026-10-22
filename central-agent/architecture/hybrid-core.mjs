@@ -38,9 +38,11 @@ export async function executeHybridTask(input, env, options = {}) {
   let url;
   try {
     url = new URL(endpoint);
-    if (url.protocol !== "https:" || url.username || url.password || url.search || url.hash) {
+    if (url.protocol !== "https:" || url.username || url.password || url.search || url.hash ||
+        (url.pathname !== "/" && url.pathname !== "/v1/execute")) {
       throw new Error("invalid");
     }
+    if (url.pathname === "/") url.pathname = "/v1/execute";
   } catch {
     throw new HybridCoreError("HYBRID_CORE_URL_INVALID", 503);
   }
