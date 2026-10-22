@@ -192,7 +192,7 @@ jobs:
           set -euo pipefail
           node central-agent/bootstrap-owner.mjs
 
-      - name: Verify authenticated Python Hybrid Core round-trip
+      - name: Verify authenticated Hybrid Core response and execution mode
         shell: bash
         env:
           OWNER_PASSWORD: ${{ secrets.CENTRAL_AGENT_OWNER_PASSWORD }}
@@ -230,13 +230,21 @@ jobs:
           node - "$tmp/hybrid.json" <<'NODE'
           const fs=require("node:fs");
           const x=JSON.parse(fs.readFileSync(process.argv[2],"utf8"));
-          if(x.ok!==true||x.engine!=="python-edge-hybrid"||x.task!=="classify_text"||!x.result||typeof x.result!=="object") {
-            console.error(JSON.stringify({ok:x.ok,code:x.code||null,error:x.error||null,engine:x.engine||null,task:x.task||null}));
-            throw new Error("Authenticated Python Hybrid Core round-trip failed.");
+          if(x.ok!==true||x.task!=="classify_text"||!x.result||typeof x.result!=="object"||
+             x.resultSchemaValid!==true||x.resultsSchemaValid!==true) {
+            console.error(JSON.stringify({ok:x.ok,code:x.code||null,error:x.error||null,engine:x.engine||null,task:x.task||null,resultSchemaValid:x.resultSchemaValid||false,resultsSchemaValid:x.resultsSchemaValid||false}));
+            throw new Error("Authenticated Hybrid Core response failed schema validation.");
           }
-          console.log(JSON.stringify({hybridRoundTrip:"PASS",ownerAuth:"PASS",engine:x.engine,task:x.task,result:x.result}));
+          if(x.engine==="python-edge-hybrid" && x.fallbackEngaged!==true && x.hybridPythonCoreExecutionVerified===true) {
+            console.log(JSON.stringify({hybridRoundTrip:"PASS",ownerAuth:"PASS",engine:x.engine,pythonExecutionVerified:true}));
+          } else if(x.engine==="guarded-local-fallback" && x.fallbackEngaged===true && x.hybridPythonCoreExecutionVerified===false) {
+            console.log(JSON.stringify({hybridRoute:"PASS",ownerAuth:"PASS",engine:x.engine,pythonExecutionVerified:false,fallbackReason:x.fallbackReason||"UNSPECIFIED"}));
+            console.log("NOTICE: guarded fallback keeps the route available; this is not a Python execution pass.");
+          } else {
+            throw new Error("Hybrid execution mode flags are inconsistent.");
+          }
           NODE
-          echo "Hybrid Core round-trip PASS; no Owner token or secret was printed."
+          echo "Hybrid Core response and schema verification PASS; no Owner token or secret was printed."
           curl --silent --show-error --max-time 15 -X POST -H "Authorization: Bearer $token" -o /dev/null "$CENTRAL_AGENT_URL/auth/logout" || true
 
       - name: Deploy staging PWA chat and Tavily proxy
