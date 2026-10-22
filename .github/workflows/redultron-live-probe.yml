@@ -60,7 +60,9 @@ jobs:
             -H "x-owner-secret: $OWNER_SECRET" \
             --data '{}')"
           if [[ "$hybrid_status" != "200" ]]; then
-            echo "::error::Authenticated hybrid probe returned HTTP $hybrid_status (expected 200)."
+            # Log only a constrained machine-readable code; never dump upstream body or headers.
+            upstream_code="$(jq -r 'if type == "object" then (.code // .error // "UNKNOWN") else "UNKNOWN" end | if type == "string" and test("^[A-Z0-9_-]{1,64}$") then . else "UNRECOGNIZED" end' "$hybrid_file" 2>/dev/null || printf 'UNREADABLE_RESPONSE')"
+            echo "::error::Authenticated hybrid probe returned HTTP $hybrid_status (expected 200); sanitized upstream code=$upstream_code."
             exit 1
           fi
           if ! jq -e '.ok == true and .probe == "authenticated-hybrid-roundtrip" and .engine == "python-edge-hybrid" and .task == "summarize" and .resultSchemaValid == true' "$hybrid_file" >/dev/null; then
