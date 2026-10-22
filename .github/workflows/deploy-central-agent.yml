@@ -32,7 +32,7 @@ jobs:
           node-version: "22"
           package-manager-cache: false
 
-      - name: Run full repository test suite
+      - name: Run full repository test suite including Hybrid Core
         run: |
           node --test central-agent/architecture/hybrid-core.test.mjs
           npm test
