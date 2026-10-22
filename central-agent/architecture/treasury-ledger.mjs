@@ -54,6 +54,13 @@ function validateInput(input) {
   const expectedCurrency = input.source === "bitcoin" || input.source === "lightning" ? "SAT" : input.source === "compute" ? "USD_MINOR" : "TOKEN_MINOR";
   if (input.currency !== expectedCurrency) throw new TreasuryError("TREASURY_CURRENCY_SOURCE_MISMATCH");
   if (typeof input.network !== "string" || !/^(simulation|bitcoin-testnet|lightning-testnet|sepolia|amoy|base-sepolia)$/.test(input.network)) throw new TreasuryError("TREASURY_NETWORK_NOT_ALLOWED", 403);
+  const allowedNetworks = {
+    bitcoin: ["simulation", "bitcoin-testnet"],
+    lightning: ["simulation", "lightning-testnet"],
+    web3: ["simulation", "sepolia", "amoy", "base-sepolia"],
+    compute: ["simulation"]
+  };
+  if (!allowedNetworks[input.source].includes(input.network)) throw new TreasuryError("TREASURY_NETWORK_NOT_ALLOWED", 403);
   if (input.source === "bitcoin") {
     if (input.network === "simulation") {
       if (input.destination !== undefined && typeof input.destination !== "string") throw new TreasuryError("TREASURY_DESTINATION_INVALID");
