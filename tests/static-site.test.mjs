@@ -76,7 +76,7 @@ test("Worker config targets the unified production gateway and required bindings
   assert.match(wranglerConfig, /"binding":\s*"DB"/);
   assert.match(wranglerConfig, /"binding":\s*"SESSIONS"/);
   assert.match(wranglerConfig, /"binding":\s*"AI"/);
-  assert.match(centralWranglerConfig, /"SEARCH_PROVIDER_MODE":\s*"open-source-first"/, "Central Agent search mode must be explicit and consistent with the no-cost fallback policy");
+  assert.match(centralWranglerConfig, /"SEARCH_PROVIDER_MODE":\s*"tavily"/, "Central Agent must explicitly select Tavily as primary while retaining guarded public-search fallbacks");
   assert.match(wranglerConfig, /"name":\s*"shrill-silence-164f"/);
 });
 
