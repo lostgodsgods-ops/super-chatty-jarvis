@@ -204,7 +204,7 @@ test("authenticated /search returns explicitly labeled guarded fallback when eve
   try {
     const response = await worker.fetch(request("/search", {
       token, body: { query: "Cloudflare Workers health checks" }
-    }), { ...env(DB), SEARCH_PROVIDER_MODE: "tavily", TAVILY_API_KEY: "test-key" });
+    }), { ...env(new FakeDB()), SEARCH_BRIDGE_TOKEN: token, SEARCH_PROVIDER_MODE: "tavily", TAVILY_API_KEY: "test-key" });
     assert.equal(response.status, 200);
     const payload = await response.json();
     assert.equal(payload.ok, true);
@@ -221,7 +221,6 @@ test("authenticated /search returns explicitly labeled guarded fallback when eve
 
 test("authenticated /internal/search returns schema-valid guarded fallback when providers are unavailable", async () => {
   const token = "valid-owner-session-for-internal-search-fallback";
-  const DB = new FakeDB({ token_hash: await tokenHash(token), status: "active", expires_at: Date.now() + 60_000 });
   const originalFetch = globalThis.fetch;
   globalThis.fetch = async () => new Response("provider unavailable", { status: 503 });
   try {
