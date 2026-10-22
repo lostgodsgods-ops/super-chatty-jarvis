@@ -142,3 +142,26 @@ test("quantum endpoint is owner-session gated and rejects malformed jobs", async
   assert.equal(invalid.status, 400);
   assert.equal((await invalid.json()).code, "QUANTUM_QUBIT_LIMIT_EXCEEDED");
 });
+
+
+test("internal hybrid probe rejects missing and incorrect owner secrets", async () => {
+  const missing = await worker.fetch(new Request("https://example.test/api/internal/hybrid-probe", {
+    method: "POST", headers: { "content-type": "application/json" }, body: "{}"
+  }), env(new FakeDB()));
+  assert.equal(missing.status, 401);
+  assert.equal((await missing.json()).code, "OWNER_AUTH_REQUIRED");
+
+  const invalid = await worker.fetch(new Request("https://example.test/api/internal/hybrid-probe", {
+    method: "POST", headers: { "content-type": "application/json", "x-owner-secret": "wrong-secret" }, body: "{}"
+  }), { ...env(new FakeDB()), OWNER_SECRET: "correct-secret-with-at-least-32-characters" });
+  assert.equal(invalid.status, 401);
+  assert.equal((await invalid.json()).code, "OWNER_AUTH_REQUIRED");
+});
+
+test("internal hybrid probe does not report success when the sidecar is unconfigured", async () => {
+  const response = await worker.fetch(new Request("https://example.test/api/internal/hybrid-probe", {
+    method: "POST", headers: { "content-type": "application/json", "x-owner-secret": "correct-secret-with-at-least-32-characters" }, body: "{}"
+  }), { ...env(new FakeDB()), OWNER_SECRET: "correct-secret-with-at-least-32-characters" });
+  assert.equal(response.status, 503);
+  assert.equal((await response.json()).code, "HYBRID_CORE_NOT_CONFIGURED");
+});
