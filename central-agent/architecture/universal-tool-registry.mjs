@@ -57,7 +57,9 @@ const PROVIDERS = Object.freeze([
   ["sentry","observability","https://sentry.io/api/0",["SENTRY_AUTH_TOKEN","SENTRY_ORG"],["errors","performance"]],
   ["qdrant-cloud","vector","https://cloud.qdrant.io",["QDRANT_CLOUD_API_KEY"],["cluster-management"]],
   ["pinecone-control-plane","vector","https://api.pinecone.io",["PINECONE_API_KEY"],["index-management"]],
-  ["openrouter","llm-gateway","https://openrouter.ai/api/v1",["OPENROUTER_API_KEY"],["model-routing"]]
+  ["openrouter","llm-gateway","https://openrouter.ai/api/v1",["OPENROUTER_API_KEY"],["model-routing"]],
+  ["blockchain-simulation","blockchain","local://redultron-simulation",[],["event-validation","contract-address-validation","idempotency","spending-caps","simulation-only"]],
+  ["quantum-compute","quantum-compute","https://quantum-adapter.invalid",["QUANTUM_API_URL","QUANTUM_API_KEY"],["provider-adapter","bounded-jobs","classical-fallback"]]
 ].map(([id, category, baseUrl, requiredBindings, capabilities]) => Object.freeze({
   id, category, baseUrl, requiredBindings: Object.freeze(requiredBindings),
   capabilities: Object.freeze(capabilities)
