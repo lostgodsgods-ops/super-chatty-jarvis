@@ -292,7 +292,7 @@ export async function searchLiveWeb(rawQuery, env = {}, options = {}) {
     return result;
   } catch (error) {
     const cached = liveSearchCache.get(cacheKey);
-    if (cached && Date.now() - cached.cachedAt <= STALE_CACHE_TTL_MS) {
+    if (options.allowStale === true && cached && Date.now() - cached.cachedAt <= STALE_CACHE_TTL_MS) {
       return {
         ...cached.result,
         stale: true,
@@ -303,7 +303,7 @@ export async function searchLiveWeb(rawQuery, env = {}, options = {}) {
         ]
       };
     }
-    if (cached) liveSearchCache.delete(cacheKey);
+    if (cached && Date.now() - cached.cachedAt > STALE_CACHE_TTL_MS) liveSearchCache.delete(cacheKey);
     if (error && typeof error === "object") {
       error.code = error.code || "LIVE_SEARCH_ALL_PROVIDERS_FAILED";
       error.providerDiagnostics = Array.isArray(error.providerDiagnostics)
