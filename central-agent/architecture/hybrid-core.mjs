@@ -55,6 +55,7 @@ export async function executeHybridTask(input, env, options = {}) {
       headers: {
         "content-type": "application/json",
         "accept": "application/json",
+        "user-agent": "REDULTRON-HybridCore/1.0",
         "x-owner-secret": secret
       },
       body: JSON.stringify(payload),
