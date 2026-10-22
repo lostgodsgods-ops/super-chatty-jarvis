@@ -63,6 +63,24 @@ test("hybrid execution rejects unsupported tasks before contacting Python", asyn
 });
 
 
+test("hybrid execution returns a schema-valid guarded fallback when the Python sidecar is unavailable", async () => {
+  const token = "valid-owner-session-for-hybrid-fallback";
+  const DB = new FakeDB({ token_hash: await tokenHash(token), status: "active", expires_at: Date.now() + 60_000 });
+  const response = await worker.fetch(request("/api/hybrid/execute", {
+    token, body: { task: "classify_text", text: "REDULTRON authenticated hybrid verification" }
+  }), env(DB));
+  assert.equal(response.status, 200);
+  const payload = await response.json();
+  assert.equal(payload.ok, true);
+  assert.equal(payload.task, "classify_text");
+  assert.equal(payload.engine, "guarded-local-fallback");
+  assert.equal(payload.resultsSchemaValid, true);
+  assert.equal(payload.fallbackEngaged, true);
+  assert.equal(payload.hybridPythonCoreExecutionVerified, false);
+  assert.equal(payload.result.mode, "guarded-local-fallback");
+  assert.equal(typeof payload.result.classification, "string");
+});
+
 test("universal tool registry status is owner-session gated", async () => {
   const response = await worker.fetch(new Request("https://example.test/api/tools/registry", { method: "GET" }), env(new FakeDB()));
   assert.equal(response.status, 401);

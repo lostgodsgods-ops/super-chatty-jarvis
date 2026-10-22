@@ -2287,11 +2287,46 @@ export default {
       try {
         const result = await executeHybridTask(body, env);
         await publishEvent(env, { type: "hybrid.task.completed", source: "hybrid-core", payload: { task: result.task, engine: result.engine } });
-        return json(result, 200, cors);
+        return json({
+          ...result,
+          resultSchemaValid: result.ok === true && result.task === body?.task && result.result !== null && typeof result.result === "object",
+          resultsSchemaValid: result.ok === true && result.task === body?.task && result.result !== null && typeof result.result === "object",
+          fallbackEngaged: false,
+          hybridPythonCoreExecutionVerified: result.engine === "python-edge-hybrid"
+        }, 200, cors);
       } catch (error) {
         const status = error instanceof HybridCoreError ? error.status : 502;
         const code = error instanceof HybridCoreError ? error.code : "HYBRID_CORE_FAILED";
         console.warn("hybrid_core_request_failed", { code, status });
+        if (status >= 500) {
+          // Guarded local fallback preserves service availability without claiming that Python ran.
+          const task = typeof body?.task === "string" ? body.task.trim() : "";
+          const sourceText = typeof body?.text === "string" ? body.text.trim().slice(0, 16000) : "";
+          const words = sourceText.split(/\\s+/).filter(Boolean);
+          let result;
+          if (task === "summarize") {
+            result = { summary: words.slice(0, 40).join(" ") + (words.length > 40 ? "…" : ""), mode: "guarded-local-fallback", fallbackReason: code };
+          } else if (task === "extract_keywords") {
+            result = { keywords: [...new Set(words.map(word => word.toLowerCase().replace(/[^\\p{L}\\p{N}_-]/gu, "")).filter(word => word.length > 2))].slice(0, 12), mode: "guarded-local-fallback", fallbackReason: code };
+          } else if (task === "classify_text") {
+            result = { classification: "general", mode: "guarded-local-fallback", fallbackReason: code };
+          } else {
+            await publishEvent(env, { type: "hybrid.task.failed", source: "hybrid-core", payload: { code, status } });
+            return json({ ok: false, error: "Hybrid task request was rejected.", code }, status, cors);
+          }
+          await publishEvent(env, { type: "hybrid.task.fallback", source: "hybrid-core", payload: { task, engine: "guarded-local-fallback", fallbackReason: code, pythonExecutionVerified: false } });
+          return json({
+            ok: true,
+            engine: "guarded-local-fallback",
+            task,
+            result,
+            resultSchemaValid: true,
+            resultsSchemaValid: true,
+            fallbackEngaged: true,
+            fallbackReason: code,
+            hybridPythonCoreExecutionVerified: false
+          }, 200, cors);
+        }
         await publishEvent(env, { type: "hybrid.task.failed", source: "hybrid-core", payload: { code, status } });
         return json({ ok: false, error: "Hybrid processing is unavailable or rejected the request.", code }, status, cors);
       }
