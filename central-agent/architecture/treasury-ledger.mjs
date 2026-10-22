@@ -38,7 +38,7 @@ export async function ensureTreasurySchema(DB) {
   await DB.prepare(`CREATE TRIGGER IF NOT EXISTS treasury_daily_cap_guard
     BEFORE INSERT ON treasury_events
     WHEN COALESCE((SELECT SUM(amount_minor) FROM treasury_events
-      WHERE status = 'simulated' AND created_at >= datetime('now', '-1 day')), 0) + NEW.amount_minor > 5000
+      WHERE status = 'simulated' AND currency = NEW.currency AND created_at >= datetime('now', '-1 day')), 0) + NEW.amount_minor > 5000
     BEGIN SELECT RAISE(ABORT, 'TREASURY_DAILY_SPENDING_CAP_EXCEEDED'); END`).run();
 }
 
@@ -83,7 +83,7 @@ function validateInput(input) {
 export async function appendTreasuryEvent(DB, input) {
   await ensureTreasurySchema(DB);
   const event = validateInput(input);
-  const totals = await DB.prepare("SELECT COALESCE(SUM(amount_minor), 0) AS total FROM treasury_events WHERE status = 'simulated' AND created_at >= datetime('now', '-1 day')").first();
+  const totals = await DB.prepare("SELECT COALESCE(SUM(amount_minor), 0) AS total FROM treasury_events WHERE status = 'simulated' AND currency = ? AND created_at >= datetime('now', '-1 day')").bind(event.currency).first();
   const total = Number(totals?.total || 0);
   if (!Number.isSafeInteger(total) || total + event.amountMinor > MAX_DAILY_MINOR) throw new TreasuryError("TREASURY_DAILY_SPENDING_CAP_EXCEEDED", 403);
   let result;
