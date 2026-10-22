@@ -2178,7 +2178,7 @@ export default {
             host.endsWith(".internal") || host.endsWith(".test") || host.startsWith("[") ||
             /^0\./.test(host) || /^10\./.test(host) || /^127\./.test(host) || /^169\.254\./.test(host) ||
             /^192\.168\./.test(host) || /^172\.(1[6-9]|2\d|3[01])\./.test(host);
-          if (parsed.protocol === "https:" && !parsed.username && !parsed.password && !parsed.hash && !privateHost) {
+          if (parsed.protocol === "https:" && !parsed.username && !parsed.password && !parsed.search && !parsed.hash && !privateHost) {
             provider = {
               execute: async (job, { signal }) => {
                 const response = await fetch(parsed.toString(), {
@@ -2188,7 +2188,12 @@ export default {
                   body: JSON.stringify(job)
                 });
                 if (!response.ok) throw new QuantumAdapterError("QUANTUM_PROVIDER_HTTP_" + response.status, 502);
-                const payload = await response.json().catch(() => null);
+                const declaredLength = Number(response.headers.get("content-length") || 0);
+                if (declaredLength > 65536) throw new QuantumAdapterError("QUANTUM_PROVIDER_RESPONSE_TOO_LARGE", 502);
+                const raw = await response.text();
+                if (raw.length > 65536) throw new QuantumAdapterError("QUANTUM_PROVIDER_RESPONSE_TOO_LARGE", 502);
+                let payload;
+                try { payload = JSON.parse(raw); } catch { payload = null; }
                 if (!payload || typeof payload !== "object" || Array.isArray(payload) || payload.ok !== true) {
                   throw new QuantumAdapterError("QUANTUM_PROVIDER_INVALID_RESPONSE", 502);
                 }
