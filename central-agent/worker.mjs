@@ -896,6 +896,24 @@ function lockOwnerPage(message){ownerSessionToken="";document.getElementById("se
   });
 }
 
+function guardedSearchFallback(query, cors, reason) {
+  return json({
+    ok: true,
+    provider: "guarded-fallback",
+    query,
+    results: [{
+      title: "Live Gateway Active",
+      url: "https://shrill-silence-164f.lostgodsgods.workers.dev",
+      content: "Status-only fallback: live search providers are unavailable. This entry is not search evidence.",
+      kind: "status",
+      isSearchResult: false
+    }],
+    fallback: true,
+    fallbackReason: String(reason || "SEARCH_PROVIDER_UNAVAILABLE").slice(0, 100),
+    liveSearchVerified: false
+  }, 200, cors);
+}
+
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
@@ -1759,7 +1777,8 @@ export default {
         const response = await fetchTavilyWithRetry(query, env);
         if (!response.ok) {
           const failure = classifyTavilyFailure(response.status);
-          return json({ error: failure.error, code: failure.code, retryAfter: response.headers.get("retry-after") || null }, failure.status, cors);
+          console.warn("search_route_provider_http_failure", { status: response.status, code: failure.code });
+          return guardedSearchFallback(query, cors, failure.code);
         }
         const searchProvider = response.headers.get("x-search-provider") || "tavily";
         const payload = await response.json();
@@ -1767,9 +1786,12 @@ export default {
           title: item.title, url: item.url, content: item.content.slice(0, 2000),
           score: item.score, publishedDate: item.publishedDate
         }));
-        return json({ ok: true, provider: searchProvider, query, results }, 200, cors);
-      } catch {
-        return json({ error: "Direct web search is temporarily unavailable; retry later.", code: "DIRECT_WEB_SEARCH_UNAVAILABLE" }, 502, cors);
+        if (!results.length) return guardedSearchFallback(query, cors, "SEARCH_PROVIDER_NO_USABLE_RESULTS");
+        return json({ ok: true, provider: searchProvider, query, results, fallback: false, liveSearchVerified: true }, 200, cors);
+      } catch (error) {
+        const code = typeof error?.code === "string" ? error.code : "DIRECT_WEB_SEARCH_UNAVAILABLE";
+        console.warn("search_route_provider_unavailable", { code });
+        return guardedSearchFallback(query, cors, code);
       }
     }
 
