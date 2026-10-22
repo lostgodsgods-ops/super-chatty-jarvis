@@ -36,6 +36,21 @@ const VERSION = "1.4.1";
 const OWNER_IDENTITY = Object.freeze({ key: "loss-gods", displayName: "Loss Gods" });
 const DEFAULT_WORKERS_AI_MODEL = "@cf/meta/llama-3.1-8b-instruct-fast";
 export const PASSWORD_ITERATIONS = 100000;
+
+async function matchesOwnerSecret(supplied, expected) {
+  if (typeof supplied !== "string" || typeof expected !== "string" || !supplied || !expected) return false;
+  const encoder = new TextEncoder();
+  const [left, right] = await Promise.all([
+    crypto.subtle.digest("SHA-256", encoder.encode(supplied)),
+    crypto.subtle.digest("SHA-256", encoder.encode(expected))
+  ]);
+  const a = new Uint8Array(left);
+  const b = new Uint8Array(right);
+  let difference = 0;
+  for (let i = 0; i < a.length; i++) difference |= a[i] ^ b[i];
+  return difference === 0;
+}
+
 const SESSION_TTL_SECONDS = 3600;
 
 export function buildSystemDateContext(now = new Date(), timeZone = "Asia/Kolkata") {
@@ -2043,6 +2058,29 @@ export default {
       if (!approvalResult.ok) return json({ error: approvalResult.error }, approvalResult.status, cors);
       try { return json({ ok: true, goal: await transitionGoal(env, goalTransition[1], target, body?.details || {}) }, 200, cors); }
       catch (error) { return json({ error: error instanceof GoalError ? error.code : "GOAL_TRANSITION_FAILED" }, error instanceof GoalError ? error.status : 503, cors); }
+    }
+
+    if (url.pathname === "/api/internal/hybrid-probe" && request.method === "POST") {
+      const expected = typeof env.OWNER_SECRET === "string" ? env.OWNER_SECRET : "";
+      const supplied = request.headers.get("x-owner-secret") || "";
+      if (!(await matchesOwnerSecret(supplied, expected))) {
+        return json({ ok: false, code: "OWNER_AUTH_REQUIRED" }, 401, cors);
+      }
+      try {
+        const result = await executeHybridTask({ task: "summarize", text: "REDULTRON authenticated gateway to Python sidecar health probe." }, env);
+        return json({
+          ok: true,
+          probe: "authenticated-hybrid-roundtrip",
+          engine: result.engine,
+          task: result.task,
+          resultSchemaValid: result.ok === true && result.task === "summarize" && Object.prototype.hasOwnProperty.call(result, "result")
+        }, 200, cors);
+      } catch (error) {
+        const status = error instanceof HybridCoreError ? error.status : 502;
+        const code = error instanceof HybridCoreError ? error.code : "HYBRID_CORE_FAILED";
+        console.warn("hybrid_probe_failed", { code, status });
+        return json({ ok: false, code }, status, cors);
+      }
     }
 
     if (url.pathname === "/api/treasury/events" && request.method === "GET") {
