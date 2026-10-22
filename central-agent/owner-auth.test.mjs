@@ -236,7 +236,7 @@ test("Tavily search validates query and sends bounded requests with source URLs"
   }
 });
 
-test("Tavily provider errors return a generic error without leaking response body", async () => {
+test("Tavily provider errors return guarded fallback without leaking response body or credentials", async () => {
   const e = env();
   e.SEARCH_API_KEY = "test-tavily-key";
   const token = await ownerToken(e);
@@ -244,8 +244,13 @@ test("Tavily provider errors return a generic error without leaking response bod
   globalThis.fetch = async () => new Response("private provider diagnostic", { status: 401 });
   try {
     const response = await call(e, "/search", { query: "test" }, token);
-    assert.equal(response.status, 502);
+    assert.equal(response.status, 200);
     const body = await response.text();
+    const payload = JSON.parse(body);
+    assert.equal(payload.ok, true);
+    assert.equal(payload.provider, "guarded-fallback");
+    assert.equal(payload.fallback, true);
+    assert.equal(payload.liveSearchVerified, false);
     assert.equal(body.includes("private provider diagnostic"), false);
     assert.equal(body.includes("test-tavily-key"), false);
   } finally {
