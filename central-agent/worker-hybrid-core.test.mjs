@@ -226,7 +226,7 @@ test("authenticated /internal/search returns schema-valid guarded fallback when 
   try {
     const response = await worker.fetch(request("/internal/search", {
       token, body: { query: "Cloudflare Workers health checks", language: "en-IN" }
-    }), { ...env(DB), SEARCH_PROVIDER_MODE: "tavily", TAVILY_API_KEY: "test-key" });
+    }), { ...env(new FakeDB()), SEARCH_BRIDGE_TOKEN: token, SEARCH_PROVIDER_MODE: "tavily", TAVILY_API_KEY: "test-key" });
     assert.equal(response.status, 200);
     const payload = await response.json();
     assert.equal(payload.ok, true);
