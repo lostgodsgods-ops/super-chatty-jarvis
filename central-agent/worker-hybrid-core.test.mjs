@@ -204,7 +204,7 @@ test("authenticated /search returns explicitly labeled guarded fallback when eve
   try {
     const response = await worker.fetch(request("/search", {
       token, body: { query: "Cloudflare Workers health checks" }
-    }), { ...env(DB), SEARCH_PROVIDER_MODE: "tavily", TAVILY_API_KEY: "test-key" });
+    }), { ...env(new FakeDB()), SEARCH_BRIDGE_TOKEN: token, SEARCH_PROVIDER_MODE: "tavily", TAVILY_API_KEY: "test-key" });
     assert.equal(response.status, 200);
     const payload = await response.json();
     assert.equal(payload.ok, true);
@@ -213,6 +213,31 @@ test("authenticated /search returns explicitly labeled guarded fallback when eve
     assert.equal(payload.liveSearchVerified, false);
     assert.equal(payload.results[0].kind, "status");
     assert.equal(payload.results[0].isSearchResult, false);
+    assert.match(payload.fallbackReason, /^[A-Z0-9_]+$/);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test("authenticated /internal/search returns schema-valid guarded fallback when providers are unavailable", async () => {
+  const token = "valid-owner-session-for-internal-search-fallback";
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async () => new Response("provider unavailable", { status: 503 });
+  try {
+    const response = await worker.fetch(request("/internal/search", {
+      token, body: { query: "Cloudflare Workers health checks", language: "en-IN" }
+    }), { ...env(new FakeDB()), SEARCH_BRIDGE_TOKEN: token, SEARCH_PROVIDER_MODE: "tavily", TAVILY_API_KEY: "test-key" });
+    assert.equal(response.status, 200);
+    const payload = await response.json();
+    assert.equal(payload.ok, true);
+    assert.equal(payload.provider, "guarded-fallback");
+    assert.equal(payload.fallback, true);
+    assert.equal(payload.liveSearchVerified, false);
+    assert.deepEqual(payload.sources, []);
+    assert.equal(payload.results[0].kind, "status");
+    assert.equal(payload.results[0].isSearchResult, false);
+    assert.equal(payload.core.webSearchExecuted, false);
+    assert.equal(payload.core.sourceCount, 0);
     assert.match(payload.fallbackReason, /^[A-Z0-9_]+$/);
   } finally {
     globalThis.fetch = originalFetch;

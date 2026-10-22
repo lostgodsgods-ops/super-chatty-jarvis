@@ -529,12 +529,15 @@ test("search gateway returns sanitized provider diagnostics when every live sear
       AI: { run: async () => ({ response: "This should not run." }) }
     });
     const body = await response.json();
-    assert.equal(response.status, 502);
-    assert.equal(body.code, "LIVE_SEARCH_ALL_PROVIDERS_FAILED");
-    assert.ok(body.providers.some(item => item.provider === "tavily" && item.status === "http-432"));
-    assert.ok(body.providers.some(item => item.provider === "google-news-rss" && item.status === "http-503"));
-    assert.ok(body.providers.some(item => item.provider === "gdelt-doc-api" && item.status === "http-503"));
-    assert.equal(body.providers.some(item => JSON.stringify(item).includes("quota")), false);
+    assert.equal(response.status, 200);
+    assert.equal(body.ok, true);
+    assert.equal(body.provider, "guarded-fallback");
+    assert.equal(body.fallback, true);
+    assert.equal(body.liveSearchVerified, false);
+    assert.deepEqual(body.sources, []);
+    assert.equal(body.core.webSearchExecuted, false);
+    assert.match(body.fallbackReason, /^[A-Z0-9_]+$/);
+    assert.equal(JSON.stringify(body).includes("quota"), false);
   } finally { globalThis.fetch = originalFetch; }
 });
 
@@ -640,13 +643,15 @@ test("all-provider network failures return structured per-provider diagnostics",
       headers: { "content-type": "application/json", authorization: "Bearer correct-token" },
       body: JSON.stringify({ query: "latest 2026 official update" })
     }), { SEARCH_BRIDGE_TOKEN: "correct-token", SEARCH_PROVIDER_MODE: "tavily", SEARCH_API_KEY: "test-key" });
-    assert.equal(response.status, 502);
+    assert.equal(response.status, 200);
     const body = await response.json();
-    assert.equal(body.code, "LIVE_SEARCH_ALL_PROVIDERS_FAILED");
-    const providers = body.providers.map(item => item.provider);
-    for (const provider of ["tavily", "duckduckgo-html", "bing-news-rss", "google-news-rss", "gdelt-doc-api"]) {
-      assert.ok(providers.includes(provider), "missing diagnostic for " + provider);
-    }
+    assert.equal(body.ok, true);
+    assert.equal(body.provider, "guarded-fallback");
+    assert.equal(body.fallback, true);
+    assert.equal(body.liveSearchVerified, false);
+    assert.deepEqual(body.sources, []);
+    assert.equal(body.core.webSearchExecuted, false);
+    assert.match(body.fallbackReason, /^[A-Z0-9_]+$/);
     assert.equal(JSON.stringify(body).includes("test-key"), false);
   } finally {
     globalThis.fetch = originalFetch;
