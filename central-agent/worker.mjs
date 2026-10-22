@@ -914,6 +914,45 @@ function guardedSearchFallback(query, cors, reason) {
   }, 200, cors);
 }
 
+function guardedInternalSearchFallback(query, language, cors, reason) {
+  const hindi = language === "hi-IN";
+  const statusResult = {
+    title: "Live search temporarily unavailable",
+    url: "https://shrill-silence-164f.lostgodsgods.workers.dev/health",
+    content: hindi
+      ? "Yeh status-only fallback hai; live web evidence uplabdh nahi hai."
+      : "Status-only fallback: live web evidence is unavailable. Do not treat this entry as a search result.",
+    kind: "status",
+    isSearchResult: false
+  };
+  return json({
+    ok: true,
+    provider: "guarded-fallback",
+    query,
+    reply: hindi
+      ? "Live search abhi uplabdh nahi hai. Is response mein verified web sources nahi hain."
+      : "Live search is temporarily unavailable. This response contains no verified web sources.",
+    model: "guarded-fallback",
+    sources: [],
+    results: [statusResult],
+    fallback: true,
+    fallbackReason: String(reason || "SEARCH_PROVIDER_UNAVAILABLE").replace(/[^A-Z0-9_]/g, "_").slice(0, 100),
+    liveSearchVerified: false,
+    core: {
+      intent: "web_search",
+      query,
+      webSearchExecuted: false,
+      searchProvider: "guarded-fallback",
+      sourceCount: 0,
+      synthesisMode: "guarded-fallback",
+      requiresTaskApproval: false,
+      externalActionsPerformed: false,
+      fallback: true,
+      liveSearchVerified: false
+    }
+  }, 200, cors);
+}
+
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
@@ -1126,26 +1165,20 @@ export default {
         providerResponse = await fetchTavilyWithRetry(query, env);
       } catch (error) {
         const diagnostics = Array.isArray(error?.providerDiagnostics) ? error.providerDiagnostics : [];
-        console.warn("internal_search_provider_network_error", {
-          code: typeof error?.code === "string" ? error.code : "SEARCH_PROVIDER_NETWORK_ERROR",
-          providers: diagnostics
-        });
-        return json({
-          error: "Live search providers could not return usable evidence.",
-          code: typeof error?.code === "string" ? error.code : "SEARCH_PROVIDER_NETWORK_ERROR",
-          providers: diagnostics
-        }, 502, cors);
+        const code = typeof error?.code === "string" ? error.code : "SEARCH_PROVIDER_NETWORK_ERROR";
+        console.warn("internal_search_provider_network_error", { code, providers: diagnostics });
+        return guardedInternalSearchFallback(rawQuery, language, cors, code);
       }
       if (!providerResponse.ok) {
         const failure = classifyTavilyFailure(providerResponse.status);
         console.warn("internal_search_provider_http_error", { status: providerResponse.status, code: failure.code });
-        return json({ error: failure.error, code: failure.code, retryAfter: providerResponse.headers.get("retry-after") || null }, failure.status, cors);
+        return guardedInternalSearchFallback(rawQuery, language, cors, failure.code);
       }
 
       const searchProvider = providerResponse.headers.get("x-search-provider") || "tavily";
       let payload;
       try { payload = await providerResponse.json(); }
-      catch { return json({ error: "Live search provider returned invalid JSON.", code: "SEARCH_PROVIDER_INVALID_JSON" }, 502, cors); }
+      catch { return guardedInternalSearchFallback(rawQuery, language, cors, "SEARCH_PROVIDER_INVALID_JSON"); }
 
       const results = rankTavilyResults(query, payload?.results).map(item => ({
         title: item.title, url: item.url, content: item.content.slice(0, 900),
@@ -1154,15 +1187,7 @@ export default {
 
       const sources = results.map(item => ({ title: item.title, url: item.url, description: item.content, publishedDate: item.publishedDate }));
       if (!sources.length) {
-        return json({
-          ok: true,
-          provider: searchProvider,
-          reply: language === "hi-IN" ? "Live search chali, lekin is query ke liye koi usable web result nahi mila." : "Live search ran, but the provider returned no usable web results for this query.",
-          model: searchProvider + "-search",
-          sources: [],
-          results: [],
-          core: { intent: "web_search", query, webSearchExecuted: true, searchProvider, sourceCount: 0, synthesisMode: "no-results", requiresTaskApproval: false, externalActionsPerformed: false }
-        }, 200, cors);
+        return guardedInternalSearchFallback(rawQuery, language, cors, "SEARCH_PROVIDER_NO_USABLE_RESULTS");
       }
 
       const model = typeof env.WORKERS_AI_MODEL === "string" && env.WORKERS_AI_MODEL.trim()
