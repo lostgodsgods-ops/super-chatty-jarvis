@@ -148,6 +148,16 @@ jobs:
           npx --yes wrangler@4 secret bulk "$secrets_file" --config central-agent/wrangler.jsonc
           sleep 5
 
+      - name: Reapply canonical Worker config after secret binding updates
+        shell: bash
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          set -euo pipefail
+          npx --yes wrangler@4 deploy --config central-agent/wrangler.jsonc
+          sleep 3
+
       - name: Verify central Tavily gateway bindings
         shell: bash
         env:
@@ -161,24 +171,25 @@ jobs:
           node - "$tmp" <<'NODE'
           const fs=require("node:fs");
           const x=JSON.parse(fs.readFileSync(process.argv[2],"utf8"));
-          const tavilyEnabled=x.capabilities?.tavilySearchEnabled===true;
-          const expected=tavilyEnabled
-            ? ["tavily","duckduckgo-html","bing-news-rss","google-news-rss","gdelt-doc-api"]
-            : ["duckduckgo-html","bing-news-rss","google-news-rss","gdelt-doc-api","wikipedia-api"];
           const chain=x.capabilities?.liveSearchProviderChain;
-          if(x.ok!==true||x.capabilities?.directWebSearchFallback!==true||x.capabilities?.gatewaySearchConfigured!==true||
-             !Array.isArray(chain)||!expected.every(p=>chain.includes(p))||
-             x.capabilities?.searchProviderReachabilityChecked!==false||
-             (!tavilyEnabled&&x.capabilities?.searchProviderMode!=="open-source-first")) {
-            throw new Error("Deployed Worker search routing does not match its configured provider mode.");
+          const requiredFallbacks=["duckduckgo-html","bing-news-rss","google-news-rss","gdelt-doc-api"];
+          if(x.ok!==true||x.capabilities?.tavilySearchConfigured!==true||
+             x.capabilities?.tavilySearchEnabled!==true||
+             x.capabilities?.searchProviderMode!=="legacy-tavily-opt-in"||
+             x.capabilities?.directWebSearchFallback!==true||
+             x.capabilities?.gatewaySearchConfigured!==true||
+             !Array.isArray(chain)||chain[0]!=="tavily"||
+             !requiredFallbacks.every(p=>chain.includes(p))||
+             x.capabilities?.searchProviderReachabilityChecked!==false) {
+            throw new Error("Tavily-primary config is not active in the deployed Worker; refusing to certify search routing.");
           }
           console.log(JSON.stringify({
             ok:x.ok,
             searchProviderMode:x.capabilities.searchProviderMode,
-            tavilySearchEnabled:tavilyEnabled,
-            configured:{tavilySearchConfigured:x.capabilities.tavilySearchConfigured,gatewaySearchConfigured:x.capabilities.gatewaySearchConfigured},
+            tavilySearchConfigured:x.capabilities.tavilySearchConfigured,
+            tavilySearchEnabled:x.capabilities.tavilySearchEnabled,
             liveSearchProviderChain:chain,
-            reachability:"configuration-only; authenticated query smoke test required"
+            reachability:"pending authenticated query smoke test"
           }));
           NODE
 
@@ -304,10 +315,19 @@ jobs:
           node - "$tmp/chat-response.json" <<'NODE'
           const fs=require("node:fs");
           const x=JSON.parse(fs.readFileSync(process.argv[2],"utf8"));
-          if(x.ok!==true||!["tavily+workers-ai","duckduckgo-html+workers-ai","bing-news-rss+workers-ai","google-news-rss+workers-ai","gdelt-doc-api+workers-ai","wikipedia-api+workers-ai"].includes(x.provider)||x.core?.webSearchExecuted!==true||
-             !["tavily","duckduckgo-html","bing-news-rss","google-news-rss","gdelt-doc-api","wikipedia-api"].includes(x.core?.searchProvider)||!Array.isArray(x.sources)||x.sources.length<1||
-             !x.sources.every(s=>typeof s.url==="string"&&/^https?:\/\//.test(s.url))) {
-            throw new Error("Live chat did not return a valid live-web answer with source URLs.");
+          const sourceUrlsValid=Array.isArray(x.sources)&&x.sources.length>0&&x.sources.every(s=>typeof s.url==="string"&&/^https?:\/\//.test(s.url));
+          if(x.ok!==true||x.provider!=="tavily+workers-ai"||x.core?.webSearchExecuted!==true||
+             x.core?.searchProvider!=="tavily"||!sourceUrlsValid) {
+            console.error(JSON.stringify({
+              ok:x.ok===true,
+              provider:typeof x.provider==="string"?x.provider:null,
+              searchProvider:typeof x.core?.searchProvider==="string"?x.core.searchProvider:null,
+              webSearchExecuted:x.core?.webSearchExecuted===true,
+              sourceCount:Array.isArray(x.sources)?x.sources.length:0,
+              sourceUrlsValid,
+              code:typeof x.code==="string"?x.code:null
+            }));
+            throw new Error("Authenticated live-search smoke test did not verify Tavily as the active primary provider with source URLs.");
           }
           console.log(JSON.stringify({authenticatedChat:"PASS",provider:x.provider,liveSearch:"PASS",sourceCount:x.sources.length,sourceUrlsValid:true}));
           NODE
