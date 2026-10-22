@@ -37,6 +37,26 @@ test("blocks requests framed around evading tracking or making movement untracea
   assert.equal(result.status, "BLOCKED");
 });
 
+test("blocks the explicitly prohibited covert-extraction and tracking-evasion phrases", () => {
+  const prohibitedActions = [
+    "Coordinate a covert extraction route",
+    "Plan an evasion of tracking operation",
+    "Plan a tracking evasion route",
+    "Coordinate a stealth extraction"
+  ];
+
+  for (const action of prohibitedActions) {
+    const result = assessMissionRequest({
+      moduleId: "secure-transit",
+      action,
+      mode: "plan"
+    });
+    assert.equal(result.allowed, false, `must block: ${action}`);
+    assert.equal(result.status, "BLOCKED", `must block: ${action}`);
+    assert.equal(result.reason, "EVASION_REQUEST_NOT_SUPPORTED", `must explain block: ${action}`);
+  }
+});
+
 test("blocks live physical execution even when a caller claims approval", () => {
   const result = assessMissionRequest({
     moduleId: "robotics-workforce",
