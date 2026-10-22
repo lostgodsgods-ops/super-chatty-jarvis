@@ -34,6 +34,7 @@ test("creates ledger table and index", async () => {
   await ensureTreasurySchema(db);
   assert.ok(db.calls.some(sql => String(sql).includes("CREATE TABLE IF NOT EXISTS treasury_events")));
   assert.ok(db.calls.some(sql => String(sql).includes("CREATE INDEX IF NOT EXISTS idx_treasury_events_created_at")));
+  assert.ok(db.calls.some(sql => String(sql).includes("treasury_daily_cap_guard")));
 });
 
 test("writes a simulation-only event without executing an external transfer", async () => {
@@ -69,5 +70,5 @@ test("rejects mainnet and unknown network requests", async () => {
 });
 
 test("rejects live payment attempts", async () => {
-  await assert.rejects(() => appendTreasuryEvent(fakeDB(), { ...event, livePayment: true }), e => e.code === "TREASURY_EVENT_INVALID");
+  await assert.rejects(() => appendTreasuryEvent(fakeDB(), { ...event, livePayment: true }), e => e.code === "TREASURY_LIVE_TRANSFERS_DISABLED");
 });
