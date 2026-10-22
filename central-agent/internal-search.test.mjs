@@ -736,3 +736,48 @@ test("freshness-sensitive searches prioritize dated news feeds before generic Du
     globalThis.fetch = originalFetch;
   }
 });
+
+test("internal search marks stale-cache fallback honestly and never labels it live-verified", async () => {
+  const originalFetch = globalThis.fetch;
+  let failProviders = false;
+  globalThis.fetch = async (url) => {
+    if (failProviders) throw new TypeError("simulated search provider outage");
+    assert.equal(String(url), "https://api.tavily.com/search");
+    return new Response(JSON.stringify({ results: [
+      { title: "Cached source", url: "https://example.com/cached-route-source", content: "Previously retrieved evidence." }
+    ] }), { status: 200, headers: { "content-type": "application/json" } });
+  };
+  const makeRequest = () => new Request("https://agent.example/internal/search", {
+    method: "POST",
+    headers: { "content-type": "application/json", authorization: "Bearer correct-token" },
+    body: JSON.stringify({ query: "cache-route-fallback regression proof", language: "en-IN" })
+  });
+  const env = {
+    SEARCH_BRIDGE_TOKEN: "correct-token",
+    SEARCH_PROVIDER_MODE: "tavily",
+    SEARCH_API_KEY: "cache-route-test-key",
+    AI: { run: async () => ({ response: "A source was retrieved previously." }) }
+  };
+  try {
+    const liveResponse = await worker.fetch(makeRequest(), env);
+    const liveBody = await liveResponse.json();
+    assert.equal(liveResponse.status, 200);
+    assert.equal(liveBody.stale, false);
+    assert.equal(liveBody.liveSearchVerified, true);
+    assert.equal(liveBody.core.webSearchExecuted, true);
+
+    failProviders = true;
+    const staleResponse = await worker.fetch(makeRequest(), env);
+    const staleBody = await staleResponse.json();
+    assert.equal(staleResponse.status, 200, JSON.stringify(staleBody));
+    assert.equal(staleBody.stale, true);
+    assert.equal(staleBody.liveSearchVerified, false);
+    assert.ok(staleBody.cachedAt);
+    assert.equal(staleBody.core.webSearchExecuted, false);
+    assert.equal(staleBody.core.staleCacheServed, true);
+    assert.equal(staleBody.core.liveSearchVerified, false);
+    assert.equal(staleBody.sources[0].url, "https://example.com/cached-route-source");
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
