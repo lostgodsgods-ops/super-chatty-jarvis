@@ -26,6 +26,7 @@ import { readOwnerExecutionGate } from "./architecture/owner-execution-gate.mjs"
 import { createOwnerControlState, setOwnerTakeover, setEmergencyStop } from "./architecture/owner-control.mjs";
 import { DEFAULT_OWNER_CONTROL_SETTINGS, normalizeOwnerControlCommand, validateOwnerControlSettings } from "./architecture/owner-control-service.mjs";
 import { createSandboxLedger, postSandboxTransaction } from "./architecture/finance-sandbox.mjs";
+import { executeHybridTask, HybridCoreError } from "./architecture/hybrid-core.mjs";
 import { assessRobotSimulatorCommand } from "./architecture/robotics-simulator.mjs";
 
 const VERSION = "1.4.1";
@@ -2049,6 +2050,22 @@ export default {
         queryEnabled: false,
         note: "Owner-authenticated upsert/readback is available for configured Pinecone, Qdrant, or explicitly provisioned pgvector RPCs; capability status is not live verification."
       }, 200, cors);
+    }
+
+    if (url.pathname === "/api/hybrid/execute" && request.method === "POST") {
+      if (!(await authorized(request, env))) return json({ ok: false, error: "Owner session required.", code: "OWNER_SESSION_REQUIRED" }, 401, cors);
+      const body = await request.json().catch(() => null);
+      try {
+        const result = await executeHybridTask(body, env);
+        await publishEvent(env, { type: "hybrid.task.completed", source: "hybrid-core", payload: { task: result.task, engine: result.engine } });
+        return json(result, 200, cors);
+      } catch (error) {
+        const status = error instanceof HybridCoreError ? error.status : 502;
+        const code = error instanceof HybridCoreError ? error.code : "HYBRID_CORE_FAILED";
+        console.warn("hybrid_core_request_failed", { code, status });
+        await publishEvent(env, { type: "hybrid.task.failed", source: "hybrid-core", payload: { code, status } });
+        return json({ ok: false, error: "Hybrid processing is unavailable or rejected the request.", code }, status, cors);
+      }
     }
 
     if (url.pathname === "/research/query" && request.method === "POST") {
