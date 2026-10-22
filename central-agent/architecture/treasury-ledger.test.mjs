@@ -72,3 +72,9 @@ test("rejects mainnet and unknown network requests", async () => {
 test("rejects live payment attempts", async () => {
   await assert.rejects(() => appendTreasuryEvent(fakeDB(), { ...event, livePayment: true }), e => e.code === "TREASURY_LIVE_TRANSFERS_DISABLED");
 });
+
+
+test("enforces source-specific network allowlists", async () => {
+  await assert.rejects(() => appendTreasuryEvent(fakeDB(), { ...event, source: "bitcoin", currency: "SAT", network: "sepolia", contractAddress: undefined }), e => e.code === "TREASURY_NETWORK_NOT_ALLOWED");
+  await assert.rejects(() => appendTreasuryEvent(fakeDB(), { ...event, source: "compute", currency: "USD_MINOR", network: "sepolia", eventType: "compute_funding_intent" }), e => e.code === "TREASURY_NETWORK_NOT_ALLOWED");
+});
