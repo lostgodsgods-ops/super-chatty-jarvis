@@ -26,6 +26,8 @@ import { readOwnerExecutionGate } from "./architecture/owner-execution-gate.mjs"
 import { createOwnerControlState, setOwnerTakeover, setEmergencyStop } from "./architecture/owner-control.mjs";
 import { DEFAULT_OWNER_CONTROL_SETTINGS, normalizeOwnerControlCommand, validateOwnerControlSettings } from "./architecture/owner-control-service.mjs";
 import { createSandboxLedger, postSandboxTransaction } from "./architecture/finance-sandbox.mjs";
+import { appendTreasuryEvent, listTreasuryEvents, TreasuryError } from "./architecture/treasury-ledger.mjs";
+import { executeQuantumOrFallback, QuantumAdapterError } from "./architecture/quantum-adapter.mjs";
 import { executeHybridTask, HybridCoreError } from "./architecture/hybrid-core.mjs";
 import { listUniversalTools } from "./architecture/universal-tool-registry.mjs";
 import { assessRobotSimulatorCommand } from "./architecture/robotics-simulator.mjs";
@@ -2041,6 +2043,137 @@ export default {
       if (!approvalResult.ok) return json({ error: approvalResult.error }, approvalResult.status, cors);
       try { return json({ ok: true, goal: await transitionGoal(env, goalTransition[1], target, body?.details || {}) }, 200, cors); }
       catch (error) { return json({ error: error instanceof GoalError ? error.code : "GOAL_TRANSITION_FAILED" }, error instanceof GoalError ? error.status : 503, cors); }
+    }
+
+    if (url.pathname === "/api/treasury/events" && request.method === "GET") {
+      if (!(await authorized(request, env))) return json({ ok: false, code: "OWNER_SESSION_REQUIRED" }, 401, cors);
+      try {
+        const events = await listTreasuryEvents(env.DB, Number(url.searchParams.get("limit")) || 20);
+        return json({ ok: true, ledgerMode: "simulation-only", externalTransfersEnabled: false, events }, 200, cors);
+      } catch (error) {
+        const status = error instanceof TreasuryError ? error.status : 503;
+        return json({ ok: false, code: error instanceof TreasuryError ? error.code : "TREASURY_STORAGE_UNAVAILABLE" }, status, cors);
+      }
+    }
+
+    if (url.pathname === "/api/treasury/events" && request.method === "POST") {
+      if (!(await authorized(request, env))) return json({ ok: false, code: "OWNER_SESSION_REQUIRED" }, 401, cors);
+      const body = await request.json().catch(() => null);
+      try {
+        const result = await appendTreasuryEvent(env.DB, body);
+        await publishEvent(env, { type: "treasury.event.simulated", source: "treasury-ledger", payload: {
+          source: result.event.source, eventType: result.event.eventType, amountMinor: result.event.amountMinor,
+          currency: result.event.currency, status: result.event.status, externalTransferExecuted: false
+        } });
+        return json(result, 201, cors);
+      } catch (error) {
+        const status = error instanceof TreasuryError ? error.status : 503;
+        return json({ ok: false, code: error instanceof TreasuryError ? error.code : "TREASURY_STORAGE_UNAVAILABLE" }, status, cors);
+      }
+    }
+
+    if (url.pathname === "/api/treasury/scan" && request.method === "POST") {
+      if (!(await authorized(request, env))) return json({ ok: false, code: "OWNER_SESSION_REQUIRED" }, 401, cors);
+      const body = await request.json().catch(() => null);
+      if (!body || typeof body !== "object" || Array.isArray(body)) return json({ ok: false, code: "TREASURY_SCAN_REQUEST_INVALID" }, 400, cors);
+      try {
+        const result = await appendTreasuryEvent(env.DB, {
+          idempotencyKey: body.idempotencyKey,
+          source: body.source,
+          eventType: "scan",
+          amountMinor: 1,
+          currency: body.source === "bitcoin" || body.source === "lightning" ? "SAT" : body.source === "web3" ? "TOKEN_MINOR" : "USD_MINOR",
+          network: body.network || "simulation",
+          destination: body.destination,
+          contractAddress: body.contractAddress
+        });
+        return json({ ...result, scanOnly: true, noPaymentExecuted: true }, 201, cors);
+      } catch (error) {
+        const status = error instanceof TreasuryError ? error.status : 503;
+        return json({ ok: false, code: error instanceof TreasuryError ? error.code : "TREASURY_STORAGE_UNAVAILABLE" }, status, cors);
+      }
+    }
+
+    if (url.pathname === "/api/treasury/pay" && request.method === "POST") {
+      if (!(await authorized(request, env))) return json({ ok: false, code: "OWNER_SESSION_REQUIRED" }, 401, cors);
+      const body = await request.json().catch(() => null);
+      if (!body || typeof body !== "object" || Array.isArray(body)) return json({ ok: false, code: "TREASURY_PAYMENT_REQUEST_INVALID" }, 400, cors);
+      try {
+        const result = await appendTreasuryEvent(env.DB, { ...body, eventType: "payment_intent", manualApproval: body.manualApproval === true });
+        return json({ ...result, paymentIntentOnly: true, externalTransferExecuted: false }, 201, cors);
+      } catch (error) {
+        const status = error instanceof TreasuryError ? error.status : 503;
+        return json({ ok: false, code: error instanceof TreasuryError ? error.code : "TREASURY_STORAGE_UNAVAILABLE" }, status, cors);
+      }
+    }
+
+    if (url.pathname === "/api/treasury/compute-funding" && request.method === "POST") {
+      if (!(await authorized(request, env))) return json({ ok: false, code: "OWNER_SESSION_REQUIRED" }, 401, cors);
+      const body = await request.json().catch(() => null);
+      if (!body || typeof body !== "object" || Array.isArray(body)) return json({ ok: false, code: "TREASURY_FUNDING_REQUEST_INVALID" }, 400, cors);
+      try {
+        const result = await appendTreasuryEvent(env.DB, {
+          idempotencyKey: body.idempotencyKey, source: "compute", eventType: "compute_funding_intent",
+          amountMinor: body.amountMinor, currency: "USD_MINOR", network: "simulation"
+        });
+        return json({ ...result, fundingIntentOnly: true, externalTransferExecuted: false }, 201, cors);
+      } catch (error) {
+        const status = error instanceof TreasuryError ? error.status : 503;
+        return json({ ok: false, code: error instanceof TreasuryError ? error.code : "TREASURY_STORAGE_UNAVAILABLE" }, status, cors);
+      }
+    }
+
+    if (url.pathname === "/api/quantum/execute" && request.method === "POST") {
+      if (!(await authorized(request, env))) return json({ ok: false, code: "OWNER_SESSION_REQUIRED" }, 401, cors);
+      const body = await request.json().catch(() => null);
+      if (!body || typeof body !== "object" || Array.isArray(body) || !body.job || !body.fallback || typeof body.fallback.text !== "string") {
+        return json({ ok: false, code: "QUANTUM_REQUEST_INVALID" }, 400, cors);
+      }
+      let provider;
+      const quantumUrl = typeof env.QUANTUM_API_URL === "string" ? env.QUANTUM_API_URL.trim() : "";
+      const quantumKey = typeof env.QUANTUM_API_KEY === "string" ? env.QUANTUM_API_KEY : "";
+      if (quantumUrl && quantumKey) {
+        try {
+          const parsed = new URL(quantumUrl);
+          const host = parsed.hostname.toLowerCase();
+          const privateHost = host === "localhost" || host.endsWith(".local") || host === "127.0.0.1" ||
+            host === "::1" || /^10\./.test(host) || /^192\.168\./.test(host) || /^172\.(1[6-9]|2\d|3[01])\./.test(host);
+          if (parsed.protocol === "https:" && !parsed.username && !parsed.password && !parsed.hash && !privateHost) {
+            provider = {
+              execute: async (job, { signal }) => {
+                const response = await fetch(parsed.toString(), {
+                  method: "POST",
+                  signal,
+                  headers: { "content-type": "application/json", accept: "application/json", authorization: "Bearer " + quantumKey },
+                  body: JSON.stringify(job)
+                });
+                if (!response.ok) throw new QuantumAdapterError("QUANTUM_PROVIDER_HTTP_" + response.status, 502);
+                const payload = await response.json().catch(() => null);
+                if (!payload || typeof payload !== "object" || Array.isArray(payload) || payload.ok !== true) {
+                  throw new QuantumAdapterError("QUANTUM_PROVIDER_INVALID_RESPONSE", 502);
+                }
+                return payload;
+              }
+            };
+          }
+        } catch { provider = undefined; }
+      }
+      try {
+        const result = await executeQuantumOrFallback(body.job, {
+          provider,
+          timeoutMs: 2500,
+          classical: async () => {
+            const fallbackTask = typeof body.fallback.task === "string" ? body.fallback.task : "summarize";
+            const fallbackText = body.fallback.text.slice(0, 16000);
+            const fallbackResult = await executeHybridTask({ task: fallbackTask, text: fallbackText }, env);
+            return { engine: fallbackResult.engine || "python-edge-hybrid", task: fallbackTask, result: fallbackResult.result ?? fallbackResult };
+          }
+        });
+        return json(result, 200, cors);
+      } catch (error) {
+        const status = error instanceof QuantumAdapterError ? error.status : error instanceof HybridCoreError ? error.status : 502;
+        return json({ ok: false, code: error instanceof QuantumAdapterError ? error.code : error instanceof HybridCoreError ? error.code : "QUANTUM_EXECUTION_FAILED" }, status, cors);
+      }
     }
 
     if (url.pathname === "/api/tools/registry" && request.method === "GET") {
