@@ -1,0 +1,132 @@
+name: REDULTRON Failure Sentinel
+
+on:
+  push:
+    branches:
+      - "**"
+  workflow_run:
+    workflows:
+      - CI
+      - Test Central Agent
+    types:
+      - completed
+
+permissions:
+  actions: write
+  contents: read
+  issues: write
+
+concurrency:
+  group: redultron-sentinel-${{ github.event.workflow_run.id || github.sha }}
+  cancel-in-progress: false
+
+jobs:
+  push-verification:
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout pushed revision
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - name: Set up Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: "22"
+          package-manager-cache: false
+      - name: Verify repository tests
+        run: npm test
+      - name: Verify Central Agent syntax
+        run: |
+          node --check central-agent/worker.mjs
+          node --check central-agent/webauthn.mjs
+          node --check central-agent/edge-guard.mjs
+
+  recover-failed-run:
+    if: >-
+      github.event_name == 'workflow_run' &&
+      github.event.workflow_run.conclusion != 'success' &&
+      github.event.workflow_run.conclusion != 'cancelled' &&
+      github.event.workflow_run.conclusion != 'skipped' &&
+      github.event.workflow_run.head_repository.full_name == github.repository
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Resolve trusted source-run metadata
+        id: source
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPOSITORY: ${{ github.repository }}
+          RUN_ID: ${{ github.event.workflow_run.id }}
+          ATTEMPT: ${{ github.event.workflow_run.run_attempt }}
+          CONCLUSION: ${{ github.event.workflow_run.conclusion }}
+          HEAD_BRANCH: ${{ github.event.workflow_run.head_branch }}
+          HEAD_REPOSITORY: ${{ github.event.workflow_run.head_repository.full_name }}
+          WORKFLOW_NAME: ${{ github.event.workflow_run.name }}
+        run: |
+          set -euo pipefail
+          [[ "$RUN_ID" =~ ^[0-9]+$ && "$ATTEMPT" =~ ^[1-9][0-9]*$ ]] || { echo "::error::Invalid source-run metadata"; exit 2; }
+          [[ "$HEAD_REPOSITORY" == "$REPOSITORY" ]] || { echo "::error::Untrusted fork run refused"; exit 2; }
+          [[ "$WORKFLOW_NAME" == "CI" || "$WORKFLOW_NAME" == "Test Central Agent" ]] || { echo "::error::Workflow is not allowlisted"; exit 2; }
+          echo "run_id=$RUN_ID" >> "$GITHUB_OUTPUT"
+          echo "attempt=$ATTEMPT" >> "$GITHUB_OUTPUT"
+          echo "conclusion=$CONCLUSION" >> "$GITHUB_OUTPUT"
+          echo "head_branch=$HEAD_BRANCH" >> "$GITHUB_OUTPUT"
+          echo "event_url=$GITHUB_SERVER_URL/$REPOSITORY/actions/runs/$RUN_ID" >> "$GITHUB_OUTPUT"
+          echo "Source run=$RUN_ID attempt=$ATTEMPT/3 conclusion=$CONCLUSION branch=$HEAD_BRANCH"
+
+      - name: Retry failed jobs only while below attempt three
+        if: steps.source.outputs.attempt < 3
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPOSITORY: ${{ github.repository }}
+          RUN_ID: ${{ steps.source.outputs.run_id }}
+        run: |
+          set -euo pipefail
+          gh run rerun "$RUN_ID" --failed --repo "$REPOSITORY"
+          echo "Bounded retry requested; no code patch, merge, deployment, or config change was made."
+
+      - name: Lock this run against further retries and file one FAIL incident
+        if: steps.source.outputs.attempt >= 3
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPOSITORY: ${{ github.repository }}
+          RUN_ID: ${{ steps.source.outputs.run_id }}
+          ATTEMPT: ${{ steps.source.outputs.attempt }}
+          CONCLUSION: ${{ steps.source.outputs.conclusion }}
+          HEAD_BRANCH: ${{ steps.source.outputs.head_branch }}
+          EVENT_URL: ${{ steps.source.outputs.event_url }}
+        run: |
+          set -euo pipefail
+          # Logical retry lock only. This workflow deliberately has no administration permission.
+          title="[REDULTRON][FAIL] Recovery budget exhausted — run $RUN_ID"
+          search_q="repo:$REPOSITORY in:title \"$RUN_ID\""
+          existing="$(gh api -X GET search/issues -f q="$search_q" | jq --arg title "$title" '[.items[] | select(.title == $title and .state == "open")] | length')"
+          if [[ "$existing" != "0" ]]; then
+            echo "Existing incident found for run $RUN_ID; duplicate suppressed."
+            exit 0
+          fi
+          body=$(cat <<EOF
+          ## REDULTRON CI recovery incident
+
+          **Status:** [FAIL] — recovery budget exhausted.  
+          **Source run:** $RUN_ID  
+          **Observed attempt:** $ATTEMPT of 3  
+          **Conclusion:** $CONCLUSION  
+          **Source branch:** $HEAD_BRANCH  
+          **Evidence:** $EVENT_URL
+
+          ### Automated containment
+          - No fourth retry will be requested for this source run.
+          - No source files were modified by this workflow.
+          - No merge or deployment was triggered.
+          - No secrets/configuration values were read or changed.
+          - This is a logical retry lock, not a GitHub branch-protection change.
+
+          ### Required owner-reviewed follow-up
+          Review linked logs as untrusted diagnostic data, add a regression test, and submit any patch on an isolated feature branch. Main merges, production deployments, and repository security-setting changes remain owner-authorized actions.
+          EOF
+          )
+          gh issue create --repo "$REPOSITORY" --title "$title" --body "$body"
+          echo "::error::[FAIL] Run $RUN_ID exhausted recovery budget at $ATTEMPT/3."
