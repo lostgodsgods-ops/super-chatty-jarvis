@@ -453,7 +453,7 @@ export async function fetchTavilyWithRetry(query, env, options = {}) {
     const result = await searchLiveWeb(query, {
       ...env,
       SEARCH_PROVIDER_MODE: providerMode
-    }, { fetchImpl });
+    }, { fetchImpl, allowStale: options.allowStale === true });
     const results = (Array.isArray(result?.sources) ? result.sources : []).map(item => ({
       title: item.title,
       url: item.url,
@@ -2091,10 +2091,10 @@ export default {
       const body = await request.json().catch(() => null);
       const query = typeof body?.query === "string" ? body.query.trim() : "";
       if (!query || query.length > 400) return json({ error: "Query must contain 1–400 characters.", code: "INVALID_RESEARCH_QUERY" }, 400, cors);
-      // Direct public web search is available without a Tavily key.
+      // Explicit research requests may opt into stale results, which are always marked as stale.
       let response;
       try {
-        response = await fetchTavilyWithRetry(query, env);
+        response = await fetchTavilyWithRetry(query, env, { allowStale: true });
       } catch (error) {
         const diagnostics = Array.isArray(error?.providerDiagnostics) ? error.providerDiagnostics : [];
         const code = typeof error?.code === "string" && /^LIVE_SEARCH_[A-Z0-9_]{1,64}$/.test(error.code)
