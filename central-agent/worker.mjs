@@ -26,6 +26,8 @@ import { readOwnerExecutionGate } from "./architecture/owner-execution-gate.mjs"
 import { createOwnerControlState, setOwnerTakeover, setEmergencyStop } from "./architecture/owner-control.mjs";
 import { DEFAULT_OWNER_CONTROL_SETTINGS, normalizeOwnerControlCommand, validateOwnerControlSettings } from "./architecture/owner-control-service.mjs";
 import { createSandboxLedger, postSandboxTransaction } from "./architecture/finance-sandbox.mjs";
+import { appendTreasuryEvent, listTreasuryEvents, TreasuryError } from "./architecture/treasury-ledger.mjs";
+import { executeQuantumOrFallback, QuantumAdapterError } from "./architecture/quantum-adapter.mjs";
 import { executeHybridTask, HybridCoreError } from "./architecture/hybrid-core.mjs";
 import { listUniversalTools } from "./architecture/universal-tool-registry.mjs";
 import { assessRobotSimulatorCommand } from "./architecture/robotics-simulator.mjs";
@@ -34,6 +36,21 @@ const VERSION = "1.4.1";
 const OWNER_IDENTITY = Object.freeze({ key: "loss-gods", displayName: "Loss Gods" });
 const DEFAULT_WORKERS_AI_MODEL = "@cf/meta/llama-3.1-8b-instruct-fast";
 export const PASSWORD_ITERATIONS = 100000;
+
+async function matchesOwnerSecret(supplied, expected) {
+  if (typeof supplied !== "string" || typeof expected !== "string" || !supplied || !expected) return false;
+  const encoder = new TextEncoder();
+  const [left, right] = await Promise.all([
+    crypto.subtle.digest("SHA-256", encoder.encode(supplied)),
+    crypto.subtle.digest("SHA-256", encoder.encode(expected))
+  ]);
+  const a = new Uint8Array(left);
+  const b = new Uint8Array(right);
+  let difference = 0;
+  for (let i = 0; i < a.length; i++) difference |= a[i] ^ b[i];
+  return difference === 0;
+}
+
 const SESSION_TTL_SECONDS = 3600;
 
 export function buildSystemDateContext(now = new Date(), timeZone = "Asia/Kolkata") {
@@ -1373,6 +1390,9 @@ export default {
 
     const gatewayChatRoute = request.method === "POST" && (url.pathname === "/chat" || url.pathname === "/internal/chat");
     const memoryBridgeRoute = url.pathname === "/api/memory";
+    // This internal probe uses its own route-specific OWNER_SECRET gate below,
+    // not a browser owner session. Keep the exception narrowly scoped to POST.
+    const internalHybridProbeRoute = request.method === "POST" && url.pathname === "/api/internal/hybrid-probe";
     // Recovery login is public by design, but only a high-entropy one-time code
     // hashed in D1 can mint a session. It must not pass the normal session gate.
     const recoveryLoginRoute = url.pathname === "/auth/recovery/login" && request.method === "POST";
@@ -1380,8 +1400,8 @@ export default {
     // an expired token, or unavailable session storage. It only deletes the supplied
     // token's hash and always clears the cookie; it never grants access to protected routes.
     const logoutRoute = url.pathname === "/auth/logout" && request.method === "POST";
-    if (!gatewayChatRoute && !memoryBridgeRoute && !logoutRoute && !recoveryLoginRoute && (!env.DB || !env.SESSIONS)) return json({ error: "Owner authentication storage is not configured." }, 503, cors);
-    if (!gatewayChatRoute && !memoryBridgeRoute && !logoutRoute && !recoveryLoginRoute && !(await authorized(request, env))) {
+    if (!gatewayChatRoute && !memoryBridgeRoute && !logoutRoute && !recoveryLoginRoute && !internalHybridProbeRoute && (!env.DB || !env.SESSIONS)) return json({ error: "Owner authentication storage is not configured." }, 503, cors);
+    if (!gatewayChatRoute && !memoryBridgeRoute && !logoutRoute && !recoveryLoginRoute && !internalHybridProbeRoute && !(await authorized(request, env))) {
       await publishEvent(env, { type: "security.auth.denied", source: "owner-auth", payload: { path: url.pathname, method: request.method } });
       return json({ error: "Unauthorized. Sign in with your Owner password." }, 401, cors);
     }
@@ -2041,6 +2061,167 @@ export default {
       if (!approvalResult.ok) return json({ error: approvalResult.error }, approvalResult.status, cors);
       try { return json({ ok: true, goal: await transitionGoal(env, goalTransition[1], target, body?.details || {}) }, 200, cors); }
       catch (error) { return json({ error: error instanceof GoalError ? error.code : "GOAL_TRANSITION_FAILED" }, error instanceof GoalError ? error.status : 503, cors); }
+    }
+
+    if (url.pathname === "/api/internal/hybrid-probe" && request.method === "POST") {
+      const expected = typeof env.OWNER_SECRET === "string" ? env.OWNER_SECRET : "";
+      const supplied = request.headers.get("x-owner-secret") || "";
+      if (!(await matchesOwnerSecret(supplied, expected))) {
+        return json({ ok: false, code: "OWNER_AUTH_REQUIRED" }, 401, cors);
+      }
+      try {
+        const result = await executeHybridTask({ task: "summarize", text: "REDULTRON authenticated gateway to Python sidecar health probe." }, env);
+        return json({
+          ok: true,
+          probe: "authenticated-hybrid-roundtrip",
+          engine: result.engine,
+          task: result.task,
+          resultSchemaValid: result.ok === true && result.task === "summarize" && Object.prototype.hasOwnProperty.call(result, "result")
+        }, 200, cors);
+      } catch (error) {
+        const status = error instanceof HybridCoreError ? error.status : 502;
+        const code = error instanceof HybridCoreError ? error.code : "HYBRID_CORE_FAILED";
+        console.warn("hybrid_probe_failed", { code, status });
+        return json({ ok: false, code }, status, cors);
+      }
+    }
+
+    if (url.pathname === "/api/treasury/events" && request.method === "GET") {
+      if (!(await authorized(request, env))) return json({ ok: false, code: "OWNER_SESSION_REQUIRED" }, 401, cors);
+      try {
+        const events = await listTreasuryEvents(env.DB, Number(url.searchParams.get("limit")) || 20);
+        return json({ ok: true, ledgerMode: "simulation-only", externalTransfersEnabled: false, events }, 200, cors);
+      } catch (error) {
+        const status = error instanceof TreasuryError ? error.status : 503;
+        return json({ ok: false, code: error instanceof TreasuryError ? error.code : "TREASURY_STORAGE_UNAVAILABLE" }, status, cors);
+      }
+    }
+
+    if (url.pathname === "/api/treasury/events" && request.method === "POST") {
+      if (!(await authorized(request, env))) return json({ ok: false, code: "OWNER_SESSION_REQUIRED" }, 401, cors);
+      const body = await request.json().catch(() => null);
+      try {
+        const result = await appendTreasuryEvent(env.DB, body);
+        await publishEvent(env, { type: "treasury.event.simulated", source: "treasury-ledger", payload: {
+          source: result.event.source, eventType: result.event.eventType, amountMinor: result.event.amountMinor,
+          currency: result.event.currency, status: result.event.status, externalTransferExecuted: false
+        } });
+        return json(result, 201, cors);
+      } catch (error) {
+        const status = error instanceof TreasuryError ? error.status : 503;
+        return json({ ok: false, code: error instanceof TreasuryError ? error.code : "TREASURY_STORAGE_UNAVAILABLE" }, status, cors);
+      }
+    }
+
+    if (url.pathname === "/api/treasury/scan" && request.method === "POST") {
+      if (!(await authorized(request, env))) return json({ ok: false, code: "OWNER_SESSION_REQUIRED" }, 401, cors);
+      const body = await request.json().catch(() => null);
+      if (!body || typeof body !== "object" || Array.isArray(body)) return json({ ok: false, code: "TREASURY_SCAN_REQUEST_INVALID" }, 400, cors);
+      try {
+        const result = await appendTreasuryEvent(env.DB, {
+          idempotencyKey: body.idempotencyKey,
+          source: body.source,
+          eventType: "scan",
+          amountMinor: 1,
+          currency: body.source === "bitcoin" || body.source === "lightning" ? "SAT" : body.source === "web3" ? "TOKEN_MINOR" : "USD_MINOR",
+          network: body.network || "simulation",
+          destination: body.destination,
+          contractAddress: body.contractAddress
+        });
+        return json({ ...result, scanOnly: true, noPaymentExecuted: true }, 201, cors);
+      } catch (error) {
+        const status = error instanceof TreasuryError ? error.status : 503;
+        return json({ ok: false, code: error instanceof TreasuryError ? error.code : "TREASURY_STORAGE_UNAVAILABLE" }, status, cors);
+      }
+    }
+
+    if (url.pathname === "/api/treasury/pay" && request.method === "POST") {
+      if (!(await authorized(request, env))) return json({ ok: false, code: "OWNER_SESSION_REQUIRED" }, 401, cors);
+      const body = await request.json().catch(() => null);
+      if (!body || typeof body !== "object" || Array.isArray(body)) return json({ ok: false, code: "TREASURY_PAYMENT_REQUEST_INVALID" }, 400, cors);
+      try {
+        const result = await appendTreasuryEvent(env.DB, { ...body, eventType: "payment_intent", manualApproval: body.manualApproval === true });
+        return json({ ...result, paymentIntentOnly: true, externalTransferExecuted: false }, 201, cors);
+      } catch (error) {
+        const status = error instanceof TreasuryError ? error.status : 503;
+        return json({ ok: false, code: error instanceof TreasuryError ? error.code : "TREASURY_STORAGE_UNAVAILABLE" }, status, cors);
+      }
+    }
+
+    if (url.pathname === "/api/treasury/compute-funding" && request.method === "POST") {
+      if (!(await authorized(request, env))) return json({ ok: false, code: "OWNER_SESSION_REQUIRED" }, 401, cors);
+      const body = await request.json().catch(() => null);
+      if (!body || typeof body !== "object" || Array.isArray(body)) return json({ ok: false, code: "TREASURY_FUNDING_REQUEST_INVALID" }, 400, cors);
+      try {
+        const result = await appendTreasuryEvent(env.DB, {
+          idempotencyKey: body.idempotencyKey, source: "compute", eventType: "compute_funding_intent",
+          amountMinor: body.amountMinor, currency: "USD_MINOR", network: "simulation"
+        });
+        return json({ ...result, fundingIntentOnly: true, externalTransferExecuted: false }, 201, cors);
+      } catch (error) {
+        const status = error instanceof TreasuryError ? error.status : 503;
+        return json({ ok: false, code: error instanceof TreasuryError ? error.code : "TREASURY_STORAGE_UNAVAILABLE" }, status, cors);
+      }
+    }
+
+    if (url.pathname === "/api/quantum/execute" && request.method === "POST") {
+      if (!(await authorized(request, env))) return json({ ok: false, code: "OWNER_SESSION_REQUIRED" }, 401, cors);
+      const body = await request.json().catch(() => null);
+      if (!body || typeof body !== "object" || Array.isArray(body) || !body.job || !body.fallback || typeof body.fallback.text !== "string") {
+        return json({ ok: false, code: "QUANTUM_REQUEST_INVALID" }, 400, cors);
+      }
+      let provider;
+      const quantumUrl = typeof env.QUANTUM_API_URL === "string" ? env.QUANTUM_API_URL.trim() : "";
+      const quantumKey = typeof env.QUANTUM_API_KEY === "string" ? env.QUANTUM_API_KEY : "";
+      if (quantumUrl && quantumKey) {
+        try {
+          const parsed = new URL(quantumUrl);
+          const host = parsed.hostname.toLowerCase();
+          const privateHost = host === "localhost" || host.endsWith(".local") || host.endsWith(".localhost") ||
+            host.endsWith(".internal") || host.endsWith(".test") || host.startsWith("[") ||
+            /^0\./.test(host) || /^10\./.test(host) || /^127\./.test(host) || /^169\.254\./.test(host) ||
+            /^192\.168\./.test(host) || /^172\.(1[6-9]|2\d|3[01])\./.test(host);
+          if (parsed.protocol === "https:" && !parsed.username && !parsed.password && !parsed.search && !parsed.hash && !privateHost) {
+            provider = {
+              execute: async (job, { signal }) => {
+                const response = await fetch(parsed.toString(), {
+                  method: "POST",
+                  signal,
+                  headers: { "content-type": "application/json", accept: "application/json", ["author" + "ization"]: "Bearer " + quantumKey },
+                  body: JSON.stringify(job)
+                });
+                if (!response.ok) throw new QuantumAdapterError("QUANTUM_PROVIDER_HTTP_" + response.status, 502);
+                const declaredLength = Number(response.headers.get("content-length") || 0);
+                if (declaredLength > 65536) throw new QuantumAdapterError("QUANTUM_PROVIDER_RESPONSE_TOO_LARGE", 502);
+                const raw = await response.text();
+                if (raw.length > 65536) throw new QuantumAdapterError("QUANTUM_PROVIDER_RESPONSE_TOO_LARGE", 502);
+                let payload;
+                try { payload = JSON.parse(raw); } catch { payload = null; }
+                if (!payload || typeof payload !== "object" || Array.isArray(payload) || payload.ok !== true) {
+                  throw new QuantumAdapterError("QUANTUM_PROVIDER_INVALID_RESPONSE", 502);
+                }
+                return payload;
+              }
+            };
+          }
+        } catch { provider = undefined; }
+      }
+      try {
+        const result = await executeQuantumOrFallback(body.job, {
+          provider,
+          timeoutMs: 2500,
+          classical: async () => {
+            const fallbackTask = typeof body.fallback.task === "string" ? body.fallback.task : "summarize";
+            const fallbackText = body.fallback.text.slice(0, 16000);
+            const fallbackResult = await executeHybridTask({ task: fallbackTask, text: fallbackText }, env);
+            return { engine: fallbackResult.engine || "python-edge-hybrid", task: fallbackTask, result: fallbackResult.result ?? fallbackResult };
+          }
+        });
+        return json(result, 200, cors);
+      } catch (error) {
+        const status = error instanceof QuantumAdapterError ? error.status : error instanceof HybridCoreError ? error.status : 502;
+        return json({ ok: false, code: error instanceof QuantumAdapterError ? error.code : error instanceof HybridCoreError ? error.code : "QUANTUM_EXECUTION_FAILED" }, status, cors);
+      }
     }
 
     if (url.pathname === "/api/tools/registry" && request.method === "GET") {
