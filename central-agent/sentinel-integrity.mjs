@@ -1,3 +1,10 @@
+export async function signSentinelCheckpoint(sequence, headHash, secret) {
+  if (typeof secret !== "string" || secret.length < 32) throw new Error("SENTINEL_CHECKPOINT_SECRET_MISSING");
+  const key = await crypto.subtle.importKey("raw", new TextEncoder().encode(secret), { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
+  const bytes = await crypto.subtle.sign("HMAC", key, new TextEncoder().encode(`redultron-sentinel-v1:${sequence}:${headHash}`));
+  return [...new Uint8Array(bytes)].map(byte => byte.toString(16).padStart(2, "0")).join("");
+}
+
 export function canonicalizeAuditPayload(value) {
   if (value === null || typeof value === "string" || typeof value === "boolean") return JSON.stringify(value);
   if (typeof value === "number") {
@@ -137,15 +144,66 @@ export class SentinelPulse {
   }
 
   async alarm() {
+    const checkedAt = new Date().toISOString();
     let status;
     try {
       if (!this.env?.DB || typeof this.env.DB.prepare !== "function") throw new Error("D1_BINDING_UNAVAILABLE");
+      const pulseSchema = this.env.DB.prepare(`CREATE TABLE IF NOT EXISTS sentinel_pulse_telemetry (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        checked_at TEXT NOT NULL,
+        ok INTEGER NOT NULL,
+        component TEXT NOT NULL,
+        commit_sha TEXT NOT NULL,
+        detail TEXT NOT NULL
+      )`);
+      if (typeof pulseSchema.run === "function") await pulseSchema.run();
       await this.env.DB.prepare("SELECT 1 AS ok").first();
-      status = { ok: true, component: "d1", checkedAt: new Date().toISOString() };
+      const checkpointSchema = this.env.DB.prepare(`CREATE TABLE IF NOT EXISTS sentinel_checkpoint_signatures (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        created_at TEXT NOT NULL,
+        sequence INTEGER NOT NULL,
+        head_hash TEXT NOT NULL,
+        signature TEXT NOT NULL,
+        commit_sha TEXT NOT NULL
+      )`);
+      if (typeof checkpointSchema.run === "function") await checkpointSchema.run();
+      const checkpoint = typeof checkpointSchema.run === "function" ? await this.env.DB.prepare("SELECT sequence, head_hash AS headHash FROM sentinel_hash_chain_head WHERE id=1").first() : null;
+      let checkpointSigned = false;
+      if (checkpoint && this.env.SENTINEL_CHECKPOINT_SECRET) {
+        const signature = await signSentinelCheckpoint(Number(checkpoint.sequence), checkpoint.headHash, this.env.SENTINEL_CHECKPOINT_SECRET);
+        await this.env.DB.prepare("INSERT INTO sentinel_checkpoint_signatures (created_at, sequence, head_hash, signature, commit_sha) VALUES (?, ?, ?, ?, ?)")
+          .bind(checkedAt, Number(checkpoint.sequence), checkpoint.headHash, signature, this.env.GITHUB_COMMIT_SHA || "UNBOUND_COMMIT_SHA").run();
+        checkpointSigned = true;
+      }
+      status = { ok: true, component: "d1", checkedAt, commitSha: this.env.GITHUB_COMMIT_SHA || "UNBOUND_COMMIT_SHA", checkpointSigned };
     } catch {
-      status = { ok: false, component: "d1", checkedAt: new Date().toISOString(), error: "D1_PROBE_FAILED" };
+      status = { ok: false, component: "d1", checkedAt, commitSha: this.env?.GITHUB_COMMIT_SHA || "UNBOUND_COMMIT_SHA", error: "D1_PROBE_FAILED" };
     }
     await this.storage.put("last-pulse", status);
-    await this.storage.setAlarm(Date.now() + 30_000);
+    try {
+      if (this.env?.DB && typeof this.env.DB.prepare === "function") {
+        const telemetrySchema = this.env.DB.prepare(`CREATE TABLE IF NOT EXISTS sentinel_pulse_telemetry (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          checked_at TEXT NOT NULL,
+          ok INTEGER NOT NULL,
+          component TEXT NOT NULL,
+          commit_sha TEXT NOT NULL,
+          detail TEXT NOT NULL
+        )`);
+        if (typeof telemetrySchema.run === "function") {
+          await telemetrySchema.run();
+          await this.env.DB.prepare("INSERT INTO sentinel_pulse_telemetry (checked_at, ok, component, commit_sha, detail) VALUES (?, ?, ?, ?, ?)")
+            .bind(status.checkedAt, status.ok ? 1 : 0, status.component, status.commitSha, status.error || "D1_PROBE_OK").run();
+        } else {
+          status.telemetryPersisted = false;
+        }
+      }
+    } catch {
+      // D1 may be unavailable; retain the local DO heartbeat and keep scheduling.
+      status.telemetryPersisted = false;
+      await this.storage.put("last-pulse", status);
+    } finally {
+      await this.storage.setAlarm(Date.now() + 30_000);
+    }
   }
 }
