@@ -20,7 +20,7 @@ jobs:
       CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
       CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
       WORKER_URL: https://shrill-silence-164f.lostgodsgods.workers.dev
-      REDULTRON_HYBRID_PROBE_URL: ${{ vars.REDULTRON_HYBRID_PROBE_URL }}
+      REDULTRON_HYBRID_PROBE_URL: ${{ vars.REDULTRON_HYBRID_PROBE_URL || secrets.REDULTRON_HYBRID_PROBE_URL }}
       REDULTRON_PROBE_TOKEN: ${{ secrets.REDULTRON_PROBE_TOKEN }}
     steps:
       - uses: actions/checkout@v4
