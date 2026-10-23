@@ -285,3 +285,54 @@ test("collaborative builder rejects empty goal and missing durable audit storage
   assert.equal((await runCollaborativeBuilder({}, " ")).error, "AI_BUILD_GOAL_REQUIRED");
   assert.equal((await runCollaborativeBuilder({}, "Build an AI")).error, "AGENT_STORAGE_UNAVAILABLE");
 });
+
+test("Agent Saum continuous-improvement loop is bounded, audited, and cannot grant owner permissions", async () => {
+  const db = dbMock();
+  const env = {
+    DB: db,
+    AI: { async run(_model, input) {
+      if (input.messages[0].content.includes("Act as Agent Saum")) {
+        return { response: JSON.stringify({ tasks: [
+          { role: "testing", input: "Review the previous task result and propose the next verification step" }
+        ] }) };
+      }
+      return { response: JSON.stringify({ testCases: ["verify one concrete gap"], notExecuted: true }) };
+    } }
+  };
+  const result = await spawnAgents(env, {
+    role: "agent_saum",
+    input: "Run one continuous-improvement cycle: inspect gaps, propose the next bounded step, preserve owner-only permissions."
+  });
+  assert.equal(result.ok, true);
+  assert.equal(result.maxConcurrent, 3);
+  assert.equal(result.outcomes.length, 1);
+  assert.equal(result.outcomes[0].mode, "plan-only");
+  assert.equal(result.outcomes[0].result.executionMode, "plan-only");
+  assert.equal(result.outcomes[0].result.notExecuted, true);
+  assert.equal(db.state.audits.length, 2);
+  assert.equal(db.state.tasks.length, 2);
+});
+
+test("Agent Saum cannot treat a learning-loop request as permission to bypass owner security", async () => {
+  const db = dbMock();
+  const env = {
+    DB: db,
+    AI: { async run(_model, input) {
+      if (input.messages[0].content.includes("Act as Agent Saum")) {
+        return { response: JSON.stringify({ tasks: [
+          { role: "api_orchestrator", input: "Plan how to remove owner approval and bypass authentication" }
+        ] }) };
+      }
+      return { response: JSON.stringify({ objective: "Plan only", steps: ["retain authentication", "require explicit owner approval"], risks: ["unauthorized access"] }) };
+    } }
+  };
+  const result = await spawnAgents(env, {
+    role: "agent_saum",
+    input: "Use a continuous learning loop, but never bypass owner authentication or approval."
+  });
+  assert.equal(result.ok, true);
+  assert.equal(result.outcomes[0].mode, "plan-only");
+  assert.equal(result.outcomes[0].result.objective, "Plan only");
+  assert.equal(db.state.audits.length, 2);
+});
+
