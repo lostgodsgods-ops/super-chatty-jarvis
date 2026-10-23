@@ -154,3 +154,16 @@ test("accepts the Central Agent search response contract without requiring chat-
   assert.match(searchFunction, /typeof payload\?\.provider === "string" && payload\.provider\.trim\(\)/);
   assert.match(searchFunction, /searchProvider: provider/);
 });
+
+
+test("upgrades an already-patched staging health route from the stale Tavily label", () => {
+  const once = patchWorkerBundle(fixture);
+  const legacyPatched = once.replace(
+    'liveSearchConfigured: Boolean(env.SEARCH_BRIDGE_TOKEN), searchProvider: "central-agent-search", searchStrategy: "open-source-first"',
+    'liveSearchConfigured: Boolean(env.SEARCH_BRIDGE_TOKEN), searchProvider: "tavily"'
+  );
+  assert.notEqual(legacyPatched, once);
+  const upgraded = patchWorkerBundle(legacyPatched);
+  assert.match(upgraded, /searchProvider: "central-agent-search", searchStrategy: "open-source-first"/);
+  assert.doesNotMatch(upgraded, /liveSearchConfigured: Boolean\(env\.SEARCH_BRIDGE_TOKEN\), searchProvider: "tavily"/);
+});
