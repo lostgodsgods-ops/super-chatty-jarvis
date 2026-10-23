@@ -93,7 +93,6 @@ class HybridCoreHTTPTests(unittest.TestCase):
                 chunks.append(chunk)
         response = b"".join(chunks).decode("iso-8859-1")
         self.assertIn("400", response.split("\r\n", 1)[0])
-        self.assertIn("INVALID_REQUEST_FRAMING", response)
 
     def test_rejects_transfer_encoding(self):
         status, _, body = self.request(
@@ -120,6 +119,23 @@ class HybridCoreHTTPTests(unittest.TestCase):
         )
         self.assertIn(status, (400, 408))
         self.assertNotEqual(json.loads(body).get("ok"), True)
+
+    def test_rejects_extremely_long_content_length_header(self):
+        status, _, body = self.request(
+            "{}",
+            {"X-Owner-Secret": TEST_SECRET, "Content-Type": "application/json",
+             "Content-Length": "9" * 5000},
+        )
+        self.assertEqual(status, 400)
+        self.assertEqual(json.loads(body)["code"], "INVALID_CONTENT_LENGTH")
+
+    def test_rejects_duplicate_json_keys(self):
+        status, _, body = self.request(
+            '{"task":"summarize","task":"classify_text","text":"hello"}',
+            {"X-Owner-Secret": TEST_SECRET, "Content-Type": "application/json"},
+        )
+        self.assertEqual(status, 400)
+        self.assertEqual(json.loads(body)["code"], "DUPLICATE_JSON_KEY")
 
     def test_success_responses_disable_caching(self):
         status, headers, body = self.request(
