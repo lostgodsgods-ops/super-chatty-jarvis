@@ -268,7 +268,7 @@ jobs:
           set -euo pipefail
           node central-agent/patch-passkey-staging.mjs
 
-      - name: Verify authenticated Tavily chat and WebAuthn challenge generation
+      - name: Verify authenticated live-search and WebAuthn challenge generation
         shell: bash
         env:
           OWNER_PASSWORD: ${{ secrets.CENTRAL_AGENT_OWNER_PASSWORD }}
@@ -312,24 +312,33 @@ jobs:
           NODE
             exit 1
           fi
-          node - "$tmp/chat-response.json" <<'NODE'
+          node - "$tmp/chat-response.json" "$tmp/search-gate.json" <<'NODE'
           const fs=require("node:fs");
           const x=JSON.parse(fs.readFileSync(process.argv[2],"utf8"));
           const sourceUrlsValid=Array.isArray(x.sources)&&x.sources.length>0&&x.sources.every(s=>typeof s.url==="string"&&/^https?:\/\//.test(s.url));
-          if(x.ok!==true||x.provider!=="tavily+workers-ai"||x.core?.webSearchExecuted!==true||
-             x.core?.searchProvider!=="tavily"||!sourceUrlsValid) {
+          const searchProvider=typeof x.core?.searchProvider==="string"?x.core.searchProvider:"";
+          const normalizedProvider=searchProvider.replace(/^agent-saum\//,"");
+          const supportedProviders=new Set(["tavily","duckduckgo-html","bing-news-rss","google-news-rss","gdelt-doc-api","wikipedia-api"]);
+          const providerAllowed=supportedProviders.has(normalizedProvider);
+          const providerMatches=x.provider===searchProvider+"+workers-ai";
+          const liveSearchOk=x.ok===true&&x.core?.webSearchExecuted===true&&providerAllowed&&providerMatches&&sourceUrlsValid;
+          const tavilyPrimary=liveSearchOk&&normalizedProvider==="tavily";
+          if(!liveSearchOk) {
             console.error(JSON.stringify({
-              ok:x.ok===true,
-              provider:typeof x.provider==="string"?x.provider:null,
-              searchProvider:typeof x.core?.searchProvider==="string"?x.core.searchProvider:null,
-              webSearchExecuted:x.core?.webSearchExecuted===true,
-              sourceCount:Array.isArray(x.sources)?x.sources.length:0,
-              sourceUrlsValid,
+              ok:x.ok===true, provider:typeof x.provider==="string"?x.provider:null, searchProvider,
+              webSearchExecuted:x.core?.webSearchExecuted===true, providerAllowed, providerMatches,
+              sourceCount:Array.isArray(x.sources)?x.sources.length:0, sourceUrlsValid,
               code:typeof x.code==="string"?x.code:null
             }));
-            throw new Error("Authenticated live-search smoke test did not verify Tavily as the active primary provider with source URLs.");
+            throw new Error("Authenticated live-search smoke test did not verify a supported live provider with valid source URLs.");
           }
-          console.log(JSON.stringify({authenticatedChat:"PASS",provider:x.provider,liveSearch:"PASS",sourceCount:x.sources.length,sourceUrlsValid:true}));
+          require("node:fs").writeFileSync(process.argv[3], JSON.stringify({tavilyPrimary, searchProvider, provider:x.provider}));
+          console.log(JSON.stringify({
+            authenticatedChat:"PASS", liveSearch:"PASS", provider:x.provider, searchProvider,
+            tavilyPrimary:tavilyPrimary?"PASS":"DEGRADED_FALLBACK",
+            sourceCount:x.sources.length, sourceUrlsValid:true
+          }));
+          if(!tavilyPrimary) console.error("Tavily-primary verification is degraded; fallback returned valid sources. The strict deployment gate will still fail after independent WebAuthn verification.");
           NODE
 
           node -e 'process.stdout.write(JSON.stringify({}))' > "$tmp/passkey-request.json"
@@ -348,9 +357,14 @@ jobs:
           console.log(JSON.stringify({passkeyChallenge:"PASS",originBinding:"PASS",rpId:x.rp.id}));
           NODE
 
-          echo "Authenticated live-web chat and WebAuthn challenge checks PASS."
+          echo "Authenticated live-search chain and WebAuthn challenge checks completed; Tavily status is evaluated separately."
           curl --silent --show-error --max-time 20 -X POST -H "Authorization: Bearer $token" \
             -o /dev/null "$CENTRAL_AGENT_URL/auth/logout" || true
+          tavily_primary="$(node -e 'const x=require(process.argv[1]); process.stdout.write(x.tavilyPrimary ? "yes" : "no")' "$tmp/search-gate.json")"
+          if [ "$tavily_primary" != "yes" ]; then
+            echo "::error::Tavily-primary verification failed. A supported live fallback worked, but Tavily itself remains degraded."
+            exit 1
+          fi
 
       - name: Verify authenticated research telemetry
         shell: bash
