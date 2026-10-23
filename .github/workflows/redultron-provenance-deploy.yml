@@ -20,8 +20,8 @@ jobs:
       CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
       CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
       WORKER_URL: https://shrill-silence-164f.lostgodsgods.workers.dev
-      REDULTRON_HYBRID_PROBE_URL: ${{ vars.REDULTRON_HYBRID_PROBE_URL || secrets.REDULTRON_HYBRID_PROBE_URL }}
-      REDULTRON_PROBE_TOKEN: ${{ secrets.REDULTRON_PROBE_TOKEN }}
+      REDULTRON_HYBRID_PROBE_URL: ${{ vars.REDULTRON_HYBRID_PROBE_URL || secrets.REDULTRON_HYBRID_PROBE_URL || 'https://shrill-silence-164f.lostgodsgods.workers.dev/api/internal/hybrid-probe' }}
+      REDULTRON_OWNER_SECRET: ${{ secrets.REDULTRON_OWNER_SECRET }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -34,7 +34,7 @@ jobs:
           test -n "$CLOUDFLARE_ACCOUNT_ID"
           test -n "$CLOUDFLARE_API_TOKEN"
           test -n "$REDULTRON_HYBRID_PROBE_URL"
-          test -n "$REDULTRON_PROBE_TOKEN"
+          test -n "$REDULTRON_OWNER_SECRET"
           [[ "$GITHUB_SHA" =~ ^[0-9a-f]{40}$ ]]
       - name: Deploy exact GitHub commit provenance
         run: |
@@ -53,9 +53,9 @@ jobs:
           set -euo pipefail
           body="$(mktemp)"
           code="$(curl --silent --show-error --max-time 30 -X POST \
-            -H "Authorization: Bearer $REDULTRON_PROBE_TOKEN" \
+            -H "x-owner-secret: $REDULTRON_OWNER_SECRET" \
             -H 'Content-Type: application/json' \
-            --data '{"probe":"authenticated-hybrid-roundtrip","task":"summarize","input":"REDULTRON strict upstream verification"}' \
+            --data '{}' \
             -o "$body" -w '%{http_code}' "$REDULTRON_HYBRID_PROBE_URL")"
           if [[ "$code" != "200" ]]; then
             upstream_code="$(jq -r 'if type == "object" then (.code // .error // "UNKNOWN") | if type == "string" then gsub("[^A-Za-z0-9_-]"; "")[0:64] else "UNKNOWN" end else "UNKNOWN" end' "$body" 2>/dev/null || printf 'UNREADABLE_RESPONSE')"
@@ -68,8 +68,8 @@ jobs:
             .task == "summarize" and
             .engine == "python-edge-hybrid" and
             .fallbackEngaged == false and
-            .hybridPythonCoreExecutionVerified == true and
-            (.result | type == "string" or type == "object" or type == "array")
+            (.resultSchemaValid == true or .resultsSchemaValid == true) and
+            .hybridPythonCoreExecutionVerified == true
           ' "$body" >/dev/null; then
             # Emit only sanitized schema/status fields; never log result text, URL, headers, or credentials.
             jq -r '
