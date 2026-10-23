@@ -90,7 +90,6 @@ export async function backfillSentinelAuditChain(db, commitSha = "25abd1d") {
 }
 
 export async function appendSentinelAuditChain(db, entry, commitSha = "25abd1d") {
-  await backfillSentinelAuditChain(db, commitSha);
   const existing = await db.prepare("SELECT record_hash AS recordHash FROM sentinel_hash_chain WHERE record_id=?")
     .bind(entry.id).first();
   if (existing?.recordHash) return { ok: true, duplicate: true, hash: existing.recordHash };
