@@ -248,7 +248,7 @@ jobs:
           if(x.engine==="python-edge-hybrid" && x.fallbackEngaged!==true && x.hybridPythonCoreExecutionVerified===true) {
             console.log(JSON.stringify({hybridRoundTrip:"PASS",ownerAuth:"PASS",engine:x.engine,pythonExecutionVerified:true}));
           } else if(x.engine==="guarded-local-fallback" && x.fallbackEngaged===true && x.hybridPythonCoreExecutionVerified===false) {
-            console.log(JSON.stringify({hybridRoute:"PASS",ownerAuth:"PASS",engine:x.engine,pythonExecutionVerified:false,fallbackReason:x.fallbackReason||"UNSPECIFIED"}));
+            console.log(JSON.stringify({hybridRoute:"PASS",ownerAuth:"PASS",engine:x.engine,pythonExecutionVerified:false,fallbackReason:x.fallbackReason||"UNSPECIFIED",upstreamStatus:Number.isInteger(x.upstreamStatus)?x.upstreamStatus:null}));
             console.log("NOTICE: guarded fallback keeps the route available; this is not a Python execution pass.");
           } else {
             throw new Error("Hybrid execution mode flags are inconsistent.");
