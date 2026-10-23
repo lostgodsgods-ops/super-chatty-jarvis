@@ -140,3 +140,15 @@ test("accepts an already connected chat route using the Central Agent service bi
   assert.ok(result.includes("fetchCentralAgent(env, CENTRAL_AGENT_CHAT_ENDPOINT"));
   assert.ok(result.includes("CENTRAL_AGENT_SEARCH_ENDPOINT"));
 });
+
+
+test("accepts the Central Agent search response contract without requiring chat-only core metadata", () => {
+  const result = patchWorkerBundle(fixture);
+  const start = result.indexOf("async function runLiveSearch");
+  const end = result.indexOf('__name(runLiveSearch, "runLiveSearch");', start);
+  const searchFunction = result.slice(start, end);
+  assert.match(searchFunction, /payload\?\.ok !== true \|\| sources\.length === 0/);
+  assert.match(searchFunction, /item\?\.description \|\| item\?\.content \|\| item\?\.snippet/);
+  assert.match(searchFunction, /typeof payload\?\.provider === "string" \? payload\.provider/);
+  assert.match(searchFunction, /searchProvider: provider/);
+});
