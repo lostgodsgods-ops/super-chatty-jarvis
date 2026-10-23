@@ -68,6 +68,20 @@ class HybridCoreHTTPTests(unittest.TestCase):
         connection.close()
         return result
 
+    def test_health_is_minimal_and_non_sensitive(self):
+        connection = http.client.HTTPConnection("127.0.0.1", self.port, timeout=3)
+        connection.request("GET", "/health")
+        response = connection.getresponse()
+        data = json.loads(response.read())
+        self.assertEqual(response.status, 200)
+        self.assertEqual(data, {"ok": True, "service": "redultron-python-core"})
+        connection.close()
+
+    def test_unknown_route_is_404(self):
+        status, _, body = self.request("{}", {"X-Owner-Secret": TEST_SECRET}, "/not-a-route")
+        self.assertEqual(status, 404)
+        self.assertEqual(json.loads(body)["code"], "NOT_FOUND")
+
     def test_requires_owner_secret(self):
         status, _, body = self.request(
             json.dumps({"task": "summarize", "text": "hello"}),
@@ -78,21 +92,26 @@ class HybridCoreHTTPTests(unittest.TestCase):
 
     def test_rejects_duplicate_content_length(self):
         raw = (
-            f"POST /v1/execute HTTP/1.1\r\nHost: localhost\r\n"
-            f"X-Owner-Secret: {TEST_SECRET}\r\nContent-Type: application/json\r\n"
-            "Content-Length: 35\r\nContent-Length: 1\r\nConnection: close\r\n\r\n"
+            f"POST /v1/execute HTTP/1.1\\r\\nHost: localhost\\r\\n"
+            f"X-Owner-Secret: {TEST_SECRET}\\r\\nContent-Type: application/json\\r\\n"
+            "Content-Length: 35\\r\\nContent-Length: 1\\r\\nConnection: close\\r\\n\\r\\n"
             '{"task":"summarize","text":"hello"}'
         ).encode()
         with socket.create_connection(("127.0.0.1", self.port), timeout=3) as sock:
             sock.sendall(raw)
+            sock.settimeout(3)
             chunks = []
             while True:
-                chunk = sock.recv(4096)
+                try:
+                    chunk = sock.recv(4096)
+                except socket.timeout:
+                    break
                 if not chunk:
                     break
                 chunks.append(chunk)
         response = b"".join(chunks).decode("iso-8859-1")
-        self.assertIn("400", response.split("\r\n", 1)[0])
+        self.assertIn("400", response.split("\\r\\n", 1)[0])
+        self.assertIn("INVALID_REQUEST_FRAMING", response)
 
     def test_rejects_transfer_encoding(self):
         status, _, body = self.request(
@@ -110,6 +129,23 @@ class HybridCoreHTTPTests(unittest.TestCase):
         )
         self.assertEqual(status, 415)
         self.assertEqual(json.loads(body)["code"], "UNSUPPORTED_MEDIA_TYPE")
+
+    def test_rejects_malformed_json(self):
+        status, _, body = self.request(
+            '{"task":',
+            {"X-Owner-Secret": TEST_SECRET, "Content-Type": "application/json"},
+        )
+        self.assertEqual(status, 400)
+        self.assertEqual(json.loads(body)["code"], "INVALID_JSON")
+
+    def test_rejects_non_object_and_extra_fields(self):
+        for payload in ('["summarize","hello"]', '{"task":"summarize","text":"hello","extra":true}'):
+            with self.subTest(payload=payload):
+                status, _, body = self.request(
+                    payload, {"X-Owner-Secret": TEST_SECRET, "Content-Type": "application/json"}
+                )
+                self.assertEqual(status, 400)
+                self.assertEqual(json.loads(body)["code"], "INVALID_REQUEST_FIELDS")
 
     def test_rejects_short_body_read(self):
         status, _, body = self.request(
