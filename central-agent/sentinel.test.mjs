@@ -131,3 +131,36 @@ test("sentinel audit hash chain preserves canonical payload identity", async () 
   assert.match(firstHash, /^[0-9a-f]{64}$/);
   assert.notEqual(firstHash, tamperedHash);
 });
+
+
+test("durable SentinelPulse records D1 health and schedules the next pulse in 30 seconds", async () => {
+  const { SentinelPulse } = await import("./sentinel-integrity.mjs");
+  const alarms = [], values = new Map();
+  const ctx = { storage: {
+    async getAlarm() { return null; },
+    async setAlarm(value) { alarms.push(value); },
+    async put(key, value) { values.set(key, value); },
+    async get(key) { return values.get(key); }
+  } };
+  const pulse = new SentinelPulse(ctx, { DB: { prepare() { return { async first() { return { ok: 1 }; } }; } } });
+  const before = Date.now();
+  await pulse.alarm();
+  assert.equal((await values.get("last-pulse")).ok, true);
+  assert.equal(alarms.length, 1);
+  assert.ok(alarms[0] >= before + 29_900 && alarms[0] <= Date.now() + 30_100);
+});
+
+test("durable SentinelPulse records D1 failure and continues its bounded 30-second schedule", async () => {
+  const { SentinelPulse } = await import("./sentinel-integrity.mjs");
+  const alarms = [], values = new Map();
+  const ctx = { storage: {
+    async getAlarm() { return null; },
+    async setAlarm(value) { alarms.push(value); },
+    async put(key, value) { values.set(key, value); },
+    async get(key) { return values.get(key); }
+  } };
+  const pulse = new SentinelPulse(ctx, { DB: { prepare() { throw new Error("unavailable"); } } });
+  await pulse.alarm();
+  assert.equal((await values.get("last-pulse")).ok, false);
+  assert.equal(alarms.length, 1);
+});
