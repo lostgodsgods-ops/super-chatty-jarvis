@@ -76,6 +76,7 @@ jobs:
               task: (if (.task | type) == "string" then (.task | gsub("[^A-Za-z0-9_-]"; "")[0:64]) else "UNKNOWN" end),
               engine: (if (.engine | type) == "string" then (.engine | gsub("[^A-Za-z0-9_-]"; "")[0:64]) else "UNKNOWN" end),
               fallbackEngaged: (if (.fallbackEngaged | type) == "boolean" then .fallbackEngaged else "UNKNOWN" end),
+              fallbackReason: (if (.fallbackReason | type) == "string" then (.fallbackReason | gsub("[^A-Za-z0-9_-]"; "")[0:64]) else "UNKNOWN" end),
               hybridPythonCoreExecutionVerified: (if (.hybridPythonCoreExecutionVerified | type) == "boolean" then .hybridPythonCoreExecutionVerified else "UNKNOWN" end),
               resultType: (.result | type)
             }' "$body" 2>/dev/null || echo "STRICT FAIL: response was not valid JSON; body suppressed."

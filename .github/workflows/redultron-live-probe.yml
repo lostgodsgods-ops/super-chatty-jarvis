@@ -82,7 +82,8 @@ jobs:
             engine="$(jq -r 'if type == "object" and (.engine | type) == "string" then .engine | gsub("[^A-Za-z0-9_-]"; "")[0:64] else "UNKNOWN" end' "$hybrid_file" 2>/dev/null || printf 'UNREADABLE_RESPONSE')"
             fallback="$(jq -r 'if type == "object" and (.fallbackEngaged | type) == "boolean" then (.fallbackEngaged|tostring) else "UNKNOWN" end' "$hybrid_file" 2>/dev/null || printf 'UNKNOWN')"
             verified="$(jq -r 'if type == "object" and (.hybridPythonCoreExecutionVerified | type) == "boolean" then (.hybridPythonCoreExecutionVerified|tostring) else "UNKNOWN" end' "$hybrid_file" 2>/dev/null || printf 'UNKNOWN')"
-            echo "::error::STRICT FAIL: Python upstream execution not certified; engine=$engine fallbackEngaged=$fallback hybridPythonCoreExecutionVerified=$verified."
+            fallback_reason="$(jq -r 'if type == "object" and (.fallbackReason | type) == "string" then (.fallbackReason | gsub("[^A-Za-z0-9_-]"; "")[0:64]) else "UNKNOWN" end' "$hybrid_file" 2>/dev/null || printf 'UNKNOWN')"
+            echo "::error::STRICT FAIL: Python upstream execution not certified; engine=$engine fallbackEngaged=$fallback hybridPythonCoreExecutionVerified=$verified fallbackReason=$fallback_reason."
             exit 1
           fi
           echo "PASS: OWNER_SECRET-authenticated Python upstream round-trip returned HTTP 200; strict engine, fallback, execution-verification, and result-schema flags matched."
