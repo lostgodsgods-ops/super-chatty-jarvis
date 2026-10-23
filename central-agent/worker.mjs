@@ -2148,7 +2148,9 @@ export default {
         }, 200, cors);
       } catch (error) {
         const status = error instanceof HybridCoreError ? error.status : 502;
-        const code = error instanceof HybridCoreError ? error.code : "HYBRID_CORE_FAILED";
+        const code = error instanceof HybridCoreError
+          ? (Number.isInteger(error.upstreamStatus) ? `${error.code}_${error.upstreamStatus}` : error.code)
+          : "HYBRID_CORE_FAILED";
         console.warn("hybrid_probe_failed", { code, status });
 
         // A local deterministic fallback keeps the authenticated health probe
