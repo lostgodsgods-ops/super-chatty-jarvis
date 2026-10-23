@@ -1,32 +1,30 @@
-"""Minimal, bounded Python processing core for REDULTRON's hybrid architecture.
-
-Run behind an HTTPS reverse proxy. Configure OWNER_SECRET in the service environment;
-never put it in source control, browser code, or logs.
-"""
+"""Bounded REDULTRON processing sidecar. Keep behind HTTPS ingress."""
 from __future__ import annotations
 
 import json
 import os
 import re
 import secrets
-from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+import socket
 from collections import Counter
+from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import urlparse
 
 MAX_BODY_BYTES = 20_000
 MAX_TEXT_CHARS = 16_000
+REQUEST_TIMEOUT_SECONDS = 5
 ALLOWED_TASKS = {"summarize", "extract_keywords", "classify_text"}
 
 
 def process_task(task: str, text: str):
-    """Deterministic bounded transforms; no arbitrary code or tool execution."""
+    """Deterministic bounded transforms; never execute arbitrary code."""
     if not isinstance(task, str) or task not in ALLOWED_TASKS:
         raise ValueError("HYBRID_TASK_NOT_ALLOWED")
     if not isinstance(text, str) or not text.strip() or len(text) > MAX_TEXT_CHARS:
         raise ValueError("HYBRID_TEXT_LENGTH_INVALID")
-    normalized = re.sub(r"\s+", " ", text).strip()
+    normalized = re.sub(r"\\s+", " ", text).strip()
     if task == "summarize":
-        sentences = [s.strip() for s in re.split(r"(?<=[.!?])\s+", normalized) if s.strip()]
+        sentences = [s.strip() for s in re.split(r"(?<=[.!?])\\s+", normalized) if s.strip()]
         return " ".join(sentences[:3])[:2000]
     if task == "extract_keywords":
         words = re.findall(r"[A-Za-z][A-Za-z0-9'-]{2,}", normalized.lower())
@@ -45,19 +43,28 @@ def process_task(task: str, text: str):
 
 class Handler(BaseHTTPRequestHandler):
     server_version = "REDULTRON-PythonCore"
+    sys_version = ""
+
+    def setup(self):
+        super().setup()
+        self.connection.settimeout(REQUEST_TIMEOUT_SECONDS)
 
     def _json(self, status, payload):
-        body = json.dumps(payload, separators=(",", ":"), ensure_ascii=False).encode()
+        body = json.dumps(payload, separators=(",", ":"), ensure_ascii=False).encode("utf-8")
         self.send_response(status)
         self.send_header("Content-Type", "application/json; charset=utf-8")
         self.send_header("Content-Length", str(len(body)))
         self.send_header("Cache-Control", "no-store")
         self.send_header("X-Content-Type-Options", "nosniff")
+        self.send_header("Referrer-Policy", "no-referrer")
         self.end_headers()
-        self.wfile.write(body)
+        try:
+            self.wfile.write(body)
+        except (BrokenPipeError, ConnectionResetError, socket.timeout):
+            pass
 
     def log_message(self, fmt, *args):
-        # Never log headers, request bodies, credentials, or user text.
+        # Do not log request IP, headers, credentials, or user-supplied text.
         return
 
     def do_GET(self):
@@ -72,45 +79,74 @@ class Handler(BaseHTTPRequestHandler):
             return
         expected = os.environ.get("OWNER_SECRET", "")
         supplied = self.headers.get("X-Owner-Secret", "")
-        if not expected or not supplied or not secrets.compare_digest(supplied, expected):
+        if len(expected) < 32 or not supplied or not secrets.compare_digest(supplied, expected):
             self._json(401, {"ok": False, "code": "OWNER_AUTH_REQUIRED"})
             return
-        raw_length = self.headers.get("Content-Length", "")
-        try:
-            length = int(raw_length)
-        except (TypeError, ValueError):
+
+        lengths = self.headers.get_all("Content-Length", [])
+        if len(lengths) != 1 or self.headers.get("Transfer-Encoding") is not None:
+            self._json(400, {"ok": False, "code": "INVALID_REQUEST_FRAMING"})
+            return
+        media_type = self.headers.get("Content-Type", "").split(";", 1)[0].strip().lower()
+        if media_type != "application/json":
+            self._json(415, {"ok": False, "code": "UNSUPPORTED_MEDIA_TYPE"})
+            return
+        raw_length = lengths[0].strip()
+        if not raw_length.isascii() or not raw_length.isdecimal():
             self._json(400, {"ok": False, "code": "INVALID_CONTENT_LENGTH"})
             return
-        if length < 1 or length > MAX_BODY_BYTES:
+        length = int(raw_length)
+        if length < 1:
+            self._json(400, {"ok": False, "code": "INVALID_CONTENT_LENGTH"})
+            return
+        if length > MAX_BODY_BYTES:
             self._json(413, {"ok": False, "code": "REQUEST_TOO_LARGE"})
             return
         try:
-            body = json.loads(self.rfile.read(length))
+            raw_body = self.rfile.read(length)
+        except (TimeoutError, socket.timeout):
+            self._json(408, {"ok": False, "code": "REQUEST_BODY_TIMEOUT"})
+            return
+        if len(raw_body) != length:
+            self._json(400, {"ok": False, "code": "INCOMPLETE_REQUEST_BODY"})
+            return
+        try:
+            body = json.loads(raw_body.decode("utf-8"))
         except (json.JSONDecodeError, UnicodeDecodeError):
             self._json(400, {"ok": False, "code": "INVALID_JSON"})
             return
-        if not isinstance(body, dict):
-            self._json(400, {"ok": False, "code": "INVALID_REQUEST"})
+        if not isinstance(body, dict) or set(body) != {"task", "text"}:
+            self._json(400, {"ok": False, "code": "INVALID_REQUEST_FIELDS"})
             return
         try:
             result = process_task(body.get("task"), body.get("text"))
         except ValueError as exc:
-            code = str(exc)
-            self._json(400, {"ok": False, "code": code})
+            self._json(400, {"ok": False, "code": str(exc)})
             return
         self._json(200, {"ok": True, "task": body["task"], "result": result})
 
 
+class SecureThreadingHTTPServer(ThreadingHTTPServer):
+    daemon_threads = True
+    block_on_close = True
+    request_queue_size = 32
+
+
 def main():
-    secret = os.environ.get("OWNER_SECRET", "")
-    if len(secret) < 32:
+    if len(os.environ.get("OWNER_SECRET", "")) < 32:
         raise SystemExit("OWNER_SECRET must be configured with at least 32 characters.")
     host = os.environ.get("HOST", "127.0.0.1")
     if host not in {"127.0.0.1", "0.0.0.0"}:
         raise SystemExit("HOST must be 127.0.0.1 or 0.0.0.0.")
-    server = ThreadingHTTPServer((host, int(os.environ.get("PORT", "8788"))), Handler)
     try:
-        server.serve_forever()
+        port = int(os.environ.get("PORT", "8788"))
+    except ValueError as exc:
+        raise SystemExit("PORT must be a valid integer.") from exc
+    if not 1 <= port <= 65535:
+        raise SystemExit("PORT must be between 1 and 65535.")
+    server = SecureThreadingHTTPServer((host, port), Handler)
+    try:
+        server.serve_forever(poll_interval=0.5)
     finally:
         server.server_close()
 
