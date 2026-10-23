@@ -77,13 +77,14 @@ test("PWA delegates synthesis to central gateway and validates successful search
   assert.ok(searchFunction.includes("upstreamPath: new URL(attemptedEndpoint).pathname"));
   assert.ok(searchFunction.includes("/internal/search"));
   assert.match(searchFunction, /if \(response\.status !== 404\) break/);
-  assert.match(searchFunction, /payload\?\.core\?\.webSearchExecuted !== true/);
+  assert.match(searchFunction, /payload\?\.ok !== true \|\| sources\.length === 0/);
 });
 
-test("health reports only whether Tavily is configured and adds a protected smoke route", () => {
+test("health reports central search strategy and adds a protected smoke route", () => {
   const result = patchWorkerBundle(fixture);
   assert.match(result, /liveSearchConfigured: Boolean\(env\.SEARCH_BRIDGE_TOKEN\)/);
-  assert.match(result, /searchProvider: "tavily"/);
+  assert.match(result, /searchProvider: "central-agent-search"/);
+  assert.match(result, /searchStrategy: "open-source-first"/);
   assert.match(result, /path === "\/internal\/search-smoke"/);
   assert.match(result, /path === "\/internal\/chat-smoke"/);
   assert.match(result, /"\/internal\/search-smoke", "\/internal\/chat-smoke"/);
@@ -139,4 +140,17 @@ test("accepts an already connected chat route using the Central Agent service bi
   const result = patchWorkerBundle(connected);
   assert.ok(result.includes("fetchCentralAgent(env, CENTRAL_AGENT_CHAT_ENDPOINT"));
   assert.ok(result.includes("CENTRAL_AGENT_SEARCH_ENDPOINT"));
+});
+
+
+test("accepts the Central Agent search response contract without requiring chat-only core metadata", () => {
+  const result = patchWorkerBundle(fixture);
+  const start = result.indexOf("async function runLiveSearch");
+  const end = result.indexOf('__name(runLiveSearch, "runLiveSearch");', start);
+  const searchFunction = result.slice(start, end);
+  assert.match(searchFunction, /payload\?\.ok !== true \|\| sources\.length === 0/);
+  assert.match(searchFunction, /typeof item\?\.content === "string"/);
+  assert.match(searchFunction, /typeof item\?\.snippet === "string"/);
+  assert.match(searchFunction, /typeof payload\?\.provider === "string" && payload\.provider\.trim\(\)/);
+  assert.match(searchFunction, /searchProvider: provider/);
 });

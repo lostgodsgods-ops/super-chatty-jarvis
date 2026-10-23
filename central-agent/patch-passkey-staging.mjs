@@ -40,7 +40,7 @@ const LIVE_SEARCH_FUNCTION = `async function runLiveSearch(query, env, language)
     return json2({
       error: "Live search gateway is not configured for this staging deployment.",
       code: "SEARCH_NOT_CONFIGURED",
-      core: { intent: "web_search", webSearchExecuted: false, searchProvider: "tavily" }
+      core: { intent: "web_search", webSearchExecuted: false, searchProvider: "central-agent-search" }
     }, 503);
   }
 
@@ -72,7 +72,7 @@ const LIVE_SEARCH_FUNCTION = `async function runLiveSearch(query, env, language)
     return json2({
       error: "Live search service could not be reached.",
       code: "SEARCH_GATEWAY_NETWORK_ERROR",
-      core: { intent: "web_search", webSearchExecuted: false, searchProvider: "tavily" }
+      core: { intent: "web_search", webSearchExecuted: false, searchProvider: "central-agent-search" }
     }, 502);
   }
 
@@ -83,7 +83,7 @@ const LIVE_SEARCH_FUNCTION = `async function runLiveSearch(query, env, language)
       code: "SEARCH_GATEWAY_HTTP_ERROR",
       providerStatus: response.status,
       upstreamPath: new URL(attemptedEndpoint).pathname,
-      core: { intent: "web_search", webSearchExecuted: false, searchProvider: "tavily" }
+      core: { intent: "web_search", webSearchExecuted: false, searchProvider: "central-agent-search" }
     }, 502);
   }
 
@@ -94,7 +94,7 @@ const LIVE_SEARCH_FUNCTION = `async function runLiveSearch(query, env, language)
     return json2({
       error: "Live search service returned invalid JSON.",
       code: "SEARCH_GATEWAY_INVALID_JSON",
-      core: { intent: "web_search", webSearchExecuted: false, searchProvider: "tavily" }
+      core: { intent: "web_search", webSearchExecuted: false, searchProvider: "central-agent-search" }
     }, 502);
   }
 
@@ -108,28 +108,34 @@ const LIVE_SEARCH_FUNCTION = `async function runLiveSearch(query, env, language)
     return {
       title: typeof item?.title === "string" ? item.title.slice(0, 240) : "",
       url: sourceUrl,
-      description: typeof item?.description === "string" ? item.description.slice(0, 900) : ""
+      description: typeof item?.description === "string" ? item.description.slice(0, 900) : typeof item?.content === "string" ? item.content.slice(0, 900) : typeof item?.snippet === "string" ? item.snippet.slice(0, 900) : ""
     };
   }).filter((item) => item.title && item.url).slice(0, MAX_SEARCH_RESULTS);
 
-  if (payload?.ok !== true || payload?.core?.webSearchExecuted !== true) {
+  const provider = typeof payload?.provider === "string" && payload.provider.trim()
+    ? payload.provider.slice(0, 64)
+    : typeof payload?.core?.searchProvider === "string" && payload.core.searchProvider.trim()
+      ? payload.core.searchProvider.slice(0, 64)
+      : "central-agent-search";
+
+  if (payload?.ok !== true || sources.length === 0) {
     return json2({
       error: "Live search did not complete successfully.",
       code: "SEARCH_GATEWAY_INCOMPLETE",
-      core: { intent: "web_search", webSearchExecuted: false, searchProvider: "tavily" }
+      core: { intent: "web_search", webSearchExecuted: false, searchProvider: "central-agent-search" }
     }, 502);
   }
 
   return json2({
     ok: true,
     reply: typeof payload.reply === "string" ? payload.reply : sources.map((source, index) => (index + 1) + ". " + source.title + "\\n" + source.description + "\\n" + source.url).join("\\n\\n"),
-    model: typeof payload.model === "string" ? payload.model : "central-agent-tavily",
+    model: typeof payload.model === "string" ? payload.model : "central-agent-" + provider,
     sources,
     core: {
       ...(payload.core || {}),
       intent: "web_search",
       webSearchExecuted: true,
-      searchProvider: "tavily",
+      searchProvider: provider,
       sourceCount: sources.length,
       requiresTaskApproval: false,
       externalActionsPerformed: false
@@ -178,7 +184,7 @@ const CHAT_SMOKE_ROUTE = `if (request.method === "POST" && path === "/internal/c
       }
     }`;
 const HEALTH_ROUTE_OLD = 'if (request.method === "GET" && path === "/health") return json2({ ok: true, component: "passkey-auth-staging", production: false }, 200, headers);';
-const HEALTH_AND_SMOKE_ROUTES = `if (request.method === "GET" && path === "/health") return json2({ ok: true, component: "passkey-auth-staging", production: false, liveSearchConfigured: Boolean(env.SEARCH_BRIDGE_TOKEN), searchProvider: "tavily" }, 200, headers);
+const HEALTH_AND_SMOKE_ROUTES = `if (request.method === "GET" && path === "/health") return json2({ ok: true, component: "passkey-auth-staging", production: false, liveSearchConfigured: Boolean(env.SEARCH_BRIDGE_TOKEN), searchProvider: "central-agent-search", searchStrategy: "open-source-first" }, 200, headers);
     if (request.method === "POST" && path === "/internal/search-smoke") {
       const expectedTokens = [env.SEARCH_BRIDGE_TOKEN, env.AGENT_GATEWAY_TOKEN].filter((value) => typeof value === "string" && value.trim()).map((value) => value.trim());
       const header = request.headers.get("authorization") || "";
@@ -359,7 +365,7 @@ export function patchWorkerBundle(source) {
 
   if (
     !patched.includes('payload?.sources') ||
-    !patched.includes('searchProvider: "tavily"') ||
+    !patched.includes('searchProvider: "central-agent-search"') ||
     !patched.includes("CENTRAL_AGENT_SEARCH_ENDPOINT") ||
     !patched.includes("CENTRAL_AGENT_CHAT_ENDPOINT") ||
     (!patched.includes("fetch(CENTRAL_AGENT_CHAT_ENDPOINT") && !patched.includes("fetchCentralAgent(env, CENTRAL_AGENT_CHAT_ENDPOINT"))
