@@ -10,11 +10,13 @@ const ALLOWED_TASKS = new Set(["summarize", "extract_keywords", "classify_text"]
 const REQUEST_TIMEOUT_MS = 5000;
 
 export class HybridCoreError extends Error {
-  constructor(code, status = 502) {
+  constructor(code, status = 502, details = {}) {
     super(code);
     this.name = "HybridCoreError";
     this.code = code;
     this.status = status;
+    this.upstreamStatus = Number.isInteger(details.upstreamStatus) && details.upstreamStatus >= 100 && details.upstreamStatus <= 599
+      ? details.upstreamStatus : null;
   }
 }
 
@@ -66,7 +68,7 @@ export async function executeHybridTask(input, env, options = {}) {
       ? "HYBRID_CORE_TIMEOUT" : "HYBRID_CORE_UNAVAILABLE", 502);
   }
   if (response.status === 401 || response.status === 403) throw new HybridCoreError("HYBRID_CORE_AUTH_REJECTED", 502);
-  if (!response.ok) throw new HybridCoreError("HYBRID_CORE_UPSTREAM_FAILED", 502);
+  if (!response.ok) throw new HybridCoreError("HYBRID_CORE_UPSTREAM_FAILED", 502, { upstreamStatus: response.status });
 
   let result;
   try { result = await response.json(); } catch { throw new HybridCoreError("HYBRID_CORE_INVALID_RESPONSE", 502); }
