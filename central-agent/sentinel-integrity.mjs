@@ -191,8 +191,11 @@ export class SentinelPulse {
         await this.env.DB.prepare("INSERT INTO sentinel_pulse_telemetry (checked_at, ok, component, commit_sha, detail) VALUES (?, ?, ?, ?, ?)")
           .bind(status.checkedAt, status.ok ? 1 : 0, status.component, status.commitSha, status.error || "D1_PROBE_OK").run();
       }
+    } catch {
+      // D1 may be unavailable; retain the local DO heartbeat and keep scheduling.
+      status.telemetryPersisted = false;
+      await this.storage.put("last-pulse", status);
     } finally {
-      // Keep the alarm loop alive even if D1 telemetry writes fail.
       await this.storage.setAlarm(Date.now() + 30_000);
     }
   }
