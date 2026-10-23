@@ -120,3 +120,33 @@ export async function appendSentinelAuditChain(db, entry, commitSha = "25abd1d")
   }
   throw new Error("SENTINEL_HASH_CHAIN_CONCURRENT_WRITE");
 }
+
+
+export class SentinelPulse {
+  constructor(ctx, env) {
+    this.ctx = ctx;
+    this.env = env;
+    this.storage = ctx.storage;
+  }
+
+  async fetch() {
+    const current = await this.storage.getAlarm();
+    if (current == null) await this.storage.setAlarm(Date.now() + 1000);
+    return new Response(JSON.stringify({ ok: true, pulse: "scheduled", intervalSeconds: 30 }), {
+      headers: { "content-type": "application/json; charset=utf-8", "cache-control": "no-store" }
+    });
+  }
+
+  async alarm() {
+    let status;
+    try {
+      if (!this.env?.DB || typeof this.env.DB.prepare !== "function") throw new Error("D1_BINDING_UNAVAILABLE");
+      await this.env.DB.prepare("SELECT 1 AS ok").first();
+      status = { ok: true, component: "d1", checkedAt: new Date().toISOString() };
+    } catch {
+      status = { ok: false, component: "d1", checkedAt: new Date().toISOString(), error: "D1_PROBE_FAILED" };
+    }
+    await this.storage.put("last-pulse", status);
+    await this.storage.setAlarm(Date.now() + 30_000);
+  }
+}
