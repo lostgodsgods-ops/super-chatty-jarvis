@@ -77,13 +77,14 @@ test("PWA delegates synthesis to central gateway and validates successful search
   assert.ok(searchFunction.includes("upstreamPath: new URL(attemptedEndpoint).pathname"));
   assert.ok(searchFunction.includes("/internal/search"));
   assert.match(searchFunction, /if \(response\.status !== 404\) break/);
-  assert.match(searchFunction, /payload\?\.core\?\.webSearchExecuted !== true/);
+  assert.match(searchFunction, /payload\?\.ok !== true \|\| sources\.length === 0/);
 });
 
-test("health reports only whether Tavily is configured and adds a protected smoke route", () => {
+test("health reports central search strategy and adds a protected smoke route", () => {
   const result = patchWorkerBundle(fixture);
   assert.match(result, /liveSearchConfigured: Boolean\(env\.SEARCH_BRIDGE_TOKEN\)/);
-  assert.match(result, /searchProvider: "tavily"/);
+  assert.match(result, /searchProvider: "central-agent-search"/);
+  assert.match(result, /searchStrategy: "open-source-first"/);
   assert.match(result, /path === "\/internal\/search-smoke"/);
   assert.match(result, /path === "\/internal\/chat-smoke"/);
   assert.match(result, /"\/internal\/search-smoke", "\/internal\/chat-smoke"/);
