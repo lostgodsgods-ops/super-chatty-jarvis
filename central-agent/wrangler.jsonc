@@ -30,6 +30,14 @@
       "database_id": "cb1a54a2-eafe-4e02-8187-90c9e471edc0"
     }
   ],
+  "durable_objects": {
+    "bindings": [
+      { "name": "SENTINEL_PULSE", "class_name": "SentinelPulse" }
+    ]
+  },
+  "migrations": [
+    { "tag": "v1-sentinel-pulse", "new_sqlite_classes": ["SentinelPulse"] }
+  ],
   "kv_namespaces": [
     {
       "binding": "SESSIONS",

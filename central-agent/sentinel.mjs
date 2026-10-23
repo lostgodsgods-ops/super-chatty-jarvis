@@ -1,3 +1,4 @@
+import { appendSentinelAuditChain, backfillSentinelAuditChain, ensureSentinelHashSchema } from "./sentinel-integrity.mjs";
 const MAX_STATUS_ROWS = 100;
 
 export async function ensureSentinelSchema(db) {
@@ -6,6 +7,7 @@ export async function ensureSentinelSchema(db) {
     checked_at TEXT NOT NULL, archived_at TEXT
   )`).run();
   await db.prepare("CREATE INDEX IF NOT EXISTS idx_sentinel_health_checked ON sentinel_health_audit(checked_at DESC)").run();
+  await ensureSentinelHashSchema(db);
   await db.prepare(`CREATE TABLE IF NOT EXISTS security_events (
     id TEXT PRIMARY KEY, event_type TEXT NOT NULL, ip_hash TEXT NOT NULL,
     path TEXT NOT NULL, details_json TEXT NOT NULL, created_at TEXT NOT NULL
@@ -53,8 +55,12 @@ export async function runSentinelCycle(env, options = {}) {
   if (!env?.DB || typeof env.DB.prepare !== "function") {
     return { ok: false, status: "blocked", checkedAt: now, error: "D1_BINDING_UNAVAILABLE" };
   }
-  try { await ensureSentinelSchema(env.DB); }
-  catch { return { ok: false, status: "blocked", checkedAt: now, error: "SENTINEL_SCHEMA_UNAVAILABLE" }; }
+  try {
+    await ensureSentinelSchema(env.DB);
+    await backfillSentinelAuditChain(env.DB, env.GITHUB_COMMIT_SHA || "25abd1d");
+  } catch {
+    return { ok: false, status: "blocked", checkedAt: now, error: "SENTINEL_HASH_CHAIN_BACKFILL_FAILED" };
+  }
 
   // D1 is authoritative for readiness. KV is checked read-only for diagnostics;
   // KV failure is reported accurately but does not change application readiness.
@@ -76,7 +82,13 @@ export async function runSentinelCycle(env, options = {}) {
   } catch {
     return { ok: false, status: "degraded", checkedAt: now, metrics, error: "SENTINEL_AUDIT_WRITE_FAILED" };
   }
-  return { ok: errors.length === 0, status, checkedAt: now, metrics };
+  let integrity;
+  try {
+    integrity = await appendSentinelAuditChain(env.DB, record, env.GITHUB_COMMIT_SHA || "25abd1d");
+  } catch {
+    return { ok: false, status: "degraded", checkedAt: now, metrics, error: "SENTINEL_HASH_CHAIN_WRITE_FAILED" };
+  }
+  return { ok: errors.length === 0, status, checkedAt: now, metrics, integrity: { ok: true, recordHash: integrity.hash, duplicate: integrity.duplicate === true } };
 }
 
 export async function getSentinelStatus(db, limit = 10) {
