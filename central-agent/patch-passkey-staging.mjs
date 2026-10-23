@@ -184,6 +184,8 @@ const CHAT_SMOKE_ROUTE = `if (request.method === "POST" && path === "/internal/c
       }
     }`;
 const HEALTH_ROUTE_OLD = 'if (request.method === "GET" && path === "/health") return json2({ ok: true, component: "passkey-auth-staging", production: false }, 200, headers);';
+const HEALTH_ROUTE_TAVILY = 'if (request.method === "GET" && path === "/health") return json2({ ok: true, component: "passkey-auth-staging", production: false, liveSearchConfigured: Boolean(env.SEARCH_BRIDGE_TOKEN), searchProvider: "tavily" }, 200, headers);';
+const HEALTH_ROUTE_OPEN_SOURCE = 'if (request.method === "GET" && path === "/health") return json2({ ok: true, component: "passkey-auth-staging", production: false, liveSearchConfigured: Boolean(env.SEARCH_BRIDGE_TOKEN), searchProvider: "central-agent-search", searchStrategy: "open-source-first" }, 200, headers);';
 const HEALTH_AND_SMOKE_ROUTES = `if (request.method === "GET" && path === "/health") return json2({ ok: true, component: "passkey-auth-staging", production: false, liveSearchConfigured: Boolean(env.SEARCH_BRIDGE_TOKEN), searchProvider: "central-agent-search", searchStrategy: "open-source-first" }, 200, headers);
     if (request.method === "POST" && path === "/internal/search-smoke") {
       const expectedTokens = [env.SEARCH_BRIDGE_TOKEN, env.AGENT_GATEWAY_TOKEN].filter((value) => typeof value === "string" && value.trim()).map((value) => value.trim());
@@ -299,7 +301,10 @@ export function patchWorkerBundle(source) {
 
   if (patched.includes(HEALTH_ROUTE_OLD)) {
     patched = patched.replace(HEALTH_ROUTE_OLD, HEALTH_AND_SMOKE_ROUTES);
-  } else if (!patched.includes('liveSearchConfigured: Boolean(env.SEARCH_BRIDGE_TOKEN)') || !patched.includes('path === "/internal/search-smoke"')) {
+  } else if (patched.includes(HEALTH_ROUTE_TAVILY)) {
+    // Upgrade a previously patched Worker instead of leaving stale provider metadata in place.
+    patched = patched.replace(HEALTH_ROUTE_TAVILY, HEALTH_ROUTE_OPEN_SOURCE);
+  } else if (!patched.includes(HEALTH_ROUTE_OPEN_SOURCE) || !patched.includes('path === "/internal/search-smoke"')) {
     throw new Error("Could not locate the expected health route; refusing to deploy.");
   }
 
