@@ -85,7 +85,13 @@ class HybridCoreHTTPTests(unittest.TestCase):
         ).encode()
         with socket.create_connection(("127.0.0.1", self.port), timeout=3) as sock:
             sock.sendall(raw)
-            response = sock.recv(4096).decode("iso-8859-1")
+            chunks = []
+            while True:
+                chunk = sock.recv(4096)
+                if not chunk:
+                    break
+                chunks.append(chunk)
+        response = b"".join(chunks).decode("iso-8859-1")
         self.assertIn("400", response.split("\r\n", 1)[0])
         self.assertIn("INVALID_REQUEST_FRAMING", response)
 
