@@ -76,7 +76,7 @@ test("Worker config targets the unified production gateway and required bindings
   assert.match(wranglerConfig, /"binding":\s*"DB"/);
   assert.match(wranglerConfig, /"binding":\s*"SESSIONS"/);
   assert.match(wranglerConfig, /"binding":\s*"AI"/);
-  assert.match(centralWranglerConfig, /"SEARCH_PROVIDER_MODE":\s*"tavily"/, "Central Agent must explicitly select Tavily as primary while retaining guarded public-search fallbacks");
+  assert.match(centralWranglerConfig, /"SEARCH_PROVIDER_MODE":\s*"open-source-first"/, "Central Agent must disable quota-exhausted Tavily and prefer guarded public-search fallbacks");
   assert.match(wranglerConfig, /"name":\s*"shrill-silence-164f"/);
 });
 
@@ -438,6 +438,9 @@ test("PWA /api/chat reports safe live-search provider diagnostics instead of hid
 
 test("Central Agent deployment rejects stale live-search health contracts and prints provider diagnostics", () => {
   assert.match(centralDeployWorkflow, /liveSearchProviderChain/);
+  assert.match(centralDeployWorkflow, /searchProviderMode!=="open-source-first"/);
+  assert.match(centralDeployWorkflow, /tavilySearchEnabled!==false/);
+  assert.match(centralDeployWorkflow, /disabled by production config to avoid quota-exhaustion HTTP 432/);
   assert.match(centralDeployWorkflow, /bing-news-rss/);
   assert.match(centralDeployWorkflow, /google-news-rss/);
   assert.match(centralDeployWorkflow, /gdelt-doc-api/);

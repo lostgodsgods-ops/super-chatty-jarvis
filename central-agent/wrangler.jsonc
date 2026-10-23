@@ -43,6 +43,6 @@
     "GITHUB_REPOSITORY": "lostgodsgods-ops/super-chatty-jarvis",
     "CAPABILITY_SPEC_HOSTS": "",
     // Tavily is the primary provider; Worker code retains guarded public-search fallbacks.
-    "SEARCH_PROVIDER_MODE": "tavily"
+    "SEARCH_PROVIDER_MODE": "open-source-first"
   }
 }

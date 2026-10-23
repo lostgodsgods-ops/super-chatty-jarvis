@@ -158,7 +158,7 @@ jobs:
           npx --yes wrangler@4 deploy --config central-agent/wrangler.jsonc
           sleep 3
 
-      - name: Verify central Tavily gateway bindings
+      - name: Verify quota-free open-source-first search routing
         shell: bash
         env:
           CENTRAL_AGENT_URL: https://shrill-silence-164f.lostgodsgods.workers.dev
@@ -173,20 +173,19 @@ jobs:
           const x=JSON.parse(fs.readFileSync(process.argv[2],"utf8"));
           const chain=x.capabilities?.liveSearchProviderChain;
           const requiredFallbacks=["duckduckgo-html","bing-news-rss","google-news-rss","gdelt-doc-api"];
-          if(x.ok!==true||x.capabilities?.tavilySearchConfigured!==true||
-             x.capabilities?.tavilySearchEnabled!==true||
-             x.capabilities?.searchProviderMode!=="legacy-tavily-opt-in"||
+          if(x.ok!==true||
+             x.capabilities?.tavilySearchEnabled!==false||
+             x.capabilities?.searchProviderMode!=="open-source-first"||
              x.capabilities?.directWebSearchFallback!==true||
              x.capabilities?.gatewaySearchConfigured!==true||
-             !Array.isArray(chain)||chain[0]!=="tavily"||
+             !Array.isArray(chain)||chain.length===0||chain[0]==="tavily"||
              !requiredFallbacks.every(p=>chain.includes(p))||
              x.capabilities?.searchProviderReachabilityChecked!==false) {
-            throw new Error("Tavily-primary config is not active in the deployed Worker; refusing to certify search routing.");
+            throw new Error("Quota-free open-source-first routing is not active in the deployed Worker; refusing to certify search routing.");
           }
           console.log(JSON.stringify({
             ok:x.ok,
             searchProviderMode:x.capabilities.searchProviderMode,
-            tavilySearchConfigured:x.capabilities.tavilySearchConfigured,
             tavilySearchEnabled:x.capabilities.tavilySearchEnabled,
             liveSearchProviderChain:chain,
             reachability:"pending authenticated query smoke test"
@@ -335,10 +334,10 @@ jobs:
           require("node:fs").writeFileSync(process.argv[3], JSON.stringify({tavilyPrimary, searchProvider, provider:x.provider}));
           console.log(JSON.stringify({
             authenticatedChat:"PASS", liveSearch:"PASS", provider:x.provider, searchProvider,
-            tavilyPrimary:tavilyPrimary?"PASS":"DEGRADED_FALLBACK",
+            tavilyPrimary:tavilyPrimary?"PASS":"DISABLED_TO_AVOID_HTTP_432",
             sourceCount:x.sources.length, sourceUrlsValid:true
           }));
-          if(!tavilyPrimary) console.error("Tavily-primary verification is degraded; fallback returned valid sources. The strict deployment gate will still fail after independent WebAuthn verification.");
+          if(!tavilyPrimary) console.log("Tavily is intentionally disabled in open-source-first mode; live fallback with validated source URLs is the production search gate.");
           NODE
 
           node -e 'process.stdout.write(JSON.stringify({}))' > "$tmp/passkey-request.json"
@@ -360,11 +359,12 @@ jobs:
           echo "Authenticated live-search chain and WebAuthn challenge checks completed; Tavily status is evaluated separately."
           curl --silent --show-error --max-time 20 -X POST -H "Authorization: Bearer $token" \
             -o /dev/null "$CENTRAL_AGENT_URL/auth/logout" || true
-          tavily_primary="$(node -e 'const x=require(process.argv[1]); process.stdout.write(x.tavilyPrimary ? "yes" : "no")' "$tmp/search-gate.json")"
-          if [ "$tavily_primary" != "yes" ]; then
-            echo "::error::Tavily-primary verification failed. A supported live fallback worked, but Tavily itself remains degraded."
+          search_ok="$(node -e 'const x=require(process.argv[1]); process.stdout.write(x.searchProvider && x.provider ? "yes" : "no")' "$tmp/search-gate.json")"
+          if [ "$search_ok" != "yes" ]; then
+            echo "::error::Live-search gate did not record a validated provider."
             exit 1
           fi
+          echo "Live-search gate PASS: provider source URLs validated; Tavily is disabled by production config to avoid quota-exhaustion HTTP 432."
 
       - name: Verify authenticated research telemetry
         shell: bash
