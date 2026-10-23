@@ -30,6 +30,7 @@ import { appendTreasuryEvent, listTreasuryEvents, TreasuryError } from "./archit
 import { executeQuantumOrFallback, QuantumAdapterError } from "./architecture/quantum-adapter.mjs";
 import { executeHybridTask, HybridCoreError } from "./architecture/hybrid-core.mjs";
 import { listUniversalTools } from "./architecture/universal-tool-registry.mjs";
+import { executeToolForge, listToolForgeTools, ToolForgeError } from "./architecture/tool-forge.mjs";
 import { assessRobotSimulatorCommand } from "./architecture/robotics-simulator.mjs";
 
 const VERSION = "1.4.1";
@@ -2305,6 +2306,45 @@ export default {
       } catch (error) {
         const status = error instanceof QuantumAdapterError ? error.status : error instanceof HybridCoreError ? error.status : 502;
         return json({ ok: false, code: error instanceof QuantumAdapterError ? error.code : error instanceof HybridCoreError ? error.code : "QUANTUM_EXECUTION_FAILED" }, status, cors);
+      }
+    }
+
+    if (url.pathname === "/api/tool-forge/registry" && request.method === "GET") {
+      if (!(await authorized(request, env))) return json({ ok: false, error: "Owner session required.", code: "OWNER_SESSION_REQUIRED" }, 401, cors);
+      return json({
+        ok: true,
+        tools: listToolForgeTools(),
+        executionEnabled: true,
+        sandbox: "allowlisted-read-only",
+        auditRequired: true,
+        note: "Only the fixed live-search tool is executable; arbitrary URLs, code, and tools are not accepted."
+      }, 200, cors);
+    }
+
+    if (url.pathname === "/api/tool-forge/execute" && request.method === "POST") {
+      if (!(await authorized(request, env))) return json({ ok: false, error: "Owner session required.", code: "OWNER_SESSION_REQUIRED" }, 401, cors);
+      const body = await request.json().catch(() => null);
+      if (!body || typeof body !== "object" || Array.isArray(body)) return json({ ok: false, error: "Expected JSON body.", code: "INPUT_SCHEMA_INVALID" }, 400, cors);
+      try {
+        const result = await executeToolForge({
+          toolId: body.toolId,
+          input: body.input,
+          approved: body.approved === true,
+          env,
+          execute: query => searchLiveWeb(query, env)
+        });
+        await publishEvent(env, {
+          type: "tool_forge.completed",
+          source: "tool-forge",
+          payload: { requestId: result.requestId, toolId: result.toolId, provider: result.result.provider, sourceCount: result.result.sources.length }
+        });
+        return json(result, 200, cors);
+      } catch (error) {
+        const known = error instanceof ToolForgeError;
+        const status = known ? error.status : 502;
+        const code = known ? error.code : "TOOL_EXECUTION_FAILED";
+        await publishEvent(env, { type: "tool_forge.rejected", source: "tool-forge", payload: { toolId: body.toolId || null, code, status } });
+        return json({ ok: false, error: code, code, executionEnabled: false }, status, cors);
       }
     }
 
