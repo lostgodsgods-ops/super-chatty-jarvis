@@ -1,3 +1,5 @@
+import { SentinelPulse } from "./sentinel-integrity.mjs";
+export { SentinelPulse };
 /**
  * REDULTRON Central Agent v1.4.1
  * Owner-defined password setup, PBKDF2 password hashing, and expiring sessions.
@@ -955,9 +957,14 @@ function guardedInternalSearchFallback(query, language, cors, reason) {
 }
 
 export default {
-  async fetch(request, env) {
+  async fetch(request, env, ctx) {
     const url = new URL(request.url);
     const cors = corsHeaders(request, env);
+    // Activate one durable singleton; its alarm loop runs every 30 seconds thereafter.
+    if (env.SENTINEL_PULSE && typeof env.SENTINEL_PULSE.getByName === "function") {
+      const pulse = env.SENTINEL_PULSE.getByName("redultron-global-sentinel");
+      if (ctx && typeof ctx.waitUntil === "function") ctx.waitUntil(pulse.fetch("https://sentinel-pulse/activate").catch(() => {}));
+    }
     try {
       const edgeDecision = await guardRequest(request, env);
       if (edgeDecision) {
