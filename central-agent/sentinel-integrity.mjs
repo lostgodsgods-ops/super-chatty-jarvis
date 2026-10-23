@@ -178,18 +178,22 @@ export class SentinelPulse {
       status = { ok: false, component: "d1", checkedAt, commitSha: this.env?.GITHUB_COMMIT_SHA || "UNBOUND_COMMIT_SHA", error: "D1_PROBE_FAILED" };
     }
     await this.storage.put("last-pulse", status);
-    if (this.env?.DB && typeof this.env.DB.prepare === "function") {
-      await this.env.DB.prepare(`CREATE TABLE IF NOT EXISTS sentinel_pulse_telemetry (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        checked_at TEXT NOT NULL,
-        ok INTEGER NOT NULL,
-        component TEXT NOT NULL,
-        commit_sha TEXT NOT NULL,
-        detail TEXT NOT NULL
-      )`).run();
-      await this.env.DB.prepare("INSERT INTO sentinel_pulse_telemetry (checked_at, ok, component, commit_sha, detail) VALUES (?, ?, ?, ?, ?)")
-        .bind(status.checkedAt, status.ok ? 1 : 0, status.component, status.commitSha, status.error || "D1_PROBE_OK").run();
+    try {
+      if (this.env?.DB && typeof this.env.DB.prepare === "function") {
+        await this.env.DB.prepare(`CREATE TABLE IF NOT EXISTS sentinel_pulse_telemetry (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          checked_at TEXT NOT NULL,
+          ok INTEGER NOT NULL,
+          component TEXT NOT NULL,
+          commit_sha TEXT NOT NULL,
+          detail TEXT NOT NULL
+        )`).run();
+        await this.env.DB.prepare("INSERT INTO sentinel_pulse_telemetry (checked_at, ok, component, commit_sha, detail) VALUES (?, ?, ?, ?, ?)")
+          .bind(status.checkedAt, status.ok ? 1 : 0, status.component, status.commitSha, status.error || "D1_PROBE_OK").run();
+      }
+    } finally {
+      // Keep the alarm loop alive even if D1 telemetry writes fail.
+      await this.storage.setAlarm(Date.now() + 30_000);
     }
-    await this.storage.setAlarm(Date.now() + 30_000);
   }
 }
