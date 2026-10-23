@@ -16,6 +16,15 @@ REQUEST_TIMEOUT_SECONDS = 5
 ALLOWED_TASKS = {"summarize", "extract_keywords", "classify_text"}
 
 
+def _reject_duplicate_json_keys(pairs):
+    result = {}
+    for key, value in pairs:
+        if key in result:
+            raise ValueError("DUPLICATE_JSON_KEY")
+        result[key] = value
+    return result
+
+
 def process_task(task: str, text: str):
     """Deterministic bounded transforms; never execute arbitrary code."""
     if not isinstance(task, str) or task not in ALLOWED_TASKS:
@@ -91,10 +100,14 @@ class Handler(BaseHTTPRequestHandler):
             self._json(415, {"ok": False, "code": "UNSUPPORTED_MEDIA_TYPE"})
             return
         raw_length = lengths[0].strip()
-        if not raw_length.isascii() or not raw_length.isdecimal():
+        if not raw_length.isascii() or not raw_length.isdecimal() or len(raw_length) > 10:
             self._json(400, {"ok": False, "code": "INVALID_CONTENT_LENGTH"})
             return
-        length = int(raw_length)
+        try:
+            length = int(raw_length)
+        except ValueError:
+            self._json(400, {"ok": False, "code": "INVALID_CONTENT_LENGTH"})
+            return
         if length < 1:
             self._json(400, {"ok": False, "code": "INVALID_CONTENT_LENGTH"})
             return
@@ -110,9 +123,13 @@ class Handler(BaseHTTPRequestHandler):
             self._json(400, {"ok": False, "code": "INCOMPLETE_REQUEST_BODY"})
             return
         try:
-            body = json.loads(raw_body.decode("utf-8"))
+            body = json.loads(raw_body.decode("utf-8"), object_pairs_hook=_reject_duplicate_json_keys)
         except (json.JSONDecodeError, UnicodeDecodeError):
             self._json(400, {"ok": False, "code": "INVALID_JSON"})
+            return
+        except ValueError as exc:
+            code = str(exc) if str(exc) == "DUPLICATE_JSON_KEY" else "INVALID_JSON"
+            self._json(400, {"ok": False, "code": code})
             return
         if not isinstance(body, dict) or set(body) != {"task", "text"}:
             self._json(400, {"ok": False, "code": "INVALID_REQUEST_FIELDS"})
