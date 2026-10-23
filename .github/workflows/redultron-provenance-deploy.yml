@@ -57,7 +57,11 @@ jobs:
             -H 'Content-Type: application/json' \
             --data '{"probe":"authenticated-hybrid-roundtrip","task":"summarize","input":"REDULTRON strict upstream verification"}' \
             -o "$body" -w '%{http_code}' "$REDULTRON_HYBRID_PROBE_URL")"
-          test "$code" = "200"
+          if [[ "$code" != "200" ]]; then
+            upstream_code="$(jq -r 'if type == "object" then (.code // .error // "UNKNOWN") | if type == "string" then gsub("[^A-Za-z0-9_-]"; "")[0:64] else "UNKNOWN" end else "UNKNOWN" end' "$body" 2>/dev/null || printf 'UNREADABLE_RESPONSE')"
+            echo "::error::STRICT FAIL: probe endpoint returned HTTP $code; sanitized upstream code=$upstream_code."
+            exit 1
+          fi
           if ! jq -e '
             .ok == true and
             .probe == "authenticated-hybrid-roundtrip" and
