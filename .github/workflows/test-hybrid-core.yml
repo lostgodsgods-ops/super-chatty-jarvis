@@ -1,0 +1,30 @@
+name: Test REDULTRON Hybrid Core
+
+on:
+  pull_request:
+    paths:
+      - "hybrid-core/**"
+      - ".github/workflows/test-hybrid-core.yml"
+  push:
+    branches:
+      - main
+    paths:
+      - "hybrid-core/**"
+      - ".github/workflows/test-hybrid-core.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  python-core-tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+      - name: Run Hybrid Core unit and HTTP security tests
+        run: python -m unittest discover -s hybrid-core -p 'test_*.py' -v
