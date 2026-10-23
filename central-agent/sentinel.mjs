@@ -1,4 +1,4 @@
-import { appendSentinelAuditChain, ensureSentinelHashSchema } from "./sentinel-integrity.mjs";
+import { appendSentinelAuditChain, backfillSentinelAuditChain, ensureSentinelHashSchema } from "./sentinel-integrity.mjs";
 const MAX_STATUS_ROWS = 100;
 
 export async function ensureSentinelSchema(db) {
@@ -55,8 +55,12 @@ export async function runSentinelCycle(env, options = {}) {
   if (!env?.DB || typeof env.DB.prepare !== "function") {
     return { ok: false, status: "blocked", checkedAt: now, error: "D1_BINDING_UNAVAILABLE" };
   }
-  try { await ensureSentinelSchema(env.DB); }
-  catch { return { ok: false, status: "blocked", checkedAt: now, error: "SENTINEL_SCHEMA_UNAVAILABLE" }; }
+  try {
+    await ensureSentinelSchema(env.DB);
+    await backfillSentinelAuditChain(env.DB, env.GITHUB_COMMIT_SHA || "25abd1d");
+  } catch {
+    return { ok: false, status: "blocked", checkedAt: now, error: "SENTINEL_HASH_CHAIN_BACKFILL_FAILED" };
+  }
 
   // D1 is authoritative for readiness. KV is checked read-only for diagnostics;
   // KV failure is reported accurately but does not change application readiness.
