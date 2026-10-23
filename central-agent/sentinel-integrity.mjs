@@ -137,15 +137,36 @@ export class SentinelPulse {
   }
 
   async alarm() {
+    const checkedAt = new Date().toISOString();
     let status;
     try {
       if (!this.env?.DB || typeof this.env.DB.prepare !== "function") throw new Error("D1_BINDING_UNAVAILABLE");
+      await this.env.DB.prepare(`CREATE TABLE IF NOT EXISTS sentinel_pulse_telemetry (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        checked_at TEXT NOT NULL,
+        ok INTEGER NOT NULL,
+        component TEXT NOT NULL,
+        commit_sha TEXT NOT NULL,
+        detail TEXT NOT NULL
+      )`).run();
       await this.env.DB.prepare("SELECT 1 AS ok").first();
-      status = { ok: true, component: "d1", checkedAt: new Date().toISOString() };
+      status = { ok: true, component: "d1", checkedAt, commitSha: this.env.GITHUB_COMMIT_SHA || "UNBOUND_COMMIT_SHA" };
     } catch {
-      status = { ok: false, component: "d1", checkedAt: new Date().toISOString(), error: "D1_PROBE_FAILED" };
+      status = { ok: false, component: "d1", checkedAt, commitSha: this.env?.GITHUB_COMMIT_SHA || "UNBOUND_COMMIT_SHA", error: "D1_PROBE_FAILED" };
     }
     await this.storage.put("last-pulse", status);
+    if (this.env?.DB && typeof this.env.DB.prepare === "function") {
+      await this.env.DB.prepare(`CREATE TABLE IF NOT EXISTS sentinel_pulse_telemetry (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        checked_at TEXT NOT NULL,
+        ok INTEGER NOT NULL,
+        component TEXT NOT NULL,
+        commit_sha TEXT NOT NULL,
+        detail TEXT NOT NULL
+      )`).run();
+      await this.env.DB.prepare("INSERT INTO sentinel_pulse_telemetry (checked_at, ok, component, commit_sha, detail) VALUES (?, ?, ?, ?, ?)")
+        .bind(status.checkedAt, status.ok ? 1 : 0, status.component, status.commitSha, status.error || "D1_PROBE_OK").run();
+    }
     await this.storage.setAlarm(Date.now() + 30_000);
   }
 }
