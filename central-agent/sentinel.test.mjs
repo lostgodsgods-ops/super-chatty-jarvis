@@ -72,3 +72,15 @@ test("sentinel persists successive audit records in D1 without any archive bindi
   assert.equal("archive" in JSON.parse(DB.health[0].metrics_json),false);
   assert.equal((await getSentinelStatus(DB,10)).length,2);
 });
+
+
+test("sentinel audit hash chain preserves canonical payload identity", async () => {
+  const { canonicalizeAuditPayload, sha256Hex } = await import("./sentinel-integrity.mjs");
+  const firstPayload = canonicalizeAuditPayload({ status: "healthy", metrics: { d1: true, kv: false } });
+  const reorderedPayload = canonicalizeAuditPayload({ metrics: { kv: false, d1: true }, status: "healthy" });
+  assert.equal(firstPayload, reorderedPayload);
+  const firstHash = await sha256Hex("0".repeat(64) + "\\n" + "2026-10-23T00:00:00.000Z" + "\\n" + firstPayload + "\\n" + "25abd1d");
+  const tamperedHash = await sha256Hex("0".repeat(64) + "\\n" + "2026-10-23T00:00:00.000Z" + "\\n" + firstPayload.replace("healthy", "degraded") + "\\n" + "25abd1d");
+  assert.match(firstHash, /^[0-9a-f]{64}$/);
+  assert.notEqual(firstHash, tamperedHash);
+});
