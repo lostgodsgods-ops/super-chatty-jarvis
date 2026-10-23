@@ -164,3 +164,22 @@ test("durable SentinelPulse records D1 failure and continues its bounded 30-seco
   assert.equal((await values.get("last-pulse")).ok, false);
   assert.equal(alarms.length, 1);
 });
+
+
+test("Sentinel backfills legacy audit rows into a linked SHA-256 chain without deleting history", async () => {
+  const DB = new FakeDB();
+  DB.tables.add("sentinel_health_audit");
+  DB.health.push(
+    { id: "legacy-1", status: "healthy", metrics_json: '{"d1":{"ok":true}}', checked_at: "2026-10-20T00:00:00.000Z", archived_at: null },
+    { id: "legacy-2", status: "degraded", metrics_json: '{"d1":{"ok":false}}', checked_at: "2026-10-21T00:00:00.000Z", archived_at: null }
+  );
+  const before = DB.health.length;
+  const result = await runSentinelCycle({ DB }, { now: "2026-10-23T00:00:00.000Z" });
+  assert.equal(result.ok, true);
+  assert.equal(DB.health.length, before + 1);
+  assert.equal(DB.chain.length, before + 1);
+  assert.equal(DB.chain[0].previous_hash, "0".repeat(64));
+  for (let i = 1; i < DB.chain.length; i++) assert.equal(DB.chain[i].previous_hash, DB.chain[i - 1].record_hash);
+  assert.ok(DB.chain.every(row => row.commit_sha === "25abd1d"));
+  assert.equal(result.integrity.ok, true);
+});
