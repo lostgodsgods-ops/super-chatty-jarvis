@@ -55,3 +55,15 @@ test("upstream auth failures and invalid payloads become safe structured errors"
     error => error.code === "HYBRID_CORE_INVALID_RESPONSE"
   );
 });
+
+
+test("non-success Python responses preserve the numeric upstream status for safe diagnostics", async () => {
+  await assert.rejects(
+    executeHybridTask(
+      { task: "classify_text", text: "A bounded diagnostic request." },
+      { PYTHON_CORE_URL: "https://python.example/v1/execute", OWNER_SECRET: "x".repeat(32) },
+      { fetchImpl: async () => new Response(JSON.stringify({ ok: false }), { status: 503 }) }
+    ),
+    error => error.code === "HYBRID_CORE_UPSTREAM_FAILED" && error.upstreamStatus === 503
+  );
+});

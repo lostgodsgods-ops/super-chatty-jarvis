@@ -2164,6 +2164,7 @@ export default {
             resultsSchemaValid: true,
             fallbackEngaged: true,
             fallbackReason: code,
+            ...(upstreamStatus ? { upstreamStatus } : {}),
             hybridPythonCoreExecutionVerified: false
           }, 200, cors);
         }
@@ -2392,7 +2393,9 @@ export default {
       } catch (error) {
         const status = error instanceof HybridCoreError ? error.status : 502;
         const code = error instanceof HybridCoreError ? error.code : "HYBRID_CORE_FAILED";
-        console.warn("hybrid_core_request_failed", { code, status });
+        const upstreamStatus = error instanceof HybridCoreError && Number.isInteger(error.upstreamStatus)
+          ? error.upstreamStatus : null;
+        console.warn("hybrid_core_request_failed", { code, status, upstreamStatus });
         if (status >= 500) {
           // Guarded local fallback preserves service availability without claiming that Python ran.
           const task = typeof body?.task === "string" ? body.task.trim() : "";
@@ -2409,7 +2412,7 @@ export default {
             await publishEvent(env, { type: "hybrid.task.failed", source: "hybrid-core", payload: { code, status } });
             return json({ ok: false, error: "Hybrid task request was rejected.", code }, status, cors);
           }
-          await publishEvent(env, { type: "hybrid.task.fallback", source: "hybrid-core", payload: { task, engine: "guarded-local-fallback", fallbackReason: code, pythonExecutionVerified: false } });
+          await publishEvent(env, { type: "hybrid.task.fallback", source: "hybrid-core", payload: { task, engine: "guarded-local-fallback", fallbackReason: code, upstreamStatus, pythonExecutionVerified: false } });
           return json({
             ok: true,
             engine: "guarded-local-fallback",
