@@ -58,7 +58,7 @@ jobs:
             --data '{"probe":"authenticated-hybrid-roundtrip","task":"summarize","input":"REDULTRON strict upstream verification"}' \
             -o "$body" -w '%{http_code}' "$REDULTRON_HYBRID_PROBE_URL")"
           test "$code" = "200"
-          jq -e '
+          if ! jq -e '
             .ok == true and
             .probe == "authenticated-hybrid-roundtrip" and
             .task == "summarize" and
@@ -66,4 +66,11 @@ jobs:
             .fallbackEngaged == false and
             .hybridPythonCoreExecutionVerified == true and
             (.result | type == "string" or type == "object" or type == "array")
-          ' "$body"
+          ' "$body" >/dev/null; then
+            # Emit only sanitized schema/status fields; never log result text, URL, headers, or credentials.
+            jq -r '
+              "STRICT FAIL: response schema mismatch; ok=\(.ok | if type == \"boolean\" then tostring else \"UNKNOWN\" end) probe=\(.probe | if type == \"string\" then gsub(\"[^A-Za-z0-9_-]\"; \"\")[0:64] else \"UNKNOWN\" end) task=\(.task | if type == \"string\" then gsub(\"[^A-Za-z0-9_-]\"; \"\")[0:64] else \"UNKNOWN\" end) engine=\(.engine | if type == \"string\" then gsub(\"[^A-Za-z0-9_-]\"; \"\")[0:64] else \"UNKNOWN\" end) fallbackEngaged=\(.fallbackEngaged | if type == \"boolean\" then tostring else \"UNKNOWN\" end) hybridPythonCoreExecutionVerified=\(.hybridPythonCoreExecutionVerified | if type == \"boolean\" then tostring else \"UNKNOWN\" end) resultType=\(.result | type)"
+            ' "$body" 2>/dev/null || echo "STRICT FAIL: response was not valid JSON; body suppressed."
+            exit 1
+          fi
+          echo "PASS: strict authenticated Python hybrid execution and response schema verified."
