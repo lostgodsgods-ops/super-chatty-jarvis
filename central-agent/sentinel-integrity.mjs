@@ -157,15 +157,16 @@ export class SentinelPulse {
         detail TEXT NOT NULL
       )`).run();
       await this.env.DB.prepare("SELECT 1 AS ok").first();
-      await this.env.DB.prepare(`CREATE TABLE IF NOT EXISTS sentinel_checkpoint_signatures (
+      const checkpointSchema = this.env.DB.prepare(`CREATE TABLE IF NOT EXISTS sentinel_checkpoint_signatures (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         created_at TEXT NOT NULL,
         sequence INTEGER NOT NULL,
         head_hash TEXT NOT NULL,
         signature TEXT NOT NULL,
         commit_sha TEXT NOT NULL
-      )`).run();
-      const checkpoint = await this.env.DB.prepare("SELECT sequence, head_hash AS headHash FROM sentinel_hash_chain_head WHERE id=1").first();
+      )`);
+      if (typeof checkpointSchema.run === "function") await checkpointSchema.run();
+      const checkpoint = typeof checkpointSchema.run === "function" ? await this.env.DB.prepare("SELECT sequence, head_hash AS headHash FROM sentinel_hash_chain_head WHERE id=1").first() : null;
       let checkpointSigned = false;
       if (checkpoint && this.env.SENTINEL_CHECKPOINT_SECRET) {
         const signature = await signSentinelCheckpoint(Number(checkpoint.sequence), checkpoint.headHash, this.env.SENTINEL_CHECKPOINT_SECRET);
@@ -180,16 +181,21 @@ export class SentinelPulse {
     await this.storage.put("last-pulse", status);
     try {
       if (this.env?.DB && typeof this.env.DB.prepare === "function") {
-        await this.env.DB.prepare(`CREATE TABLE IF NOT EXISTS sentinel_pulse_telemetry (
+        const telemetrySchema = this.env.DB.prepare(`CREATE TABLE IF NOT EXISTS sentinel_pulse_telemetry (
           id INTEGER PRIMARY KEY AUTOINCREMENT,
           checked_at TEXT NOT NULL,
           ok INTEGER NOT NULL,
           component TEXT NOT NULL,
           commit_sha TEXT NOT NULL,
           detail TEXT NOT NULL
-        )`).run();
-        await this.env.DB.prepare("INSERT INTO sentinel_pulse_telemetry (checked_at, ok, component, commit_sha, detail) VALUES (?, ?, ?, ?, ?)")
-          .bind(status.checkedAt, status.ok ? 1 : 0, status.component, status.commitSha, status.error || "D1_PROBE_OK").run();
+        )`);
+        if (typeof telemetrySchema.run === "function") {
+          await telemetrySchema.run();
+          await this.env.DB.prepare("INSERT INTO sentinel_pulse_telemetry (checked_at, ok, component, commit_sha, detail) VALUES (?, ?, ?, ?, ?)")
+            .bind(status.checkedAt, status.ok ? 1 : 0, status.component, status.commitSha, status.error || "D1_PROBE_OK").run();
+        } else {
+          status.telemetryPersisted = false;
+        }
       }
     } catch {
       // D1 may be unavailable; retain the local DO heartbeat and keep scheduling.
