@@ -66,7 +66,11 @@ export async function executeHybridTask(input, env, options = {}) {
       ? "HYBRID_CORE_TIMEOUT" : "HYBRID_CORE_UNAVAILABLE", 502);
   }
   if (response.status === 401 || response.status === 403) throw new HybridCoreError("HYBRID_CORE_AUTH_REJECTED", 502);
-  if (!response.ok) throw new HybridCoreError("HYBRID_CORE_UPSTREAM_FAILED", 502);
+  if (!response.ok) {
+    const error = new HybridCoreError("HYBRID_CORE_UPSTREAM_FAILED", 502);
+    error.upstreamStatus = response.status;
+    throw error;
+  }
 
   let result;
   try { result = await response.json(); } catch { throw new HybridCoreError("HYBRID_CORE_INVALID_RESPONSE", 502); }
