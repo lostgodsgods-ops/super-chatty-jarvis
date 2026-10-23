@@ -151,6 +151,6 @@ test("accepts the Central Agent search response contract without requiring chat-
   assert.match(searchFunction, /payload\?\.ok !== true \|\| sources\.length === 0/);
   assert.match(searchFunction, /typeof item\?\.content === "string"/);
   assert.match(searchFunction, /typeof item\?\.snippet === "string"/);
-  assert.match(searchFunction, /typeof payload\?\.provider === "string" \? payload\.provider/);
+  assert.match(searchFunction, /typeof payload\?\.provider === "string" && payload\.provider\.trim\(\)/);
   assert.match(searchFunction, /searchProvider: provider/);
 });
