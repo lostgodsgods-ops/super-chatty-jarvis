@@ -156,6 +156,18 @@ test("accepts the Central Agent search response contract without requiring chat-
 });
 
 
+test("falls back to authenticated Central Agent chat search when the search route has no live sources", () => {
+  const result = patchWorkerBundle(fixture);
+  const start = result.indexOf("async function runLiveSearch");
+  const end = result.indexOf('__name(runLiveSearch, "runLiveSearch");', start);
+  const searchFunction = result.slice(start, end);
+  assert.match(searchFunction, /CENTRAL_AGENT_CHAT_ENDPOINT/);
+  assert.match(searchFunction, /Search the web for:/);
+  assert.match(searchFunction, /chatPayload\?\.core\?\.webSearchExecuted !== true/);
+  assert.match(searchFunction, /CHAT_SEARCH_FALLBACK/);
+});
+
+
 test("upgrades an already-patched staging health route from the stale Tavily label", () => {
   const once = patchWorkerBundle(fixture);
   const legacyPatched = once.replace(

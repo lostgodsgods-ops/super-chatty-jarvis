@@ -98,6 +98,43 @@ const LIVE_SEARCH_FUNCTION = `async function runLiveSearch(query, env, language)
     }, 502);
   }
 
+  const CHAT_SEARCH_FALLBACK_ENDPOINT = CENTRAL_AGENT_CHAT_ENDPOINT;
+  if (payload?.ok !== true || !Array.isArray(payload?.sources) || payload.sources.length === 0) {
+    try {
+      const chatResponse = await fetchCentralAgent(env, CHAT_SEARCH_FALLBACK_ENDPOINT, {
+        method: "POST",
+        headers: {
+          authorization: "Bearer " + gatewayToken,
+          "content-type": "application/json",
+          accept: "application/json"
+        },
+        body: JSON.stringify({ message: "Search the web for: " + query.slice(0, 400), language }),
+        signal: AbortSignal.timeout(18000)
+      });
+      const chatPayload = await chatResponse.json().catch(() => ({}));
+      if (!chatResponse.ok || chatPayload?.ok !== true ||
+          chatPayload?.core?.webSearchExecuted !== true ||
+          !Array.isArray(chatPayload?.sources) || chatPayload.sources.length === 0) {
+        console.warn("SCJ_CHAT_SEARCH_FALLBACK_INCOMPLETE", {
+          status: chatResponse.status,
+          liveSearchExecuted: chatPayload?.core?.webSearchExecuted === true,
+          sourceCount: Array.isArray(chatPayload?.sources) ? chatPayload.sources.length : 0
+        });
+      } else {
+        payload = {
+          ...chatPayload,
+          provider: typeof chatPayload.provider === "string" && chatPayload.provider.trim()
+            ? chatPayload.provider
+            : chatPayload.core.searchProvider
+        };
+      }
+    } catch (error) {
+      console.warn("SCJ_CHAT_SEARCH_FALLBACK_ERROR", {
+        errorName: typeof error?.name === "string" ? error.name : "Error"
+      });
+    }
+  }
+
   const sources = (Array.isArray(payload?.sources) ? payload.sources : []).map((item) => {
     let sourceUrl = "";
     try {
