@@ -148,14 +148,15 @@ export class SentinelPulse {
     let status;
     try {
       if (!this.env?.DB || typeof this.env.DB.prepare !== "function") throw new Error("D1_BINDING_UNAVAILABLE");
-      await this.env.DB.prepare(`CREATE TABLE IF NOT EXISTS sentinel_pulse_telemetry (
+      const pulseSchema = this.env.DB.prepare(`CREATE TABLE IF NOT EXISTS sentinel_pulse_telemetry (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         checked_at TEXT NOT NULL,
         ok INTEGER NOT NULL,
         component TEXT NOT NULL,
         commit_sha TEXT NOT NULL,
         detail TEXT NOT NULL
-      )`).run();
+      )`);
+      if (typeof pulseSchema.run === "function") await pulseSchema.run();
       await this.env.DB.prepare("SELECT 1 AS ok").first();
       const checkpointSchema = this.env.DB.prepare(`CREATE TABLE IF NOT EXISTS sentinel_checkpoint_signatures (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
