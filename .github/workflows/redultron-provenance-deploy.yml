@@ -1,0 +1,69 @@
+name: REDULTRON Provenance Deploy and Strict Live Certification
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: redultron-production-deploy
+  cancel-in-progress: false
+
+jobs:
+  deploy-and-certify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      WORKER_URL: https://shrill-silence-164f.lostgodsgods.workers.dev
+      REDULTRON_HYBRID_PROBE_URL: ${{ vars.REDULTRON_HYBRID_PROBE_URL }}
+      REDULTRON_PROBE_TOKEN: ${{ secrets.REDULTRON_PROBE_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Require deployment and authenticated probe credentials
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "$CLOUDFLARE_ACCOUNT_ID"
+          test -n "$CLOUDFLARE_API_TOKEN"
+          test -n "$REDULTRON_HYBRID_PROBE_URL"
+          test -n "$REDULTRON_PROBE_TOKEN"
+          [[ "$GITHUB_SHA" =~ ^[0-9a-f]{40}$ ]]
+      - name: Deploy exact GitHub commit provenance
+        run: |
+          npx --yes wrangler@4 deploy --config central-agent/wrangler.jsonc --var "GITHUB_COMMIT_SHA:$GITHUB_SHA"
+      - name: Verify production health endpoint
+        shell: bash
+        run: |
+          set -euo pipefail
+          body="$(mktemp)"
+          code="$(curl --silent --show-error --max-time 20 -o "$body" -w '%{http_code}' "$WORKER_URL/health")"
+          test "$code" = "200"
+          jq -e '.ok == true' "$body"
+      - name: Require actual authenticated Python hybrid execution
+        shell: bash
+        run: |
+          set -euo pipefail
+          body="$(mktemp)"
+          code="$(curl --silent --show-error --max-time 30 -X POST \
+            -H "Authorization: Bearer $REDULTRON_PROBE_TOKEN" \
+            -H 'Content-Type: application/json' \
+            --data '{"probe":"authenticated-hybrid-roundtrip","task":"summarize","input":"REDULTRON strict upstream verification"}' \
+            -o "$body" -w '%{http_code}' "$REDULTRON_HYBRID_PROBE_URL")"
+          test "$code" = "200"
+          jq -e '
+            .ok == true and
+            .probe == "authenticated-hybrid-roundtrip" and
+            .task == "summarize" and
+            .engine == "python-edge-hybrid" and
+            .fallbackEngaged == false and
+            .hybridPythonCoreExecutionVerified == true and
+            (.result | type == "string" or type == "object" or type == "array")
+          ' "$body"
