@@ -21,3 +21,102 @@ export async function hashAuditEntry(previousHash, timestamp, canonicalPayload, 
   if (typeof commitSha !== "string" || !commitSha) throw new TypeError("AUDIT_COMMIT_SHA_REQUIRED");
   return sha256Hex(previousHash + "\\n" + timestamp + "\\n" + canonicalPayload + "\\n" + commitSha);
 }
+
+
+const ZERO_HASH = "0".repeat(64);
+
+export async function ensureSentinelHashSchema(db) {
+  await db.prepare(`CREATE TABLE IF NOT EXISTS sentinel_hash_chain (
+    sequence INTEGER PRIMARY KEY,
+    record_id TEXT NOT NULL UNIQUE,
+    previous_hash TEXT NOT NULL,
+    timestamp TEXT NOT NULL,
+    canonical_payload TEXT NOT NULL,
+    commit_sha TEXT NOT NULL,
+    record_hash TEXT NOT NULL
+  )`).run();
+  await db.prepare(`CREATE TABLE IF NOT EXISTS sentinel_hash_chain_head (
+    id INTEGER PRIMARY KEY CHECK (id = 1),
+    sequence INTEGER NOT NULL,
+    head_hash TEXT NOT NULL
+  )`).run();
+  await db.prepare("INSERT OR IGNORE INTO sentinel_hash_chain_head (id, sequence, head_hash) VALUES (1, 0, ?)")
+    .bind(ZERO_HASH).run();
+}
+
+async function readChainHead(db) {
+  const head = await db.prepare("SELECT sequence, head_hash AS headHash FROM sentinel_hash_chain_head WHERE id = 1").first();
+  if (!head || !Number.isInteger(Number(head.sequence)) || !/^[0-9a-f]{64}$/.test(head.headHash)) {
+    throw new Error("SENTINEL_HASH_CHAIN_HEAD_INVALID");
+  }
+  return { sequence: Number(head.sequence), hash: head.headHash };
+}
+
+export async function backfillSentinelAuditChain(db, commitSha = "25abd1d") {
+  await ensureSentinelHashSchema(db);
+  for (let attempt = 0; attempt < 4; attempt++) {
+    const legacy = await db.prepare(`SELECT h.id, h.status, h.metrics_json AS metricsJson, h.checked_at AS checkedAt
+      FROM sentinel_health_audit h LEFT JOIN sentinel_hash_chain c ON c.record_id = h.id
+      WHERE c.record_id IS NULL ORDER BY h.checked_at ASC, h.id ASC`).all();
+    const rows = legacy?.results || [];
+    if (!rows.length) return { ok: true, backfilled: 0 };
+    const head = await readChainHead(db);
+    let previousHash = head.hash;
+    let sequence = head.sequence;
+    const statements = [];
+    for (const row of rows) {
+      const payload = canonicalizeAuditPayload({
+        id: row.id, status: row.status, metricsJson: row.metricsJson, checkedAt: row.checkedAt
+      });
+      const recordHash = await hashAuditEntry(previousHash, row.checkedAt, payload, commitSha);
+      sequence++;
+      statements.push(db.prepare(`INSERT INTO sentinel_hash_chain
+        (sequence, record_id, previous_hash, timestamp, canonical_payload, commit_sha, record_hash)
+        SELECT ?, ?, ?, ?, ?, ?, ?
+        WHERE EXISTS (SELECT 1 FROM sentinel_hash_chain_head WHERE id=1 AND sequence=? AND head_hash=?)
+          AND NOT EXISTS (SELECT 1 FROM sentinel_hash_chain WHERE record_id=?)`)
+        .bind(sequence, row.id, previousHash, row.checkedAt, payload, commitSha, recordHash, head.sequence, head.hash, row.id));
+      previousHash = recordHash;
+    }
+    statements.push(db.prepare(`UPDATE sentinel_hash_chain_head SET sequence=?, head_hash=?
+      WHERE id=1 AND sequence=? AND head_hash=? AND EXISTS
+      (SELECT 1 FROM sentinel_hash_chain WHERE sequence=? AND record_hash=?)`)
+      .bind(sequence, previousHash, head.sequence, head.hash, sequence, previousHash));
+    const results = await db.batch(statements);
+    if (Number(results?.[0]?.meta?.changes || 0) > 0) return { ok: true, backfilled: rows.length };
+    // A concurrent append won the compare-and-swap. Re-read the head and remaining rows.
+  }
+  throw new Error("SENTINEL_HASH_CHAIN_CONCURRENT_WRITE");
+}
+
+export async function appendSentinelAuditChain(db, entry, commitSha = "25abd1d") {
+  await backfillSentinelAuditChain(db, commitSha);
+  const existing = await db.prepare("SELECT record_hash AS recordHash FROM sentinel_hash_chain WHERE record_id=?")
+    .bind(entry.id).first();
+  if (existing?.recordHash) return { ok: true, duplicate: true, hash: existing.recordHash };
+  for (let attempt = 0; attempt < 4; attempt++) {
+    const head = await readChainHead(db);
+    const payload = canonicalizeAuditPayload({
+      id: entry.id, status: entry.status, metricsJson: entry.metrics_json, checkedAt: entry.checked_at
+    });
+    const recordHash = await hashAuditEntry(head.hash, entry.checked_at, payload, commitSha);
+    const nextSequence = head.sequence + 1;
+    const results = await db.batch([
+      db.prepare(`INSERT INTO sentinel_hash_chain
+        (sequence, record_id, previous_hash, timestamp, canonical_payload, commit_sha, record_hash)
+        SELECT ?, ?, ?, ?, ?, ?, ?
+        WHERE EXISTS (SELECT 1 FROM sentinel_hash_chain_head WHERE id=1 AND sequence=? AND head_hash=?)
+          AND NOT EXISTS (SELECT 1 FROM sentinel_hash_chain WHERE record_id=?)`)
+        .bind(nextSequence, entry.id, head.hash, entry.checked_at, payload, commitSha, recordHash, head.sequence, head.hash, entry.id),
+      db.prepare(`UPDATE sentinel_hash_chain_head SET sequence=?, head_hash=?
+        WHERE id=1 AND sequence=? AND head_hash=? AND EXISTS
+        (SELECT 1 FROM sentinel_hash_chain WHERE sequence=? AND record_id=? AND record_hash=?)`)
+        .bind(nextSequence, recordHash, head.sequence, head.hash, nextSequence, entry.id, recordHash)
+    ]);
+    if (Number(results?.[0]?.meta?.changes || 0) > 0) return { ok: true, duplicate: false, hash: recordHash };
+    const raced = await db.prepare("SELECT record_hash AS recordHash FROM sentinel_hash_chain WHERE record_id=?")
+      .bind(entry.id).first();
+    if (raced?.recordHash) return { ok: true, duplicate: true, hash: raced.recordHash };
+  }
+  throw new Error("SENTINEL_HASH_CHAIN_CONCURRENT_WRITE");
+}
