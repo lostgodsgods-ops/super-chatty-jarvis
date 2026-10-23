@@ -163,7 +163,7 @@ test("falls back to authenticated Central Agent chat search when the search rout
   const searchFunction = result.slice(start, end);
   assert.match(searchFunction, /CENTRAL_AGENT_CHAT_ENDPOINT/);
   assert.match(searchFunction, /Search the web for:/);
-  assert.match(searchFunction, /chatPayload\\?\\.core\\?\\.webSearchExecuted !== true/);
+  assert.match(searchFunction, /chatPayload\?\.core\?\.webSearchExecuted !== true/);
   assert.match(searchFunction, /CHAT_SEARCH_FALLBACK/);
 });
 
