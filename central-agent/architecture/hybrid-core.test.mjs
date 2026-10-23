@@ -55,3 +55,14 @@ test("upstream auth failures and invalid payloads become safe structured errors"
     error => error.code === "HYBRID_CORE_INVALID_RESPONSE"
   );
 });
+
+test("non-2xx upstream failures retain HTTP status for sanitized diagnostics", async () => {
+  await assert.rejects(
+    executeHybridTask(
+      { task: "summarize", text: "Hi." },
+      { PYTHON_CORE_URL: "https://python.example/v1/execute", OWNER_SECRET: "x".repeat(32) },
+      { fetchImpl: async () => new Response("{}", { status: 404 }) }
+    ),
+    error => error.code === "HYBRID_CORE_UPSTREAM_FAILED" && error.upstreamStatus === 404
+  );
+});
