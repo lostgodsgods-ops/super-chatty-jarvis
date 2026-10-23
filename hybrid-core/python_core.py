@@ -22,9 +22,9 @@ def process_task(task: str, text: str):
         raise ValueError("HYBRID_TASK_NOT_ALLOWED")
     if not isinstance(text, str) or not text.strip() or len(text) > MAX_TEXT_CHARS:
         raise ValueError("HYBRID_TEXT_LENGTH_INVALID")
-    normalized = re.sub(r"\\s+", " ", text).strip()
+    normalized = re.sub(r"\s+", " ", text).strip()
     if task == "summarize":
-        sentences = [s.strip() for s in re.split(r"(?<=[.!?])\\s+", normalized) if s.strip()]
+        sentences = [s.strip() for s in re.split(r"(?<=[.!?])\s+", normalized) if s.strip()]
         return " ".join(sentences[:3])[:2000]
     if task == "extract_keywords":
         words = re.findall(r"[A-Za-z][A-Za-z0-9'-]{2,}", normalized.lower())
@@ -64,7 +64,6 @@ class Handler(BaseHTTPRequestHandler):
             pass
 
     def log_message(self, fmt, *args):
-        # Do not log request IP, headers, credentials, or user-supplied text.
         return
 
     def do_GET(self):
