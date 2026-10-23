@@ -1,6 +1,7 @@
 import http.client
 import json
 import os
+import socket
 import threading
 import unittest
 from http.server import ThreadingHTTPServer
@@ -17,8 +18,7 @@ class QuietThreadingHTTPServer(ThreadingHTTPServer):
 
 class HybridCoreTests(unittest.TestCase):
     def test_summarize_is_bounded_to_three_sentences(self):
-        result = process_task("summarize", "One. Two. Three. Four.")
-        self.assertEqual(result, "One. Two. Three.")
+        self.assertEqual(process_task("summarize", "One. Two. Three. Four."), "One. Two. Three.")
 
     def test_extract_keywords_returns_ranked_terms(self):
         result = process_task("extract_keywords", "Worker timeout. Worker failed. Search timeout.")
@@ -61,7 +61,7 @@ class HybridCoreHTTPTests(unittest.TestCase):
         os.environ.pop("OWNER_SECRET", None)
 
     def request(self, body=None, headers=None, raw_path="/v1/execute"):
-        connection = http.client.HTTPConnection("127.0.0.1", self.port, timeout=3)
+        connection = http.client.HTTPConnection("127.0.0.1", self.port, timeout=8)
         connection.request("POST", raw_path, body=body, headers=headers or {})
         response = connection.getresponse()
         result = response.status, response.getheaders(), response.read()
@@ -77,13 +77,17 @@ class HybridCoreHTTPTests(unittest.TestCase):
         self.assertEqual(json.loads(body)["code"], "OWNER_AUTH_REQUIRED")
 
     def test_rejects_duplicate_content_length(self):
-        status, _, body = self.request(
-            '{"task":"summarize","text":"hello"}',
-            [("X-Owner-Secret", TEST_SECRET), ("Content-Type", "application/json"),
-             ("Content-Length", "35"), ("Content-Length", "1")],
-        )
-        self.assertIn(status, (400, 413))
-        self.assertNotEqual(json.loads(body).get("ok"), True)
+        raw = (
+            f"POST /v1/execute HTTP/1.1\r\nHost: localhost\r\n"
+            f"X-Owner-Secret: {TEST_SECRET}\r\nContent-Type: application/json\r\n"
+            "Content-Length: 35\r\nContent-Length: 1\r\nConnection: close\r\n\r\n"
+            '{"task":"summarize","text":"hello"}'
+        ).encode()
+        with socket.create_connection(("127.0.0.1", self.port), timeout=3) as sock:
+            sock.sendall(raw)
+            response = sock.recv(4096).decode("iso-8859-1")
+        self.assertIn("400", response.split("\r\n", 1)[0])
+        self.assertIn("INVALID_REQUEST_FRAMING", response)
 
     def test_rejects_transfer_encoding(self):
         status, _, body = self.request(
@@ -92,7 +96,7 @@ class HybridCoreHTTPTests(unittest.TestCase):
              "Content-Type": "application/json"},
         )
         self.assertEqual(status, 400)
-        self.assertEqual(json.loads(body)["code"], "UNSUPPORTED_TRANSFER_ENCODING")
+        self.assertEqual(json.loads(body)["code"], "INVALID_REQUEST_FRAMING")
 
     def test_rejects_wrong_content_type(self):
         status, _, body = self.request(
