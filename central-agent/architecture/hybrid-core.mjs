@@ -77,5 +77,19 @@ export async function executeHybridTask(input, env, options = {}) {
   if (!result || result.ok !== true || result.task !== payload.task || !("result" in result)) {
     throw new HybridCoreError("HYBRID_CORE_INVALID_RESPONSE", 502);
   }
-  return { ok: true, engine: "python-edge-hybrid", task: payload.task, result: result.result };
+  const value = result.result;
+  const validResult = payload.task === "summarize"
+    ? typeof value === "string" && value.length <= 2000
+    : payload.task === "extract_keywords"
+      ? Array.isArray(value) && value.length <= 12 && value.every(item =>
+          item && typeof item === "object" && !Array.isArray(item) &&
+          typeof item.term === "string" && Number.isInteger(item.count) && item.count > 0)
+      : payload.task === "classify_text"
+        ? value && typeof value === "object" && !Array.isArray(value) &&
+          Array.isArray(value.labels) && value.labels.length > 0 &&
+          value.labels.every(label => typeof label === "string") &&
+          Number.isInteger(value.characters) && value.characters >= 0
+        : false;
+  if (!validResult) throw new HybridCoreError("HYBRID_CORE_INVALID_RESPONSE", 502);
+  return { ok: true, engine: "python-edge-hybrid", task: payload.task, result: value };
 }

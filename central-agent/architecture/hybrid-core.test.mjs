@@ -66,3 +66,31 @@ test("non-2xx upstream failures retain HTTP status for sanitized diagnostics", a
     error => error.code === "HYBRID_CORE_UPSTREAM_FAILED" && error.upstreamStatus === 404
   );
 });
+
+
+test("accepts each task's documented result type and rejects cross-task schema mismatches", async () => {
+  const env = { PYTHON_CORE_URL: "https://python.example/v1/execute", OWNER_SECRET: "x".repeat(32) };
+  const cases = [
+    ["summarize", "A short summary."],
+    ["extract_keywords", [{ term: "worker", count: 2 }]],
+    ["classify_text", { labels: ["technical_issue"], characters: 20 }]
+  ];
+  for (const [task, value] of cases) {
+    const result = await executeHybridTask({ task, text: "A valid input." }, env, {
+      fetchImpl: async () => new Response(JSON.stringify({ ok: true, task, result: value }), { status: 200 })
+    });
+    assert.deepEqual(result.result, value);
+  }
+  for (const [task, value] of [
+    ["summarize", { wrong: true }],
+    ["extract_keywords", "not-an-array"],
+    ["classify_text", []]
+  ]) {
+    await assert.rejects(
+      executeHybridTask({ task, text: "A valid input." }, env, {
+        fetchImpl: async () => new Response(JSON.stringify({ ok: true, task, result: value }), { status: 200 })
+      }),
+      error => error.code === "HYBRID_CORE_INVALID_RESPONSE"
+    );
+  }
+});
