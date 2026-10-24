@@ -120,6 +120,31 @@ class HybridCoreHTTPTests(unittest.TestCase):
         self.assertIn(status, (400, 408))
         self.assertNotEqual(json.loads(body).get("ok"), True)
 
+    def test_accepts_request_body_at_exact_10_kibibyte_limit(self):
+        prefix = b'{"task":"summarize","text":"'
+        suffix = b'"}'
+        text = b"a" * (10 * 1024 - len(prefix) - len(suffix))
+        body = prefix + text + suffix
+        self.assertEqual(len(body), 10 * 1024)
+        status, _, response_body = self.request(
+            body.decode("ascii"),
+            {"X-Owner-Secret": TEST_SECRET, "Content-Type": "application/json"},
+        )
+        self.assertEqual(status, 200, response_body.decode("utf-8"))
+
+    def test_rejects_request_body_one_byte_over_10_kibibyte_limit(self):
+        prefix = b'{"task":"summarize","text":"'
+        suffix = b'"}'
+        text = b"a" * (10 * 1024 + 1 - len(prefix) - len(suffix))
+        body = prefix + text + suffix
+        self.assertEqual(len(body), 10 * 1024 + 1)
+        status, _, response_body = self.request(
+            body.decode("ascii"),
+            {"X-Owner-Secret": TEST_SECRET, "Content-Type": "application/json"},
+        )
+        self.assertEqual(status, 413)
+        self.assertEqual(json.loads(response_body)["code"], "REQUEST_TOO_LARGE")
+
     def test_rejects_extremely_long_content_length_header(self):
         status, _, body = self.request(
             "{}",

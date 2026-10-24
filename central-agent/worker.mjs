@@ -1989,7 +1989,7 @@ export default {
         }
 
         const length = Number(request.headers.get("content-length") || 0);
-        if (length > 16384) return json({ ok: false, error: "REQUEST_TOO_LARGE" }, 413, cors);
+        if (length > 10 * 1024) return json({ ok: false, error: "REQUEST_TOO_LARGE" }, 413, cors);
         let body;
         try { body = await request.json(); } catch { return json({ ok: false, error: "EXPECTED_JSON_BODY" }, 400, cors); }
         const normalized = normalizeOwnerControlCommand(body);
@@ -2387,7 +2387,23 @@ export default {
 
     if (url.pathname === "/api/hybrid/execute" && request.method === "POST") {
       if (!(await authorized(request, env))) return json({ ok: false, error: "Owner session required.", code: "OWNER_SESSION_REQUIRED" }, 401, cors);
-      const body = await request.json().catch(() => null);
+      const declaredLength = request.headers.get("content-length");
+      if (declaredLength !== null && (!/^\d+$/.test(declaredLength) || Number(declaredLength) > 10 * 1024)) {
+        return json({ ok: false, error: "REQUEST_TOO_LARGE", code: "REQUEST_TOO_LARGE" }, 413, cors);
+      }
+      let rawBody;
+      try {
+        rawBody = await request.text();
+      } catch {
+        return json({ ok: false, error: "INVALID_REQUEST_BODY", code: "INVALID_REQUEST_BODY" }, 400, cors);
+      }
+      if (new TextEncoder().encode(rawBody).byteLength > 10 * 1024) {
+        return json({ ok: false, error: "REQUEST_TOO_LARGE", code: "REQUEST_TOO_LARGE" }, 413, cors);
+      }
+      let body;
+      try { body = JSON.parse(rawBody); } catch {
+        return json({ ok: false, error: "EXPECTED_JSON_BODY", code: "EXPECTED_JSON_BODY" }, 400, cors);
+      }
       try {
         const result = await executeHybridTask(body, env);
         await publishEvent(env, { type: "hybrid.task.completed", source: "hybrid-core", payload: { task: result.task, engine: result.engine } });
@@ -2642,7 +2658,7 @@ export default {
       let payload;
       try {
         const raw = await request.text();
-        if (new TextEncoder().encode(raw).byteLength > 12000) return json({ ok: false, error: "REQUEST_TOO_LARGE" }, 413, cors);
+        if (new TextEncoder().encode(raw).byteLength > 10 * 1024) return json({ ok: false, error: "REQUEST_TOO_LARGE" }, 413, cors);
         payload = JSON.parse(raw);
       } catch {
         return json({ ok: false, error: "INVALID_JSON" }, 400, cors);
