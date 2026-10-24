@@ -1989,7 +1989,7 @@ export default {
         }
 
         const length = Number(request.headers.get("content-length") || 0);
-        if (length > 16384) return json({ ok: false, error: "REQUEST_TOO_LARGE" }, 413, cors);
+        if (length > 10 * 1024) return json({ ok: false, error: "REQUEST_TOO_LARGE" }, 413, cors);
         let body;
         try { body = await request.json(); } catch { return json({ ok: false, error: "EXPECTED_JSON_BODY" }, 400, cors); }
         const normalized = normalizeOwnerControlCommand(body);
@@ -2658,7 +2658,7 @@ export default {
       let payload;
       try {
         const raw = await request.text();
-        if (new TextEncoder().encode(raw).byteLength > 12000) return json({ ok: false, error: "REQUEST_TOO_LARGE" }, 413, cors);
+        if (new TextEncoder().encode(raw).byteLength > 10 * 1024) return json({ ok: false, error: "REQUEST_TOO_LARGE" }, 413, cors);
         payload = JSON.parse(raw);
       } catch {
         return json({ ok: false, error: "INVALID_JSON" }, 400, cors);
