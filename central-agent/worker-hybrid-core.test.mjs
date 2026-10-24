@@ -52,6 +52,33 @@ test("hybrid execution rejects callers without an owner session", async () => {
   assert.notEqual(payload.ok, true);
 });
 
+test("hybrid execution accepts an exact 10 KiB JSON request body", async () => {
+  const token = "valid-owner-session-for-hybrid-10kb-boundary";
+  const DB = new FakeDB({ token_hash: await tokenHash(token), status: "active", expires_at: Date.now() + 60_000 });
+  const prefix = '{"task":"summarize","text":"';
+  const suffix = '"}';
+  const body = prefix + "a".repeat(10 * 1024 - new TextEncoder().encode(prefix + suffix).byteLength) + suffix;
+  assert.equal(new TextEncoder().encode(body).byteLength, 10 * 1024);
+  const response = await worker.fetch(new Request("https://example.test/api/hybrid/execute", {
+    method: "POST", headers: { "content-type": "application/json", authorization: "Bearer " + token }, body
+  }), env(DB));
+  assert.notEqual(response.status, 413);
+});
+
+test("hybrid execution rejects a JSON request body one byte above 10 KiB", async () => {
+  const token = "valid-owner-session-for-hybrid-over-10kb";
+  const DB = new FakeDB({ token_hash: await tokenHash(token), status: "active", expires_at: Date.now() + 60_000 });
+  const prefix = '{"task":"summarize","text":"';
+  const suffix = '"}';
+  const body = prefix + "a".repeat(10 * 1024 + 1 - new TextEncoder().encode(prefix + suffix).byteLength) + suffix;
+  assert.equal(new TextEncoder().encode(body).byteLength, 10 * 1024 + 1);
+  const response = await worker.fetch(new Request("https://example.test/api/hybrid/execute", {
+    method: "POST", headers: { "content-type": "application/json", authorization: "Bearer " + token }, body
+  }), env(DB));
+  assert.equal(response.status, 413);
+  assert.equal((await response.json()).code, "REQUEST_TOO_LARGE");
+});
+
 test("hybrid execution rejects unsupported tasks before contacting Python", async () => {
   const token = "valid-owner-session-for-hybrid-test";
   const DB = new FakeDB({ token_hash: await tokenHash(token), status: "active", expires_at: Date.now() + 60_000 });
