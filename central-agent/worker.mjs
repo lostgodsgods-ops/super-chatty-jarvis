@@ -2193,7 +2193,15 @@ export default {
 
     if (url.pathname === "/api/treasury/events" && request.method === "POST") {
       if (!(await authorized(request, env))) return json({ ok: false, code: "OWNER_SESSION_REQUIRED" }, 401, cors);
-      const body = await request.json().catch(() => null);
+      const declaredLength = request.headers.get("content-length");
+      if (declaredLength !== null && (!/^\d+$/.test(declaredLength) || Number(declaredLength) > 10 * 1024)) {
+        return json({ ok: false, code: "REQUEST_TOO_LARGE" }, 413, cors);
+      }
+      const rawBody = await request.text();
+      if (new TextEncoder().encode(rawBody).byteLength > 10 * 1024) {
+        return json({ ok: false, code: "REQUEST_TOO_LARGE" }, 413, cors);
+      }
+      const body = (() => { try { return JSON.parse(rawBody); } catch { return null; } })();
       try {
         const result = await appendTreasuryEvent(env.DB, body);
         await publishEvent(env, { type: "treasury.event.simulated", source: "treasury-ledger", payload: {
@@ -2209,7 +2217,15 @@ export default {
 
     if (url.pathname === "/api/treasury/scan" && request.method === "POST") {
       if (!(await authorized(request, env))) return json({ ok: false, code: "OWNER_SESSION_REQUIRED" }, 401, cors);
-      const body = await request.json().catch(() => null);
+      const declaredLength = request.headers.get("content-length");
+      if (declaredLength !== null && (!/^\d+$/.test(declaredLength) || Number(declaredLength) > 10 * 1024)) {
+        return json({ ok: false, code: "REQUEST_TOO_LARGE" }, 413, cors);
+      }
+      const rawBody = await request.text();
+      if (new TextEncoder().encode(rawBody).byteLength > 10 * 1024) {
+        return json({ ok: false, code: "REQUEST_TOO_LARGE" }, 413, cors);
+      }
+      const body = (() => { try { return JSON.parse(rawBody); } catch { return null; } })();
       if (!body || typeof body !== "object" || Array.isArray(body)) return json({ ok: false, code: "TREASURY_SCAN_REQUEST_INVALID" }, 400, cors);
       try {
         const result = await appendTreasuryEvent(env.DB, {
@@ -2231,7 +2247,15 @@ export default {
 
     if (url.pathname === "/api/treasury/pay" && request.method === "POST") {
       if (!(await authorized(request, env))) return json({ ok: false, code: "OWNER_SESSION_REQUIRED" }, 401, cors);
-      const body = await request.json().catch(() => null);
+      const declaredLength = request.headers.get("content-length");
+      if (declaredLength !== null && (!/^\d+$/.test(declaredLength) || Number(declaredLength) > 10 * 1024)) {
+        return json({ ok: false, code: "REQUEST_TOO_LARGE" }, 413, cors);
+      }
+      const rawBody = await request.text();
+      if (new TextEncoder().encode(rawBody).byteLength > 10 * 1024) {
+        return json({ ok: false, code: "REQUEST_TOO_LARGE" }, 413, cors);
+      }
+      const body = (() => { try { return JSON.parse(rawBody); } catch { return null; } })();
       if (!body || typeof body !== "object" || Array.isArray(body)) return json({ ok: false, code: "TREASURY_PAYMENT_REQUEST_INVALID" }, 400, cors);
       try {
         const result = await appendTreasuryEvent(env.DB, { ...body, eventType: "payment_intent", manualApproval: body.manualApproval === true });
@@ -2244,7 +2268,15 @@ export default {
 
     if (url.pathname === "/api/treasury/compute-funding" && request.method === "POST") {
       if (!(await authorized(request, env))) return json({ ok: false, code: "OWNER_SESSION_REQUIRED" }, 401, cors);
-      const body = await request.json().catch(() => null);
+      const declaredLength = request.headers.get("content-length");
+      if (declaredLength !== null && (!/^\d+$/.test(declaredLength) || Number(declaredLength) > 10 * 1024)) {
+        return json({ ok: false, code: "REQUEST_TOO_LARGE" }, 413, cors);
+      }
+      const rawBody = await request.text();
+      if (new TextEncoder().encode(rawBody).byteLength > 10 * 1024) {
+        return json({ ok: false, code: "REQUEST_TOO_LARGE" }, 413, cors);
+      }
+      const body = (() => { try { return JSON.parse(rawBody); } catch { return null; } })();
       if (!body || typeof body !== "object" || Array.isArray(body)) return json({ ok: false, code: "TREASURY_FUNDING_REQUEST_INVALID" }, 400, cors);
       try {
         const result = await appendTreasuryEvent(env.DB, {
