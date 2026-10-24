@@ -39,7 +39,7 @@ jobs:
           echo "http_code=$code" >> "$GITHUB_OUTPUT"
           if [[ "$code" != "200" ]]; then
             echo "::error::Staging Central Agent health check failed with HTTP $code."
-            cat "$body"
+            echo "Response body suppressed; inspect sanitized status and workflow step outputs."
             exit 1
           fi
           node -e 'const fs=require("fs"); const x=JSON.parse(fs.readFileSync(process.argv[1],"utf8")); if(x.ok!==true) throw Error("health ok flag is not true"); if(x.capabilities?.directWebSearchFallback!==true) throw Error("directWebSearchFallback is not enabled"); if(x.capabilities?.ownerAuthentication!==true) throw Error("ownerAuthentication is not configured"); if(x.capabilities?.durableTaskQueue!==true) throw Error("durableTaskQueue is not configured"); console.log(JSON.stringify({ok:x.ok,service:x.service,version:x.version,directWebSearchFallback:x.capabilities.directWebSearchFallback,tavilySearchConfigured:x.capabilities.tavilySearchConfigured,ownerAuthentication:x.capabilities.ownerAuthentication,durableTaskQueue:x.capabilities.durableTaskQueue},null,2));' "$body"
