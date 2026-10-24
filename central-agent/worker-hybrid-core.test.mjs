@@ -62,7 +62,7 @@ test("hybrid execution accepts an exact 10 KiB JSON request body", async () => {
   const response = await worker.fetch(new Request("https://example.test/api/hybrid/execute", {
     method: "POST", headers: { "content-type": "application/json", authorization: "Bearer " + token }, body
   }), env(DB));
-  assert.notEqual(response.status, 413);
+  assert.equal(response.status, 200);
 });
 
 test("hybrid execution rejects a JSON request body one byte above 10 KiB", async () => {
