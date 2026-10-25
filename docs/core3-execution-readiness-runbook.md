@@ -30,6 +30,17 @@
 - [ ] Tests assert the actual runtime secret payload uses the canonical secret.
 - [ ] Secret values never appear in logs, responses, screenshots, or artifacts.
 
+### Gate 1A — DNS, hostname, and Worker routing
+- [ ] Start with the known Worker hostname from the deployment configuration; do not guess or substitute a public IP address.
+- [ ] From the GitHub Actions runner, resolve the configured hostname (for example with `getent ahosts <hostname>` or `nslookup <hostname>`) and record the resolver result and timestamp without exposing secrets.
+- [ ] If DNS resolution fails, distinguish DNS failure from TLS, HTTP, and owner-authentication failures; do not mark the Worker unhealthy based on a client environment that cannot resolve the hostname.
+- [ ] If using a custom domain, verify in Cloudflare that the hostname is attached to the intended Worker, the domain status is active, DNS records are correct for that Cloudflare-managed hostname, and TLS is valid. Do not invent an A/AAAA address or change unrelated DNS records.
+- [ ] Test the exact configured base URL with HTTPS and verify the certificate/host match before calling `/health`.
+- [ ] Run the check from the same CI/network environment that will execute the authenticated probe; a successful local DNS lookup alone is not production proof.
+- [ ] If the custom domain is unavailable, use only the known canonical Worker URL as a diagnostic comparison; do not change production routing without reviewing the intended hostname and rollback plan.
+
+**Gate 1A PASS condition:** the configured hostname resolves in the probe runner, TLS/host validation succeeds, and the request reaches the intended Worker. DNS resolution by itself is not proof of a healthy application.
+
 ### Gate 2 — Production gateway proof
 - [ ] Deploy only from the reviewed, protected main branch using the approved deployment workflow.
 - [ ] `GET /health` returns HTTP 200 and `ok: true`.
