@@ -63,8 +63,11 @@ export function evaluateAction(request, registry = null) {
   }
 
   if (PRIVILEGED_ACTIONS.has(action)) {
-    if (!hasCompleteCommanderApproval(approval)) {
+    if (!approval) {
       return { decision: "BLOCKED", reason: "COMMANDER_APPROVAL_REQUIRED", execution: "none" };
+    }
+    if (!hasCompleteCommanderApproval(approval)) {
+      return { decision: "DENY", reason: "APPROVAL_EVIDENCE_INCOMPLETE", execution: "none" };
     }
     // Approval is evidence only; no executor is connected to this policy module.
     return {
