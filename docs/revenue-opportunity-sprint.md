@@ -56,6 +56,36 @@ Find legitimate, low-cost ways to earn revenue for the Super Chatty Core project
 - Never give agents unrestricted wallet authority. Never share wallet secrets with an agent or paste them into chat, source code, CI logs, or issue trackers.
 - No live payment, trade, blockchain transaction, API-billing change, or production deployment is permitted by this task brief.
 
+
+## Target Wallet Authority Model — Incoming Only
+
+This section records the requested target architecture. It does **not** mean a wallet has been connected or that any agent is running.
+
+```mermaid
+graph TD
+    A[Commander — approval authority] -->|Controls and approves| B[Commander Wallet — outgoing authority]
+    subgraph REDULTRON CORE 3.0 — Autonomous Swarm Target
+      C[90 registered agent slots] -->|Research and earn through authorized work only| D[REDULTRON Core Wallet — incoming-only target]
+    end
+    D -->|Owner-controlled deposit/settlement after verification| B
+```
+
+### Non-negotiable wallet controls
+- Agent slots may research opportunities, prepare deliverables, and report verified revenue routes; this is not permission to access accounts or move money.
+- Agents must never receive seed phrases, private keys, recovery codes, exchange credentials, or unrestricted wallet permissions.
+- The Core wallet target is **incoming-only** for agents. Agents cannot initiate withdrawals, transfers, trades, token approvals, contract calls, or spending.
+- Any transfer from the Core wallet to the Commander wallet must be initiated or explicitly approved by the owner through an authenticated, independently verified flow. Do not implement automatic sweeping until ownership, network, address, fee, and confirmation checks are tested.
+- Never accept funds from suspicious sources, money-mule requests, stolen accounts, deceptive schemes, or transactions with unclear origin. Reject and escalate rather than forwarding funds.
+- Before any real wallet integration, require chain/network allowlisting, address verification, deposit monitoring, idempotency, replay protection, fee limits, audit records, emergency stop, and a tested recovery path.
+- Current mode remains research/simulation-only. Do not claim the target wallet path is live until end-to-end tests prove it.
+
+### Revenue-opportunity triage
+1. Prefer no-upfront-cost routes tied to real project value: paid software/service deliverables, eligible grants, transparent sponsorships/donations, and published bounty programs whose terms allow participation.
+2. Verify the official source, eligibility, deliverable, deadline, payout method, fees, and restrictions before ranking an opportunity.
+3. Treat cloud credits or promotional credits as **non-cash value**, not wallet currency; verify whether they are transferable or redeemable before counting them.
+4. Reject offers promising guaranteed returns, requiring deposits to unlock earnings, requesting secrets, or asking the project to receive and forward third-party money.
+5. Produce a shortlist and draft materials only. Submission, account creation, contract acceptance, and any financial transaction remain human-approved actions.
+
 ## Current blockers
 The last recorded Live Gateway Probe failed its authenticated hybrid endpoint with HTTP 401 `OWNER_AUTH_REQUIRED`. The policy module is a decision function, not an executor. Do not claim autonomous dispatch until authentication, task intake, result persistence, audit logging, retry bounds, and emergency-stop behavior are tested end-to-end.
 
