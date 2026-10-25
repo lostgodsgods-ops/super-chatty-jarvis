@@ -1,8 +1,8 @@
 {
   "schemaVersion": "1.0.0",
-  "project": "REDULTRON CORE 2.0",
+  "project": "REDULTRON CORE 3.0",
   "mode": "registry-only",
-  "generatedFrom": "90-agent-ghost-mode-master-architecture",
+  "generatedFrom": "90-agent-ultimate-autonomous-ecosystem",
   "baseCommit": "a9979d4b5238ca6ed093ead0d8fd92a06d9460c5",
   "counts": {
     "total": 90,
