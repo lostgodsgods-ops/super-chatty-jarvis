@@ -1,4 +1,4 @@
-# REDULTRON CORE 2.0 — 90-Agent Ghost-Mode Registry
+# REDULTRON CORE 3.0 — 90-Agent Registry and Safety Gate
 
 ## Scope
 
@@ -22,6 +22,12 @@
 ## Ghost-mode terminology
 
 “Ghost mode” means low-noise, least-privilege background processing—not invisibility, evasion of monitoring, or removal of required audit evidence. Retain security-relevant audit records and redact sensitive payloads rather than claiming a zero digital footprint.
+
+## Core 3.0 policy decision gate
+
+`core/policy-gate.mjs` adds a deterministic policy decision function. It does not execute tasks or connect external tools. It fails closed if the registry is absent, rejects unknown or unprovisioned agents, checks the per-agent allow-list, blocks prohibited actions, and requires complete Commander approval evidence for privileged actions. Even with approval, production deployment remains blocked until a separately reviewed executor is implemented and release-gated. Live payments, transfers, trades, and blockchain broadcasts remain simulation-only.
+
+The focused tests are in `tests/core3-policy-gate.test.mjs`; the repository CI workflow runs them through `npm test`.
 
 ## Activation prerequisites
 
