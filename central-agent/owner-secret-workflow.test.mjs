@@ -21,3 +21,14 @@ test("hybrid probe and Worker deployment use the same canonical owner secret", (
   assert.doesNotMatch(runtimeSecretStep, /secrets\.OWNER_SECRET\s*\}\}/,
     "legacy OWNER_SECRET secret must not be used for runtime binding");
 });
+
+
+test("live gateway probe checks DNS before HTTP and verifies invalid owner credentials are rejected", () => {
+  const probe = readWorkflow("../.github/workflows/redultron-live-probe.yml");
+  assert.match(probe, /getent\s+ahosts|dns\.promises\.lookup|dns\.lookup/,
+    "probe must explicitly validate DNS resolution before HTTP checks");
+  assert.match(probe, /invalid|wrong|bogus|negative-auth|unauthorized/i,
+    "probe must include a negative authentication control");
+  assert.match(probe, /401|403/,
+    "probe must require unauthorized credentials to be rejected");
+});
