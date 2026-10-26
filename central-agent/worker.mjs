@@ -2334,11 +2334,21 @@ export default {
       if (!(await authorized(request, env))) return json({ ok: false, error: "Owner session required.", code: "OWNER_SESSION_REQUIRED" }, 401, cors);
       const body = await request.json().catch(() => null);
       if (!body || typeof body !== "object" || Array.isArray(body)) return json({ ok: false, error: "Expected JSON body.", code: "INPUT_SCHEMA_INVALID" }, 400, cors);
+      const toolId = String(body.toolId || "");
+      const approvalResourceId = toolId + ":" + JSON.stringify(body.input ?? null);
+      const approvalResult = await consumeScopedApproval(
+        env,
+        body.ownerApproval,
+        "tool_forge_execute",
+        approvalResourceId,
+        "EXECUTE THIS EXACT ALLOWLISTED TOOL INPUT"
+      );
+      if (!approvalResult.ok) return json({ ok: false, error: approvalResult.error, code: approvalResult.error }, approvalResult.status, cors);
       try {
         const result = await executeToolForge({
           toolId: body.toolId,
           input: body.input,
-          approved: body.approved === true,
+          approved: true,
           env,
           execute: query => searchLiveWeb(query, env)
         });
