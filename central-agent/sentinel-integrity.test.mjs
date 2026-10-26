@@ -74,3 +74,33 @@ test("Sentinel verifier rejects a non-empty head when no chain rows exist", asyn
     ok: false, code: "SENTINEL_HEAD_MISMATCH", sequence: 0
   });
 });
+
+import { verifySentinelAuditChain } from "./sentinel-integrity.mjs";
+
+test("persisted Sentinel verifier performs zero database writes", async () => {
+  const chain = await makeChain([{ id: "a", status: "ok" }]);
+  let writes = 0;
+  const db = {
+    prepare(sql) {
+      return {
+        bind() { return this; },
+        async run() { writes++; return { success: true, meta: { changes: 0 } }; },
+        async all() {
+          if (sql.includes("FROM sentinel_hash_chain ORDER BY sequence ASC")) {
+            return { results: chain.rows };
+          }
+          throw new Error("Unexpected query in zero-write verifier test");
+        },
+        async first() {
+          if (sql.includes("FROM sentinel_hash_chain_head")) return chain.head;
+          throw new Error("Unexpected query in zero-write verifier test");
+        }
+      };
+    },
+    async batch() { writes++; return []; }
+  };
+
+  const result = await verifySentinelAuditChain(db);
+  assert.equal(result.ok, true);
+  assert.equal(writes, 0, "verification must not create tables or initialize the chain head");
+});
