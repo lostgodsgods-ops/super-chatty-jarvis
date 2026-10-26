@@ -99,7 +99,7 @@ async function audit(env, { requestId, toolId, status, details }) {
  * live-search ID. It cannot select URLs, import code, or invoke arbitrary methods.
  * Durable audit is required before execution and recorded after completion.
  */
-export async function executeToolForge({ toolId, input, approved = false, env = {}, execute }) {
+export async function executeToolForge({ toolId, input, approved = false, env = {}, execute, timeoutMs = 5000 }) {
   const tool = TOOL_ALLOWLIST.find(item => item.id === toolId);
   if (!tool) throw new ToolForgeError("TOOL_NOT_ALLOWLISTED", 403);
   if (approved !== true) throw new ToolForgeError("OWNER_APPROVAL_REQUIRED", 403);
@@ -111,7 +111,19 @@ export async function executeToolForge({ toolId, input, approved = false, env = 
     details: { approved: true, executionMode: "allowlisted-read-only", inputKeys: Object.keys(normalizedInput) }
   });
   try {
-    const raw = await execute(normalizedInput.query);
+    const boundedTimeoutMs = Math.min(5000, Math.max(1, Number.isFinite(timeoutMs) ? timeoutMs : 5000));
+    let timeoutHandle;
+    let raw;
+    try {
+      raw = await Promise.race([
+        Promise.resolve().then(() => execute(normalizedInput.query)),
+        new Promise((_, reject) => {
+          timeoutHandle = setTimeout(() => reject(new ToolForgeError("TOOL_EXECUTION_TIMEOUT", 504)), boundedTimeoutMs);
+        })
+      ]);
+    } finally {
+      clearTimeout(timeoutHandle);
+    }
     const result = validateSearchResult(raw);
     const completedAuditId = await audit(env, {
       requestId, toolId, status: "completed",
