@@ -86,3 +86,23 @@ test("Tool Forge rejects non-HTTP result URLs and records the failed attempt", a
   );
   assert.equal(DB.rows.length, 2);
 });
+
+
+test("Tool Forge rejects a provider that exceeds the bounded execution deadline", async () => {
+  const DB = dbMock();
+  await assert.rejects(
+    executeToolForge({
+      toolId: "live-search",
+      input: { query: "latest India news" },
+      approved: true,
+      timeoutMs: 1,
+      env: { DB },
+      execute: async query => {
+        await new Promise(resolve => setTimeout(resolve, 20));
+        return { provider: "test", sources: [{ title: "News", url: "https://example.com/news" }], query };
+      }
+    }),
+    error => error.code === "TOOL_EXECUTION_TIMEOUT"
+  );
+  assert.equal(DB.rows.length, 2);
+});
