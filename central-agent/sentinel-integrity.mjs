@@ -207,3 +207,80 @@ export class SentinelPulse {
     }
   }
 }
+
+
+/**
+ * Verify a materialized Sentinel chain snapshot without mutating storage.
+ * Returns the first integrity failure rather than treating partial verification as success.
+ */
+export async function verifySentinelHashChainRows(rows, head) {
+  const fail = (code, sequence) => ({ ok: false, code, sequence });
+  if (!Array.isArray(rows) || !head || !Number.isInteger(Number(head.sequence)) ||
+      Number(head.sequence) < 0 || !/^[0-9a-f]{64}$/.test(String(head.headHash || ""))) {
+    return fail("SENTINEL_CHAIN_METADATA_INVALID", 0);
+  }
+
+  let expectedPreviousHash = ZERO_HASH;
+  let expectedSequence = 1;
+  for (const row of rows) {
+    const sequence = Number(row?.sequence);
+    if (!Number.isInteger(sequence) || sequence !== expectedSequence) {
+      return fail("SENTINEL_SEQUENCE_MISMATCH", Number.isFinite(sequence) ? sequence : expectedSequence);
+    }
+    if (row.previousHash !== expectedPreviousHash) {
+      return fail("SENTINEL_PREVIOUS_HASH_MISMATCH", sequence);
+    }
+    if (typeof row.timestamp !== "string" || !row.timestamp ||
+        typeof row.commitSha !== "string" || !row.commitSha ||
+        typeof row.canonicalPayload !== "string" ||
+        !/^[0-9a-f]{64}$/.test(String(row.recordHash || ""))) {
+      return fail("SENTINEL_RECORD_METADATA_INVALID", sequence);
+    }
+    let parsedPayload;
+    try {
+      parsedPayload = JSON.parse(row.canonicalPayload);
+      if (canonicalizeAuditPayload(parsedPayload) !== row.canonicalPayload) {
+        return fail("SENTINEL_PAYLOAD_NOT_CANONICAL", sequence);
+      }
+    } catch {
+      return fail("SENTINEL_PAYLOAD_INVALID", sequence);
+    }
+    const computedHash = await hashAuditEntry(
+      row.previousHash, row.timestamp, row.canonicalPayload, row.commitSha
+    );
+    if (computedHash !== row.recordHash) return fail("SENTINEL_RECORD_HASH_MISMATCH", sequence);
+    expectedPreviousHash = computedHash;
+    expectedSequence++;
+  }
+
+  const verifiedSequence = expectedSequence - 1;
+  if (Number(head.sequence) !== verifiedSequence || head.headHash !== expectedPreviousHash) {
+    return fail("SENTINEL_HEAD_MISMATCH", verifiedSequence);
+  }
+  return {
+    ok: true,
+    verifiedEntries: rows.length,
+    sequence: verifiedSequence,
+    headHash: expectedPreviousHash
+  };
+}
+
+/** Read and verify the persisted D1 chain and head; fails closed on D1 errors. */
+export async function verifySentinelAuditChain(db) {
+  if (!db || typeof db.prepare !== "function") {
+    return { ok: false, code: "D1_BINDING_UNAVAILABLE", sequence: 0 };
+  }
+  try {
+    await ensureSentinelHashSchema(db);
+    const [chainResult, head] = await Promise.all([
+      db.prepare(`SELECT sequence, record_id AS recordId, previous_hash AS previousHash,
+        timestamp, canonical_payload AS canonicalPayload, commit_sha AS commitSha,
+        record_hash AS recordHash FROM sentinel_hash_chain ORDER BY sequence ASC`).all(),
+      db.prepare("SELECT sequence, head_hash AS headHash FROM sentinel_hash_chain_head WHERE id=1").first()
+    ]);
+    if (!head) return { ok: false, code: "SENTINEL_CHAIN_HEAD_MISSING", sequence: 0 };
+    return await verifySentinelHashChainRows(chainResult?.results || [], head);
+  } catch {
+    return { ok: false, code: "SENTINEL_CHAIN_READ_FAILED", sequence: 0 };
+  }
+}
