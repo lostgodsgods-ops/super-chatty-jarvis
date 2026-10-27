@@ -174,3 +174,11 @@ class HybridCoreHTTPTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class HybridDeploymentConfigTests(unittest.TestCase):
+    def test_procfile_starts_the_actual_python_http_server(self):
+        from pathlib import Path
+        procfile = Path(__file__).with_name("Procfile").read_text(encoding="utf-8").strip()
+        self.assertEqual(procfile, "web: HOST=0.0.0.0 python python_core.py")
+
