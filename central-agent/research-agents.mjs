@@ -100,7 +100,7 @@ export async function runBoundedResearchCycle(env, options = {}) {
   for (const [source, url] of [["github", SOURCES.github], ["releases", SOURCES.releases], ["markets", SOURCES.markets], ["nasa", SOURCES.nasa]]) {
     try {
       const payload = source === "nasa"
-        ? await searchNasaMedia(options.nasaQuery || "Artemis II", { limit: 5, fetchImpl: options.fetchImpl || fetch })
+        ? await (options.fetchNasaMedia || searchNasaMedia)(options.nasaQuery || "Artemis II", { limit: 5, fetchImpl: options.fetchImpl || fetch })
         : await fetchSourceWithRetry(fetchSource, url, options);
       if (source === "github") {
         const rows = (Array.isArray(payload) ? payload : []).slice(0, RESEARCH_LIMITS.maxItemsPerSource).map(item => normalizeResearchItem("github", item)).filter(Boolean);
