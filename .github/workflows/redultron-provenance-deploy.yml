@@ -34,6 +34,12 @@ jobs:
           test -n "$CLOUDFLARE_API_TOKEN"
           test -n "$REDULTRON_OWNER_SECRET"
           [[ "$GITHUB_SHA" =~ ^[0-9a-f]{40}$ ]]
+      - name: Synchronize owner secret to the deployed Worker without logging it
+        shell: bash
+        run: |
+          set -euo pipefail
+          printf '%s' "$REDULTRON_OWNER_SECRET" | npx --yes wrangler@4 secret put OWNER_SECRET --config central-agent/wrangler.jsonc
+          echo "PASS: OWNER_SECRET binding synchronized; secret value was not printed."
       - name: Deploy exact GitHub commit provenance
         run: |
           npx --yes wrangler@4 deploy --config central-agent/wrangler.jsonc --var "GITHUB_COMMIT_SHA:$GITHUB_SHA"
@@ -42,6 +48,7 @@ jobs:
         run: |
           set -euo pipefail
           body="$(mktemp)"
+          trap 'rm -f "$body"' EXIT
           code="$(curl --silent --show-error --max-time 20 -o "$body" -w '%{http_code}' "$WORKER_URL/health")"
           test "$code" = "200"
           jq -e '.ok == true' "$body"
@@ -50,6 +57,7 @@ jobs:
         run: |
           set -euo pipefail
           body="$(mktemp)"
+          trap 'rm -f "$body"' EXIT
           code="$(curl --silent --show-error --max-time 30 -X POST \
             -H "x-owner-secret: $REDULTRON_OWNER_SECRET" \
             -H 'Content-Type: application/json' \
@@ -69,11 +77,10 @@ jobs:
             (.resultSchemaValid == true or .resultsSchemaValid == true) and
             .hybridPythonCoreExecutionVerified == true
           ' "$body" >/dev/null; then
-            # Emit only sanitized schema/status fields; never log result text, URL, headers, or credentials.
             jq -c '{
               ok: (if (.ok | type) == "boolean" then .ok else "UNKNOWN" end),
               probe: (if (.probe | type) == "string" then (.probe | gsub("[^A-Za-z0-9_-]"; "")[0:64]) else "UNKNOWN" end),
-              task: (if (.task | type) == "string" then (.task | gsub("[^A-Za-z0-9_-]"; "")[0:64]) else "UNKNOWN" end),
+              probeTask: (if (.task | type) == "string" then (.task | gsub("[^A-Za-z0-9_-]"; "")[0:64]) else "UNKNOWN" end),
               engine: (if (.engine | type) == "string" then (.engine | gsub("[^A-Za-z0-9_-]"; "")[0:64]) else "UNKNOWN" end),
               fallbackEngaged: (if (.fallbackEngaged | type) == "boolean" then .fallbackEngaged else "UNKNOWN" end),
               fallbackReason: (if (.fallbackReason | type) == "string" then (.fallbackReason | gsub("[^A-Za-z0-9_-]"; "")[0:64]) else "UNKNOWN" end),
