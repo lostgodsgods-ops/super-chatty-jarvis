@@ -9,7 +9,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: redultron-production-deploy
+  group: super-chatty-central-agent-deploy
   cancel-in-progress: false
 
 jobs:
