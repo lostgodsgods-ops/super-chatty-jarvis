@@ -19,7 +19,7 @@ test("normalizer rejects missing titles and restricts GitHub links", () => {
   assert.equal(normalizeResearchItem("releases", { id: 4, name: "Untrusted", html_url: "https://evil.example/x" }).url, "");
 });
 test("source budgets are finite and fixed", () => {
-  assert.equal(RESEARCH_LIMITS.requestsPerTick, 3);
+  assert.equal(RESEARCH_LIMITS.requestsPerTick, 4);
   assert.equal(RESEARCH_LIMITS.maxItemsPerSource, 10);
   assert.equal(RESEARCH_LIMITS.timeoutMs, 7000);
   assert.equal(RESEARCH_LIMITS.maxSignalsPerTick, 30);
@@ -71,6 +71,7 @@ test("persistent market HTTP 429 is retried and recorded as a transparent warnin
   const result = await runBoundedResearchCycle(
     { AUTONOMOUS_RESEARCH_ENABLED: "true", DB: db },
     {
+      fetchNasaMedia: async () => [],
       sleep: async () => {},
       fetchSource: async url => {
         if (url.includes("api.github.com/repos")) return [];
@@ -117,7 +118,7 @@ test("rate-limited public sources are transparently degraded without fabricating
   try {
     const result = await runBoundedResearchCycle(
       { AUTONOMOUS_RESEARCH_ENABLED: "true", DB: db },
-      { sleep: async () => {} }
+      { sleep: async () => {}, fetchNasaMedia: async () => [] }
     );
     assert.equal(marketCalls, 3, "market 429 gets two bounded retries");
     assert.equal(result.ok, true);
@@ -134,4 +135,23 @@ test("rate-limited public sources are transparently degraded without fabricating
   } finally {
     globalThis.fetch = originalFetch;
   }
+});
+
+test("NASA results are normalized and persisted by the bounded research cycle", async () => {
+  const db = createAuditDb();
+  const result = await runBoundedResearchCycle(
+    { AUTONOMOUS_RESEARCH_ENABLED: "true", DB: db },
+    {
+      fetchNasaMedia: async () => [{
+        nasaId: "NASA-42", title: "Moon observation",
+        sourceUrl: "https://images-api.nasa.gov/asset/NASA-42",
+        previewUrl: "https://images-assets.nasa.gov/image/NASA-42/preview.jpg"
+      }],
+      fetchSource: async url => url.includes("api.coingecko.com")
+        ? { bitcoin: { usd: 50000, usd_24h_change: 1 }, ethereum: { usd: 2500, usd_24h_change: 1 } }
+        : []
+    }
+  );
+  assert.equal(result.status, "completed");
+  assert.equal(result.sourceCalls, 4);
 });
