@@ -2,8 +2,10 @@
  * Bounded, read-only research collectors for the Central Agent.
  * Fixed public sources, finite budgets, D1 audit, disabled unless explicitly enabled.
  */
-export const RESEARCH_LIMITS = Object.freeze({ requestsPerTick: 3, maxItemsPerSource: 10, maxTextLength: 1200, timeoutMs: 7000, maxSignalsPerTick: 30 });
+export const RESEARCH_LIMITS = Object.freeze({ requestsPerTick: 4, maxItemsPerSource: 10, maxTextLength: 1200, timeoutMs: 7000, maxSignalsPerTick: 30 });
+import { searchNasaMedia } from "./nasa-media-connector.mjs";
 const SOURCES = Object.freeze({
+  nasa: "https://images-api.nasa.gov/search?q=Artemis%20II&media_type=image&page_size=5",
   github: "https://api.github.com/repos/lostgodsgods-ops/super-chatty-jarvis/commits?per_page=10",
   releases: "https://api.github.com/repos/lostgodsgods-ops/super-chatty-jarvis/releases?per_page=10",
   markets: "https://api.coingecko.com/api/v3/simple/price?ids=bitcoin,ethereum&vs_currencies=usd&include_24hr_change=true"
@@ -33,6 +35,12 @@ export function deriveMarketSignals(markets) {
   return signals;
 }
 export function normalizeResearchItem(source, item) {
+  if (source === "nasa") {
+    const title = safeText(item?.title, 240);
+    const url = typeof item?.sourceUrl === "string" && item.sourceUrl.startsWith("https://images-api.nasa.gov/") ? item.sourceUrl : "";
+    if (!title || !url || !safeText(item?.nasaId, 100)) return null;
+    return { source, externalId: safeText(item.nasaId, 100), title, url, sentiment: scoreSentiment(title) };
+  }
   if (source === "github") {
     const title = safeText(item?.commit?.message || item?.message, 240);
     const url = typeof item?.html_url === "string" && item.html_url.startsWith("https://github.com/lostgodsgods-ops/super-chatty-jarvis/") ? item.html_url : "";
@@ -89,9 +97,11 @@ export async function runBoundedResearchCycle(env, options = {}) {
   let itemsStored = 0, signalsStored = 0, errorCount = 0;
   const errors = [], warnings = [];
   await ensureResearchSchema(env.DB);
-  for (const [source, url] of [["github", SOURCES.github], ["releases", SOURCES.releases], ["markets", SOURCES.markets]]) {
+  for (const [source, url] of [["github", SOURCES.github], ["releases", SOURCES.releases], ["markets", SOURCES.markets], ["nasa", SOURCES.nasa]]) {
     try {
-      const payload = await fetchSourceWithRetry(fetchSource, url, options);
+      const payload = source === "nasa"
+        ? await searchNasaMedia(options.nasaQuery || "Artemis II", { limit: 5, fetchImpl: options.fetchImpl || fetch })
+        : await fetchSourceWithRetry(fetchSource, url, options);
       if (source === "github") {
         const rows = (Array.isArray(payload) ? payload : []).slice(0, RESEARCH_LIMITS.maxItemsPerSource).map(item => normalizeResearchItem("github", item)).filter(Boolean);
         for (const row of rows) {
@@ -101,6 +111,13 @@ export async function runBoundedResearchCycle(env, options = {}) {
         }
       } else if (source === "releases") {
         const rows = (Array.isArray(payload) ? payload : []).slice(0, RESEARCH_LIMITS.maxItemsPerSource).map(item => normalizeResearchItem("releases", item)).filter(Boolean);
+        for (const row of rows) {
+          const now = new Date().toISOString();
+          const result = await env.DB.prepare("INSERT OR IGNORE INTO research_observations (id,source,external_id,title,url,sentiment_score,sentiment_label,confidence,observed_at) VALUES (?,?,?,?,?,?,?,?,?)").bind(crypto.randomUUID(), row.source, row.externalId, row.title, row.url, row.sentiment.score, row.sentiment.label, row.sentiment.confidence, now).run();
+          itemsStored += result?.meta?.changes === 1 ? 1 : 0;
+        }
+      } else if (source === "nasa") {
+        const rows = (Array.isArray(payload) ? payload : []).slice(0, 5).map(item => normalizeResearchItem("nasa", item)).filter(Boolean);
         for (const row of rows) {
           const now = new Date().toISOString();
           const result = await env.DB.prepare("INSERT OR IGNORE INTO research_observations (id,source,external_id,title,url,sentiment_score,sentiment_label,confidence,observed_at) VALUES (?,?,?,?,?,?,?,?,?)").bind(crypto.randomUUID(), row.source, row.externalId, row.title, row.url, row.sentiment.score, row.sentiment.label, row.sentiment.confidence, now).run();
