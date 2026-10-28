@@ -47,6 +47,8 @@ export async function executeHybridTask(input, env, options = {}) {
     throw new HybridCoreError("HYBRID_CORE_URL_INVALID", 503);
   }
 
+  const requestId = typeof options.requestId === "string" && /^[A-Za-z0-9._:-]{8,64}$/.test(options.requestId)
+    ? options.requestId : crypto.randomUUID();
   const fetchImpl = typeof options.fetchImpl === "function" ? options.fetchImpl : fetch;
   let response;
   try {
@@ -56,24 +58,40 @@ export async function executeHybridTask(input, env, options = {}) {
         "content-type": "application/json",
         "accept": "application/json",
         "user-agent": "REDULTRON-HybridCore/1.0",
+        "x-request-id": requestId,
         "x-owner-secret": secret
       },
       body: JSON.stringify(payload),
       signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS)
     });
   } catch (error) {
-    throw new HybridCoreError(error?.name === "TimeoutError" || error?.name === "AbortError"
+    const failure = new HybridCoreError(error?.name === "TimeoutError" || error?.name === "AbortError"
       ? "HYBRID_CORE_TIMEOUT" : "HYBRID_CORE_UNAVAILABLE", 502);
+    failure.requestId = requestId;
+    console.warn("hybrid_core_upstream_unavailable", { requestId, code: failure.code });
+    throw failure;
   }
-  if (response.status === 401 || response.status === 403) throw new HybridCoreError("HYBRID_CORE_AUTH_REJECTED", 502);
+  if (response.status === 401 || response.status === 403) {
+    const failure = new HybridCoreError("HYBRID_CORE_AUTH_REJECTED", 502);
+    failure.upstreamStatus = response.status;
+    failure.requestId = requestId;
+    console.warn("hybrid_core_upstream_auth_rejected", { requestId, upstreamStatus: response.status });
+    throw failure;
+  }
   if (!response.ok) {
     const error = new HybridCoreError("HYBRID_CORE_UPSTREAM_FAILED", 502);
     error.upstreamStatus = response.status;
+    error.requestId = requestId;
+    console.warn("hybrid_core_upstream_http_failure", { requestId, upstreamStatus: response.status, code: error.code });
     throw error;
   }
 
   let result;
-  try { result = await response.json(); } catch { throw new HybridCoreError("HYBRID_CORE_INVALID_RESPONSE", 502); }
+  try { result = await response.json(); } catch {
+    const failure = new HybridCoreError("HYBRID_CORE_INVALID_RESPONSE", 502);
+    failure.requestId = requestId;
+    throw failure;
+  }
   if (!result || result.ok !== true || result.task !== payload.task || !("result" in result)) {
     throw new HybridCoreError("HYBRID_CORE_INVALID_RESPONSE", 502);
   }
