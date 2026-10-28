@@ -28,8 +28,8 @@ test("architecture status route returns explicit layer and provider readiness", 
   const body = await response.json();
   assert.equal(body.ok, true);
   assert.equal(body.layers.length, 7);
-  assert.equal(body.providers.find(x => x.id === "workers-ai").status, "available");
-  assert.equal(body.providers.find(x => x.id === "gemini").status, "not_implemented");
+  assert.equal(body.providers.find(x => x.id === "workers-ai").status, "configured_not_verified");
+  assert.equal(body.providers.find(x => x.id === "gemini").status, "not_configured");
 });
 
 test("MCP and vector status endpoints cannot imply execution is enabled", async () => {
