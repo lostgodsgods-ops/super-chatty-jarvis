@@ -528,5 +528,9 @@ test("Cloudflare deployment verifies the exact deployed PWA release after Worker
   assert.ok(deployWorkflow.includes("REDULTRON-[0-9]{4}\\.[0-9]{2}\\.[0-9]{2}-CORE-3\\.0-V[0-9]+"), "version extraction must escape literal dots correctly");
   assert.match(deployWorkflow, /REDULTRON_WORKER_BASE_URL/);
   assert.match(deployWorkflow, /for attempt in 1 2 3 4 5 6/);
-  assert.match(deployWorkflow, /expected_meta=.*application-version.*expected_version/);
+  assert.match(deployWorkflow, /attrs\.get\("name"\) === "application-version"/);
+  assert.match(deployWorkflow, /attrs\.get\("content"\) === expected/);
+  assert.match(deployWorkflow, /source-manifest\.json/);
+  assert.match(deployWorkflow, /cache-control: no-cache, must-revalidate/);
+  assert.match(deployWorkflow, /health_ok=false/);
 });
