@@ -51,7 +51,6 @@ jobs:
           import fs from 'node:fs';
           const m = JSON.parse(fs.readFileSync('jarvis/manifest.webmanifest', 'utf8'));
           if (m.name !== 'REDULTRON CORE 3.0') throw new Error('Manifest name must identify CORE 3.0');
-          if (m.name !== 'REDULTRON CORE 3.0') throw new Error('Manifest name must identify CORE 3.0');
           if (m.display !== 'standalone') throw new Error('PWA display must be standalone');
           if (!m.start_url || !m.scope) throw new Error('PWA start_url and scope are required');
           for (const name of ['icon-192.png', 'icon-512.png']) {
@@ -60,7 +59,6 @@ jobs:
             }
           }
           const html = fs.readFileSync('jarvis/index.html', 'utf8');
-          if (!html.includes('<title>REDULTRON CORE 3.0')) throw new Error('App shell title must identify CORE 3.0');
           if (!html.includes('<title>REDULTRON CORE 3.0')) throw new Error('App shell title must identify CORE 3.0');
           if (!html.includes('rel="manifest"')) throw new Error('HTML does not link the web manifest');
           if (!html.includes('serviceWorker')) throw new Error('HTML does not register a service worker');
@@ -76,7 +74,6 @@ jobs:
           mkdir -p dist/redultron-core-3
           cp -R jarvis/. dist/redultron-core-3/
           cp release/REDULTRON_CORE_3_RELEASE_PACKAGE.md dist/redultron-core-3/RELEASE-NOTES.md
-          cp release/ANDROID_PWA_INSTALL.md dist/redultron-core-3/INSTALL-ANDROID.md
           cp release/ANDROID_PWA_INSTALL.md dist/redultron-core-3/INSTALL-ANDROID.md
           printf 'source_commit=%s\n' "$GITHUB_SHA" > dist/redultron-core-3/BUILD-METADATA.txt
           printf 'built_at_utc=%s\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)" >> dist/redultron-core-3/BUILD-METADATA.txt
