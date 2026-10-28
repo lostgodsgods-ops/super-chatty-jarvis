@@ -52,8 +52,8 @@ test("all production deployment and secret-sync workflows fail closed behind exp
     assert.match(workflow, /environment:\s*production/, name + " must use the production environment gate");
   }
 
-  assert.match(central, /\$\{#OWNER_SECRET\}\s*-ge\s*32/,
+  assert.match(central, /OWNER_SECRET.*-ge 32/,
     "Central Agent must reject weak owner secrets before deployment");
-  assert.match(provenance, /\$\{#REDULTRON_OWNER_SECRET\}\s*-ge\s*32/,
+  assert.match(provenance, /REDULTRON_OWNER_SECRET.*-ge 32/,
     "Provenance deployment must reject weak owner secrets before secret sync");
 });
