@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "project": "REDULTRON CORE 3.0",
-  "snapshotTime": "2026-10-29T03:31:44+05:30",
+  "snapshotTime": "2026-10-29T03:33:57+05:30",
   "repository": "lostgodsgods-ops/super-chatty-jarvis",
   "branch": "main",
   "commitSha": "0a35a8dda07b5217497ec1c45bdc64e3a7d0147c",
@@ -8736,7 +8736,25 @@
           "conclusion": "skipped"
         }
       ],
-      "caveat": "A skipped workflow job is not by itself proof that a duplicate retry was correctly suppressed; no controlled live replay was performed."
+      "caveat": "A skipped workflow job is not by itself proof that a duplicate retry was correctly suppressed; no controlled live replay was performed.",
+      "staticReview": {
+        "status": "PASS — source-level guard structure observed",
+        "workflowPath": ".github/workflows/redultron-failure-sentinel.yml",
+        "workflowBlobSha": "f2d793617e29135d7625f31de782a2cac5cbe2f8",
+        "controls": [
+          "Concurrency group is keyed by workflow_run.id (or github.sha for push) with cancel-in-progress=false.",
+          "Source run metadata validates numeric run_id and attempt and requires the source repository to equal the current repository.",
+          "Only CI and Test Central Agent source workflows are allowlisted.",
+          "The current source-run attempt is re-read through the GitHub API before rerun; mismatch suppresses duplicate delivery.",
+          "Rerun is limited to failed jobs while attempt is below three.",
+          "At attempt three, an open incident is searched by source run ID before creating a single FAIL issue."
+        ],
+        "relatedTests": [
+          "central-agent/sentinel-integrity.test.mjs: hash-chain tampering, record-ID mismatch, sequence gaps, broken links, head mismatch, and zero-write verification.",
+          "central-agent/sentinel.test.mjs: D1/KV telemetry, durable pulse scheduling, and legacy audit-chain backfill."
+        ],
+        "caveat": "No dedicated automated test of duplicate workflow_run delivery was found in the inspected test files. Recent main runs were skipped; a controlled duplicate-event replay remains NOT TESTED."
+      }
     },
     "releasePackageFixPR": {
       "status": "PASS — branch checks; PR open and unmerged",
