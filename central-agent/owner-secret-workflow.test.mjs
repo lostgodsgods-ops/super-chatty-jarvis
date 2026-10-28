@@ -49,3 +49,20 @@ test("production provenance deployment is manual-only and requires explicit appr
   assert.match(workflow, /if:\s*\$\{\{\s*inputs\.authorize_production_changes\s*==\s*'approve'\s*\}\}/,
     "the production-changing job must require explicit approval");
 });
+
+
+test("provenance deploy rejects a short owner secret before production sync", () => {
+  const provenance = readWorkflow("../.github/workflows/redultron-provenance-deploy.yml");
+  const credentials = provenance
+    .split("- name: Require deployment and authenticated probe credentials")[1]
+    ?.split("\n      - name: ")[0] ?? "";
+  assert.notEqual(credentials, "", "credential preflight step must exist");
+  assert.match(credentials, /\$\{#REDULTRON_OWNER_SECRET\}.*-ge 32/,
+    "deployment must reject owner secrets shorter than 32 characters before production changes");
+  assert.match(credentials, /value suppressed/i,
+    "minimum-length failure must not expose the secret value");
+  const validation = provenance.indexOf("${#REDULTRON_OWNER_SECRET}");
+  const sync = provenance.indexOf("- name: Synchronize owner secret to the deployed Worker");
+  assert.ok(validation >= 0 && sync > validation,
+    "minimum-length validation must happen before Worker secret synchronization");
+});
