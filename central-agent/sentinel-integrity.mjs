@@ -242,6 +242,10 @@ export async function verifySentinelHashChainRows(rows, head) {
       if (canonicalizeAuditPayload(parsedPayload) !== row.canonicalPayload) {
         return fail("SENTINEL_PAYLOAD_NOT_CANONICAL", sequence);
       }
+      if (typeof row.recordId !== "string" || !row.recordId ||
+          typeof parsedPayload?.id !== "string" || parsedPayload.id !== row.recordId) {
+        return fail("SENTINEL_RECORD_ID_MISMATCH", sequence);
+      }
     } catch {
       return fail("SENTINEL_PAYLOAD_INVALID", sequence);
     }

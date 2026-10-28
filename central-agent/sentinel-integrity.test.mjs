@@ -45,6 +45,14 @@ test("Sentinel verifier rejects payload tampering even when stored record hash i
   });
 });
 
+test("Sentinel verifier rejects a record ID that differs from the hashed payload ID", async () => {
+  const chain = await makeChain([{ id: "record-a", status: "ok" }]);
+  chain.rows[0].recordId = "record-b";
+  assert.deepEqual(await verifySentinelHashChainRows(chain.rows, chain.head), {
+    ok: false, code: "SENTINEL_RECORD_ID_MISMATCH", sequence: 1
+  });
+});
+
 test("Sentinel verifier rejects sequence gaps", async () => {
   const chain = await makeChain([{ id: "a" }, { id: "b" }]);
   chain.rows[1].sequence = 3;
