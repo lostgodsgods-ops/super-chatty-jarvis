@@ -35,6 +35,6 @@ test("provenance deploy preflights Render credentials and synchronizes one secre
   const renderDeployment = workflow.slice(renderDeploy, workerDeploy);
   assert.match(renderDeployment, /-X POST/);
   assert.match(renderDeployment, /\/deploys/);
-  assert.match(renderDeployment, /status.*live/);
+  assert.match(renderDeployment, /deploy_state[\\s\\S]*\\blive\\b/);
   assert.match(renderDeployment, /attempt/);
 });
