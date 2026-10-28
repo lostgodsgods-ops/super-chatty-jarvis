@@ -13,7 +13,7 @@ permissions:
 jobs:
   php-core-contract:
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 10
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -60,3 +60,35 @@ jobs:
             -d '{"task":"summarize","text":"One."}')"
           test "$auth_status" = "401"
           echo "PASS: PHP Core live HTTP health, authenticated execution, and auth rejection"
+
+      - name: Build Apache container and verify HTTP contract
+        shell: bash
+        run: |
+          docker build -t redultron-php-core:ci php-core
+          export OWNER_SECRET='ci-only-secret-with-more-than-32-characters'
+          docker run -d --name redultron-php-core-ci \
+            -e OWNER_SECRET="$OWNER_SECRET" -e PORT=10000 \
+            -p 127.0.0.1:8789:10000 redultron-php-core:ci
+          trap 'docker rm -f redultron-php-core-ci >/dev/null 2>&1 || true' EXIT
+          ready=false
+          for attempt in $(seq 1 30); do
+            if curl --silent --show-error --fail http://127.0.0.1:8789/health > /tmp/redultron-container-health.json; then
+              ready=true
+              break
+            fi
+            sleep 1
+          done
+          if [ "$ready" != true ]; then
+            docker logs redultron-php-core-ci
+            cat /tmp/redultron-container-health.json 2>/dev/null || true
+            exit 1
+          fi
+          grep -Fq '"service":"redultron-php-core"' /tmp/redultron-container-health.json
+          status="$(curl --silent --show-error -o /tmp/redultron-container-result.json -w '%{http_code}' \
+            -X POST http://127.0.0.1:8789/v1/execute \
+            -H 'Content-Type: application/json' \
+            -H "X-Owner-Secret: $OWNER_SECRET" \
+            -d '{"task":"summarize","text":"Container. Authenticated. Execution. Verified."}')"
+          test "$status" = "200"
+          grep -Fq '"result":"Container. Authenticated. Execution."' /tmp/redultron-container-result.json
+          echo "PASS: Apache container startup, health, and authenticated execution"
