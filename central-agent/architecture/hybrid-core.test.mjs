@@ -56,6 +56,26 @@ test("upstream auth failures and invalid payloads become safe structured errors"
   );
 });
 
+
+test("forwards a validated correlation ID and attaches it to upstream auth failures", async () => {
+  const requestId = "diag-test-12345678";
+  const env = { PYTHON_CORE_URL: "https://python.example/v1/execute", OWNER_SECRET: "x".repeat(32) };
+  let request;
+  await assert.rejects(
+    executeHybridTask({ task: "summarize", text: "Hi." }, env, {
+      requestId,
+      fetchImpl: async (url, options) => {
+        request = { url, options };
+        return new Response("{}", { status: 401 });
+      }
+    }),
+    error => error.code === "HYBRID_CORE_AUTH_REJECTED" &&
+      error.upstreamStatus === 401 && error.requestId === requestId
+  );
+  assert.equal(request.options.headers["x-request-id"], requestId);
+});
+
+
 test("non-2xx upstream failures retain HTTP status for sanitized diagnostics", async () => {
   await assert.rejects(
     executeHybridTask(
