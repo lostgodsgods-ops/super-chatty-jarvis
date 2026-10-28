@@ -26,3 +26,10 @@ test("navigation remains network-first with cached app-shell fallback", () => {
   assert.match(worker, /caches\.match\(request\).*caches\.match\(["']\.\/index\.html["']\)/s,
     "failed navigation must fall back to the cached app shell");
 });
+
+test("successful network navigation keeps the app-shell cache write alive", () => {
+  assert.ok(
+    worker.includes('event.waitUntil(cache.put("./index.html", response.clone()).catch(() => {}));'),
+    "the service worker lifetime must cover the asynchronous offline-shell cache write"
+  );
+});
