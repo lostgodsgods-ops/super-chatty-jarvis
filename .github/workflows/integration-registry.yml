@@ -42,7 +42,7 @@ jobs:
         run: |
           mkdir -p dist
           git archive --format=zip --output="dist/REDULTRON_CORE_3.0-${GITHUB_SHA:0:12}.zip" HEAD
-          sha256sum dist/*.zip > dist/SHA256SUMS.txt
+          (cd dist && sha256sum *.zip) > dist/SHA256SUMS.txt
 
       - name: Upload package artifact
         uses: actions/upload-artifact@v4
