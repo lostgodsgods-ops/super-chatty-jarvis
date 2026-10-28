@@ -8,6 +8,14 @@ on:
       - "release/**"
       - ".github/workflows/redultron-release-package.yml"
   workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - "jarvis/**"
+      - "package.json"
+      - "release/**"
+      - ".github/workflows/redultron-release-package.yml"
 
 permissions:
   contents: read
@@ -31,7 +39,7 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: "22"
-          package-manager-cache: false
+          cache: false
 
       - name: Run repository test suite
         run: npm test
