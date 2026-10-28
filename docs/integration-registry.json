@@ -1,0 +1,236 @@
+{
+  "schemaVersion": 1,
+  "project": "REDULTRON CORE 3.0",
+  "reviewedAt": "2026-10-28",
+  "statusVocabulary": [
+    "implemented",
+    "configured",
+    "live_verified",
+    "blocked",
+    "not_implemented",
+    "not_tested"
+  ],
+  "policy": {
+    "registryIsProofOfLiveOperation": false,
+    "secretsMayBeStored": false,
+    "productionChangesRequireExplicitApproval": true,
+    "financialActionsDefaultToSandbox": true
+  },
+  "integrations": [
+    {
+      "id": "CORE-EDGE",
+      "name": "Cloudflare Worker edge runtime",
+      "layers": {
+        "implementation": "not_tested",
+        "configuration": "configured",
+        "production": "not_tested"
+      },
+      "evidence": [
+        "central-agent/wrangler.jsonc"
+      ],
+      "nextAction": "Verify deployed commit provenance and /health response against the expected SHA.",
+      "risk": "A repository binding does not prove the deployed runtime uses it."
+    },
+    {
+      "id": "CORE-PY",
+      "name": "Python Core HTTPS execution",
+      "layers": {
+        "implementation": "implemented",
+        "configuration": "configured",
+        "production": "blocked"
+      },
+      "evidence": [
+        "central-agent/architecture/hybrid-core.mjs",
+        "PR #430",
+        "Render live deployment dep-dbgvrktg1s2s73egnsa0",
+        "Render commit 417284913f26aae4c5f1ec013f38df77b0957c2c"
+      ],
+      "nextAction": "Run the strict authenticated hybrid probe against the current live deployment; require HTTP 200, engine=python-edge-hybrid, fallbackEngaged=false, and hybridPythonCoreExecutionVerified=true. Current live deployment identity alone does not prove authenticated execution.",
+      "risk": "Health-only checks can pass while authenticated execution fails."
+    },
+    {
+      "id": "CORE-AUTH",
+      "name": "Worker-to-Python owner-secret authentication",
+      "layers": {
+        "implementation": "implemented",
+        "configuration": "not_tested",
+        "production": "blocked"
+      },
+      "evidence": [
+        "central-agent/architecture/hybrid-core.mjs",
+        "PR #431",
+        "Issue #484"
+      ],
+      "nextAction": "Use authorized secret metadata/comparison APIs to verify length and parity without returning values; then separately approve any required secret sync and re-run authenticated execution.",
+      "risk": "Never disclose, log, or place secret values in repository files."
+    },
+    {
+      "id": "CORE-D1",
+      "name": "Cloudflare D1 owner-auth database",
+      "layers": {
+        "implementation": "not_tested",
+        "configuration": "configured",
+        "production": "not_tested"
+      },
+      "evidence": [
+        "central-agent/wrangler.jsonc"
+      ],
+      "nextAction": "Check migration history and schema with non-destructive read-only probes.",
+      "risk": "Binding configuration does not prove migrations or runtime queries work."
+    },
+    {
+      "id": "CORE-KV",
+      "name": "Cloudflare KV sessions",
+      "layers": {
+        "implementation": "not_tested",
+        "configuration": "configured",
+        "production": "not_tested"
+      },
+      "evidence": [
+        "central-agent/wrangler.jsonc"
+      ],
+      "nextAction": "Verify the binding and bounded session read/write behavior using disposable test keys.",
+      "risk": "Do not inspect or expose live session values."
+    },
+    {
+      "id": "CORE-DO",
+      "name": "Sentinel Pulse Durable Object",
+      "layers": {
+        "implementation": "not_tested",
+        "configuration": "configured",
+        "production": "not_tested"
+      },
+      "evidence": [
+        "central-agent/wrangler.jsonc"
+      ],
+      "nextAction": "Confirm the exported class, migration implementation, and live pulse route.",
+      "risk": "A binding and migration tag alone are insufficient runtime evidence."
+    },
+    {
+      "id": "CORE-AI",
+      "name": "Cloudflare Workers AI",
+      "layers": {
+        "implementation": "not_tested",
+        "configuration": "configured",
+        "production": "not_tested"
+      },
+      "evidence": [
+        "central-agent/wrangler.jsonc"
+      ],
+      "nextAction": "Trace actual model call sites and run a bounded non-sensitive smoke test.",
+      "risk": "Avoid assuming model execution from the presence of an AI binding."
+    },
+    {
+      "id": "SEARCH",
+      "name": "Live search and fallback routing",
+      "layers": {
+        "implementation": "not_tested",
+        "configuration": "configured",
+        "production": "not_tested"
+      },
+      "evidence": [
+        "central-agent/wrangler.jsonc",
+        "SEARCH_PROVIDER_MODE=open-source-first"
+      ],
+      "nextAction": "Verify returned source URLs, timeout, fallback behavior, and stale-cache indicators with live queries.",
+      "risk": "A syntactically valid response is not proof of fresh or correctly sourced results."
+    },
+    {
+      "id": "OBS",
+      "name": "Logs, traces, and redaction",
+      "layers": {
+        "implementation": "not_tested",
+        "configuration": "configured",
+        "production": "not_tested"
+      },
+      "evidence": [
+        "central-agent/wrangler.jsonc"
+      ],
+      "nextAction": "Test redaction using synthetic secrets and verify headers, request bodies, and query strings are not leaked.",
+      "risk": "Observability must not record credentials or sensitive payloads."
+    },
+    {
+      "id": "PWA",
+      "name": "Installable app shell and service worker",
+      "layers": {
+        "implementation": "implemented",
+        "configuration": "not_tested",
+        "production": "not_tested"
+      },
+      "evidence": [
+        "PR #415"
+      ],
+      "nextAction": "Verify deployed asset cache version, update activation, and offline navigation on Android Chrome.",
+      "risk": "Merged code does not prove production asset freshness or offline behavior."
+    },
+    {
+      "id": "GITHUB-CI",
+      "name": "CI and production deployment controls",
+      "layers": {
+        "implementation": "implemented",
+        "configuration": "blocked",
+        "production": "blocked"
+      },
+      "evidence": [
+        "PR #431",
+        "PR #430",
+        "Issue #443"
+      ],
+      "nextAction": "PR #431 contains manual-only production gates on its draft branch, but main remains unchanged until review/merge. Verify required reviewers and branch protection before production mutation.",
+      "risk": "Push-triggered workflows can mutate production without an explicit per-run approval."
+    },
+    {
+      "id": "AGENTS",
+      "name": "Registered agent catalog and runtime dispatch",
+      "layers": {
+        "implementation": "implemented",
+        "configuration": "configured",
+        "production": "blocked"
+      },
+      "evidence": [
+        "config/agent-registry.json",
+        "central-agent/agent-orchestrator.mjs",
+        "central-agent/agent-orchestrator.test.mjs",
+        "POST /agents/collaborate"
+      ],
+      "nextAction": "Keep the eight bounded runtime roles owner-session gated and side-effect-free; provision catalog-only roles through a reviewed pilot with per-agent health, audit, timeout, cancellation and approval checks before expanding.",
+      "risk": "The catalog lists 90 specifications (0 provisioned, automatic dispatch disabled); the Central Agent separately defines eight bounded runtime roles. Do not conflate either count with 90 running agents."
+    },
+    {
+      "id": "BANKING",
+      "name": "Banking and financial integrations",
+      "layers": {
+        "implementation": "not_implemented",
+        "configuration": "not_tested",
+        "production": "not_tested"
+      },
+      "evidence": [],
+      "nextAction": "Define provider, read-only data scope, consent, and sandbox contract before building an adapter.",
+      "risk": "No real transfers, payments, or account mutations; sandbox/read-only by default."
+    },
+    {
+      "id": "BUNKER",
+      "name": "Bunker project integration",
+      "layers": {
+        "implementation": "not_tested",
+        "configuration": "not_tested",
+        "production": "not_tested"
+      },
+      "evidence": [],
+      "nextAction": "Discover the authoritative repository or API contract before asserting integration status.",
+      "risk": "Do not guess endpoints, credentials, or repository identity."
+    }
+  ],
+  "agentRuntimeSnapshot": {
+    "registryPath": "config/agent-registry.json",
+    "registeredAgents": 90,
+    "provisionedAgents": 0,
+    "automaticDispatchEnabled": false,
+    "status": "blocked",
+    "evidenceAsOf": "2026-10-28",
+    "note": "Catalog entries are specifications only; no registered agent is proven to be running by this file.",
+    "boundedRuntimeRoles": 8,
+    "runtimeEntryPoint": "POST /agents/collaborate",
+    "runtimePolicy": "owner-session-required; side effects disabled"
+  }
+}

@@ -1,0 +1,55 @@
+name: Integration Registry Contract
+
+on:
+  pull_request:
+    paths:
+      - "docs/integration-registry.json"
+      - "docs/redultron-release-package.json"
+      - "scripts/redultron-package-check.mjs"
+      - "tests/redultron-package-check.test.mjs"
+      - "docs/REDULTRON_INTEGRATION_REGISTRY.md"
+      - "docs/REDULTRON_RELEASE_PACKAGE.md"
+      - "tests/integration-registry.test.mjs"
+      - ".github/workflows/integration-registry.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate-registry:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Validate JSON syntax
+        run: node -e 'JSON.parse(require("node:fs").readFileSync("docs/integration-registry.json", "utf8"))'
+
+      - name: Run registry and release package contract tests
+        run: node --test tests/integration-registry.test.mjs tests/redultron-package-check.test.mjs
+
+      - name: Validate release package and report blockers
+        run: node scripts/redultron-package-check.mjs
+
+      - name: Package exact repository source snapshot
+        run: |
+          mkdir -p dist
+          git archive --format=zip --output="dist/REDULTRON_CORE_3.0-${GITHUB_SHA:0:12}.zip" HEAD
+          (cd dist && sha256sum *.zip) > dist/SHA256SUMS.txt
+
+      - name: Upload package artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: redultron-core-3-readiness-${{ github.sha }}
+          path: |
+            dist/*.zip
+            dist/SHA256SUMS.txt
+          if-no-files-found: error
+          retention-days: 14

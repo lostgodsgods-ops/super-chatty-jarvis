@@ -1,0 +1,87 @@
+{
+  "schemaVersion": 1,
+  "packageName": "REDULTRON CORE 3.0 Release Readiness Bundle",
+  "packageVersion": "3.0.0-readiness",
+  "generatedAt": "2026-10-28",
+  "sourceOfTruth": {
+    "integrationRegistry": "docs/integration-registry.json",
+    "agentCatalog": "config/agent-registry.json",
+    "integrationRunbook": "docs/REDULTRON_INTEGRATION_REGISTRY.md"
+  },
+  "includedArtifacts": [
+    "docs/redultron-release-package.json",
+    "docs/REDULTRON_RELEASE_PACKAGE.md",
+    "docs/integration-registry.json",
+    "docs/REDULTRON_INTEGRATION_REGISTRY.md",
+    "config/agent-registry.json",
+    "central-agent/agent-orchestrator.mjs",
+    "central-agent/agent-orchestrator.test.mjs",
+    "central-agent/architecture/hybrid-core.mjs",
+    "central-agent/worker.mjs",
+    "hybrid-core/",
+    "scripts/redultron-package-check.mjs",
+    "tests/redultron-package-check.test.mjs"
+  ],
+  "verificationCommands": [
+    "node --test",
+    "node scripts/redultron-package-check.mjs"
+  ],
+  "releaseGates": [
+    {
+      "id": "GATE-1",
+      "name": "Package and registry integrity",
+      "required": true
+    },
+    {
+      "id": "GATE-2",
+      "name": "Required CI checks on exact candidate SHA",
+      "required": true
+    },
+    {
+      "id": "GATE-3",
+      "name": "Production environment reviewers and branch protection",
+      "required": true
+    },
+    {
+      "id": "GATE-4",
+      "name": "Python Core authenticated execution",
+      "required": true,
+      "acceptance": "HTTP 200; engine=python-edge-hybrid; fallbackEngaged=false; hybridPythonCoreExecutionVerified=true"
+    },
+    {
+      "id": "GATE-5",
+      "name": "Live Search primary/fallback/stale-cache behavior",
+      "required": true
+    },
+    {
+      "id": "GATE-6",
+      "name": "D1/KV/Durable Object live probes and audit integrity",
+      "required": true
+    },
+    {
+      "id": "GATE-7",
+      "name": "Agent pilot execution with audit, timeout and cancellation",
+      "required": true
+    },
+    {
+      "id": "GATE-8",
+      "name": "Android PWA install/update/offline smoke test",
+      "required": true
+    }
+  ],
+  "safety": {
+    "secretsInPackage": false,
+    "productionDeploymentPerformedByPackageCheck": false,
+    "agentDispatchDefault": "disabled",
+    "financialActionsDefault": "simulation-only",
+    "productionReadinessRequiresAllGates": true
+  },
+  "currentKnownBlockers": [
+    "CORE-PY authenticated execution not certified",
+    "CORE-AUTH secret parity not verified",
+    "Live Search reachability not verified",
+    "Production Environment reviewer configuration not verified",
+    "90 catalog entries are not provisioned agents; bounded runtime roles remain owner-session gated",
+    "Android PWA end-to-end verification not performed"
+  ]
+}
