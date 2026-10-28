@@ -9,6 +9,8 @@
     "integrationRunbook": "docs/REDULTRON_INTEGRATION_REGISTRY.md"
   },
   "includedArtifacts": [
+    "docs/redultron-release-package.json",
+    "docs/REDULTRON_RELEASE_PACKAGE.md",
     "docs/integration-registry.json",
     "docs/REDULTRON_INTEGRATION_REGISTRY.md",
     "config/agent-registry.json",
@@ -16,7 +18,9 @@
     "central-agent/agent-orchestrator.test.mjs",
     "central-agent/architecture/hybrid-core.mjs",
     "central-agent/worker.mjs",
-    "hybrid-core/"
+    "hybrid-core/",
+    "scripts/redultron-package-check.mjs",
+    "tests/redultron-package-check.test.mjs"
   ],
   "verificationCommands": [
     "node --test",
