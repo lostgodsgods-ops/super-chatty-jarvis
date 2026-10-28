@@ -95,6 +95,22 @@ test("owner secrets with surrounding whitespace fail closed before any upstream 
   assert.equal(called, false);
 });
 
+test("owner secrets containing line breaks fail closed before any upstream request", async () => {
+  const secret = "x".repeat(16) + "\\n" + "x".repeat(16);
+  const env = { PYTHON_CORE_URL: "https://python.example/v1/execute", OWNER_SECRET: secret };
+  const diagnostics = inspectHybridCoreConfiguration(env);
+  assert.equal(diagnostics.ownerSecretPolicyValid, false);
+  assert.equal(diagnostics.failureCode, "HYBRID_CORE_SECRET_INVALID");
+  let called = false;
+  await assert.rejects(
+    executeHybridTask({ task: "summarize", text: "Hello." }, env, {
+      fetchImpl: async () => { called = true; return new Response("{}", { status: 200 }); }
+    }),
+    error => error.code === "HYBRID_CORE_SECRET_INVALID"
+  );
+  assert.equal(called, false);
+});
+
 test("shared task result schema accepts only the documented per-task shapes", () => {
   assert.equal(validateHybridResultSchema("summarize", "summary"), true);
   assert.equal(validateHybridResultSchema("extract_keywords", [{ term: "worker", count: 2 }]), true);
