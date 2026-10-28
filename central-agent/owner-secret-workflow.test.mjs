@@ -99,3 +99,21 @@ test("all production mutation workflows bind to the protected production GitHub 
       path + " must bind production mutations to the protected production Environment");
   }
 });
+
+
+test("central-agent deployment rejects a short owner secret before any production deployment or sync", () => {
+  const deploy = readWorkflow("../.github/workflows/deploy-central-agent.yml");
+  const credentials = deploy
+    .split("- name: Validate required secrets")[1]
+    ?.split("\\n      - name: ")[0] ?? "";
+  assert.notEqual(credentials, "", "central-agent credential preflight must exist");
+  assert.match(credentials, /\\$\\{#OWNER_SECRET\\}.*-ge 32/,
+    "central-agent deployment must reject owner secrets shorter than 32 characters");
+  assert.match(credentials, /value suppressed/i,
+    "short-secret failure must not print the secret value");
+  const validation = deploy.indexOf("${#OWNER_SECRET}");
+  const deployStep = deploy.indexOf("- name: Deploy isolated Central Agent");
+  const syncStep = deploy.indexOf("- name: Configure Worker runtime secrets in one operation");
+  assert.ok(validation >= 0 && deployStep > validation && syncStep > validation,
+    "owner-secret length validation must precede deployment and runtime secret synchronization");
+});
