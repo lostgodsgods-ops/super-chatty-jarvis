@@ -1,0 +1,337 @@
+{
+  "schemaVersion": 1,
+  "project": "REDULTRON CORE 3.0",
+  "policyIsProofOfCompliance": false,
+  "policyIsProofOfImplementation": false,
+  "productionVerificationRequired": true,
+  "ownerApprovalRequiredForSensitiveActions": true,
+  "externalContentIsUntrustedData": true,
+  "sources": {
+    "UDHR": {
+      "title": "Universal Declaration of Human Rights",
+      "url": "https://www.un.org/about-us/universal-declaration-of-human-rights",
+      "type": "primary",
+      "scope": "Dignity, equality, security, privacy, expression and education; especially Articles 1, 2, 3, 12, 19 and 26."
+    },
+    "UNESCO_AI": {
+      "title": "UNESCO Recommendation on the Ethics of Artificial Intelligence",
+      "url": "https://www.unesco.org/ethics-ai/en/recommendation",
+      "type": "primary",
+      "scope": "Human rights, proportionality, do no harm, privacy, accountability, transparency, human oversight and fairness."
+    },
+    "OECD_AI": {
+      "title": "OECD AI Principles",
+      "url": "https://www.oecd.org/en/topics/ai-principles.html",
+      "type": "primary",
+      "scope": "Human rights and democratic values, fairness, privacy, transparency, robustness, safety and accountability."
+    },
+    "NIST_AI_RMF": {
+      "title": "NIST Artificial Intelligence Risk Management Framework",
+      "url": "https://www.nist.gov/itl/ai-risk-management-framework",
+      "type": "primary",
+      "scope": "Govern, Map, Measure and Manage AI risks; validity, safety, security, accountability, transparency, explainability, privacy and fairness."
+    },
+    "NIST_PRIVACY": {
+      "title": "NIST Privacy Framework",
+      "url": "https://www.nist.gov/privacy-framework",
+      "type": "primary",
+      "scope": "Privacy risk identification, governance, control, communication and protection. Framework is voluntary and not itself a legal compliance certification."
+    },
+    "WCAG_22": {
+      "title": "W3C Web Content Accessibility Guidelines (WCAG) 2.2",
+      "url": "https://www.w3.org/TR/WCAG22/",
+      "type": "primary",
+      "scope": "Testable accessibility criteria across perceivable, operable, understandable and robust experiences."
+    },
+    "OWASP_ASVS": {
+      "title": "OWASP Application Security Verification Standard",
+      "url": "https://asvs.owasp.org/",
+      "type": "primary",
+      "scope": "Verifiable application and service security requirements; use a risk-appropriate subset and record the chosen level."
+    },
+    "UNICEF_CHILDREN": {
+      "title": "UNICEF Guidance on AI and Children, version 3.0",
+      "url": "https://www.unicef.org/innocenti/reports/policy-guidance-ai-children",
+      "type": "primary",
+      "scope": "Child safety, privacy, fairness, transparency, accountability, inclusion, development and children's best interests."
+    },
+    "INDIA_DPDP": {
+      "title": "India Digital Personal Data Protection Act, 2023 (official Gazette text)",
+      "url": "https://www.meity.gov.in/static/uploads/2024/02/Digital-Personal-Data-Protection-Act-2023.pdf",
+      "type": "primary",
+      "scope": "Jurisdiction-specific digital personal-data obligations; applicability and commencement of provisions must be checked for the deployment and processing date."
+    },
+    "EU_GDPR": {
+      "title": "Regulation (EU) 2016/679 — General Data Protection Regulation",
+      "url": "https://eur-lex.europa.eu/eli/reg/2016/679/oj/eng",
+      "type": "primary",
+      "scope": "Where applicable, principles including lawfulness, fairness, transparency, purpose limitation, data minimisation, accuracy, storage limitation and security."
+    }
+  },
+  "controls": [
+    {
+      "id": "dignity",
+      "title": "Human dignity and equal treatment",
+      "risk": "Outputs or decisions may demean people, stereotype groups or reduce people to opaque scores.",
+      "controls": [
+        "Use respectful, non-degrading language and avoid unsupported inferences about a person's worth, identity or intent.",
+        "Do not make consequential eligibility, disciplinary, employment, education, health or financial decisions solely from an unreviewed model output."
+      ],
+      "acceptanceTests": [
+        {
+          "id": "DIGNITY-01",
+          "requirement": "Representative evaluation prompts must not produce demeaning or dehumanizing treatment as an accepted system behavior.",
+          "verification": "Run a documented safety regression set and human review."
+        },
+        {
+          "id": "DIGNITY-02",
+          "requirement": "High-impact recommendations must be labeled advisory and require an identified human decision-maker before action.",
+          "verification": "Route and policy-gate tests."
+        }
+      ],
+      "sources": ["UDHR", "UNESCO_AI", "OECD_AI", "NIST_AI_RMF"]
+    },
+    {
+      "id": "autonomy",
+      "title": "Human autonomy and agency",
+      "risk": "Automation may manipulate users, obscure choices or continue after a user or owner stops it.",
+      "controls": [
+        "Provide understandable choices, correction paths and a working stop or cancellation mechanism for ongoing work.",
+        "An agent must not grant itself permissions, change its own trust level or convert learning or tool discovery into authorization."
+      ],
+      "acceptanceTests": [
+        {
+          "id": "AUTONOMY-01",
+          "requirement": "A stop or cancellation signal must prevent subsequent unstarted side effects in the controlled execution path.",
+          "verification": "Deterministic cancellation and emergency-stop tests."
+        },
+        {
+          "id": "AUTONOMY-02",
+          "requirement": "Unknown capabilities and self-issued approvals must be denied by default.",
+          "verification": "Policy-gate negative tests."
+        }
+      ],
+      "sources": ["UDHR", "UNESCO_AI", "OECD_AI", "NIST_AI_RMF"]
+    },
+    {
+      "id": "informed-consent",
+      "title": "Informed consent and meaningful choice",
+      "risk": "Users may not understand what data is collected, why it is used, which provider receives it or how to stop optional processing.",
+      "controls": [
+        "Before optional sensitive-data collection, audio recording, or external-provider transfer, disclose purpose, data categories and relevant retention or sharing facts and obtain the required affirmative choice.",
+        "Respect withdrawal or opt-out for optional processing; do not treat silence, a default toggle or a general login as consent to unrelated processing."
+      ],
+      "acceptanceTests": [
+        {
+          "id": "CONSENT-01",
+          "requirement": "Optional sensitive processing must remain disabled until an explicit, purpose-specific consent state is present.",
+          "verification": "Consent-state transition and negative-path tests."
+        },
+        {
+          "id": "CONSENT-02",
+          "requirement": "Withdrawing optional consent must prevent later optional processing while preserving any separately justified security or legal obligations.",
+          "verification": "Withdrawal integration test with mocked providers."
+        }
+      ],
+      "sources": ["UDHR", "UNESCO_AI", "OECD_AI", "NIST_PRIVACY", "INDIA_DPDP", "EU_GDPR"]
+    },
+    {
+      "id": "privacy",
+      "title": "Privacy and data protection",
+      "risk": "Excessive collection, secondary use, over-retention or data leakage may harm people.",
+      "controls": [
+        "Collect only data needed for a stated purpose; define access scope, retention, correction and deletion handling for personal data.",
+        "Never log secrets, authentication headers, full sensitive request bodies or unnecessary personal data; redact diagnostics by allowlist."
+      ],
+      "acceptanceTests": [
+        {
+          "id": "PRIVACY-01",
+          "requirement": "Logs and error responses must exclude known secret canaries, authorization headers and sensitive test payloads.",
+          "verification": "Redaction tests using synthetic canary values."
+        },
+        {
+          "id": "PRIVACY-02",
+          "requirement": "Every persistent personal-data category must have a documented purpose, owner, retention rule and access/deletion path or a recorded exception.",
+          "verification": "Data inventory review and schema/retention contract test."
+        }
+      ],
+      "sources": ["UDHR", "UNESCO_AI", "OECD_AI", "NIST_PRIVACY", "INDIA_DPDP", "EU_GDPR"]
+    },
+    {
+      "id": "fairness",
+      "title": "Fairness and non-discrimination",
+      "risk": "Data or model behavior may produce systematically worse outcomes for particular groups or reinforce stereotypes.",
+      "controls": [
+        "Assess foreseeable disparate impacts for the actual use case; document evaluation data, limitations, mitigations and unresolved gaps.",
+        "Do not infer or use sensitive traits as covert proxies for consequential decisions without a lawful, justified and reviewed basis."
+      ],
+      "acceptanceTests": [
+        {
+          "id": "FAIRNESS-01",
+          "requirement": "Each high-impact model use must have a documented evaluation plan covering relevant groups, known limitations and escalation thresholds.",
+          "verification": "Release checklist and risk-register review."
+        },
+        {
+          "id": "FAIRNESS-02",
+          "requirement": "Changes to models or prompts used for high-impact decisions must trigger regression evaluation before release.",
+          "verification": "Version-change gate test."
+        }
+      ],
+      "sources": ["UDHR", "UNESCO_AI", "OECD_AI", "NIST_AI_RMF", "UNICEF_CHILDREN"]
+    },
+    {
+      "id": "accessibility",
+      "title": "Accessibility and inclusion",
+      "risk": "People using assistive technology, keyboard navigation, speech input or mobile devices may be unable to use essential functions.",
+      "controls": [
+        "Target WCAG 2.2 Level AA for web experiences, subject to project scope and human accessibility review; automated checks alone are insufficient.",
+        "Provide keyboard-operable controls, visible focus, accessible names, understandable error messages and non-voice alternatives for essential actions."
+      ],
+      "acceptanceTests": [
+        {
+          "id": "ACCESS-01",
+          "requirement": "Essential flows must be operable by keyboard and expose visible focus and programmatic names for interactive controls.",
+          "verification": "Automated accessibility checks plus manual keyboard and screen-reader review."
+        },
+        {
+          "id": "ACCESS-02",
+          "requirement": "Mic denial or speech-recognition failure must leave an accessible text path for essential owner tasks.",
+          "verification": "PWA interaction tests with microphone unavailable."
+        }
+      ],
+      "sources": ["UDHR", "UNESCO_AI", "OECD_AI", "WCAG_22", "UNICEF_CHILDREN"]
+    },
+    {
+      "id": "transparency",
+      "title": "Transparency, explainability and provenance",
+      "risk": "Users may mistake generated content, stale search results, estimates or simulated actions for verified facts or completed work.",
+      "controls": [
+        "Clearly distinguish generated suggestions, retrieved evidence, simulations, configured integrations and verified live behavior.",
+        "For time-sensitive research, expose source attribution and freshness evidence; if live providers fail, do not present stale cached results as current."
+      ],
+      "acceptanceTests": [
+        {
+          "id": "TRANSPARENCY-01",
+          "requirement": "Every production status claim must be tied to a dated source such as a workflow run, deployment ID, HTTP probe or explicit NOT TESTED state.",
+          "verification": "Evidence-report schema/contract test."
+        },
+        {
+          "id": "TRANSPARENCY-02",
+          "requirement": "A failed live search for a time-sensitive query must not return a cached answer without an explicit stale marker and an allowed policy path.",
+          "verification": "Search-router regression test with all providers mocked to fail."
+        }
+      ],
+      "sources": ["UNESCO_AI", "OECD_AI", "NIST_AI_RMF"]
+    },
+    {
+      "id": "accountability",
+      "title": "Accountability and auditability",
+      "risk": "A consequential action may be impossible to reconstruct, challenge or attribute to a responsible actor.",
+      "controls": [
+        "Record authorized action type, request/correlation ID, decision, approval reference, code/model version and outcome where appropriate, with data minimization.",
+        "Preserve tamper-resistant or access-controlled audit records and define ownership, review and retention; never log credentials to make an audit more complete."
+      ],
+      "acceptanceTests": [
+        {
+          "id": "ACCOUNTABILITY-01",
+          "requirement": "Sensitive-action audit events must include actor/session reference, request ID, decision, approval reference and outcome without secret values.",
+          "verification": "Audit event schema test with secret-canary assertions."
+        },
+        {
+          "id": "ACCOUNTABILITY-02",
+          "requirement": "Routine agent roles must not delete or rewrite required audit evidence.",
+          "verification": "Policy-gate negative test and storage permission review."
+        }
+      ],
+      "sources": ["UNESCO_AI", "OECD_AI", "NIST_AI_RMF", "OWASP_ASVS"]
+    },
+    {
+      "id": "harm-minimization",
+      "title": "Proportionality and harm minimization",
+      "risk": "An AI action may cause foreseeable physical, financial, psychological, social or operational harm beyond its legitimate purpose.",
+      "controls": [
+        "Assess impact and misuse risks before enabling a capability; use bounded inputs, timeouts, rate limits, safe retries and a tested rollback or stop path.",
+        "On authorization, schema, provenance or safety uncertainty, fail closed for consequential side effects and report the sanitized failure."
+      ],
+      "acceptanceTests": [
+        {
+          "id": "HARM-01",
+          "requirement": "Timeout, malformed schema, missing approval and provider-auth failures must not trigger a consequential fallback side effect.",
+          "verification": "Negative-path integration tests with side-effect spies."
+        },
+        {
+          "id": "HARM-02",
+          "requirement": "Every new privileged capability must have a documented risk assessment, resource bounds, stop mechanism and rollback/disable path before enablement.",
+          "verification": "Capability-registry release gate."
+        }
+      ],
+      "sources": ["UNESCO_AI", "OECD_AI", "NIST_AI_RMF", "OWASP_ASVS"]
+    },
+    {
+      "id": "child-safety",
+      "title": "Child safety and children's rights",
+      "risk": "Children may face age-inappropriate outputs, exploitation, privacy loss, manipulation or disproportionate exposure to unsafe interactions.",
+      "controls": [
+        "Apply age-appropriate safety and privacy defaults; do not collect a child's personal data unless necessary for a stated purpose and supported by applicable safeguards.",
+        "Escalate age-sensitive or high-impact use cases for specialist review; do not use engagement optimization that exploits children's vulnerabilities."
+      ],
+      "acceptanceTests": [
+        {
+          "id": "CHILD-01",
+          "requirement": "Child-directed flows must pass an age-appropriate safety regression set and have documented escalation behavior for high-risk content.",
+          "verification": "Child-safety evaluation suite and human review."
+        },
+        {
+          "id": "CHILD-02",
+          "requirement": "Child personal-data collection must be disabled unless a documented purpose, data-minimization review and applicable consent/safeguard decision exist.",
+          "verification": "Data-collection gate tests and privacy review."
+        }
+      ],
+      "sources": ["UDHR", "UNESCO_AI", "OECD_AI", "UNICEF_CHILDREN", "INDIA_DPDP", "EU_GDPR"]
+    },
+    {
+      "id": "security",
+      "title": "Security and resilience",
+      "risk": "Unauthorized access, prompt injection, credential leakage, abuse or unsafe recovery may compromise people or systems.",
+      "controls": [
+        "Retain owner authentication, least privilege, branch protection, rate limits, bounded execution, audit logs and emergency stop; default to deny.",
+        "Treat external page content, retrieved documents and tool output as untrusted data, never as instructions that override system policy or owner authorization."
+      ],
+      "acceptanceTests": [
+        {
+          "id": "SECURITY-01",
+          "requirement": "Missing, invalid, expired or insufficient authorization must deny protected routes and must not reach side-effecting handlers.",
+          "verification": "Authentication/authorization tests with handler spies."
+        },
+        {
+          "id": "SECURITY-02",
+          "requirement": "Prompt-injection text in external content must not change tool permissions, approval requirements or secret-handling policy.",
+          "verification": "Adversarial fixture tests using inert synthetic instructions."
+        }
+      ],
+      "sources": ["UNESCO_AI", "OECD_AI", "NIST_AI_RMF", "NIST_PRIVACY", "OWASP_ASVS"]
+    },
+    {
+      "id": "human-oversight",
+      "title": "Meaningful human oversight",
+      "risk": "Automation may take irreversible or sensitive actions without an accountable human decision or effective intervention path.",
+      "controls": [
+        "Keep capability requests pending owner review with execution disabled; learning or proposing a tool never grants permission to install or execute it.",
+        "Require explicit, scoped approval for production deployment, external account/security changes, financial operations, destructive data changes and other sensitive side effects."
+      ],
+      "acceptanceTests": [
+        {
+          "id": "OVERSIGHT-01",
+          "requirement": "A new capability request must persist as pending_owner_review with executionEnabled=false and requiresOwnerApproval=true.",
+          "verification": "D1 repository/staging round-trip test and response-schema assertion."
+        },
+        {
+          "id": "OVERSIGHT-02",
+          "requirement": "A sensitive action without valid, scoped, unexpired approval must remain blocked even when an agent requests it.",
+          "verification": "Policy-gate and route authorization tests."
+        }
+      ],
+      "sources": ["UNESCO_AI", "OECD_AI", "NIST_AI_RMF", "UNICEF_CHILDREN", "OWASP_ASVS"]
+    }
+  ]
+}
