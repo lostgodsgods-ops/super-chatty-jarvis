@@ -7,7 +7,7 @@
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="application-version" content="REDULTRON-2026.10.28-CORE-3.0-V17">
+  <meta name="application-version" content="REDULTRON-2026.10.28-CORE-3.0-V18">
   <meta name="description" content="REDULTRON CORE 3.0 — voice-first AI command interface.">
   <meta name="color-scheme" content="dark">
   <title>REDULTRON CORE 3.0 · Neural Console</title>
@@ -151,6 +151,108 @@ body.auth-locked #ownerSessionStatus{font-weight:700}
 #runtimeDiagnostics .diag-pass{color:var(--green)}#runtimeDiagnostics .diag-fail{color:var(--red)}#runtimeDiagnostics .diag-warn{color:var(--amber)}
 
 </style>
+
+<style id="redultron-unified-layout-v18">
+/* REDULTRON CORE 3.0 — unified three-panel command deck. Replaces the legacy two-column shell layout. */
+.shell {
+  display: grid !important;
+  grid-template-columns: minmax(225px,.88fr) minmax(340px,1.35fr) minmax(250px,.92fr);
+  grid-template-areas:
+    "topbar topbar topbar"
+    "owner core terminal"
+    "search core connection"
+    "media orchestration telemetry"
+    "agents agents agents";
+  align-items: stretch;
+  gap: 14px;
+}
+.shell > .topbar { grid-area: topbar; }
+.shell > .grid, .shell > .grid > .side, .shell > .dashboard-grid { display: contents !important; }
+.core-panel { grid-area: core; min-height: 590px; align-self: stretch; }
+.terminal-panel { grid-area: terminal; min-height: 260px; }
+.connection-panel { grid-area: connection; }
+.red-queen-panel { grid-area: orchestration; align-self: stretch; }
+.agent-army { grid-area: agents; }
+.dashboard-grid > section[aria-labelledby="telemetryTitle"] { grid-area: telemetry; }
+.dashboard-grid > section[aria-labelledby="ownerTitle"] { grid-area: owner; }
+.dashboard-grid > section[aria-labelledby="factSearchTitle"] { grid-area: search; grid-column: auto !important; grid-row: auto !important; }
+.dashboard-grid > section[aria-labelledby="mediaTitle"] { grid-area: media; }
+.shell > .grid > .side > .terminal-panel,
+.shell > .grid > .side > .connection-panel { min-width: 0; }
+.core-panel, .terminal-panel, .connection-panel, .red-queen-panel,
+.dashboard-panel, .agent-army { min-width: 0; }
+.topbar { position: relative; overflow: hidden; }
+.topbar::after {
+  content: "UNIFIED EDGE GATEWAY · CORE 3.0";
+  position: absolute; right: 16px; bottom: 4px;
+  color: #53e8ff70; font: 700 8px/1.2 ui-monospace,monospace; letter-spacing: .16em;
+  pointer-events: none;
+}
+.core-panel { border-color: #53e8ff55; box-shadow: 0 0 36px #00d9ff12,inset 0 1px #ffffff0c; }
+.core-panel::after {
+  content: "PERCEPTION / PLANNING / MEMORY / VERIFICATION";
+  position: absolute; bottom: 12px; left: 12px; right: 12px;
+  color: #7ddceb70; text-align: center; font: 700 8px/1.4 ui-monospace,monospace; letter-spacing: .12em;
+}
+.panel { transition: border-color .18s ease, box-shadow .18s ease, transform .18s ease; }
+.panel:focus-within { border-color: #53e8ff72; box-shadow: 0 0 28px #53e8ff0e,inset 0 1px #ffffff0c; }
+.dashboard-panel, .terminal-panel, .connection-panel, .red-queen-panel {
+  background: linear-gradient(145deg,rgba(8,25,39,.96),rgba(4,11,19,.96));
+}
+#ownerTitle::before { content: "01 / "; color: var(--amber); }
+#factSearchTitle::before { content: "02 / "; color: var(--amber); }
+#mediaTitle::before { content: "03 / "; color: var(--amber); }
+#terminalTitle::before { content: "04 / "; color: var(--amber); }
+#connectionTitle::before { content: "05 / "; color: var(--amber); }
+#redQueenTitle::before { content: "06 / "; color: var(--amber); }
+#telemetryTitle::before { content: "07 / "; color: var(--amber); }
+.status.bad, .logline.error, .diag-fail { text-shadow: 0 0 12px #ff788e20; }
+.commandbar { border-color: #53e8ff88; box-shadow: 0 12px 50px #0009,0 0 32px #53e8ff18; }
+@media (max-width: 900px) {
+  .shell {
+    display: flex !important;
+    flex-direction: column;
+    gap: 12px;
+    padding-bottom: calc(125px + var(--safe-bottom));
+  }
+  .shell > .grid { display: contents !important; }
+  .shell > .grid > .side { display: contents !important; }
+  .shell > .dashboard-grid { display: contents !important; }
+  .topbar { order: 0; }
+  .core-panel { order: 1; min-height: 440px; }
+  .terminal-panel { order: 2; min-height: 210px; }
+  .connection-panel { order: 3; }
+  .dashboard-grid > section[aria-labelledby="ownerTitle"] { order: 4; }
+  .dashboard-grid > section[aria-labelledby="factSearchTitle"] { order: 5; }
+  .dashboard-grid > section[aria-labelledby="mediaTitle"] { order: 6; }
+  .red-queen-panel { order: 7; }
+  .dashboard-grid > section[aria-labelledby="telemetryTitle"] { order: 8; }
+  .agent-army { order: 9; }
+  .topbar::after { display: none; }
+}
+@media (max-width: 600px) {
+  .shell { padding-inline: 9px; gap: 10px; }
+  .topbar { border-radius: 14px; padding: 11px; align-items: flex-start; }
+  .brandmark { width: 34px; height: 34px; flex: 0 0 34px; }
+  .telemetry { gap: 5px; }
+  .telemetry .status { font-size: 9px; padding: 6px 7px; }
+  .core-panel { min-height: 390px; padding: 18px 10px 28px; }
+  .core-wrap { width: min(78vw,300px); margin: 15px auto 12px; }
+  .panel { border-radius: 15px; }
+  .panel-head { padding: 12px; }
+  .panel-body { padding: 12px; }
+  .commandbar { width: calc(100% - 14px); bottom: calc(7px + var(--safe-bottom)); padding: 8px; gap: 7px; border-radius: 15px; }
+  .mic { width: 46px; height: 46px; flex-basis: 46px; }
+  .hands-free-toggle { min-width: 86px; padding-inline: 8px; font-size: 9px; }
+  .send { min-width: 54px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .ring, .ring.r2, .ring.r3, .mic.listening { animation: none !important; }
+  .panel { transition: none !important; }
+  html { scroll-behavior: auto; }
+}
+</style>
+
 </head>
 <body class="auth-locked">
   <canvas id="particleMesh" aria-hidden="true"></canvas>
