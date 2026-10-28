@@ -7,9 +7,9 @@ import {
   validateEvidenceRecord
 } from "./cognitive-core-contract.mjs";
 
-test("REDULTRON CORE 2.0 declares the three requested design influences without claiming sentience", () => {
+test("REDULTRON CORE 3.0 declares the three requested design influences without claiming sentience", () => {
   const profile = buildCognitiveCoreProfile();
-  assert.equal(profile.identity.name, "REDULTRON CORE 2.0");
+  assert.equal(profile.identity.name, "REDULTRON CORE 3.0");
   assert.deepEqual(profile.designInfluences.map(item => item.id), ["ultron", "red-queen", "jarvis"]);
   assert.equal(profile.identity.isSentient, false);
   assert.equal(profile.execution.livePhysicalExecution, false);
@@ -58,7 +58,7 @@ test("evidence records require a valid HTTP(S) source and bounded factual fields
 
 test("Red Queen status endpoint projection includes the canonical cognitive core profile", () => {
   const status = buildRedQueenStatus({});
-  assert.equal(status.cognitiveCore.identity.name, "REDULTRON CORE 2.0");
+  assert.equal(status.cognitiveCore.identity.name, "REDULTRON CORE 3.0");
   assert.equal(status.cognitiveCore.execution.livePhysicalExecution, false);
   assert.equal(status.livePhysicalExecution, false);
 });
