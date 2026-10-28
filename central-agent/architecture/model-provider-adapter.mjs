@@ -71,8 +71,11 @@ export async function executeChatCompletion(input, env = {}, fetchImpl = globalT
     throw new ChatProviderError(error?.name === "TimeoutError" || error?.name === "AbortError" ? "PROVIDER_TIMEOUT" : "PROVIDER_UNAVAILABLE", 502);
   }
   if (!response.ok) throw new ChatProviderError("PROVIDER_HTTP_" + response.status, 502);
+  let raw;
+  try { raw = await response.text(); } catch { throw new ChatProviderError("INVALID_PROVIDER_RESPONSE", 502); }
+  if (raw.length > 1_000_000) throw new ChatProviderError("PROVIDER_RESPONSE_TOO_LARGE", 502);
   let payload;
-  try { payload = await response.json(); } catch { throw new ChatProviderError("INVALID_PROVIDER_RESPONSE", 502); }
+  try { payload = raw ? JSON.parse(raw) : null; } catch { throw new ChatProviderError("INVALID_PROVIDER_RESPONSE", 502); }
   const text = responseText(payload, provider.format);
   if (typeof text !== "string" || !text.trim()) throw new ChatProviderError("EMPTY_PROVIDER_RESPONSE", 502);
   return { ok: true, provider: input.provider, model, text: text.slice(0, 20000), maxTokens: validated.maxTokens };
