@@ -114,7 +114,7 @@ test("installed PWA force-updates stale shells and revalidates HTML assets", () 
   assert.match(serviceWorker, /self\.clients\.claim\(\)/, "new worker must claim open PWA clients");
   assert.match(serviceWorker, /key !== CACHE_NAME.*caches\.delete\(key\)/s, "activation must delete older project shell caches");
   assert.match(serviceWorker, /new Request\(request,\s*\{\s*cache:\s*"no-store"\s*\}\)/, "navigation must bypass stale browser HTTP cache");
-  assert.match(jarvisHtml, /application-version" content="REDULTRON-2026\.10\.28-COGNITIVE-CORE-V16"/, "frontend version must be bumped");
+  assert.match(jarvisHtml, /application-version" content="REDULTRON-2026\.10\.28-CORE-3\\.0-V16"/, "frontend version must be bumped");
   assert.match(jarvisHtml, /registration\.update\(\)/, "PWA must check for worker updates");
   assert.match(jarvisHtml, /controllerchange/, "active sessions must detect the new worker controller");
   assert.match(jarvisHtml, /location\.reload\(\)/, "active sessions must reload after a worker update");
@@ -245,7 +245,7 @@ test("first-screen one-click install uses the browser-native prompt when eligibl
   assert.match(jarvisHtml, /installEvent\.prompt\(\)/, "tap must invoke the captured native prompt");
   assert.match(jarvisHtml, /addEventListener\("appinstalled"/, "successful install must be handled");
   assert.match(jarvisHtml, /Chrome has not offered the native install prompt yet/i, "unavailable prompt state must be honest");
-  assert.match(jarvisHtml, /application-version" content="REDULTRON-2026\.10\.28-COGNITIVE-CORE-V16"/, "app version must identify this shell release");
+  assert.match(jarvisHtml, /application-version" content="REDULTRON-2026\.10\.28-CORE-3\\.0-V16"/, "app version must identify this shell release");
   assert.match(serviceWorker, /CACHE_NAME\s*=\s*"redultron-core-shell-v16-cognitive-core"/, "shell cache must be invalidated");
 });
 
@@ -456,7 +456,7 @@ test("Central Agent runtime and PWA shell release markers stay synchronized", ()
   assert.ok(runtimeVersion, "Central Agent runtime must declare its health-reported version");
   assert.equal(headerVersion, runtimeVersion, "source header and runtime health version must match");
 
-  const appVersion = jarvisHtml.match(/application-version" content="REDULTRON-[0-9]{4}\.[0-9]{2}\.[0-9]{2}-COGNITIVE-CORE-V([0-9]+)/)?.[1];
+  const appVersion = jarvisHtml.match(/application-version" content="REDULTRON-[0-9]{4}\.[0-9]{2}\.[0-9]{2}-CORE-3\\.0-V([0-9]+)/)?.[1];
   const cacheVersion = serviceWorker.match(/CACHE_NAME\s*=\s*"redultron-core-shell-v([0-9]+)-cognitive-core"/)?.[1];
   assert.ok(appVersion, "PWA HTML must declare its release version");
   assert.ok(cacheVersion, "service worker must declare its shell cache version");
@@ -502,7 +502,7 @@ test("voice catalog refreshes immediately and supports both voice-change event A
 
 
 test("Core release metadata is current and voice output uses clear, full-volume prosody", () => {
-  assert.match(jarvisHtml, /application-version" content="REDULTRON-2026\.10\.28-COGNITIVE-CORE-V16/, "PWA release date and cache version must be refreshed together");
+  assert.match(jarvisHtml, /application-version" content="REDULTRON-2026\.10\.28-CORE-3\\.0-V16/, "PWA release date and cache version must be refreshed together");
   const declaration = jarvisHtml.match(/    function adaptSpeechTone\(utterance, text, language\) \{[\s\S]*?\n    \}/);
   assert.ok(declaration, "speech output must have a prosody policy");
   const adaptSpeechTone = vm.runInNewContext("(" + declaration[0].trim() + ")");
