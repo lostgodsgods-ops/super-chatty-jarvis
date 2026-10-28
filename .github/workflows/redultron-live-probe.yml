@@ -89,17 +89,21 @@ jobs:
             .probe == "authenticated-hybrid-roundtrip" and
             .task == "summarize" and
             (.resultsSchemaValid == true or .resultSchemaValid == true) and
-            .engine == "python-edge-hybrid" and
+            (.engine == "python-edge-hybrid" or .engine == "php-edge-hybrid") and
             .fallbackEngaged == false and
-            .hybridPythonCoreExecutionVerified == true
+            .hybridCoreExecutionVerified == true and
+            ((.engine == "python-edge-hybrid" and .hybridPythonCoreExecutionVerified == true) or
+             (.engine == "php-edge-hybrid" and .hybridPhpCoreExecutionVerified == true))
           ' "$hybrid_file" >/dev/null; then
             # Strict certification: HTTP 200 or a valid local fallback is not proof of Python execution.
             # Do not dump upstream response bodies, headers, or secrets into workflow logs.
             engine="$(jq -r 'if type == "object" and (.engine | type) == "string" then .engine | gsub("[^A-Za-z0-9_-]"; "")[0:64] else "UNKNOWN" end' "$hybrid_file" 2>/dev/null || printf 'UNREADABLE_RESPONSE')"
             fallback="$(jq -r 'if type == "object" and (.fallbackEngaged | type) == "boolean" then (.fallbackEngaged|tostring) else "UNKNOWN" end' "$hybrid_file" 2>/dev/null || printf 'UNKNOWN')"
-            verified="$(jq -r 'if type == "object" and (.hybridPythonCoreExecutionVerified | type) == "boolean" then (.hybridPythonCoreExecutionVerified|tostring) else "UNKNOWN" end' "$hybrid_file" 2>/dev/null || printf 'UNKNOWN')"
+            verified="$(jq -r 'if type == "object" and (.hybridCoreExecutionVerified | type) == "boolean" then (.hybridCoreExecutionVerified|tostring) else "UNKNOWN" end' "$hybrid_file" 2>/dev/null || printf 'UNKNOWN')"
+            python_verified="$(jq -r 'if type == "object" and (.hybridPythonCoreExecutionVerified | type) == "boolean" then (.hybridPythonCoreExecutionVerified|tostring) else "UNKNOWN" end' "$hybrid_file" 2>/dev/null || printf 'UNKNOWN')"
+            php_verified="$(jq -r 'if type == "object" and (.hybridPhpCoreExecutionVerified | type) == "boolean" then (.hybridPhpCoreExecutionVerified|tostring) else "UNKNOWN" end' "$hybrid_file" 2>/dev/null || printf 'UNKNOWN')"
             fallback_reason="$(jq -r 'if type == "object" and (.fallbackReason | type) == "string" then (.fallbackReason | gsub("[^A-Za-z0-9_-]"; "")[0:64]) else "UNKNOWN" end' "$hybrid_file" 2>/dev/null || printf 'UNKNOWN')"
-            echo "::error::STRICT FAIL: Python upstream execution not certified; engine=$engine fallbackEngaged=$fallback hybridPythonCoreExecutionVerified=$verified fallbackReason=$fallback_reason."
+            echo "::error::STRICT FAIL: configured upstream execution not certified; engine=$engine fallbackEngaged=$fallback hybridCoreExecutionVerified=$verified pythonVerified=$python_verified phpVerified=$php_verified fallbackReason=$fallback_reason."
             exit 1
           fi
-          echo "PASS: OWNER_SECRET-authenticated Python upstream round-trip returned HTTP 200; strict engine, fallback, execution-verification, and result-schema flags matched."
+          echo "PASS: OWNER_SECRET-authenticated configured upstream round-trip returned HTTP 200; engine-specific execution, no-fallback, and result-schema flags matched."
