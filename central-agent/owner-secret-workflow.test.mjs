@@ -73,3 +73,16 @@ test("owner-secret match diagnostic is read-only and never prints secret values"
   assert.doesNotMatch(diagnostic, /echo\s+["']?\$current_value|echo\s+["']?\$REDULTRON_OWNER_SECRET|printf[^\n]*(?:current_value|REDULTRON_OWNER_SECRET)/i,
     "diagnostic must not print secret values");
 });
+
+test("production provenance sync is manual-only and requires explicit authorization", () => {
+  const provenance = readWorkflow("../.github/workflows/redultron-provenance-deploy.yml");
+  const triggers = provenance.split(/^permissions:/m)[0] ?? provenance;
+  assert.doesNotMatch(triggers, /^\s{2}push:/m,
+    "production secret synchronization and deployment must never auto-run on main pushes");
+  assert.match(triggers, /authorize_production_changes/,
+    "manual production workflow must expose an explicit authorization input");
+  assert.match(triggers, /default:\s*deny/,
+    "production authorization must default to deny");
+  assert.match(provenance, /if:\s*\$\{\{\s*inputs\.authorize_production_changes\s*==\s*'approve'\s*\}\}/,
+    "production-changing job must run only after explicit approval");
+});
