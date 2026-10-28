@@ -515,7 +515,7 @@ test("Core release metadata is current and voice output uses clear, full-volume 
 
 
 test("installable PWA shell and manifest identify REDULTRON CORE 3.0", () => {
-  assert.match(jarvisHtml, /<title>REDULTRON CORE 3\\.0/);
+  assert.match(jarvisHtml, /<title>REDULTRON CORE 3[.]0/);
   assert.equal(manifest.name, "REDULTRON CORE 3.0");
   assert.equal(manifest.display, "standalone");
 });
