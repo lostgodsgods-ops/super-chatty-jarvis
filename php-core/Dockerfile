@@ -1,15 +1,15 @@
-FROM php:8.3-apache
+FROM php:8.3-cli
 
 RUN apt-get update \
     && apt-get install -y --no-install-recommends libonig-dev \
     && docker-php-ext-install mbstring \
-    && a2enmod rewrite \
     && rm -rf /var/lib/apt/lists/*
 
-WORKDIR /var/www/html
-COPY index.php /var/www/html/index.php
-COPY apache-redultron.conf /etc/apache2/conf-enabled/redultron.conf
+WORKDIR /app
+COPY index.php /app/index.php
 
-EXPOSE 80
+ENV HOST=0.0.0.0 PORT=8788
+EXPOSE 8788
 
-# HTTPS termination, request rate limiting, and secret injection belong to the hosting platform.
+# Local/staging sidecar only. Put behind HTTPS ingress and a production PHP web server before production traffic.
+CMD ["sh", "-c", "php -S ${HOST}:${PORT} /app/index.php"]
