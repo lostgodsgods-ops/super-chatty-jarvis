@@ -139,3 +139,19 @@ test("mission-grid API fails closed when the audit store is unavailable", async 
   assert.equal(body.ok, false);
   assert.equal(body.error, "AUDIT_STORAGE_UNAVAILABLE");
 });
+
+
+test("persistent learning GET and POST reject unauthenticated requests before touching D1", async () => {
+  for (const method of ["GET", "POST"]) {
+    let databaseTouched = false;
+    const init = method === "POST"
+      ? { method, headers: { "content-type": "application/json" }, body: JSON.stringify({}) }
+      : { method };
+    const response = await worker.fetch(new Request("https://example.test/api/learning/knowledge?q=private", init), {
+      DB: { prepare() { databaseTouched = true; throw new Error("unauthenticated learning request must not touch D1"); } },
+      SESSIONS: { get: async () => null }
+    });
+    assert.equal(response.status, 401, `${method} must require owner authentication`);
+    assert.equal(databaseTouched, false, `${method} must not touch D1 before authentication`);
+  }
+});
