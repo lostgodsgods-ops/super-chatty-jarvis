@@ -2611,7 +2611,8 @@ export default {
       // Explicit research requests may opt into stale results, which are always marked as stale.
       let response;
       try {
-        response = await fetchTavilyWithRetry(query, env, { allowStale: true });
+        // Stale cache is permitted only for timeless research; current/news queries require fresh provider evidence.
+        response = await fetchTavilyWithRetry(query, env, { allowStale: !requiresLiveSearch(query) });
       } catch (error) {
         const diagnostics = Array.isArray(error?.providerDiagnostics) ? error.providerDiagnostics : [];
         const code = typeof error?.code === "string" && /^LIVE_SEARCH_[A-Z0-9_]{1,64}$/.test(error.code)
