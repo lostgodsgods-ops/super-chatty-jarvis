@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "project": "REDULTRON CORE 3.0",
-  "snapshotTime": "2026-10-29T02:48:18+05:30",
+  "snapshotTime": "2026-10-29T02:49:40+05:30",
   "repository": "lostgodsgods-ops/super-chatty-jarvis",
   "branch": "main",
   "commitSha": "0a35a8dda07b5217497ec1c45bdc64e3a7d0147c",
@@ -27,13 +27,13 @@
         "No direct sibling test mapping established from filename; suite/runtime coverage requires separate verification."
       ],
       "accessStatus": "Readable via authorized GitHub connector; production writes not performed.",
-      "blocker": "No workflow-specific blocker established by this run.",
+      "blocker": "Node tests and syntax checks passed at the snapshot SHA.",
       "status": "PASS",
       "latestRun": {
-        "id": 40766128960,
+        "id": 40770650646,
         "conclusion": "success",
-        "url": "https://github.com/lostgodsgods-ops/super-chatty-jarvis/actions/runs/40766128960",
-        "created_at": "2026-10-28T20:45:38Z"
+        "url": "https://github.com/lostgodsgods-ops/super-chatty-jarvis/actions/runs/40770650646",
+        "created_at": "2026-10-28T21:17:03Z"
       }
     },
     {
@@ -131,13 +131,13 @@
         "No direct sibling test mapping established from filename; suite/runtime coverage requires separate verification."
       ],
       "accessStatus": "Readable via authorized GitHub connector; production writes not performed.",
-      "blocker": "Push run succeeded; scheduled/duplicate-event behavior is not a complete production reliability certification.",
+      "blocker": "Push-triggered Sentinel run succeeded; this is not a complete live recovery replay.",
       "status": "PASS",
       "latestRun": {
-        "id": 40766128956,
+        "id": 40770650632,
         "conclusion": "success",
-        "url": "https://github.com/lostgodsgods-ops/super-chatty-jarvis/actions/runs/40766128956",
-        "created_at": "2026-10-28T20:45:38Z"
+        "url": "https://github.com/lostgodsgods-ops/super-chatty-jarvis/actions/runs/40770650632",
+        "created_at": "2026-10-28T21:17:03Z"
       }
     },
     {
@@ -179,13 +179,13 @@
         "No direct sibling test mapping established from filename; suite/runtime coverage requires separate verification."
       ],
       "accessStatus": "Readable via authorized GitHub connector; production writes not performed.",
-      "blocker": "Main push run failed before jobs; PR #801 has a passing trigger-key fix and remains open.",
+      "blocker": "Main push workflow fails before jobs because the YAML contains duplicate push keys; PR #801 has a tested fix and remains open.",
       "status": "FAIL",
       "latestRun": {
-        "id": 40766126980,
+        "id": 40770648736,
         "conclusion": "failure",
-        "url": "https://github.com/lostgodsgods-ops/super-chatty-jarvis/actions/runs/40766126980",
-        "created_at": "2026-10-28T20:45:37Z"
+        "url": "https://github.com/lostgodsgods-ops/super-chatty-jarvis/actions/runs/40770648736",
+        "created_at": "2026-10-28T21:17:02Z"
       }
     },
     {
@@ -199,13 +199,13 @@
         "No direct sibling test mapping established from filename; suite/runtime coverage requires separate verification."
       ],
       "accessStatus": "Readable via authorized GitHub connector; production writes not performed.",
-      "blocker": "No workflow-specific blocker established by this run.",
+      "blocker": "Static checks passed at the snapshot SHA.",
       "status": "PASS",
       "latestRun": {
-        "id": 40766128993,
+        "id": 40770650616,
         "conclusion": "success",
-        "url": "https://github.com/lostgodsgods-ops/super-chatty-jarvis/actions/runs/40766128993",
-        "created_at": "2026-10-28T20:45:38Z"
+        "url": "https://github.com/lostgodsgods-ops/super-chatty-jarvis/actions/runs/40770650616",
+        "created_at": "2026-10-28T21:17:03Z"
       }
     },
     {
@@ -376,10 +376,10 @@
       "blocker": "Suite-level test evidence only; live runtime behavior is not inferred.",
       "status": "PASS — suite-level CI on exact main SHA",
       "latestRun": {
-        "id": 40766128960,
+        "id": 40770650646,
         "conclusion": "success",
-        "url": "https://github.com/lostgodsgods-ops/super-chatty-jarvis/actions/runs/40766128960",
-        "created_at": "2026-10-28T20:45:38Z"
+        "url": "https://github.com/lostgodsgods-ops/super-chatty-jarvis/actions/runs/40770650646",
+        "created_at": "2026-10-28T21:17:03Z"
       }
     },
     {
@@ -410,10 +410,10 @@
       "blocker": "Suite-level test evidence only; live runtime behavior is not inferred.",
       "status": "PASS — suite-level CI on exact main SHA",
       "latestRun": {
-        "id": 40766128960,
+        "id": 40770650646,
         "conclusion": "success",
-        "url": "https://github.com/lostgodsgods-ops/super-chatty-jarvis/actions/runs/40766128960",
-        "created_at": "2026-10-28T20:45:38Z"
+        "url": "https://github.com/lostgodsgods-ops/super-chatty-jarvis/actions/runs/40770650646",
+        "created_at": "2026-10-28T21:17:03Z"
       }
     },
     {
@@ -430,10 +430,10 @@
       "blocker": "Suite-level test evidence only; live runtime behavior is not inferred.",
       "status": "PASS — suite-level CI on exact main SHA",
       "latestRun": {
-        "id": 40766128960,
+        "id": 40770650646,
         "conclusion": "success",
-        "url": "https://github.com/lostgodsgods-ops/super-chatty-jarvis/actions/runs/40766128960",
-        "created_at": "2026-10-28T20:45:38Z"
+        "url": "https://github.com/lostgodsgods-ops/super-chatty-jarvis/actions/runs/40770650646",
+        "created_at": "2026-10-28T21:17:03Z"
       }
     },
     {
@@ -464,10 +464,10 @@
       "blocker": "Suite-level test evidence only; live runtime behavior is not inferred.",
       "status": "PASS — suite-level CI on exact main SHA",
       "latestRun": {
-        "id": 40766128960,
+        "id": 40770650646,
         "conclusion": "success",
-        "url": "https://github.com/lostgodsgods-ops/super-chatty-jarvis/actions/runs/40766128960",
-        "created_at": "2026-10-28T20:45:38Z"
+        "url": "https://github.com/lostgodsgods-ops/super-chatty-jarvis/actions/runs/40770650646",
+        "created_at": "2026-10-28T21:17:03Z"
       }
     },
     {
@@ -512,10 +512,10 @@
       "blocker": "Suite-level test evidence only; live runtime behavior is not inferred.",
       "status": "PASS — suite-level CI on exact main SHA",
       "latestRun": {
-        "id": 40766128960,
+        "id": 40770650646,
         "conclusion": "success",
-        "url": "https://github.com/lostgodsgods-ops/super-chatty-jarvis/actions/runs/40766128960",
-        "created_at": "2026-10-28T20:45:38Z"
+        "url": "https://github.com/lostgodsgods-ops/super-chatty-jarvis/actions/runs/40770650646",
+        "created_at": "2026-10-28T21:17:03Z"
       }
     },
     {
@@ -546,10 +546,10 @@
       "blocker": "Suite-level test evidence only; live runtime behavior is not inferred.",
       "status": "PASS — suite-level CI on exact main SHA",
       "latestRun": {
-        "id": 40766128960,
+        "id": 40770650646,
         "conclusion": "success",
-        "url": "https://github.com/lostgodsgods-ops/super-chatty-jarvis/actions/runs/40766128960",
-        "created_at": "2026-10-28T20:45:38Z"
+        "url": "https://github.com/lostgodsgods-ops/super-chatty-jarvis/actions/runs/40770650646",
+        "created_at": "2026-10-28T21:17:03Z"
       }
     },
     {
@@ -580,10 +580,10 @@
       "blocker": "Tests are covered by repository CI; production capability_requests table is absent and live POST→D1→GET remains NOT TESTED.",
       "status": "PASS — suite-level CI on exact main SHA",
       "latestRun": {
-        "id": 40766128960,
+        "id": 40770650646,
         "conclusion": "success",
-        "url": "https://github.com/lostgodsgods-ops/super-chatty-jarvis/actions/runs/40766128960",
-        "created_at": "2026-10-28T20:45:38Z"
+        "url": "https://github.com/lostgodsgods-ops/super-chatty-jarvis/actions/runs/40770650646",
+        "created_at": "2026-10-28T21:17:03Z"
       }
     },
     {
@@ -600,10 +600,10 @@
       "blocker": "Tests are covered by repository CI; production capability_requests table is absent and live POST→D1→GET remains NOT TESTED.",
       "status": "PASS — suite-level CI on exact main SHA",
       "latestRun": {
-        "id": 40766128960,
+        "id": 40770650646,
         "conclusion": "success",
-        "url": "https://github.com/lostgodsgods-ops/super-chatty-jarvis/actions/runs/40766128960",
-        "created_at": "2026-10-28T20:45:38Z"
+        "url": "https://github.com/lostgodsgods-ops/super-chatty-jarvis/actions/runs/40770650646",
+        "created_at": "2026-10-28T21:17:03Z"
       }
     },
     {
@@ -634,10 +634,10 @@
       "blocker": "Suite-level test evidence only; live runtime behavior is not inferred.",
       "status": "PASS — suite-level CI on exact main SHA",
       "latestRun": {
-        "id": 40766128960,
+        "id": 40770650646,
         "conclusion": "success",
-        "url": "https://github.com/lostgodsgods-ops/super-chatty-jarvis/actions/runs/40766128960",
-        "created_at": "2026-10-28T20:45:38Z"
+        "url": "https://github.com/lostgodsgods-ops/super-chatty-jarvis/actions/runs/40770650646",
+        "created_at": "2026-10-28T21:17:03Z"
       }
     },
     {
@@ -682,10 +682,10 @@
       "blocker": "Suite-level test evidence only; live runtime behavior is not inferred.",
       "status": "PASS — suite-level CI on exact main SHA",
       "latestRun": {
-        "id": 40766128960,
+        "id": 40770650646,
         "conclusion": "success",
-        "url": "https://github.com/lostgodsgods-ops/super-chatty-jarvis/actions/runs/40766128960",
-        "created_at": "2026-10-28T20:45:38Z"
+        "url": "https://github.com/lostgodsgods-ops/super-chatty-jarvis/actions/runs/40770650646",
+        "created_at": "2026-10-28T21:17:03Z"
       }
     },
     {
@@ -716,10 +716,10 @@
       "blocker": "Suite-level test evidence only; live runtime behavior is not inferred.",
       "status": "PASS — suite-level CI on exact main SHA",
       "latestRun": {
-        "id": 40766128960,
+        "id": 40770650646,
         "conclusion": "success",
-        "url": "https://github.com/lostgodsgods-ops/super-chatty-jarvis/actions/runs/40766128960",
-        "created_at": "2026-10-28T20:45:38Z"
+        "url": "https://github.com/lostgodsgods-ops/super-chatty-jarvis/actions/runs/40770650646",
+        "created_at": "2026-10-28T21:17:03Z"
       }
     },
     {
@@ -750,10 +750,10 @@
       "blocker": "Suite-level test evidence only; live runtime behavior is not inferred.",
       "status": "PASS — suite-level CI on exact main SHA",
       "latestRun": {
-        "id": 40766128960,
+        "id": 40770650646,
         "conclusion": "success",
-        "url": "https://github.com/lostgodsgods-ops/super-chatty-jarvis/actions/runs/40766128960",
-        "created_at": "2026-10-28T20:45:38Z"
+        "url": "https://github.com/lostgodsgods-ops/super-chatty-jarvis/actions/runs/40770650646",
+        "created_at": "2026-10-28T21:17:03Z"
       }
     },
     {
@@ -798,10 +798,10 @@
       "blocker": "Suite-level test evidence only; live runtime behavior is not inferred.",
       "status": "PASS — suite-level CI on exact main SHA",
       "latestRun": {
-        "id": 40766128960,
+        "id": 40770650646,
         "conclusion": "success",
-        "url": "https://github.com/lostgodsgods-ops/super-chatty-jarvis/actions/runs/40766128960",
-        "created_at": "2026-10-28T20:45:38Z"
+        "url": "https://github.com/lostgodsgods-ops/super-chatty-jarvis/actions/runs/40770650646",
+        "created_at": "2026-10-28T21:17:03Z"
       }
     },
     {
@@ -846,10 +846,10 @@
       "blocker": "Suite-level test evidence only; live runtime behavior is not inferred.",
       "status": "PASS — suite-level CI on exact main SHA",
       "latestRun": {
-        "id": 40766128960,
+        "id": 40770650646,
         "conclusion": "success",
-        "url": "https://github.com/lostgodsgods-ops/super-chatty-jarvis/actions/runs/40766128960",
-        "created_at": "2026-10-28T20:45:38Z"
+        "url": "https://github.com/lostgodsgods-ops/super-chatty-jarvis/actions/runs/40770650646",
+        "created_at": "2026-10-28T21:17:03Z"
       }
     },
     {
@@ -936,10 +936,10 @@
       "blocker": "Suite-level test evidence only; live runtime behavior is not inferred.",
       "status": "PASS — suite-level CI on exact main SHA",
       "latestRun": {
-        "id": 40766128960,
+        "id": 40770650646,
         "conclusion": "success",
-        "url": "https://github.com/lostgodsgods-ops/super-chatty-jarvis/actions/runs/40766128960",
-        "created_at": "2026-10-28T20:45:38Z"
+        "url": "https://github.com/lostgodsgods-ops/super-chatty-jarvis/actions/runs/40770650646",
+        "created_at": "2026-10-28T21:17:03Z"
       }
     },
     {
@@ -1012,10 +1012,10 @@
       "blocker": "Suite-level test evidence only; live runtime behavior is not inferred.",
       "status": "PASS — suite-level CI on exact main SHA",
       "latestRun": {
-        "id": 40766128960,
+        "id": 40770650646,
         "conclusion": "success",
-        "url": "https://github.com/lostgodsgods-ops/super-chatty-jarvis/actions/runs/40766128960",
-        "created_at": "2026-10-28T20:45:38Z"
+        "url": "https://github.com/lostgodsgods-ops/super-chatty-jarvis/actions/runs/40770650646",
+        "created_at": "2026-10-28T21:17:03Z"
       }
     },
     {
@@ -1046,10 +1046,10 @@
       "blocker": "Suite-level test evidence only; live runtime behavior is not inferred.",
       "status": "PASS — suite-level CI on exact main SHA",
       "latestRun": {
-        "id": 40766128960,
+        "id": 40770650646,
         "conclusion": "success",
-        "url": "https://github.com/lostgodsgods-ops/super-chatty-jarvis/actions/runs/40766128960",
-        "created_at": "2026-10-28T20:45:38Z"
+        "url": "https://github.com/lostgodsgods-ops/super-chatty-jarvis/actions/runs/40770650646",
+        "created_at": "2026-10-28T21:17:03Z"
       }
     },
     {
@@ -1066,10 +1066,10 @@
       "blocker": "Suite-level test evidence only; live runtime behavior is not inferred.",
       "status": "PASS — suite-level CI on exact main SHA",
       "latestRun": {
-        "id": 40766128960,
+        "id": 40770650646,
         "conclusion": "success",
-        "url": "https://github.com/lostgodsgods-ops/super-chatty-jarvis/actions/runs/40766128960",
-        "created_at": "2026-10-28T20:45:38Z"
+        "url": "https://github.com/lostgodsgods-ops/super-chatty-jarvis/actions/runs/40770650646",
+        "created_at": "2026-10-28T21:17:03Z"
       }
     },
     {
@@ -1100,10 +1100,10 @@
       "blocker": "Suite-level test evidence only; live runtime behavior is not inferred.",
       "status": "PASS — suite-level CI on exact main SHA",
       "latestRun": {
-        "id": 40766128960,
+        "id": 40770650646,
         "conclusion": "success",
-        "url": "https://github.com/lostgodsgods-ops/super-chatty-jarvis/actions/runs/40766128960",
-        "created_at": "2026-10-28T20:45:38Z"
+        "url": "https://github.com/lostgodsgods-ops/super-chatty-jarvis/actions/runs/40770650646",
+        "created_at": "2026-10-28T21:17:03Z"
       }
     },
     {
@@ -1134,10 +1134,10 @@
       "blocker": "Suite-level test evidence only; live runtime behavior is not inferred.",
       "status": "PASS — suite-level CI on exact main SHA",
       "latestRun": {
-        "id": 40766128960,
+        "id": 40770650646,
         "conclusion": "success",
-        "url": "https://github.com/lostgodsgods-ops/super-chatty-jarvis/actions/runs/40766128960",
-        "created_at": "2026-10-28T20:45:38Z"
+        "url": "https://github.com/lostgodsgods-ops/super-chatty-jarvis/actions/runs/40770650646",
+        "created_at": "2026-10-28T21:17:03Z"
       }
     },
     {
@@ -1168,10 +1168,10 @@
       "blocker": "Suite-level test evidence only; live runtime behavior is not inferred.",
       "status": "PASS — suite-level CI on exact main SHA",
       "latestRun": {
-        "id": 40766128960,
+        "id": 40770650646,
         "conclusion": "success",
-        "url": "https://github.com/lostgodsgods-ops/super-chatty-jarvis/actions/runs/40766128960",
-        "created_at": "2026-10-28T20:45:38Z"
+        "url": "https://github.com/lostgodsgods-ops/super-chatty-jarvis/actions/runs/40770650646",
+        "created_at": "2026-10-28T21:17:03Z"
       }
     },
     {
@@ -1202,10 +1202,10 @@
       "blocker": "Suite-level test evidence only; live runtime behavior is not inferred.",
       "status": "PASS — suite-level CI on exact main SHA",
       "latestRun": {
-        "id": 40766128960,
+        "id": 40770650646,
         "conclusion": "success",
-        "url": "https://github.com/lostgodsgods-ops/super-chatty-jarvis/actions/runs/40766128960",
-        "created_at": "2026-10-28T20:45:38Z"
+        "url": "https://github.com/lostgodsgods-ops/super-chatty-jarvis/actions/runs/40770650646",
+        "created_at": "2026-10-28T21:17:03Z"
       }
     },
     {
@@ -1236,10 +1236,10 @@
       "blocker": "Suite-level test evidence only; live runtime behavior is not inferred.",
       "status": "PASS — suite-level CI on exact main SHA",
       "latestRun": {
-        "id": 40766128960,
+        "id": 40770650646,
         "conclusion": "success",
-        "url": "https://github.com/lostgodsgods-ops/super-chatty-jarvis/actions/runs/40766128960",
-        "created_at": "2026-10-28T20:45:38Z"
+        "url": "https://github.com/lostgodsgods-ops/super-chatty-jarvis/actions/runs/40770650646",
+        "created_at": "2026-10-28T21:17:03Z"
       }
     },
     {
@@ -1270,10 +1270,10 @@
       "blocker": "Suite-level test evidence only; live runtime behavior is not inferred.",
       "status": "PASS — suite-level CI on exact main SHA",
       "latestRun": {
-        "id": 40766128960,
+        "id": 40770650646,
         "conclusion": "success",
-        "url": "https://github.com/lostgodsgods-ops/super-chatty-jarvis/actions/runs/40766128960",
-        "created_at": "2026-10-28T20:45:38Z"
+        "url": "https://github.com/lostgodsgods-ops/super-chatty-jarvis/actions/runs/40770650646",
+        "created_at": "2026-10-28T21:17:03Z"
       }
     },
     {
@@ -1304,10 +1304,10 @@
       "status": "PASS — suite-level CI on exact main SHA",
       "blocker": "Suite-level test evidence only; live runtime behavior is not inferred.",
       "latestRun": {
-        "id": 40766128960,
+        "id": 40770650646,
         "conclusion": "success",
-        "url": "https://github.com/lostgodsgods-ops/super-chatty-jarvis/actions/runs/40766128960",
-        "created_at": "2026-10-28T20:45:38Z"
+        "url": "https://github.com/lostgodsgods-ops/super-chatty-jarvis/actions/runs/40770650646",
+        "created_at": "2026-10-28T21:17:03Z"
       }
     },
     {
@@ -1338,10 +1338,10 @@
       "blocker": "Main's existing suite passed; PR #816 and #820 add branch-only regressions and are not merged.",
       "status": "PASS — suite-level CI on exact main SHA",
       "latestRun": {
-        "id": 40766128960,
+        "id": 40770650646,
         "conclusion": "success",
-        "url": "https://github.com/lostgodsgods-ops/super-chatty-jarvis/actions/runs/40766128960",
-        "created_at": "2026-10-28T20:45:38Z"
+        "url": "https://github.com/lostgodsgods-ops/super-chatty-jarvis/actions/runs/40770650646",
+        "created_at": "2026-10-28T21:17:03Z"
       }
     },
     {
@@ -1358,10 +1358,10 @@
       "blocker": "Suite-level test evidence only; live runtime behavior is not inferred.",
       "status": "PASS — suite-level CI on exact main SHA",
       "latestRun": {
-        "id": 40766128960,
+        "id": 40770650646,
         "conclusion": "success",
-        "url": "https://github.com/lostgodsgods-ops/super-chatty-jarvis/actions/runs/40766128960",
-        "created_at": "2026-10-28T20:45:38Z"
+        "url": "https://github.com/lostgodsgods-ops/super-chatty-jarvis/actions/runs/40770650646",
+        "created_at": "2026-10-28T21:17:03Z"
       }
     },
     {
@@ -1378,10 +1378,10 @@
       "blocker": "Suite-level test evidence only; live runtime behavior is not inferred.",
       "status": "PASS — suite-level CI on exact main SHA",
       "latestRun": {
-        "id": 40766128960,
+        "id": 40770650646,
         "conclusion": "success",
-        "url": "https://github.com/lostgodsgods-ops/super-chatty-jarvis/actions/runs/40766128960",
-        "created_at": "2026-10-28T20:45:38Z"
+        "url": "https://github.com/lostgodsgods-ops/super-chatty-jarvis/actions/runs/40770650646",
+        "created_at": "2026-10-28T21:17:03Z"
       }
     },
     {
@@ -1412,10 +1412,10 @@
       "blocker": "Suite-level test evidence only; live runtime behavior is not inferred.",
       "status": "PASS — suite-level CI on exact main SHA",
       "latestRun": {
-        "id": 40766128960,
+        "id": 40770650646,
         "conclusion": "success",
-        "url": "https://github.com/lostgodsgods-ops/super-chatty-jarvis/actions/runs/40766128960",
-        "created_at": "2026-10-28T20:45:38Z"
+        "url": "https://github.com/lostgodsgods-ops/super-chatty-jarvis/actions/runs/40770650646",
+        "created_at": "2026-10-28T21:17:03Z"
       }
     },
     {
@@ -1432,10 +1432,10 @@
       "blocker": "Suite-level test evidence only; live runtime behavior is not inferred.",
       "status": "PASS — suite-level CI on exact main SHA",
       "latestRun": {
-        "id": 40766128960,
+        "id": 40770650646,
         "conclusion": "success",
-        "url": "https://github.com/lostgodsgods-ops/super-chatty-jarvis/actions/runs/40766128960",
-        "created_at": "2026-10-28T20:45:38Z"
+        "url": "https://github.com/lostgodsgods-ops/super-chatty-jarvis/actions/runs/40770650646",
+        "created_at": "2026-10-28T21:17:03Z"
       }
     },
     {
@@ -1452,10 +1452,10 @@
       "blocker": "Suite-level test evidence only; live runtime behavior is not inferred.",
       "status": "PASS — suite-level CI on exact main SHA",
       "latestRun": {
-        "id": 40766128960,
+        "id": 40770650646,
         "conclusion": "success",
-        "url": "https://github.com/lostgodsgods-ops/super-chatty-jarvis/actions/runs/40766128960",
-        "created_at": "2026-10-28T20:45:38Z"
+        "url": "https://github.com/lostgodsgods-ops/super-chatty-jarvis/actions/runs/40770650646",
+        "created_at": "2026-10-28T21:17:03Z"
       }
     },
     {
@@ -1472,10 +1472,10 @@
       "blocker": "Suite-level test evidence only; live runtime behavior is not inferred.",
       "status": "PASS — suite-level CI on exact main SHA",
       "latestRun": {
-        "id": 40766128960,
+        "id": 40770650646,
         "conclusion": "success",
-        "url": "https://github.com/lostgodsgods-ops/super-chatty-jarvis/actions/runs/40766128960",
-        "created_at": "2026-10-28T20:45:38Z"
+        "url": "https://github.com/lostgodsgods-ops/super-chatty-jarvis/actions/runs/40770650646",
+        "created_at": "2026-10-28T21:17:03Z"
       }
     },
     {
@@ -1506,10 +1506,10 @@
       "blocker": "Suite-level test evidence only; live runtime behavior is not inferred.",
       "status": "PASS — suite-level CI on exact main SHA",
       "latestRun": {
-        "id": 40766128960,
+        "id": 40770650646,
         "conclusion": "success",
-        "url": "https://github.com/lostgodsgods-ops/super-chatty-jarvis/actions/runs/40766128960",
-        "created_at": "2026-10-28T20:45:38Z"
+        "url": "https://github.com/lostgodsgods-ops/super-chatty-jarvis/actions/runs/40770650646",
+        "created_at": "2026-10-28T21:17:03Z"
       }
     },
     {
@@ -1540,10 +1540,10 @@
       "blocker": "Suite-level test evidence only; live runtime behavior is not inferred.",
       "status": "PASS — suite-level CI on exact main SHA",
       "latestRun": {
-        "id": 40766128960,
+        "id": 40770650646,
         "conclusion": "success",
-        "url": "https://github.com/lostgodsgods-ops/super-chatty-jarvis/actions/runs/40766128960",
-        "created_at": "2026-10-28T20:45:38Z"
+        "url": "https://github.com/lostgodsgods-ops/super-chatty-jarvis/actions/runs/40770650646",
+        "created_at": "2026-10-28T21:17:03Z"
       }
     },
     {
@@ -1560,10 +1560,10 @@
       "blocker": "Suite-level test evidence only; live runtime behavior is not inferred.",
       "status": "PASS — suite-level CI on exact main SHA",
       "latestRun": {
-        "id": 40766128960,
+        "id": 40770650646,
         "conclusion": "success",
-        "url": "https://github.com/lostgodsgods-ops/super-chatty-jarvis/actions/runs/40766128960",
-        "created_at": "2026-10-28T20:45:38Z"
+        "url": "https://github.com/lostgodsgods-ops/super-chatty-jarvis/actions/runs/40770650646",
+        "created_at": "2026-10-28T21:17:03Z"
       }
     },
     {
@@ -1594,10 +1594,10 @@
       "blocker": "Suite-level test evidence only; live runtime behavior is not inferred.",
       "status": "PASS — suite-level CI on exact main SHA",
       "latestRun": {
-        "id": 40766128960,
+        "id": 40770650646,
         "conclusion": "success",
-        "url": "https://github.com/lostgodsgods-ops/super-chatty-jarvis/actions/runs/40766128960",
-        "created_at": "2026-10-28T20:45:38Z"
+        "url": "https://github.com/lostgodsgods-ops/super-chatty-jarvis/actions/runs/40770650646",
+        "created_at": "2026-10-28T21:17:03Z"
       }
     },
     {
@@ -1628,10 +1628,10 @@
       "blocker": "Suite-level test evidence only; live runtime behavior is not inferred.",
       "status": "PASS — suite-level CI on exact main SHA",
       "latestRun": {
-        "id": 40766128960,
+        "id": 40770650646,
         "conclusion": "success",
-        "url": "https://github.com/lostgodsgods-ops/super-chatty-jarvis/actions/runs/40766128960",
-        "created_at": "2026-10-28T20:45:38Z"
+        "url": "https://github.com/lostgodsgods-ops/super-chatty-jarvis/actions/runs/40770650646",
+        "created_at": "2026-10-28T21:17:03Z"
       }
     },
     {
@@ -1662,10 +1662,10 @@
       "blocker": "Suite-level test evidence only; live runtime behavior is not inferred.",
       "status": "PASS — suite-level CI on exact main SHA",
       "latestRun": {
-        "id": 40766128960,
+        "id": 40770650646,
         "conclusion": "success",
-        "url": "https://github.com/lostgodsgods-ops/super-chatty-jarvis/actions/runs/40766128960",
-        "created_at": "2026-10-28T20:45:38Z"
+        "url": "https://github.com/lostgodsgods-ops/super-chatty-jarvis/actions/runs/40770650646",
+        "created_at": "2026-10-28T21:17:03Z"
       }
     },
     {
@@ -1696,10 +1696,10 @@
       "blocker": "Suite-level test evidence only; live runtime behavior is not inferred.",
       "status": "PASS — suite-level CI on exact main SHA",
       "latestRun": {
-        "id": 40766128960,
+        "id": 40770650646,
         "conclusion": "success",
-        "url": "https://github.com/lostgodsgods-ops/super-chatty-jarvis/actions/runs/40766128960",
-        "created_at": "2026-10-28T20:45:38Z"
+        "url": "https://github.com/lostgodsgods-ops/super-chatty-jarvis/actions/runs/40770650646",
+        "created_at": "2026-10-28T21:17:03Z"
       }
     },
     {
@@ -1730,10 +1730,10 @@
       "blocker": "Suite-level test evidence only; live runtime behavior is not inferred.",
       "status": "PASS — suite-level CI on exact main SHA",
       "latestRun": {
-        "id": 40766128960,
+        "id": 40770650646,
         "conclusion": "success",
-        "url": "https://github.com/lostgodsgods-ops/super-chatty-jarvis/actions/runs/40766128960",
-        "created_at": "2026-10-28T20:45:38Z"
+        "url": "https://github.com/lostgodsgods-ops/super-chatty-jarvis/actions/runs/40770650646",
+        "created_at": "2026-10-28T21:17:03Z"
       }
     },
     {
@@ -1764,10 +1764,10 @@
       "blocker": "Suite-level test evidence only; live runtime behavior is not inferred.",
       "status": "PASS — suite-level CI on exact main SHA",
       "latestRun": {
-        "id": 40766128960,
+        "id": 40770650646,
         "conclusion": "success",
-        "url": "https://github.com/lostgodsgods-ops/super-chatty-jarvis/actions/runs/40766128960",
-        "created_at": "2026-10-28T20:45:38Z"
+        "url": "https://github.com/lostgodsgods-ops/super-chatty-jarvis/actions/runs/40770650646",
+        "created_at": "2026-10-28T21:17:03Z"
       }
     },
     {
@@ -1784,10 +1784,10 @@
       "blocker": "Suite-level test evidence only; live runtime behavior is not inferred.",
       "status": "PASS — suite-level CI on exact main SHA",
       "latestRun": {
-        "id": 40766128960,
+        "id": 40770650646,
         "conclusion": "success",
-        "url": "https://github.com/lostgodsgods-ops/super-chatty-jarvis/actions/runs/40766128960",
-        "created_at": "2026-10-28T20:45:38Z"
+        "url": "https://github.com/lostgodsgods-ops/super-chatty-jarvis/actions/runs/40770650646",
+        "created_at": "2026-10-28T21:17:03Z"
       }
     },
     {
@@ -1804,10 +1804,10 @@
       "blocker": "Suite-level test evidence only; live runtime behavior is not inferred.",
       "status": "PASS — suite-level CI on exact main SHA",
       "latestRun": {
-        "id": 40766128960,
+        "id": 40770650646,
         "conclusion": "success",
-        "url": "https://github.com/lostgodsgods-ops/super-chatty-jarvis/actions/runs/40766128960",
-        "created_at": "2026-10-28T20:45:38Z"
+        "url": "https://github.com/lostgodsgods-ops/super-chatty-jarvis/actions/runs/40770650646",
+        "created_at": "2026-10-28T21:17:03Z"
       }
     },
     {
@@ -1838,10 +1838,10 @@
       "blocker": "Suite-level test evidence only; live runtime behavior is not inferred.",
       "status": "PASS — suite-level CI on exact main SHA",
       "latestRun": {
-        "id": 40766128960,
+        "id": 40770650646,
         "conclusion": "success",
-        "url": "https://github.com/lostgodsgods-ops/super-chatty-jarvis/actions/runs/40766128960",
-        "created_at": "2026-10-28T20:45:38Z"
+        "url": "https://github.com/lostgodsgods-ops/super-chatty-jarvis/actions/runs/40770650646",
+        "created_at": "2026-10-28T21:17:03Z"
       }
     },
     {
@@ -1858,10 +1858,10 @@
       "blocker": "Suite-level test evidence only; live runtime behavior is not inferred.",
       "status": "PASS — suite-level CI on exact main SHA",
       "latestRun": {
-        "id": 40766128960,
+        "id": 40770650646,
         "conclusion": "success",
-        "url": "https://github.com/lostgodsgods-ops/super-chatty-jarvis/actions/runs/40766128960",
-        "created_at": "2026-10-28T20:45:38Z"
+        "url": "https://github.com/lostgodsgods-ops/super-chatty-jarvis/actions/runs/40770650646",
+        "created_at": "2026-10-28T21:17:03Z"
       }
     },
     {
@@ -1878,10 +1878,10 @@
       "blocker": "Suite-level test evidence only; live runtime behavior is not inferred.",
       "status": "PASS — suite-level CI on exact main SHA",
       "latestRun": {
-        "id": 40766128960,
+        "id": 40770650646,
         "conclusion": "success",
-        "url": "https://github.com/lostgodsgods-ops/super-chatty-jarvis/actions/runs/40766128960",
-        "created_at": "2026-10-28T20:45:38Z"
+        "url": "https://github.com/lostgodsgods-ops/super-chatty-jarvis/actions/runs/40770650646",
+        "created_at": "2026-10-28T21:17:03Z"
       }
     },
     {
@@ -2570,10 +2570,10 @@
       "blocker": "Suite-level test evidence only; live runtime behavior is not inferred.",
       "status": "PASS — suite-level CI on exact main SHA",
       "latestRun": {
-        "id": 40766128960,
+        "id": 40770650646,
         "conclusion": "success",
-        "url": "https://github.com/lostgodsgods-ops/super-chatty-jarvis/actions/runs/40766128960",
-        "created_at": "2026-10-28T20:45:38Z"
+        "url": "https://github.com/lostgodsgods-ops/super-chatty-jarvis/actions/runs/40770650646",
+        "created_at": "2026-10-28T21:17:03Z"
       }
     },
     {
@@ -2688,10 +2688,10 @@
       "blocker": "Suite-level test evidence only; live runtime behavior is not inferred.",
       "status": "PASS — suite-level CI on exact main SHA",
       "latestRun": {
-        "id": 40766128960,
+        "id": 40770650646,
         "conclusion": "success",
-        "url": "https://github.com/lostgodsgods-ops/super-chatty-jarvis/actions/runs/40766128960",
-        "created_at": "2026-10-28T20:45:38Z"
+        "url": "https://github.com/lostgodsgods-ops/super-chatty-jarvis/actions/runs/40770650646",
+        "created_at": "2026-10-28T21:17:03Z"
       }
     },
     {
@@ -2708,10 +2708,10 @@
       "blocker": "Suite-level test evidence only; live runtime behavior is not inferred.",
       "status": "PASS — suite-level CI on exact main SHA",
       "latestRun": {
-        "id": 40766128960,
+        "id": 40770650646,
         "conclusion": "success",
-        "url": "https://github.com/lostgodsgods-ops/super-chatty-jarvis/actions/runs/40766128960",
-        "created_at": "2026-10-28T20:45:38Z"
+        "url": "https://github.com/lostgodsgods-ops/super-chatty-jarvis/actions/runs/40770650646",
+        "created_at": "2026-10-28T21:17:03Z"
       }
     },
     {
@@ -2728,10 +2728,10 @@
       "blocker": "Suite-level test evidence only; live runtime behavior is not inferred.",
       "status": "PASS — suite-level CI on exact main SHA",
       "latestRun": {
-        "id": 40766128960,
+        "id": 40770650646,
         "conclusion": "success",
-        "url": "https://github.com/lostgodsgods-ops/super-chatty-jarvis/actions/runs/40766128960",
-        "created_at": "2026-10-28T20:45:38Z"
+        "url": "https://github.com/lostgodsgods-ops/super-chatty-jarvis/actions/runs/40770650646",
+        "created_at": "2026-10-28T21:17:03Z"
       }
     },
     {
@@ -2748,10 +2748,10 @@
       "blocker": "Suite-level test evidence only; live runtime behavior is not inferred.",
       "status": "PASS — suite-level CI on exact main SHA",
       "latestRun": {
-        "id": 40766128960,
+        "id": 40770650646,
         "conclusion": "success",
-        "url": "https://github.com/lostgodsgods-ops/super-chatty-jarvis/actions/runs/40766128960",
-        "created_at": "2026-10-28T20:45:38Z"
+        "url": "https://github.com/lostgodsgods-ops/super-chatty-jarvis/actions/runs/40770650646",
+        "created_at": "2026-10-28T21:17:03Z"
       }
     },
     {
@@ -2768,10 +2768,10 @@
       "blocker": "Suite-level test evidence only; live runtime behavior is not inferred.",
       "status": "PASS — suite-level CI on exact main SHA",
       "latestRun": {
-        "id": 40766128960,
+        "id": 40770650646,
         "conclusion": "success",
-        "url": "https://github.com/lostgodsgods-ops/super-chatty-jarvis/actions/runs/40766128960",
-        "created_at": "2026-10-28T20:45:38Z"
+        "url": "https://github.com/lostgodsgods-ops/super-chatty-jarvis/actions/runs/40770650646",
+        "created_at": "2026-10-28T21:17:03Z"
       }
     },
     {
@@ -2788,10 +2788,10 @@
       "blocker": "Suite-level test evidence only; live runtime behavior is not inferred.",
       "status": "PASS — suite-level CI on exact main SHA",
       "latestRun": {
-        "id": 40766128960,
+        "id": 40770650646,
         "conclusion": "success",
-        "url": "https://github.com/lostgodsgods-ops/super-chatty-jarvis/actions/runs/40766128960",
-        "created_at": "2026-10-28T20:45:38Z"
+        "url": "https://github.com/lostgodsgods-ops/super-chatty-jarvis/actions/runs/40770650646",
+        "created_at": "2026-10-28T21:17:03Z"
       }
     },
     {
@@ -2808,10 +2808,10 @@
       "blocker": "Suite-level test evidence only; live runtime behavior is not inferred.",
       "status": "PASS — suite-level CI on exact main SHA",
       "latestRun": {
-        "id": 40766128960,
+        "id": 40770650646,
         "conclusion": "success",
-        "url": "https://github.com/lostgodsgods-ops/super-chatty-jarvis/actions/runs/40766128960",
-        "created_at": "2026-10-28T20:45:38Z"
+        "url": "https://github.com/lostgodsgods-ops/super-chatty-jarvis/actions/runs/40770650646",
+        "created_at": "2026-10-28T21:17:03Z"
       }
     },
     {
@@ -2828,10 +2828,10 @@
       "blocker": "Suite-level test evidence only; live runtime behavior is not inferred.",
       "status": "PASS — suite-level CI on exact main SHA",
       "latestRun": {
-        "id": 40766128960,
+        "id": 40770650646,
         "conclusion": "success",
-        "url": "https://github.com/lostgodsgods-ops/super-chatty-jarvis/actions/runs/40766128960",
-        "created_at": "2026-10-28T20:45:38Z"
+        "url": "https://github.com/lostgodsgods-ops/super-chatty-jarvis/actions/runs/40770650646",
+        "created_at": "2026-10-28T21:17:03Z"
       }
     },
     {
@@ -2848,10 +2848,10 @@
       "blocker": "Inventory contract tests pass; snapshot must be refreshed after future repository changes.",
       "status": "PASS — suite-level CI on exact main SHA",
       "latestRun": {
-        "id": 40766128960,
+        "id": 40770650646,
         "conclusion": "success",
-        "url": "https://github.com/lostgodsgods-ops/super-chatty-jarvis/actions/runs/40766128960",
-        "created_at": "2026-10-28T20:45:38Z"
+        "url": "https://github.com/lostgodsgods-ops/super-chatty-jarvis/actions/runs/40770650646",
+        "created_at": "2026-10-28T21:17:03Z"
       }
     },
     {
@@ -2868,10 +2868,10 @@
       "blocker": "Suite-level test evidence only; live runtime behavior is not inferred.",
       "status": "PASS — suite-level CI on exact main SHA",
       "latestRun": {
-        "id": 40766128960,
+        "id": 40770650646,
         "conclusion": "success",
-        "url": "https://github.com/lostgodsgods-ops/super-chatty-jarvis/actions/runs/40766128960",
-        "created_at": "2026-10-28T20:45:38Z"
+        "url": "https://github.com/lostgodsgods-ops/super-chatty-jarvis/actions/runs/40770650646",
+        "created_at": "2026-10-28T21:17:03Z"
       }
     },
     {
@@ -2888,10 +2888,10 @@
       "blocker": "Suite-level test evidence only; live runtime behavior is not inferred.",
       "status": "PASS — suite-level CI on exact main SHA",
       "latestRun": {
-        "id": 40766128960,
+        "id": 40770650646,
         "conclusion": "success",
-        "url": "https://github.com/lostgodsgods-ops/super-chatty-jarvis/actions/runs/40766128960",
-        "created_at": "2026-10-28T20:45:38Z"
+        "url": "https://github.com/lostgodsgods-ops/super-chatty-jarvis/actions/runs/40770650646",
+        "created_at": "2026-10-28T21:17:03Z"
       }
     },
     {
@@ -2908,10 +2908,10 @@
       "blocker": "Suite-level test evidence only; live runtime behavior is not inferred.",
       "status": "PASS — suite-level CI on exact main SHA",
       "latestRun": {
-        "id": 40766128960,
+        "id": 40770650646,
         "conclusion": "success",
-        "url": "https://github.com/lostgodsgods-ops/super-chatty-jarvis/actions/runs/40766128960",
-        "created_at": "2026-10-28T20:45:38Z"
+        "url": "https://github.com/lostgodsgods-ops/super-chatty-jarvis/actions/runs/40770650646",
+        "created_at": "2026-10-28T21:17:03Z"
       }
     },
     {
@@ -2928,10 +2928,10 @@
       "blocker": "Suite-level test evidence only; live runtime behavior is not inferred.",
       "status": "PASS — suite-level CI on exact main SHA",
       "latestRun": {
-        "id": 40766128960,
+        "id": 40770650646,
         "conclusion": "success",
-        "url": "https://github.com/lostgodsgods-ops/super-chatty-jarvis/actions/runs/40766128960",
-        "created_at": "2026-10-28T20:45:38Z"
+        "url": "https://github.com/lostgodsgods-ops/super-chatty-jarvis/actions/runs/40770650646",
+        "created_at": "2026-10-28T21:17:03Z"
       }
     },
     {
@@ -2948,10 +2948,10 @@
       "blocker": "Suite-level test evidence only; live runtime behavior is not inferred.",
       "status": "PASS — suite-level CI on exact main SHA",
       "latestRun": {
-        "id": 40766128960,
+        "id": 40770650646,
         "conclusion": "success",
-        "url": "https://github.com/lostgodsgods-ops/super-chatty-jarvis/actions/runs/40766128960",
-        "created_at": "2026-10-28T20:45:38Z"
+        "url": "https://github.com/lostgodsgods-ops/super-chatty-jarvis/actions/runs/40770650646",
+        "created_at": "2026-10-28T21:17:03Z"
       }
     },
     {
@@ -2968,10 +2968,10 @@
       "blocker": "Suite-level test evidence only; live runtime behavior is not inferred.",
       "status": "PASS — suite-level CI on exact main SHA",
       "latestRun": {
-        "id": 40766128960,
+        "id": 40770650646,
         "conclusion": "success",
-        "url": "https://github.com/lostgodsgods-ops/super-chatty-jarvis/actions/runs/40766128960",
-        "created_at": "2026-10-28T20:45:38Z"
+        "url": "https://github.com/lostgodsgods-ops/super-chatty-jarvis/actions/runs/40770650646",
+        "created_at": "2026-10-28T21:17:03Z"
       }
     },
     {
@@ -2988,10 +2988,10 @@
       "blocker": "Suite-level test evidence only; live runtime behavior is not inferred.",
       "status": "PASS — suite-level CI on exact main SHA",
       "latestRun": {
-        "id": 40766128960,
+        "id": 40770650646,
         "conclusion": "success",
-        "url": "https://github.com/lostgodsgods-ops/super-chatty-jarvis/actions/runs/40766128960",
-        "created_at": "2026-10-28T20:45:38Z"
+        "url": "https://github.com/lostgodsgods-ops/super-chatty-jarvis/actions/runs/40770650646",
+        "created_at": "2026-10-28T21:17:03Z"
       }
     },
     {
@@ -3008,10 +3008,10 @@
       "blocker": "Suite-level test evidence only; live runtime behavior is not inferred.",
       "status": "PASS — suite-level CI on exact main SHA",
       "latestRun": {
-        "id": 40766128960,
+        "id": 40770650646,
         "conclusion": "success",
-        "url": "https://github.com/lostgodsgods-ops/super-chatty-jarvis/actions/runs/40766128960",
-        "created_at": "2026-10-28T20:45:38Z"
+        "url": "https://github.com/lostgodsgods-ops/super-chatty-jarvis/actions/runs/40770650646",
+        "created_at": "2026-10-28T21:17:03Z"
       }
     },
     {
@@ -3028,10 +3028,10 @@
       "blocker": "Suite-level test evidence only; live runtime behavior is not inferred.",
       "status": "PASS — suite-level CI on exact main SHA",
       "latestRun": {
-        "id": 40766128960,
+        "id": 40770650646,
         "conclusion": "success",
-        "url": "https://github.com/lostgodsgods-ops/super-chatty-jarvis/actions/runs/40766128960",
-        "created_at": "2026-10-28T20:45:38Z"
+        "url": "https://github.com/lostgodsgods-ops/super-chatty-jarvis/actions/runs/40770650646",
+        "created_at": "2026-10-28T21:17:03Z"
       }
     },
     {
@@ -3048,10 +3048,10 @@
       "blocker": "Suite-level test evidence only; live runtime behavior is not inferred.",
       "status": "PASS — suite-level CI on exact main SHA",
       "latestRun": {
-        "id": 40766128960,
+        "id": 40770650646,
         "conclusion": "success",
-        "url": "https://github.com/lostgodsgods-ops/super-chatty-jarvis/actions/runs/40766128960",
-        "created_at": "2026-10-28T20:45:38Z"
+        "url": "https://github.com/lostgodsgods-ops/super-chatty-jarvis/actions/runs/40770650646",
+        "created_at": "2026-10-28T21:17:03Z"
       }
     },
     {
@@ -3068,10 +3068,10 @@
       "blocker": "Suite-level test evidence only; live runtime behavior is not inferred.",
       "status": "PASS — suite-level CI on exact main SHA",
       "latestRun": {
-        "id": 40766128960,
+        "id": 40770650646,
         "conclusion": "success",
-        "url": "https://github.com/lostgodsgods-ops/super-chatty-jarvis/actions/runs/40766128960",
-        "created_at": "2026-10-28T20:45:38Z"
+        "url": "https://github.com/lostgodsgods-ops/super-chatty-jarvis/actions/runs/40770650646",
+        "created_at": "2026-10-28T21:17:03Z"
       }
     },
     {
@@ -3088,10 +3088,10 @@
       "blocker": "Suite-level test evidence only; live runtime behavior is not inferred.",
       "status": "PASS — suite-level CI on exact main SHA",
       "latestRun": {
-        "id": 40766128960,
+        "id": 40770650646,
         "conclusion": "success",
-        "url": "https://github.com/lostgodsgods-ops/super-chatty-jarvis/actions/runs/40766128960",
-        "created_at": "2026-10-28T20:45:38Z"
+        "url": "https://github.com/lostgodsgods-ops/super-chatty-jarvis/actions/runs/40770650646",
+        "created_at": "2026-10-28T21:17:03Z"
       }
     },
     {
@@ -3108,10 +3108,10 @@
       "blocker": "Suite-level test evidence only; live runtime behavior is not inferred.",
       "status": "PASS — suite-level CI on exact main SHA",
       "latestRun": {
-        "id": 40766128960,
+        "id": 40770650646,
         "conclusion": "success",
-        "url": "https://github.com/lostgodsgods-ops/super-chatty-jarvis/actions/runs/40766128960",
-        "created_at": "2026-10-28T20:45:38Z"
+        "url": "https://github.com/lostgodsgods-ops/super-chatty-jarvis/actions/runs/40770650646",
+        "created_at": "2026-10-28T21:17:03Z"
       }
     },
     {
@@ -3128,10 +3128,10 @@
       "blocker": "Suite-level test evidence only; live runtime behavior is not inferred.",
       "status": "PASS — suite-level CI on exact main SHA",
       "latestRun": {
-        "id": 40766128960,
+        "id": 40770650646,
         "conclusion": "success",
-        "url": "https://github.com/lostgodsgods-ops/super-chatty-jarvis/actions/runs/40766128960",
-        "created_at": "2026-10-28T20:45:38Z"
+        "url": "https://github.com/lostgodsgods-ops/super-chatty-jarvis/actions/runs/40770650646",
+        "created_at": "2026-10-28T21:17:03Z"
       }
     },
     {
@@ -3148,10 +3148,10 @@
       "blocker": "Suite-level test evidence only; live runtime behavior is not inferred.",
       "status": "PASS — suite-level CI on exact main SHA",
       "latestRun": {
-        "id": 40766128960,
+        "id": 40770650646,
         "conclusion": "success",
-        "url": "https://github.com/lostgodsgods-ops/super-chatty-jarvis/actions/runs/40766128960",
-        "created_at": "2026-10-28T20:45:38Z"
+        "url": "https://github.com/lostgodsgods-ops/super-chatty-jarvis/actions/runs/40770650646",
+        "created_at": "2026-10-28T21:17:03Z"
       }
     },
     {
@@ -3168,10 +3168,10 @@
       "blocker": "Suite-level test evidence only; live runtime behavior is not inferred.",
       "status": "PASS — suite-level CI on exact main SHA",
       "latestRun": {
-        "id": 40766128960,
+        "id": 40770650646,
         "conclusion": "success",
-        "url": "https://github.com/lostgodsgods-ops/super-chatty-jarvis/actions/runs/40766128960",
-        "created_at": "2026-10-28T20:45:38Z"
+        "url": "https://github.com/lostgodsgods-ops/super-chatty-jarvis/actions/runs/40770650646",
+        "created_at": "2026-10-28T21:17:03Z"
       }
     },
     {
@@ -3188,10 +3188,10 @@
       "blocker": "Suite-level test evidence only; live runtime behavior is not inferred.",
       "status": "PASS — suite-level CI on exact main SHA",
       "latestRun": {
-        "id": 40766128960,
+        "id": 40770650646,
         "conclusion": "success",
-        "url": "https://github.com/lostgodsgods-ops/super-chatty-jarvis/actions/runs/40766128960",
-        "created_at": "2026-10-28T20:45:38Z"
+        "url": "https://github.com/lostgodsgods-ops/super-chatty-jarvis/actions/runs/40770650646",
+        "created_at": "2026-10-28T21:17:03Z"
       }
     },
     {
@@ -3214,14 +3214,14 @@
       "path": ".github/workflows/ci.yml",
       "purpose": "Node/Python tests and syntax",
       "status": "PASS",
-      "evidence": "Run 40766128960 at 0a35a8dda07b5217497ec1c45bdc64e3a7d0147c (success)",
+      "evidence": "Run 40770650646 at 0a35a8dda07b5217497ec1c45bdc64e3a7d0147c (success)",
       "latestRun": {
-        "id": 40766128960,
+        "id": 40770650646,
         "conclusion": "success",
-        "url": "https://github.com/lostgodsgods-ops/super-chatty-jarvis/actions/runs/40766128960",
-        "created_at": "2026-10-28T20:45:38Z"
+        "url": "https://github.com/lostgodsgods-ops/super-chatty-jarvis/actions/runs/40770650646",
+        "created_at": "2026-10-28T21:17:03Z"
       },
-      "blocker": "No workflow-specific blocker established by this run."
+      "blocker": "Node tests and syntax checks passed at the snapshot SHA."
     },
     {
       "path": ".github/workflows/deploy-central-agent.yml",
@@ -3229,7 +3229,7 @@
       "status": "NOT TESTED",
       "evidence": "No push-triggered run on exact snapshot SHA observed.",
       "latestRun": null,
-      "blocker": "No push-triggered workflow run on the exact snapshot SHA was observed."
+      "blocker": "No workflow run on exact snapshot SHA observed."
     },
     {
       "path": ".github/workflows/deploy-cloudflare.yml",
@@ -3237,7 +3237,7 @@
       "status": "NOT TESTED",
       "evidence": "No push-triggered run on exact snapshot SHA observed.",
       "latestRun": null,
-      "blocker": "No push-triggered workflow run on the exact snapshot SHA was observed."
+      "blocker": "No workflow run on exact snapshot SHA observed."
     },
     {
       "path": ".github/workflows/deploy-nexus-pwa.yml",
@@ -3245,7 +3245,7 @@
       "status": "NOT TESTED",
       "evidence": "No push-triggered run on exact snapshot SHA observed.",
       "latestRun": null,
-      "blocker": "No push-triggered workflow run on the exact snapshot SHA was observed."
+      "blocker": "No workflow run on exact snapshot SHA observed."
     },
     {
       "path": ".github/workflows/integration-registry.yml",
@@ -3253,7 +3253,7 @@
       "status": "NOT TESTED",
       "evidence": "No push-triggered run on exact snapshot SHA observed.",
       "latestRun": null,
-      "blocker": "No push-triggered workflow run on the exact snapshot SHA was observed."
+      "blocker": "No workflow run on exact snapshot SHA observed."
     },
     {
       "path": ".github/workflows/monitor-central-agent.yml",
@@ -3261,7 +3261,7 @@
       "status": "NOT TESTED",
       "evidence": "No push-triggered run on exact snapshot SHA observed.",
       "latestRun": null,
-      "blocker": "No push-triggered workflow run on the exact snapshot SHA was observed."
+      "blocker": "No workflow run on exact snapshot SHA observed."
     },
     {
       "path": ".github/workflows/php-core.yml",
@@ -3269,20 +3269,20 @@
       "status": "NOT TESTED",
       "evidence": "No push-triggered run on exact snapshot SHA observed.",
       "latestRun": null,
-      "blocker": "No push-triggered workflow run on the exact snapshot SHA was observed."
+      "blocker": "No workflow run on exact snapshot SHA observed."
     },
     {
       "path": ".github/workflows/redultron-failure-sentinel.yml",
       "purpose": "Bounded retry/incident handling",
       "status": "PASS",
-      "evidence": "Run 40766128956 at 0a35a8dda07b5217497ec1c45bdc64e3a7d0147c (success)",
+      "evidence": "Run 40770650632 at 0a35a8dda07b5217497ec1c45bdc64e3a7d0147c (success)",
       "latestRun": {
-        "id": 40766128956,
+        "id": 40770650632,
         "conclusion": "success",
-        "url": "https://github.com/lostgodsgods-ops/super-chatty-jarvis/actions/runs/40766128956",
-        "created_at": "2026-10-28T20:45:38Z"
+        "url": "https://github.com/lostgodsgods-ops/super-chatty-jarvis/actions/runs/40770650632",
+        "created_at": "2026-10-28T21:17:03Z"
       },
-      "blocker": "Push run succeeded; scheduled/duplicate-event behavior is not a complete production reliability certification."
+      "blocker": "Push-triggered Sentinel run succeeded; this is not a complete live recovery replay."
     },
     {
       "path": ".github/workflows/redultron-live-probe.yml",
@@ -3290,7 +3290,7 @@
       "status": "NOT TESTED",
       "evidence": "No push-triggered run on exact snapshot SHA observed.",
       "latestRun": null,
-      "blocker": "No push-triggered workflow run on the exact snapshot SHA was observed."
+      "blocker": "No workflow run on exact snapshot SHA observed."
     },
     {
       "path": ".github/workflows/redultron-provenance-deploy.yml",
@@ -3298,33 +3298,33 @@
       "status": "NOT TESTED",
       "evidence": "No push-triggered run on exact snapshot SHA observed.",
       "latestRun": null,
-      "blocker": "No push-triggered workflow run on the exact snapshot SHA was observed."
+      "blocker": "No workflow run on exact snapshot SHA observed."
     },
     {
       "path": ".github/workflows/redultron-release-package.yml",
       "purpose": "Release package generation",
       "status": "FAIL",
-      "evidence": "Run 40766126980 at 0a35a8dda07b5217497ec1c45bdc64e3a7d0147c (failure)",
+      "evidence": "Run 40770648736 at 0a35a8dda07b5217497ec1c45bdc64e3a7d0147c (failure)",
       "latestRun": {
-        "id": 40766126980,
+        "id": 40770648736,
         "conclusion": "failure",
-        "url": "https://github.com/lostgodsgods-ops/super-chatty-jarvis/actions/runs/40766126980",
-        "created_at": "2026-10-28T20:45:37Z"
+        "url": "https://github.com/lostgodsgods-ops/super-chatty-jarvis/actions/runs/40770648736",
+        "created_at": "2026-10-28T21:17:02Z"
       },
-      "blocker": "Main push run failed before jobs; PR #801 has a passing trigger-key fix and remains open."
+      "blocker": "Main push workflow fails before jobs because the YAML contains duplicate push keys; PR #801 has a tested fix and remains open."
     },
     {
       "path": ".github/workflows/static-site-checks.yml",
       "purpose": "Static/PWA contracts",
       "status": "PASS",
-      "evidence": "Run 40766128993 at 0a35a8dda07b5217497ec1c45bdc64e3a7d0147c (success)",
+      "evidence": "Run 40770650616 at 0a35a8dda07b5217497ec1c45bdc64e3a7d0147c (success)",
       "latestRun": {
-        "id": 40766128993,
+        "id": 40770650616,
         "conclusion": "success",
-        "url": "https://github.com/lostgodsgods-ops/super-chatty-jarvis/actions/runs/40766128993",
-        "created_at": "2026-10-28T20:45:38Z"
+        "url": "https://github.com/lostgodsgods-ops/super-chatty-jarvis/actions/runs/40770650616",
+        "created_at": "2026-10-28T21:17:03Z"
       },
-      "blocker": "No workflow-specific blocker established by this run."
+      "blocker": "Static checks passed at the snapshot SHA."
     },
     {
       "path": ".github/workflows/test-central-agent.yml",
@@ -3332,7 +3332,7 @@
       "status": "NOT TESTED",
       "evidence": "No push-triggered run on exact snapshot SHA observed.",
       "latestRun": null,
-      "blocker": "No push-triggered workflow run on the exact snapshot SHA was observed."
+      "blocker": "No workflow run on exact snapshot SHA observed."
     },
     {
       "path": ".github/workflows/test-hybrid-core.yml",
@@ -3340,7 +3340,7 @@
       "status": "NOT TESTED",
       "evidence": "No push-triggered run on exact snapshot SHA observed.",
       "latestRun": null,
-      "blocker": "No push-triggered workflow run on the exact snapshot SHA was observed."
+      "blocker": "No workflow run on exact snapshot SHA observed."
     }
   ],
   "integrations": [
@@ -8671,27 +8671,27 @@
     "currentMainCi": [
       {
         "workflow": "CI",
-        "runId": 40766128960,
+        "runId": 40770650646,
         "status": "PASS",
-        "url": "https://github.com/lostgodsgods-ops/super-chatty-jarvis/actions/runs/40766128960"
+        "url": "https://github.com/lostgodsgods-ops/super-chatty-jarvis/actions/runs/40770650646"
       },
       {
         "workflow": "Static site checks",
-        "runId": 40766128993,
+        "runId": 40770650616,
         "status": "PASS",
-        "url": "https://github.com/lostgodsgods-ops/super-chatty-jarvis/actions/runs/40766128993"
+        "url": "https://github.com/lostgodsgods-ops/super-chatty-jarvis/actions/runs/40770650616"
       },
       {
         "workflow": "Release package",
-        "runId": 40766126980,
+        "runId": 40770648736,
         "status": "FAIL",
-        "url": "https://github.com/lostgodsgods-ops/super-chatty-jarvis/actions/runs/40766126980"
+        "url": "https://github.com/lostgodsgods-ops/super-chatty-jarvis/actions/runs/40770648736"
       },
       {
         "workflow": "Failure Sentinel",
-        "runId": 40766128956,
+        "runId": 40770650632,
         "status": "PASS",
-        "url": "https://github.com/lostgodsgods-ops/super-chatty-jarvis/actions/runs/40766128956"
+        "url": "https://github.com/lostgodsgods-ops/super-chatty-jarvis/actions/runs/40770650632"
       }
     ],
     "cloudflareWorker": {
@@ -8839,7 +8839,8 @@
       "Agent spawning was not performed because Agent Swarm has no linked swarm, JackHamr credits are exhausted, and the browser agent account has no connected devices.",
       "Cloudflare Observability dry query returned one sanitized wikipedia-api HTTP 403 event on Worker version 882; no raw message, query text, request body or response body was read.",
       "PR #816 and PR #820 are open and ready for review with CI, Static checks and Test Central Agent passing; neither is merged.",
-      "Browser Use public-read run was blocked by insufficient credits; no live screenshot or install/update verification was obtained."
+      "Browser Use public-read run was blocked by insufficient credits; no live screenshot or install/update verification was obtained.",
+      "Main workflow evidence refreshed at 2026-10-29T02:49:40+05:30; main SHA remains 0a35a8dda07b5217497ec1c45bdc64e3a7d0147c."
     ],
     "persistentLearning": {
       "status": "PASS — repository checks; NOT TESTED live",
