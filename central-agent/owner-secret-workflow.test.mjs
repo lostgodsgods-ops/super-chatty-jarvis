@@ -87,3 +87,15 @@ test("all production deploy workflows require main-branch approval and do not au
       path + " must require main-branch dispatch and explicit approval");
   }
 });
+
+test("all production mutation workflows bind to the protected production GitHub Environment", () => {
+  for (const path of [
+    "../.github/workflows/deploy-central-agent.yml",
+    "../.github/workflows/deploy-cloudflare.yml",
+    "../.github/workflows/redultron-provenance-deploy.yml"
+  ]) {
+    const workflow = readWorkflow(path);
+    assert.match(workflow, /^jobs:[\\s\\S]*?environment:\\s*production/m,
+      path + " must bind production mutations to the protected production Environment");
+  }
+});
