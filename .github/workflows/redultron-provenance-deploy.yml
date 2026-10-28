@@ -21,7 +21,7 @@ concurrency:
 
 jobs:
   deploy-and-certify:
-    if: ${{ inputs.authorize_production_changes == 'approve' }}
+    if: ${{ github.ref == 'refs/heads/main' && inputs.authorize_production_changes == 'approve' }}
     runs-on: ubuntu-latest
     timeout-minutes: 15
     env:
