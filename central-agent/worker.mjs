@@ -32,7 +32,7 @@ import { appendTreasuryEvent, listTreasuryEvents, TreasuryError } from "./archit
 import { executeQuantumOrFallback, QuantumAdapterError } from "./architecture/quantum-adapter.mjs";
 import { executeHybridTask, HybridCoreError } from "./architecture/hybrid-core.mjs";
 import { listUniversalTools } from "./architecture/universal-tool-registry.mjs";
-import { createCapabilityRequest, listCapabilityRequests, CapabilityRequestError } from "./architecture/capability-request-queue.mjs";
+import { createCapabilityRequest, listCapabilityRequests, proposeCapabilityRequest, CapabilityRequestError } from "./architecture/capability-request-queue.mjs";
 import { executeChatCompletion, listChatProviders, ChatProviderError } from "./architecture/model-provider-adapter.mjs";
 import { executeToolForge, listToolForgeTools, ToolForgeError } from "./architecture/tool-forge.mjs";
 import { assessRobotSimulatorCommand } from "./architecture/robotics-simulator.mjs";
@@ -1592,7 +1592,13 @@ export default {
         return json({ ok: false, error: "EXPECTED_VALID_JSON" }, 400, cors);
       }
       try {
-        const requestRecord = await createCapabilityRequest(env, parsed.body, listUniversalTools(env));
+        const catalog = listUniversalTools(env);
+        // If the agent/owner supplies only a goal, ask the model to propose gaps
+        // from the catalog. The proposal is allowlist-validated and never executed.
+        const requestInput = Array.isArray(parsed.body.requestedTools)
+          ? parsed.body
+          : await proposeCapabilityRequest(env, parsed.body.goal, catalog);
+        const requestRecord = await createCapabilityRequest(env, requestInput, catalog);
         const audit = await publishEvent(env, {
           type: "capability.request.created",
           source: "capability-request-queue",
