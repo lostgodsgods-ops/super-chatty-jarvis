@@ -2,15 +2,15 @@ name: Deploy Central Agent
 
 on:
   workflow_dispatch:
-  push:
-    branches:
-      - main
-    paths:
-      - "central-agent/**"
-      - "jarvis/**"
-      - "src/worker.mjs"
-      - "central-agent/wrangler.jsonc"
-      - ".github/workflows/deploy-central-agent.yml"
+    inputs:
+      authorize_production_changes:
+        description: "Authorize production Worker secret synchronization and deployment only after reviewing the exact run."
+        required: true
+        type: choice
+        options:
+          - deny
+          - approve
+        default: deny
 
 permissions:
   contents: read
@@ -21,6 +21,8 @@ concurrency:
 
 jobs:
   deploy:
+    if: ${{ github.ref == 'refs/heads/main' && inputs.authorize_production_changes == 'approve' }}
+    environment: production
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
@@ -56,6 +58,7 @@ jobs:
           test -n "$BRIDGE_TOKEN" || { echo "Missing AGENT_GATEWAY_TOKEN"; exit 1; }
           test -n "$PYTHON_CORE_URL" || { echo "Missing PYTHON_CORE_URL"; exit 1; }
           test -n "$OWNER_SECRET" || { echo "Missing REDULTRON_OWNER_SECRET"; exit 1; }
+          [[ "${#OWNER_SECRET}" -ge 32 ]] || { echo "::error::REDULTRON_OWNER_SECRET must be at least 32 characters; value suppressed; no runtime secrets were changed."; exit 1; }
           node -e 'const u=new URL(process.env.PYTHON_CORE_URL); if(u.protocol!=="https:"||u.username||u.password||u.search||u.hash) process.exit(2); console.log("Hybrid Core secrets present; URL is HTTPS. Values are not printed.")'
 
       - name: Deploy isolated Central Agent

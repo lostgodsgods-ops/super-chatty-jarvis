@@ -32,3 +32,88 @@ test("live gateway probe checks DNS before HTTP and verifies invalid owner crede
   assert.match(probe, /401|403/,
     "probe must require unauthorized credentials to be rejected");
 });
+
+
+test("production provenance deployment is manual-only and requires explicit approval", () => {
+  const workflow = readWorkflow("../.github/workflows/redultron-provenance-deploy.yml");
+  const triggers = workflow.split(/^permissions:/m)[0] ?? workflow;
+
+  assert.doesNotMatch(triggers, /^\s{2}push:/m,
+    "production provenance deployment must not auto-run on pushes");
+  assert.match(triggers, /workflow_dispatch:[\s\S]*inputs:/,
+    "manual dispatch must expose an explicit approval input");
+  assert.match(triggers, /authorize_production_changes/,
+    "the workflow must name its production approval input");
+  assert.match(triggers, /default:\s*deny/,
+    "production approval must default to deny");
+  assert.ok(workflow.includes("if: ${{ github.ref == 'refs/heads/main' && inputs.authorize_production_changes == 'approve' }}"),
+    "the production-changing job must require main-branch dispatch and explicit approval");
+});
+
+
+test("provenance deploy rejects a short owner secret before production sync", () => {
+  const provenance = readWorkflow("../.github/workflows/redultron-provenance-deploy.yml");
+  const credentials = provenance
+    .split("- name: Require deployment and authenticated probe credentials")[1]
+    ?.split("\n      - name: ")[0] ?? "";
+  assert.notEqual(credentials, "", "credential preflight step must exist");
+  assert.match(credentials, /\$\{#REDULTRON_OWNER_SECRET\}.*-ge 32/,
+    "deployment must reject owner secrets shorter than 32 characters before production changes");
+  assert.match(credentials, /value suppressed/i,
+    "minimum-length failure must not expose the secret value");
+  const validation = provenance.indexOf("${#REDULTRON_OWNER_SECRET}");
+  const sync = provenance.indexOf("- name: Synchronize owner secret to the deployed Worker");
+  assert.ok(validation >= 0 && sync > validation,
+    "minimum-length validation must happen before Worker secret synchronization");
+});
+
+
+test("all production deploy workflows require main-branch approval and do not auto-run on pushes", () => {
+  for (const path of [
+    "../.github/workflows/deploy-central-agent.yml",
+    "../.github/workflows/deploy-cloudflare.yml"
+  ]) {
+    const workflow = readWorkflow(path);
+    const triggers = workflow.split(/^permissions:/m)[0] ?? workflow;
+    assert.doesNotMatch(triggers, /^\s{2}push:/m,
+      path + " must not auto-run production changes on pushes");
+    assert.match(triggers, /workflow_dispatch:[\s\S]*inputs:/,
+      path + " must expose a manual dispatch approval input");
+    assert.match(triggers, /authorize_production_changes/,
+      path + " must name its production approval input");
+    assert.match(triggers, /default:\s*deny/,
+      path + " must default production approval to deny");
+    assert.ok(workflow.includes("if: ${{ github.ref == 'refs/heads/main' && inputs.authorize_production_changes == 'approve' }}"),
+      path + " must require main-branch dispatch and explicit approval");
+  }
+});
+
+test("all production mutation workflows bind to the protected production GitHub Environment", () => {
+  for (const path of [
+    "../.github/workflows/deploy-central-agent.yml",
+    "../.github/workflows/deploy-cloudflare.yml",
+    "../.github/workflows/redultron-provenance-deploy.yml"
+  ]) {
+    const workflow = readWorkflow(path);
+    assert.match(workflow, /^jobs:[\s\S]*?environment:\s*production/m,
+      path + " must bind production mutations to the protected production Environment");
+  }
+});
+
+
+test("central-agent deployment rejects a short owner secret before any production deployment or sync", () => {
+  const deploy = readWorkflow("../.github/workflows/deploy-central-agent.yml");
+  const credentials = deploy
+    .split("- name: Validate required secrets")[1]
+    ?.split("\n      - name: ")[0] ?? "";
+  assert.notEqual(credentials, "", "central-agent credential preflight must exist");
+  assert.match(credentials, /\$\{#OWNER_SECRET\}.*-ge 32/,
+    "central-agent deployment must reject owner secrets shorter than 32 characters");
+  assert.match(credentials, /value suppressed/i,
+    "short-secret failure must not print the secret value");
+  const validation = deploy.indexOf("${#OWNER_SECRET}");
+  const deployStep = deploy.indexOf("- name: Deploy isolated Central Agent");
+  const syncStep = deploy.indexOf("- name: Configure Worker runtime secrets in one operation");
+  assert.ok(validation >= 0 && deployStep > validation && syncStep > validation,
+    "owner-secret length validation must precede deployment and runtime secret synchronization");
+});

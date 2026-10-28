@@ -1,9 +1,16 @@
 name: REDULTRON Provenance Deploy and Strict Live Certification
 
 on:
-  push:
-    branches: [main]
   workflow_dispatch:
+    inputs:
+      authorize_production_changes:
+        description: "Authorize this production secret synchronization and deployment only after reviewing the exact run."
+        required: true
+        type: choice
+        options:
+          - deny
+          - approve
+        default: deny
 
 permissions:
   contents: read
@@ -14,6 +21,8 @@ concurrency:
 
 jobs:
   deploy-and-certify:
+    if: ${{ github.ref == 'refs/heads/main' && inputs.authorize_production_changes == 'approve' }}
+    environment: production
     runs-on: ubuntu-latest
     timeout-minutes: 15
     env:
@@ -37,6 +46,10 @@ jobs:
           test -n "$CLOUDFLARE_API_TOKEN"
           test -n "$PYTHON_CORE_URL"
           test -n "$REDULTRON_OWNER_SECRET"
+          [[ "${#REDULTRON_OWNER_SECRET}" -ge 32 ]] || {
+            echo "::error::REDULTRON_OWNER_SECRET must be at least 32 characters; value suppressed; no runtime secrets were changed."
+            exit 1
+          }
           node -e 'const u=new URL(process.env.PYTHON_CORE_URL); if(u.protocol!=="https:"||u.username||u.password||u.search||u.hash||(u.pathname!=="/"&&u.pathname!=="/v1/execute")) process.exit(2); if(u.hostname!=="super-chatty-jarvis.onrender.com") { console.error("FAIL: PYTHON_CORE_URL hostname does not match the configured Render service; value suppressed."); process.exit(3); } console.log("PASS: Python endpoint hostname matches the configured Render service; hostname and value suppressed.")'
           [[ "$GITHUB_SHA" =~ ^[0-9a-f]{40}$ ]]
       - name: Synchronize owner secret to the deployed Worker without logging it

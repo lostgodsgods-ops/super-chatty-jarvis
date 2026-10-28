@@ -80,8 +80,11 @@ test("Worker config targets the unified production gateway and required bindings
   assert.match(wranglerConfig, /"name":\s*"shrill-silence-164f"/);
 });
 
-test("Cloudflare deployment is main-only and uses a private token plus explicit account ID", () => {
-  assert.match(deployWorkflow, /branches:\s*\n\s+- main/);
+test("Cloudflare deployment requires explicit main-branch approval and uses a private token plus explicit account ID", () => {
+  assert.doesNotMatch(deployWorkflow, /^\s{2}push:/m, "production deploy must not auto-run on pushes");
+  assert.match(deployWorkflow, /workflow_dispatch:[\s\S]*authorize_production_changes/);
+  assert.match(deployWorkflow, /default:\s*deny/);
+  assert.ok(deployWorkflow.includes("if: ${{ github.ref == 'refs/heads/main' && inputs.authorize_production_changes == 'approve' }}"));
   assert.match(deployWorkflow, /CLOUDFLARE_API_TOKEN/);
   assert.match(deployWorkflow, /accountId:\s*"6c0d1ab7b0d730f94359a89a77a0dcf2"/);
   assert.doesNotMatch(deployWorkflow, /secrets\.CLOUDFLARE_ACCOUNT_ID/);
