@@ -2801,7 +2801,7 @@ export default {
       }
     }
 
-    // Persistent learning store: only owner-authenticated requests can read or write records.
+    // Persistent learning store: owner session or route-specific private bridge secret required.
     // A record is searchable only after source references and test evidence are supplied.
     if (url.pathname === "/api/learning/knowledge") {
       if (request.method === "GET") {
