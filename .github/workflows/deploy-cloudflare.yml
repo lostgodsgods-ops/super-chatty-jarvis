@@ -81,16 +81,21 @@ jobs:
           expected_cache="$(grep -oE 'redultron-core-shell-v[0-9]+-core-3' jarvis/sw.js | head -n 1)"
           test -n "$expected_version" || { echo "::error::Could not derive expected PWA version from repository source."; exit 1; }
           test -n "$expected_cache" || { echo "::error::Could not derive expected PWA cache from repository source."; exit 1; }
-          expected_meta="<meta name=\"application-version\" content=\"$expected_version\">"
 
-          # Retry briefly after deploy to allow edge/CDN propagation; still fail closed on persistent drift.
+          # Retry briefly after deploy to allow edge/CDN propagation; fail closed on persistent drift.
           fetch_asset() {
-            local path="$1" output="$2" headers="$3" expected_type="$4" marker="${5:-}"
-            local status content_type attempt
+            local path="$1" output="$2" headers="$3" expected_type="$4"
+            local marker1="${5:-}" marker2="${6:-}" require_no_cache="${7:-false}"
+            local status content_type attempt matches cache_ok
             for attempt in 1 2 3 4 5 6; do
               if status="$(curl --silent --show-error --location --max-redirs 4 --max-time 20 -D "$headers" -o "$output" -w '%{http_code}' "$PWA_URL$path")"; then
                 content_type="$(grep -i '^content-type:' "$headers" | tail -n 1 | tr -d '\r' | tr '[:upper:]' '[:lower:]' || true)"
-                if [[ "$status" == "200" && "$content_type" == *"$expected_type"* ]] && { [[ -z "$marker" ]] || grep -Fq "$marker" "$output"; }; then
+                matches=true
+                [[ -z "$marker1" ]] || grep -Fq "$marker1" "$output" || matches=false
+                [[ -z "$marker2" ]] || grep -Fq "$marker2" "$output" || matches=false
+                cache_ok=true
+                if [[ "$require_no_cache" == "true" ]] && ! grep -Eiq '^cache-control: no-cache, must-revalidate' "$headers"; then cache_ok=false; fi
+                if [[ "$status" == "200" && "$content_type" == *"$expected_type"* && "$matches" == "true" && "$cache_ok" == "true" ]]; then
                   return 0
                 fi
               else
@@ -98,20 +103,39 @@ jobs:
               fi
               if [[ "$attempt" -lt 6 ]]; then sleep "$((attempt * 2))"; fi
             done
-            echo "::error::GET $path did not return the expected status, Content-Type, and release marker after bounded retries (last HTTP status=$status)."
+            echo "::error::GET $path did not match the expected status, Content-Type, cache policy, and release markers after bounded retries (last HTTP status=$status)."
             return 1
           }
 
-          fetch_asset "/" "$tmp/index.html" "$tmp/root.headers" "text/html" "$expected_meta"
-          grep -Fq 'REDULTRON CORE 3.0 · Neural Console' "$tmp/index.html"
+          fetch_asset "/" "$tmp/index.html" "$tmp/root.headers" "text/html" "$expected_version" "REDULTRON CORE 3.0 · Neural Console" true
+          node - "$tmp/index.html" "$expected_version" <<'NODE'
+          const fs = require("node:fs");
+          const html = fs.readFileSync(process.argv[2], "utf8");
+          const expected = process.argv[3];
+          const tags = html.match(/<meta\b[^>]*>/gi) || [];
+          const found = tags.some((tag) => {
+            const attrs = new Map([...tag.matchAll(/([^\s=]+)\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s>]+))/g)]
+              .map((m) => [m[1].toLowerCase(), m[2] ?? m[3] ?? m[4] ?? ""]));
+            return attrs.get("name") === "application-version" && attrs.get("content") === expected;
+          });
+          if (!found) throw new Error("Production application-version meta tag does not match repository source.");
+          NODE
 
-          fetch_asset "/sw.js" "$tmp/sw-root.js" "$tmp/sw-root.headers" "javascript" "$expected_cache"
-          fetch_asset "/jarvis/sw.js" "$tmp/sw-subpath.js" "$tmp/sw-subpath.headers" "javascript" "$expected_cache"
+          fetch_asset "/sw.js" "$tmp/sw-root.js" "$tmp/sw-root.headers" "javascript" "$expected_cache" "" true
+          fetch_asset "/jarvis/sw.js" "$tmp/sw-subpath.js" "$tmp/sw-subpath.headers" "javascript" "$expected_cache" "" true
 
+          cp jarvis/manifest.webmanifest "$tmp/source-manifest.json"
           fetch_asset "/manifest.webmanifest" "$tmp/manifest.json" "$tmp/manifest.headers" "application/manifest+json"
-          node -e 'const fs=require("node:fs"); const m=JSON.parse(fs.readFileSync(process.argv[1],"utf8")); if(m.name!=="REDULTRON CORE 3.0"||m.scope!=="./") throw Error("PWA manifest identity/scope mismatch");' "$tmp/manifest.json"
+          node -e 'const fs=require("node:fs"); const expected=JSON.parse(fs.readFileSync(process.argv[1],"utf8")); const actual=JSON.parse(fs.readFileSync(process.argv[2],"utf8")); for (const key of ["id","name","short_name","start_url","scope","display","theme_color","background_color"]) if(expected[key]!==actual[key]) throw Error("PWA manifest mismatch: "+key); for (const icon of expected.icons||[]) if(!(actual.icons||[]).some(a=>a.src===icon.src&&a.sizes===icon.sizes&&a.type===icon.type)) throw Error("PWA manifest icon mismatch: "+icon.src);' "$tmp/source-manifest.json" "$tmp/manifest.json"
 
-          code="$(curl --silent --show-error --max-time 15 -o "$tmp/health.json" -w '%{http_code}' "$PWA_URL/health")"
-          test "$code" = "200" || { echo "::error::/health returned HTTP $code"; exit 1; }
-          node -e 'const fs=require("node:fs"); const h=JSON.parse(fs.readFileSync(process.argv[1],"utf8")); if(h.ok!==true) throw Error("Worker health is not ok");' "$tmp/health.json"
-          echo "PASS: deployed PWA version, service-worker cache, manifest, MIME types, and Worker health match the checked-out source."
+          health_ok=false
+          for attempt in 1 2 3 4 5 6; do
+            code="$(curl --silent --show-error --max-time 15 -o "$tmp/health.json" -w '%{http_code}' "$PWA_URL/health" || true)"
+            if [[ "$code" == "200" ]] && node -e 'const fs=require("node:fs"); const h=JSON.parse(fs.readFileSync(process.argv[1],"utf8")); if(h.ok!==true) process.exit(1);' "$tmp/health.json"; then
+              health_ok=true
+              break
+            fi
+            if [[ "$attempt" -lt 6 ]]; then sleep "$((attempt * 2))"; fi
+          done
+          [[ "$health_ok" == "true" ]] || { echo "::error::Worker /health did not return a valid ok=true response after bounded retries."; exit 1; }
+          echo "PASS: deployed PWA version, service-worker cache, manifest, cache headers, MIME types, and Worker health match the checked-out source."
