@@ -32,6 +32,7 @@ import { appendTreasuryEvent, listTreasuryEvents, TreasuryError } from "./archit
 import { executeQuantumOrFallback, QuantumAdapterError } from "./architecture/quantum-adapter.mjs";
 import { executeHybridTask, HybridCoreError } from "./architecture/hybrid-core.mjs";
 import { listUniversalTools } from "./architecture/universal-tool-registry.mjs";
+import { createCapabilityRequest, listCapabilityRequests, CapabilityRequestError } from "./architecture/capability-request-queue.mjs";
 import { executeChatCompletion, listChatProviders, ChatProviderError } from "./architecture/model-provider-adapter.mjs";
 import { executeToolForge, listToolForgeTools, ToolForgeError } from "./architecture/tool-forge.mjs";
 import { assessRobotSimulatorCommand } from "./architecture/robotics-simulator.mjs";
@@ -1581,6 +1582,45 @@ export default {
       }
     }
 
+
+    if (url.pathname === "/api/capability-requests" && request.method === "POST") {
+      // Shared owner-session gate runs before this handler. Capability requests
+      // are durable proposals only: no connector installation or tool execution.
+      const parsed = await readBoundedJsonBody(request, 8192);
+      if (parsed.tooLarge) return json({ ok: false, error: "REQUEST_TOO_LARGE" }, 413, cors);
+      if (!parsed.body || typeof parsed.body !== "object" || Array.isArray(parsed.body)) {
+        return json({ ok: false, error: "EXPECTED_VALID_JSON" }, 400, cors);
+      }
+      try {
+        const requestRecord = await createCapabilityRequest(env, parsed.body, listUniversalTools(env));
+        const audit = await publishEvent(env, {
+          type: "capability.request.created",
+          source: "capability-request-queue",
+          payload: {
+            requestId: requestRecord.id,
+            requestedTools: requestRecord.requestedTools,
+            status: requestRecord.status,
+            executionEnabled: false,
+            requiresOwnerApproval: true
+          }
+        });
+        if (!audit?.ok) return json({ ok: false, error: "CAPABILITY_REQUEST_AUDIT_UNAVAILABLE", requestId: requestRecord.id }, 503, cors);
+        return json({ ok: true, request: requestRecord, auditRecorded: true }, 201, cors);
+      } catch (error) {
+        const known = error instanceof CapabilityRequestError;
+        return json({ ok: false, error: known ? error.code : "CAPABILITY_REQUEST_FAILED" }, known ? error.status : 503, cors);
+      }
+    }
+
+    if (url.pathname === "/api/capability-requests" && request.method === "GET") {
+      try {
+        const requests = await listCapabilityRequests(env, Number(url.searchParams.get("limit")) || 20);
+        return json({ ok: true, requests, count: requests.length }, 200, cors);
+      } catch (error) {
+        const known = error instanceof CapabilityRequestError;
+        return json({ ok: false, error: known ? error.code : "CAPABILITY_REQUEST_LIST_FAILED" }, known ? error.status : 503, cors);
+      }
+    }
 
     if (url.pathname === "/api/chat" && request.method === "POST") {
       if (!(await authorized(request, env))) return json({ error: "Owner session required." }, 401, cors);
