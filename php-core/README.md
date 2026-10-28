@@ -14,7 +14,7 @@ A PHP 8.3 / Apache sidecar that mirrors the bounded task contract used by the cu
 
 ## Run locally
 
-PHP 8.3 with `mbstring` is required.
+PHP 8.3 is required; no third-party runtime dependencies are used.
 
 ```sh
 cd php-core
@@ -22,7 +22,7 @@ export OWNER_SECRET='replace-with-a-random-secret-at-least-32-characters-long'
 php -S 127.0.0.1:8788 index.php
 ```
 
-The built-in PHP server is for local development only. For a container, build this directory with its Dockerfile and deploy behind the host's HTTPS ingress, request-size/rate limits, and secret manager. Do not expose the sidecar directly over plaintext HTTP.
+The included container is a local/staging runner using PHP's built-in web server. Do not use the built-in server for production traffic. For production, run the same entrypoint under a production-grade PHP web server behind HTTPS ingress, request-size/rate limits, and a secret manager; never expose the sidecar directly over plaintext HTTP.
 
 ## Test
 
