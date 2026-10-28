@@ -19,3 +19,10 @@ test("PWA shell cache version advances when the worker shell changes", () => {
     "the shell cache version must be bumped to v15"
   );
 });
+
+test("navigation remains network-first with cached app-shell fallback", () => {
+  assert.match(worker, /request\.mode\s*===\s*["']navigate["']/,
+    "navigation must have an explicit network-first branch");
+  assert.match(worker, /caches\.match\(request\).*caches\.match\(["']\.\/index\.html["']\)/s,
+    "failed navigation must fall back to the cached app shell");
+});
