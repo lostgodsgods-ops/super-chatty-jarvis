@@ -1,6 +1,6 @@
 # REDULTRON PHP Core
 
-A PHP 8.3 sidecar that mirrors the bounded task contract used by the current Python Core. It is a separate service, not a replacement for the Cloudflare Worker or existing Python sidecar until routing and production parity are explicitly verified.
+A PHP 8.3 / Apache sidecar that mirrors the bounded task contract used by the current Python Core. It is a separate service, not a replacement for the Cloudflare Worker or existing Python sidecar until routing and production parity are explicitly verified.
 
 ## API
 
@@ -22,7 +22,7 @@ export OWNER_SECRET='replace-with-a-random-secret-at-least-32-characters-long'
 php -S 127.0.0.1:8788 index.php
 ```
 
-The included container is a local/staging runner using PHP's built-in web server. Do not use the built-in server for production traffic. For production, run the same entrypoint under a production-grade PHP web server behind HTTPS ingress, request-size/rate limits, and a secret manager; never expose the sidecar directly over plaintext HTTP.
+The included container uses Apache with a fallback route to the PHP entrypoint and a 10 KiB request-body limit. Put it behind the hosting platform's HTTPS ingress and rate limiter, and inject `OWNER_SECRET` through the platform secret manager. Do not expose the sidecar directly over plaintext HTTP.
 
 ## Test
 
