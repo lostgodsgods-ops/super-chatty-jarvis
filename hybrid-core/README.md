@@ -40,6 +40,19 @@ The default listener is `127.0.0.1:8788`. For a container, set `HOST=0.0.0.0` an
 - Timeout: 5 seconds. Missing bindings, non-HTTPS URLs, upstream auth failures, malformed responses, and timeouts fail closed with structured error codes.
 - Health reports configuration only; it does not prove Python service reachability. A successful authenticated query is required for runtime verification.
 
+## Secret-safe configuration diagnostics
+
+The shared Worker adapter exposes `inspectHybridCoreConfiguration(env)` for tests and the secret-gated `POST /api/internal/hybrid-probe`. Its diagnostics report only:
+- selected provider (`php`, `python`, or `none`);
+- whether an endpoint is configured and passes the HTTPS/path policy;
+- whether the owner secret is present and meets the 32-character minimum;
+- a sanitized configuration failure code;
+- whether a real authenticated round-trip has verified reachability and secret acceptance.
+
+The diagnostics never return the endpoint URL/hostname, secret value, secret length, headers, or upstream response body. Configuration checks alone leave `runtimeReachabilityVerified=false` and `ownerSecretMatchVerified=false`. These fields become true only after a successful authenticated sidecar response with the documented task-specific result schema. An upstream 401/403 stays a failure; it is not converted into a successful health result.
+
+The Worker validates result shapes consistently for Python and PHP: `summarize` returns a bounded string, `extract_keywords` returns a bounded array of term/count records, and `classify_text` returns labels plus a character count.
+
 ## Security boundaries
 
 The Python service checks `X-Owner-Secret` with constant-time comparison, caps request bodies, disables request-body/header logging, and rejects unknown routes/tasks. Use an HTTPS ingress with rate limiting. Rotate the secret through the authorized secret manager if it is exposed.
