@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "project": "REDULTRON CORE 3.0",
-  "snapshotTime": "2026-10-29T03:20:10+05:30",
+  "snapshotTime": "2026-10-29T03:26:33+05:30",
   "repository": "lostgodsgods-ops/super-chatty-jarvis",
   "branch": "main",
   "commitSha": "0a35a8dda07b5217497ec1c45bdc64e3a7d0147c",
@@ -193,7 +193,7 @@
         "No direct sibling test mapping established from filename; suite/runtime coverage requires separate verification."
       ],
       "accessStatus": "Readable via authorized GitHub connector; production writes not performed.",
-      "blocker": "Failure cause is not established: the workflow-run jobs API returned zero jobs and no artifacts were available.",
+      "blocker": "Main still fails; PR #833 has a test-first fix with passing release-package run 40775604577 but is not merged.",
       "status": "FAIL",
       "latestRun": {
         "id": 40772544482,
@@ -205,7 +205,8 @@
         "conclusion": "success",
         "url": "https://github.com/lostgodsgods-ops/super-chatty-jarvis/actions/runs/40761716116",
         "created_at": "2026-10-28T20:15:59Z"
-      }
+      },
+      "mitigationPR": 833
     },
     {
       "path": ".github/workflows/static-site-checks.yml",
@@ -3089,12 +3090,14 @@
         "conclusion": "failure",
         "url": "https://github.com/lostgodsgods-ops/super-chatty-jarvis/actions/runs/40772544482"
       },
-      "blocker": "Failure cause is not established: the workflow-run jobs API returned zero jobs and no artifacts were available.",
+      "blocker": "Current main still has duplicate push triggers; PR #833 consolidates them and has passing CI/static/release-package runs, but remains open and unmerged.",
       "historicalLatestRun": {
         "id": 40761716116,
         "conclusion": "success",
         "url": "https://github.com/lostgodsgods-ops/super-chatty-jarvis/actions/runs/40761716116"
-      }
+      },
+      "mitigationPR": 833,
+      "mitigationHeadSha": "fc51a522d2892798449b9a93230c73627fe01752"
     },
     {
       "path": ".github/workflows/static-site-checks.yml",
@@ -8439,6 +8442,12 @@
       "title": "NIST AI RMF Playbook",
       "url": "https://airc.nist.gov/airmf-resources/playbook/",
       "purpose": "Voluntary implementation suggestions aligned to Govern, Map, Measure and Manage."
+    },
+    {
+      "id": "YAML_1_2",
+      "title": "YAML 1.2.2 Specification",
+      "url": "https://yaml.org/spec/1.2.2/",
+      "purpose": "Configuration syntax and mapping semantics; avoid duplicate top-level keys in workflow YAML."
     }
   ],
   "liveEvidence": {
@@ -8479,9 +8488,20 @@
       "trafficPercent": 100,
       "deployedSha": "a0d6087dedb7a29aaa07c9302167ddbda5b352da",
       "deployedAt": "2026-10-28T14:44:28.810769Z",
-      "latestObservedHTTPStatus": "Web open tool could not access endpoint; no live HTTP response verified in this mission.",
-      "lastCheckedAt": "2026-10-29T01:51:57+05:30",
-      "latestDeploymentListHttpStatus": 200
+      "latestObservedHTTPStatus": "NOT TESTED — direct public GET could not be verified in this run.",
+      "lastCheckedAt": "2026-10-29T03:26:33+05:30",
+      "latestDeploymentListHttpStatus": 200,
+      "deploymentMetadataLastCheckedAt": "2026-10-29T03:26:33+05:30",
+      "deployedShaLastObservedAt": "2026-10-29T01:51:57+05:30",
+      "lastCheckedScope": "Cloudflare API deployment/version metadata only; direct HTTP health/PWA GET and a fresh source SHA were not verified.",
+      "latestDeploymentObserved": {
+        "id": "1947abf4-39b2-4be0-880d-8bfbabb60294",
+        "versionId": "ddae66f9-dfcc-4a38-907d-6bfa5843a604",
+        "versionNumber": 882,
+        "trafficPercent": 100,
+        "createdOn": "2026-10-28T14:44:28.810769Z",
+        "scriptModifiedOn": "2026-10-28T14:44:30.443888Z"
+      }
     },
     "renderPythonCore": {
       "status": "FAIL — behind main",
@@ -8506,13 +8526,14 @@
       "stagingTableCount": 8,
       "targetedQuery": {
         "httpStatus": 200,
-        "query": "SELECT name FROM sqlite_master WHERE type='table' AND name IN ('capability_requests','verified_knowledge')",
+        "query": "SELECT name FROM sqlite_master WHERE type = 'table' AND name IN ('capability_requests','verified_knowledge','d1_migrations')",
         "matchingTables": [],
         "rowsWritten": 0,
-        "checkedAt": "2026-10-29T02:11:55+05:30"
+        "checkedAt": "2026-10-29T03:26:33+05:30"
       },
       "verifiedKnowledgeTablePresent": false,
-      "lastCheckedAt": "2026-10-29T02:11:55+05:30"
+      "lastCheckedAt": "2026-10-29T03:26:33+05:30",
+      "tableCountLastCheckedAt": "2026-10-29T02:11:55+05:30"
     },
     "capabilityRequests": {
       "status": "BLOCKED — live authenticated persistence round-trip NOT TESTED",
@@ -8525,8 +8546,14 @@
       "ciStatus": "PASS",
       "ciRunId": 40761440557,
       "centralAgentTestRunId": 40761440483,
-      "d1Evidence": "Read-only query HTTP 200 at 2026-10-29 02:11:55 IST; 26 tables; capability_requests and d1_migrations absent; zero rows written.",
-      "caveat": "The module lazily creates capability_requests. Table absence alone is not proof of a defect; mock D1 tests do not prove live persistence."
+      "d1Evidence": "Read-only D1 API query HTTP 200 at 2026-10-29T03:26:33+05:30; targeted SELECT returned no capability_requests, verified_knowledge or d1_migrations tables. Last full table count was 26 at 2026-10-29 02:11:55 IST; zero rows written.",
+      "caveat": "The module lazily creates capability_requests. Table absence alone is not proof of a defect; mock D1 tests do not prove live persistence.",
+      "lastTargetedQuery": {
+        "httpStatus": 200,
+        "matchingTables": [],
+        "rowsWritten": 0,
+        "checkedAt": "2026-10-29T03:26:33+05:30"
+      }
     },
     "liveSearch": {
       "status": "NOT TESTED — live provider reachability",
@@ -8540,9 +8567,10 @@
       "status": "BLOCKED — live install/update not tested",
       "repositoryCache": "redultron-core-shell-v18-core-3",
       "browserAccess": "Web endpoint opens failed; Browser Use returned insufficient_credits; KERNEL connection-context request required user input in non-interactive mode.",
-      "releasePackageStatus": "FAIL — current-main run 40772544482",
+      "releasePackageStatus": "FAIL on current main; PASS on PR #833 branch (artifact uploaded; not deployed)",
       "liveHTTPStatus": "NOT TESTED",
-      "androidChromeInstallUpdate": "NOT TESTED"
+      "androidChromeInstallUpdate": "NOT TESTED",
+      "latestPackageRunId": 40775604577
     },
     "agents": {
       "agentRelay": "BLOCKED — workspace not connected to a relay",
@@ -8556,9 +8584,10 @@
     "notes": [
       "No secrets were read or changed.",
       "No production D1 rows were written; no production deployment or merge was performed.",
-      "PR #803 CI passed on its branch head but the PR remains unmerged; live Python auth is not verified.",
-      "Main branch protection remains disabled according to the branch endpoint; the protection endpoint itself returned HTTP 403.",
-      "Release-package workflow failures on the current main SHA remain unexplained because job logs/artifacts were unavailable through the current connector response.",
+      "PR #803 CI passed on its branch head but remains unmerged; live Python auth is not verified.",
+      "PR #833 reproduced the duplicate release-package push-trigger defect in a test-only red stage, then passed CI/static/release-package checks after consolidation; PR remains open and unmerged.",
+      "Current main release-package failures remain in history; historical job logs were unavailable, so their exact cause is strongly indicated but not directly confirmed.",
+      "Cloudflare deployment metadata was refreshed with HTTP 200; direct Worker/PWA HTTP checks were not verified.",
       "Catalog visibility does not imply each app is connected or authorized for REDULTRON runtime."
     ],
     "persistentLearning": {
@@ -8606,7 +8635,7 @@
       "review": "Codex review could not complete because its usage limit was reached."
     },
     "releasePackageFailure": {
-      "status": "FAIL",
+      "status": "FAIL — current main; fix PR #833 green but unmerged",
       "sha": "0a35a8dda07b5217497ec1c45bdc64e3a7d0147c",
       "runIds": [
         40772544482,
@@ -8617,7 +8646,8 @@
       "latestRunId": 40772544482,
       "artifactsAvailable": false,
       "jobListReturnedZeroJobs": true,
-      "rootCause": "NOT TESTED — failure logs/jobs were not exposed by the available GitHub connector response."
+      "rootCause": "NOT DIRECTLY CONFIRMED from historical main-run logs; the main workflow source had duplicate top-level push keys. PR #833 reproduced the defect in red-stage tests and passed the release-package workflow after consolidating the trigger.",
+      "likelyCause": "Duplicate top-level push keys in .github/workflows/redultron-release-package.yml; historical main-run logs/jobs were unavailable, so this remains strongly indicated rather than directly confirmed."
     },
     "sentinel": {
       "status": "NOT TESTED — current sampled runs skipped",
@@ -8640,6 +8670,72 @@
         }
       ],
       "caveat": "A skipped workflow job is not by itself proof that a duplicate retry was correctly suppressed; no controlled live replay was performed."
+    },
+    "releasePackageFixPR": {
+      "status": "PASS — branch checks; PR open and unmerged",
+      "pr": 833,
+      "headSha": "fc51a522d2892798449b9a93230c73627fe01752",
+      "state": "open",
+      "merged": false,
+      "redStage": {
+        "headSha": "3b380307b158fe45ea2f04d63cafcb00de010aa4",
+        "ciRunId": 40775480975,
+        "staticRunId": 40775480897,
+        "conclusion": "expected failure",
+        "testCount": 517,
+        "passed": 515,
+        "failed": 2,
+        "failures": [
+          "duplicate top-level push count 2 !== 1",
+          "main push trigger missing tests/** and central-agent/** paths"
+        ]
+      },
+      "greenStageRuns": [
+        {
+          "name": "CI",
+          "runId": 40775604674,
+          "status": "PASS",
+          "url": "https://github.com/lostgodsgods-ops/super-chatty-jarvis/actions/runs/40775604674"
+        },
+        {
+          "name": "Static site checks",
+          "runId": 40775604708,
+          "status": "PASS",
+          "url": "https://github.com/lostgodsgods-ops/super-chatty-jarvis/actions/runs/40775604708"
+        },
+        {
+          "name": "Release Package",
+          "runId": 40775604577,
+          "status": "PASS",
+          "url": "https://github.com/lostgodsgods-ops/super-chatty-jarvis/actions/runs/40775604577"
+        },
+        {
+          "name": "CI push",
+          "runId": 40775598472,
+          "status": "PASS",
+          "url": "https://github.com/lostgodsgods-ops/super-chatty-jarvis/actions/runs/40775598472"
+        },
+        {
+          "name": "Static site checks push",
+          "runId": 40775598480,
+          "status": "PASS",
+          "url": "https://github.com/lostgodsgods-ops/super-chatty-jarvis/actions/runs/40775598480"
+        },
+        {
+          "name": "Failure Sentinel push",
+          "runId": 40775598483,
+          "status": "PASS",
+          "url": "https://github.com/lostgodsgods-ops/super-chatty-jarvis/actions/runs/40775598483"
+        }
+      ],
+      "artifact": {
+        "id": 12854561877,
+        "name": "REDULTRON-CORE-3-PWA-a85a52081f2483ea5461de8261da9238e54a1828",
+        "sizeBytes": 54703,
+        "expired": false,
+        "expiresAt": "2026-11-11T21:53:25Z"
+      },
+      "scope": "Repository test, PWA contract, ZIP/checksum build and artifact upload passed on PR branch. No production deployment or merge."
     }
   },
   "coveragePolicy": {
