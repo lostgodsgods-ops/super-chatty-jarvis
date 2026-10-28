@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "project": "REDULTRON CORE 3.0",
-  "snapshotTime": "2026-10-29T03:02:54+05:30",
+  "snapshotTime": "2026-10-29T03:05:14+05:30",
   "repository": "lostgodsgods-ops/super-chatty-jarvis",
   "branch": "main",
   "commitSha": "0a35a8dda07b5217497ec1c45bdc64e3a7d0147c",
@@ -8758,47 +8758,63 @@
         "changedDb": false,
         "checkedAt": "2026-10-29T03:02:54+05:30"
       },
-      "writesPerformed": false
+      "writesPerformed": false,
+      "productionConversationMemoryPresent": true,
+      "productionMigrationLedgerPresent": false,
+      "stagingConversationMemoryPresent": false,
+      "checkedAt": "2026-10-29T03:05:14+05:30"
     },
     "capabilityRequests": {
-      "status": "BLOCKED — live D1 round-trip not tested",
+      "status": "PASS — CI; BLOCKED live D1 round-trip",
       "requestState": "pending_owner_review",
       "executionEnabled": false,
       "requiresOwnerApproval": true,
       "openPR": 821,
       "prState": "open-draft",
-      "headSha": "837afd7455f77934faf032d903f7345ce42d6824",
-      "migrationPath": "migrations/0003_capability_requests.sql",
+      "headSha": "f3afd95f4440eb0ad5af391606a8558fe391d4e0",
+      "migrationPath": "migrations/0003_capability_requests.sql; migrations/0004_verified_knowledge.sql",
       "testPath": "tests/capability-request-migration.test.mjs",
       "testFirstCommit": "df60fc533239658d601693a23f028816adeead22",
       "testFirstRedRun": {
         "id": 40772572446,
         "status": "FAIL as expected",
-        "detail": "Missing migration caused ENOENT; regression test was added before the migration."
+        "detail": "Migration parity test failed with ENOENT before migration file was added."
       },
-      "implementationCommit": "837afd7455f77934faf032d903f7345ce42d6824",
+      "implementationCommit": "f3afd95f4440eb0ad5af391606a8558fe391d4e0",
       "checks": [
         {
           "workflow": "CI",
-          "runId": 40772647782,
+          "runId": 40772885224,
           "status": "PASS",
-          "url": "https://github.com/lostgodsgods-ops/super-chatty-jarvis/actions/runs/40772647782"
+          "sha": "f3afd95f4440eb0ad5af391606a8558fe391d4e0"
         },
         {
           "workflow": "Test Central Agent",
-          "runId": 40772647737,
+          "runId": 40772885382,
           "status": "PASS",
-          "url": "https://github.com/lostgodsgods-ops/super-chatty-jarvis/actions/runs/40772647737"
+          "sha": "f3afd95f4440eb0ad5af391606a8558fe391d4e0"
         },
         {
           "workflow": "Static site checks",
-          "runId": 40772647512,
+          "runId": 40772885247,
           "status": "PASS",
-          "url": "https://github.com/lostgodsgods-ops/super-chatty-jarvis/actions/runs/40772647512"
+          "sha": "f3afd95f4440eb0ad5af391606a8558fe391d4e0"
         }
       ],
-      "liveD1RoundTrip": "NOT TESTED — no production/staging table and no POST→D1→GET test was run",
-      "productionWrites": 0
+      "liveD1RoundTrip": "NOT TESTED — capability_requests and verified_knowledge absent in production and staging; migrations not applied",
+      "productionWrites": 0,
+      "migrationPaths": [
+        "migrations/0003_capability_requests.sql",
+        "migrations/0004_verified_knowledge.sql"
+      ],
+      "deploymentWorkflowPath": ".github/workflows/deploy-cloudflare.yml",
+      "migrationApplyGate": "workflow_dispatch on main with authorize_production_changes=approve",
+      "idempotencyTestFirstCommit": "ff00b444638bbd8ba868e51760eeeadb9cf2e6f6",
+      "idempotencyTestFirstRedRun": {
+        "id": 40771023141,
+        "status": "FAIL as expected",
+        "detail": "515 tests passed; two idempotency assertions failed before implementation."
+      }
     },
     "liveSearch": {
       "status": "NOT TESTED — Worker provider reachability",
@@ -8878,7 +8894,9 @@
       "Browser Use public-read run was blocked by insufficient credits; no live screenshot or install/update verification was obtained.",
       "Main workflow evidence refreshed at 2026-10-29T02:49:40+05:30; main SHA remains 0a35a8dda07b5217497ec1c45bdc64e3a7d0147c.",
       "Agent inventory refreshed at 2026-10-29T02:53:01+05:30: 81 JackHamr agents listed, 81 stopped, 0 running; credit balance -11.737204 USD, allowance remaining 0.",
-      "Agent Swarm linked count=0; Super connected devices=0, browser sessions=0, credits remaining=$2. No agent task was started and no credit was consumed."
+      "Agent Swarm linked count=0; Super connected devices=0, browser sessions=0, credits remaining=$2. No agent task was started and no credit was consumed.",
+      "PR #821 now includes capability-request idempotency, sequential D1 migrations 0003/0004, and approval-gated migration application; current-head CI, Central Agent, and Static checks PASS. Live D1 round-trip remains NOT TESTED and no migration was applied.",
+      "PR #829 was closed as a duplicate after its migration and guarded deployment changes were consolidated into PR #821, avoiding competing 0003 migration files."
     ],
     "persistentLearning": {
       "status": "PASS — repository checks; NOT TESTED live",
@@ -8944,17 +8962,17 @@
       },
       {
         "number": 821,
-        "title": "make capability request creation idempotent and add D1 migration",
+        "title": "fix: harden capability D1 persistence and idempotency",
         "state": "OPEN — DRAFT",
-        "headSha": "837afd7455f77934faf032d903f7345ce42d6824",
-        "checks": "CI, Central Agent, Static checks PASS; live D1 round-trip NOT TESTED"
+        "headSha": "f3afd95f4440eb0ad5af391606a8558fe391d4e0",
+        "checks": "CI, Central Agent, Static site checks PASS; live D1 round-trip NOT TESTED"
       },
       {
         "number": 828,
         "title": "refresh REDULTRON live runtime evidence",
         "state": "OPEN — DRAFT",
-        "headSha": "3f01d6e27ad352a32c178ddbaef44c912d0d3d9a",
-        "checks": "docs-only evidence refresh"
+        "headSha": "3179542c89caef392f98ea124c4b4d5ff7d8533f",
+        "checks": "CI and Static site checks PASS at this evidence snapshot; docs-only runtime evidence refresh"
       }
     ]
   },
@@ -9844,18 +9862,19 @@
     }
   ],
   "latestEvidence": {
-    "recordedAt": "2026-10-29T03:02:54+05:30",
+    "recordedAt": "2026-10-29T03:05:14+05:30",
     "repository": "lostgodsgods-ops/super-chatty-jarvis",
     "branch": "main",
     "mainSha": "0a35a8dda07b5217497ec1c45bdc64e3a7d0147c",
-    "result": "Repository CI and targeted branch checks pass, but release-package workflow is broken on main; production is behind main and runtime authentication remains unresolved.",
+    "result": "Current main CI and Static checks pass; the main Release Package workflow fails from invalid YAML and has open fix PR #801. Worker and Render are behind main; authenticated hybrid execution remains unresolved. Read-only D1 queries show capability_requests, verified_knowledge, and d1_migrations absent in production and staging. PR #821 now passes CI, Central Agent, and Static checks with idempotency plus approval-gated migrations; live D1 round-trip remains untested.",
     "noSecretsReadOrChanged": true,
     "noProductionWrites": true,
     "noDeploymentOrMergePerformed": true,
     "nextTasks": [
-      "Merge/fix the duplicate release-package trigger only after branch protection and review safeguards are restored by the owner/admin.",
-      "Run an owner-approved secret-safe parity attestation and authenticated hybrid probe; do not read or modify secret values.",
-      "Apply the additive capability-request migration only through an approved deployment/migration workflow, then test authorized staging POST→D1→GET.",
+      "Review PR #801 and restore branch protection/required checks through an owner/admin before merging.",
+      "Review PR #803; verify secret parity only through the guarded workflow and then run the positive authenticated hybrid probe.",
+      "Review PR #821; apply pending D1 migrations only through the explicit production-approval workflow, then verify authorized staging POST→D1→GET.",
+      "Reconcile Worker and Render deployed revisions through the guarded provenance workflow.",
       "Verify live search from the Worker runtime and PWA V18 in actual Android Chrome."
     ],
     "visibleToolNamespaceCount": 714
