@@ -94,3 +94,32 @@ test("capability requests persist to D1 and round-trip with owner approval still
   assert.equal(listed[0].executionEnabled, false);
   assert.equal(listed[0].requiresOwnerApproval, true);
 });
+
+
+test("D1 schema initialization failures return a sanitized storage error", async () => {
+  const internalDetail = "SQLITE_INTERNAL_PATH_DO_NOT_EXPOSE";
+  const env = {
+    DB: {
+      prepare() {
+        return {
+          async run() { throw new Error(internalDetail); },
+          bind() { return this; },
+          async all() { throw new Error(internalDetail); }
+        };
+      }
+    }
+  };
+  const input = {
+    goal: "Verify repository state",
+    requestedTools: ["github"],
+    rationale: "Need bounded repository inspection."
+  };
+  const isSanitizedStorageError = error =>
+    error.code === "CAPABILITY_REQUEST_STORAGE_UNAVAILABLE" &&
+    error.status === 503 &&
+    error.message === "CAPABILITY_REQUEST_STORAGE_UNAVAILABLE" &&
+    !error.message.includes(internalDetail);
+
+  await assert.rejects(createCapabilityRequest(env, input, catalog), isSanitizedStorageError);
+  await assert.rejects(listCapabilityRequests(env, 10), isSanitizedStorageError);
+});
