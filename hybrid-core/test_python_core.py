@@ -8,7 +8,6 @@ from http.server import ThreadingHTTPServer
 
 from python_core import Handler, process_task
 
-
 TEST_SECRET = "test-only-secret-value-at-least-32-chars"
 
 
@@ -49,30 +48,41 @@ class HybridCoreHTTPTests(unittest.TestCase):
     def setUpClass(cls):
         os.environ["OWNER_SECRET"] = TEST_SECRET
         cls.server = QuietThreadingHTTPServer(("127.0.0.1", 0), Handler)
-        cls.server_thread = threading.Thread(target=cls.server.serve_forever, daemon=True)
-        cls.server_thread.start()
+        cls.thread = threading.Thread(target=cls.server.serve_forever, daemon=True)
+        cls.thread.start()
         cls.port = cls.server.server_address[1]
 
     @classmethod
     def tearDownClass(cls):
         cls.server.shutdown()
         cls.server.server_close()
-        cls.server_thread.join(timeout=2)
+        cls.thread.join(timeout=2)
         os.environ.pop("OWNER_SECRET", None)
 
-    def request(self, body=None, headers=None, raw_path="/v1/execute"):
-        connection = http.client.HTTPConnection("127.0.0.1", self.port, timeout=8)
-        connection.request("POST", raw_path, body=body, headers=headers or {})
-        response = connection.getresponse()
+    def request(self, body=None, headers=None, path="/v1/execute"):
+        conn = http.client.HTTPConnection("127.0.0.1", self.port, timeout=8)
+        conn.request("POST", path, body=body, headers=headers or {})
+        response = conn.getresponse()
         result = response.status, response.getheaders(), response.read()
-        connection.close()
+        conn.close()
         return result
 
+    def test_health_is_minimal(self):
+        conn = http.client.HTTPConnection("127.0.0.1", self.port, timeout=3)
+        conn.request("GET", "/health")
+        response = conn.getresponse()
+        self.assertEqual(response.status, 200)
+        self.assertEqual(json.loads(response.read()), {"ok": True, "service": "redultron-python-core"})
+        conn.close()
+
+    def test_unknown_route_is_404(self):
+        status, _, body = self.request("{}", {"X-Owner-Secret": TEST_SECRET}, "/not-a-route")
+        self.assertEqual(status, 404)
+        self.assertEqual(json.loads(body)["code"], "NOT_FOUND")
+
     def test_requires_owner_secret(self):
-        status, _, body = self.request(
-            json.dumps({"task": "summarize", "text": "hello"}),
-            {"Content-Type": "application/json"},
-        )
+        status, _, body = self.request(json.dumps({"task": "summarize", "text": "hello"}),
+                                       {"Content-Type": "application/json"})
         self.assertEqual(status, 401)
         self.assertEqual(json.loads(body)["code"], "OWNER_AUTH_REQUIRED")
 
@@ -84,39 +94,50 @@ class HybridCoreHTTPTests(unittest.TestCase):
             '{"task":"summarize","text":"hello"}'
         ).encode()
         with socket.create_connection(("127.0.0.1", self.port), timeout=3) as sock:
+            sock.settimeout(3)
             sock.sendall(raw)
             chunks = []
             while True:
-                chunk = sock.recv(4096)
+                try:
+                    chunk = sock.recv(4096)
+                except socket.timeout:
+                    break
                 if not chunk:
                     break
                 chunks.append(chunk)
         response = b"".join(chunks).decode("iso-8859-1")
         self.assertIn("400", response.split("\r\n", 1)[0])
+        self.assertIn("INVALID_REQUEST_FRAMING", response)
 
     def test_rejects_transfer_encoding(self):
-        status, _, body = self.request(
-            '{"task":"summarize","text":"hello"}',
-            {"X-Owner-Secret": TEST_SECRET, "Transfer-Encoding": "chunked",
-             "Content-Type": "application/json"},
-        )
+        status, _, body = self.request('{"task":"summarize","text":"hello"}',
+            {"X-Owner-Secret": TEST_SECRET, "Transfer-Encoding": "chunked", "Content-Type": "application/json"})
         self.assertEqual(status, 400)
         self.assertEqual(json.loads(body)["code"], "INVALID_REQUEST_FRAMING")
 
     def test_rejects_wrong_content_type(self):
-        status, _, body = self.request(
-            '{"task":"summarize","text":"hello"}',
-            {"X-Owner-Secret": TEST_SECRET, "Content-Type": "text/plain"},
-        )
+        status, _, body = self.request('{"task":"summarize","text":"hello"}',
+            {"X-Owner-Secret": TEST_SECRET, "Content-Type": "text/plain"})
         self.assertEqual(status, 415)
         self.assertEqual(json.loads(body)["code"], "UNSUPPORTED_MEDIA_TYPE")
 
+    def test_rejects_malformed_json(self):
+        status, _, body = self.request('{"task":',
+            {"X-Owner-Secret": TEST_SECRET, "Content-Type": "application/json"})
+        self.assertEqual(status, 400)
+        self.assertEqual(json.loads(body)["code"], "INVALID_JSON")
+
+    def test_rejects_non_object_and_extra_fields(self):
+        for payload in ('["summarize","hello"]', '{"task":"summarize","text":"hello","extra":true}'):
+            with self.subTest(payload=payload):
+                status, _, body = self.request(payload,
+                    {"X-Owner-Secret": TEST_SECRET, "Content-Type": "application/json"})
+                self.assertEqual(status, 400)
+                self.assertEqual(json.loads(body)["code"], "INVALID_REQUEST_FIELDS")
+
     def test_rejects_short_body_read(self):
-        status, _, body = self.request(
-            '{"task":"summarize","text":"hello"}',
-            {"X-Owner-Secret": TEST_SECRET, "Content-Type": "application/json",
-             "Content-Length": "100"},
-        )
+        status, _, body = self.request('{"task":"summarize","text":"hello"}',
+            {"X-Owner-Secret": TEST_SECRET, "Content-Type": "application/json", "Content-Length": "100"})
         self.assertIn(status, (400, 408))
         self.assertNotEqual(json.loads(body).get("ok"), True)
 
@@ -146,27 +167,20 @@ class HybridCoreHTTPTests(unittest.TestCase):
         self.assertEqual(json.loads(response_body)["code"], "REQUEST_TOO_LARGE")
 
     def test_rejects_extremely_long_content_length_header(self):
-        status, _, body = self.request(
-            "{}",
-            {"X-Owner-Secret": TEST_SECRET, "Content-Type": "application/json",
-             "Content-Length": "9" * 5000},
-        )
+        status, _, body = self.request("{}", {
+            "X-Owner-Secret": TEST_SECRET, "Content-Type": "application/json", "Content-Length": "9" * 5000})
         self.assertEqual(status, 400)
         self.assertEqual(json.loads(body)["code"], "INVALID_CONTENT_LENGTH")
 
     def test_rejects_duplicate_json_keys(self):
-        status, _, body = self.request(
-            '{"task":"summarize","task":"classify_text","text":"hello"}',
-            {"X-Owner-Secret": TEST_SECRET, "Content-Type": "application/json"},
-        )
+        status, _, body = self.request('{"task":"summarize","task":"classify_text","text":"hello"}',
+            {"X-Owner-Secret": TEST_SECRET, "Content-Type": "application/json"})
         self.assertEqual(status, 400)
         self.assertEqual(json.loads(body)["code"], "DUPLICATE_JSON_KEY")
 
     def test_success_responses_disable_caching(self):
-        status, headers, body = self.request(
-            json.dumps({"task": "summarize", "text": "One. Two."}),
-            {"X-Owner-Secret": TEST_SECRET, "Content-Type": "application/json"},
-        )
+        status, headers, body = self.request(json.dumps({"task": "summarize", "text": "One. Two."}),
+            {"X-Owner-Secret": TEST_SECRET, "Content-Type": "application/json"})
         self.assertEqual(status, 200)
         self.assertIn(("Cache-Control", "no-store"), headers)
         self.assertTrue(json.loads(body)["ok"])
