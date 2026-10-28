@@ -26,7 +26,7 @@ A provider may have multiple statuses by layer. For example, a route can be impl
 | ID | Capability / provider | Evidence in repository | Current status | Missing proof / next action |
 |---|---|---|---|---|
 | CORE-EDGE | Cloudflare Worker edge runtime | `central-agent/wrangler.jsonc` defines Worker, ASSETS, AI, D1, KV, Durable Object and observability settings | configured | Run deployment-provenance check and verify the deployed commit, not only the config |
-| CORE-PY | Python Core HTTPS service | `central-agent/architecture/hybrid-core.mjs` validates task allowlist, HTTPS endpoint, input size, sends `x-owner-secret`, and applies a 5-second timeout | implemented | Last reported certification reached HTTP 502 / `HYBRID_CORE_AUTH_REJECTED`; strict authenticated production probe must pass |
+| CORE-PY | Python Core HTTPS service | `central-agent/architecture/hybrid-core.mjs`; Render live deployment `dep-dbgvrktg1s2s73egnsa0` running commit `417284913f26aae4c5f1ec013f38df77b0957c2c` | implemented; production execution blocked | Current deployment identity is confirmed, but authenticated execution still needs HTTP 200 plus `hybridPythonCoreExecutionVerified=true`; last reported probe failed with HTTP 502 / `HYBRID_CORE_AUTH_REJECTED` |
 | CORE-AUTH | Owner-secret boundary | Worker adapter requires `PYTHON_CORE_URL` and `OWNER_SECRET`; workflow references `REDULTRON_OWNER_SECRET` | implemented; live auth blocked | Read-only length/equality comparison via authorized secret-management API; never log or expose values; then separately approved sync if needed |
 | CORE-D1 | Cloudflare D1 owner-auth database | Wrangler binding `DB`, database name `super-chatty-owner-auth` | configured | Confirm migrations, runtime schema, and read/write health through authorized, non-destructive checks |
 | CORE-KV | Cloudflare KV sessions | Wrangler binding `SESSIONS` | configured | Verify binding reachability and expected session operations without exposing session data |
@@ -35,10 +35,18 @@ A provider may have multiple statuses by layer. For example, a route can be impl
 | SEARCH | Live Search providers | Wrangler var `SEARCH_PROVIDER_MODE=open-source-first`; adapter/fallback claims exist in project history | not tested end-to-end | Verify live provider, returned source URLs, attribution, timeout, stale-cache marker and fallback behavior |
 | OBS | Logs / traces | Wrangler observability enabled; query-string redaction enabled; invocation logs disabled; sampling 0.1 | configured | Verify redaction against representative errors and confirm no secret/header/body leakage |
 | PWA | App shell / service worker | PR #415 merged; cache version v15 and old-cache cleanup described in PR | implemented; production not tested | Verify deployed asset version, service-worker activation/update, offline navigation on Android |
-| GITHUB-CI | GitHub Actions | PR #430 and #431 are open drafts at time of review | partially implemented; release gate blocked | Review exact workflow diff; require explicit environment approval before production mutations |
+| GITHUB-CI | GitHub Actions | PR #430 and #431 are open drafts; PR #431's draft branch adds manual approval inputs and `production` Environment bindings | partially implemented; main release gate remains blocked until merge and settings verification | Review exact workflow diff, verify required Environment reviewers and branch protection, then merge through normal review |
+| AGENTS | Registered agent catalog and runtime dispatch | `config/agent-registry.json`; `central-agent/agent-orchestrator.mjs` and tests | catalog implemented; production dispatch blocked | The registry lists 90 agents but reports `agentsProvisioned=0` and `automaticDispatchEnabled=false`; provision a small allowlisted pilot with per-agent health, audit, timeout, cancellation and approval checks before expanding |
 | FIN-READ | Banking / financial data | No live financial-provider credentials or verified adapter established by this inventory | not tested / planned | Start with mock/sandbox and consented read-only data; document provider, scopes, jurisdiction, data retention and audit |
 | FIN-WRITE | Payments / transfers / trading | No live mutation capability established by this inventory | not implemented / not authorized | Do not enable until explicit approval, idempotency, limits, reconciliation, dual-control and rollback are reviewed |
 | BUNKER | Bunker project | No repository or path identified in the reviewed repository scope | blocked / unknown | Discover repository or path before assigning implementation or deployment status |
+
+## Current runtime evidence snapshot (2026-10-28)
+
+- Render service `super-chatty-jarvis` is reported live on deployment `dep-dbgvrktg1s2s73egnsa0`, commit `417284913f26aae4c5f1ec013f38df77b0957c2c` (merge of PR #472).
+- Render service configuration currently reports auto-deploy on commits to `main`, no configured Render health-check path, and a public IP allow-list of `0.0.0.0/0`. The public ingress is not itself proof of an auth bypass; every execution route must enforce owner authentication. Add a dedicated health check only after verifying the intended route and semantics.
+- A request-log query for `/health`, `/v1/execute`, `/openapi.json`, and `/` over 13:51–14:00 UTC returned no records. This is not evidence that those routes are healthy or unhealthy; the authenticated execution status remains BLOCKED until a strict probe succeeds.
+- `config/agent-registry.json` declares 90 catalog entries, zero provisioned agents, and automatic dispatch disabled. Treat them as specifications, not running agents.
 
 ## Authenticated Python Core acceptance contract
 
