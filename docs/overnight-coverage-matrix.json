@@ -1,19 +1,19 @@
 {
   "schemaVersion": 1,
   "project": "REDULTRON CORE 3.0",
-  "snapshotTime": "2026-10-29T01:51:57+05:30",
+  "snapshotTime": "2026-10-29T03:20:10+05:30",
   "repository": "lostgodsgods-ops/super-chatty-jarvis",
   "branch": "main",
-  "commitSha": "8c749f0e0e3dfdcceb2fafcc0fd5a9fb3d4e5935",
+  "commitSha": "0a35a8dda07b5217497ec1c45bdc64e3a7d0147c",
   "inventorySummary": {
-    "trackedFiles": 186,
-    "centralAgentFiles": 94,
+    "trackedFiles": 195,
+    "centralAgentFiles": 95,
     "workflowFiles": 14,
-    "testFiles": 72,
+    "testFiles": 73,
     "hybridCoreFiles": 7,
     "phpCoreFiles": 4,
     "pwaFiles": 9,
-    "docFiles": 15
+    "docFiles": 19
   },
   "fileInventory": [
     {
@@ -21,15 +21,16 @@
       "kind": "workflow",
       "purpose": "workflow: Ci. Purpose inferred from filename/path; full content review is not implied.",
       "evidence": [
-        "Git tree 8c749f0e0e3dfdcceb2fafcc0fd5a9fb3d4e5935"
+        "Git tree 0a35a8dda07b5217497ec1c45bdc64e3a7d0147c"
       ],
       "tests": [
         "No direct sibling test mapping established from filename; suite/runtime coverage requires separate verification."
       ],
       "accessStatus": "Readable via authorized GitHub connector; production writes not performed.",
-      "blocker": "No module-specific runtime blocker established by inventory alone",
-      "status": "PASS",
-      "latestRun": {
+      "blocker": "Do not treat PR-head checks as a current-main result.",
+      "status": "NOT TESTED",
+      "latestRun": null,
+      "historicalLatestRun": {
         "id": 40761716096,
         "conclusion": "success",
         "url": "https://github.com/lostgodsgods-ops/super-chatty-jarvis/actions/runs/40761716096",
@@ -41,13 +42,13 @@
       "kind": "workflow",
       "purpose": "workflow: Deploy Central Agent. Purpose inferred from filename/path; full content review is not implied.",
       "evidence": [
-        "Git tree 8c749f0e0e3dfdcceb2fafcc0fd5a9fb3d4e5935"
+        "Git tree 0a35a8dda07b5217497ec1c45bdc64e3a7d0147c"
       ],
       "tests": [
         "No direct sibling test mapping established from filename; suite/runtime coverage requires separate verification."
       ],
       "accessStatus": "Readable via authorized GitHub connector; production writes not performed.",
-      "blocker": "No run on snapshot SHA observed",
+      "blocker": "Production workflow remains approval-gated; no deployment was dispatched.",
       "status": "NOT TESTED",
       "latestRun": null
     },
@@ -56,13 +57,13 @@
       "kind": "workflow",
       "purpose": "workflow: Deploy Cloudflare. Purpose inferred from filename/path; full content review is not implied.",
       "evidence": [
-        "Git tree 8c749f0e0e3dfdcceb2fafcc0fd5a9fb3d4e5935"
+        "Git tree 0a35a8dda07b5217497ec1c45bdc64e3a7d0147c"
       ],
       "tests": [
         "No direct sibling test mapping established from filename; suite/runtime coverage requires separate verification."
       ],
       "accessStatus": "Readable via authorized GitHub connector; production writes not performed.",
-      "blocker": "No run on snapshot SHA observed",
+      "blocker": "Production deployment was not performed.",
       "status": "NOT TESTED",
       "latestRun": null
     },
@@ -71,13 +72,13 @@
       "kind": "workflow",
       "purpose": "workflow: Deploy Nexus Pwa. Purpose inferred from filename/path; full content review is not implied.",
       "evidence": [
-        "Git tree 8c749f0e0e3dfdcceb2fafcc0fd5a9fb3d4e5935"
+        "Git tree 0a35a8dda07b5217497ec1c45bdc64e3a7d0147c"
       ],
       "tests": [
         "No direct sibling test mapping established from filename; suite/runtime coverage requires separate verification."
       ],
       "accessStatus": "Readable via authorized GitHub connector; production writes not performed.",
-      "blocker": "No run on snapshot SHA observed",
+      "blocker": "Live asset routing and Android install/update remain unverified.",
       "status": "NOT TESTED",
       "latestRun": null
     },
@@ -86,13 +87,13 @@
       "kind": "workflow",
       "purpose": "workflow: Integration Registry. Purpose inferred from filename/path; full content review is not implied.",
       "evidence": [
-        "Git tree 8c749f0e0e3dfdcceb2fafcc0fd5a9fb3d4e5935"
+        "Git tree 0a35a8dda07b5217497ec1c45bdc64e3a7d0147c"
       ],
       "tests": [
         "No direct sibling test mapping established from filename; suite/runtime coverage requires separate verification."
       ],
       "accessStatus": "Readable via authorized GitHub connector; production writes not performed.",
-      "blocker": "No run on snapshot SHA observed",
+      "blocker": "Registry contracts have repository tests but no current-main run was found.",
       "status": "NOT TESTED",
       "latestRun": null
     },
@@ -101,13 +102,13 @@
       "kind": "workflow",
       "purpose": "workflow: Monitor Central Agent. Purpose inferred from filename/path; full content review is not implied.",
       "evidence": [
-        "Git tree 8c749f0e0e3dfdcceb2fafcc0fd5a9fb3d4e5935"
+        "Git tree 0a35a8dda07b5217497ec1c45bdc64e3a7d0147c"
       ],
       "tests": [
         "No direct sibling test mapping established from filename; suite/runtime coverage requires separate verification."
       ],
       "accessStatus": "Readable via authorized GitHub connector; production writes not performed.",
-      "blocker": "No run on snapshot SHA observed",
+      "blocker": "No new live health/search/auth probe was completed.",
       "status": "NOT TESTED",
       "latestRun": null
     },
@@ -116,13 +117,13 @@
       "kind": "workflow",
       "purpose": "workflow: Php Core. Purpose inferred from filename/path; full content review is not implied.",
       "evidence": [
-        "Git tree 8c749f0e0e3dfdcceb2fafcc0fd5a9fb3d4e5935"
+        "Git tree 0a35a8dda07b5217497ec1c45bdc64e3a7d0147c"
       ],
       "tests": [
         "No direct sibling test mapping established from filename; suite/runtime coverage requires separate verification."
       ],
       "accessStatus": "Readable via authorized GitHub connector; production writes not performed.",
-      "blocker": "No run on snapshot SHA observed",
+      "blocker": "PHP Core runtime was not probed.",
       "status": "NOT TESTED",
       "latestRun": null
     },
@@ -131,15 +132,20 @@
       "kind": "workflow",
       "purpose": "workflow: Redultron Failure Sentinel. Purpose inferred from filename/path; full content review is not implied.",
       "evidence": [
-        "Git tree 8c749f0e0e3dfdcceb2fafcc0fd5a9fb3d4e5935"
+        "Git tree 0a35a8dda07b5217497ec1c45bdc64e3a7d0147c"
       ],
       "tests": [
         "No direct sibling test mapping established from filename; suite/runtime coverage requires separate verification."
       ],
       "accessStatus": "Readable via authorized GitHub connector; production writes not performed.",
-      "blocker": "No module-specific runtime blocker established by inventory alone",
+      "blocker": "Need a controlled duplicate-event test and logs; skipped jobs alone do not prove retry suppression.",
       "status": "NOT TESTED",
       "latestRun": {
+        "id": 40773676027,
+        "conclusion": "skipped",
+        "url": "https://github.com/lostgodsgods-ops/super-chatty-jarvis/actions/runs/40773676027"
+      },
+      "historicalLatestRun": {
         "id": 40762571547,
         "conclusion": "skipped",
         "url": "https://github.com/lostgodsgods-ops/super-chatty-jarvis/actions/runs/40762571547",
@@ -151,13 +157,13 @@
       "kind": "workflow",
       "purpose": "workflow: Redultron Live Probe. Purpose inferred from filename/path; full content review is not implied.",
       "evidence": [
-        "Git tree 8c749f0e0e3dfdcceb2fafcc0fd5a9fb3d4e5935"
+        "Git tree 0a35a8dda07b5217497ec1c45bdc64e3a7d0147c"
       ],
       "tests": [
         "No direct sibling test mapping established from filename; suite/runtime coverage requires separate verification."
       ],
       "accessStatus": "Readable via authorized GitHub connector; production writes not performed.",
-      "blocker": "No run on snapshot SHA observed",
+      "blocker": "Authenticated Python execution still lacks a new live HTTP 200 proof.",
       "status": "NOT TESTED",
       "latestRun": null
     },
@@ -166,13 +172,13 @@
       "kind": "workflow",
       "purpose": "workflow: Redultron Provenance Deploy. Purpose inferred from filename/path; full content review is not implied.",
       "evidence": [
-        "Git tree 8c749f0e0e3dfdcceb2fafcc0fd5a9fb3d4e5935"
+        "Git tree 0a35a8dda07b5217497ec1c45bdc64e3a7d0147c"
       ],
       "tests": [
         "No direct sibling test mapping established from filename; suite/runtime coverage requires separate verification."
       ],
       "accessStatus": "Readable via authorized GitHub connector; production writes not performed.",
-      "blocker": "No run on snapshot SHA observed",
+      "blocker": "No production authorization was supplied for this run; do not bypass the gate.",
       "status": "NOT TESTED",
       "latestRun": null
     },
@@ -181,15 +187,20 @@
       "kind": "workflow",
       "purpose": "workflow: Redultron Release Package. Purpose inferred from filename/path; full content review is not implied.",
       "evidence": [
-        "Git tree 8c749f0e0e3dfdcceb2fafcc0fd5a9fb3d4e5935"
+        "Git tree 0a35a8dda07b5217497ec1c45bdc64e3a7d0147c"
       ],
       "tests": [
         "No direct sibling test mapping established from filename; suite/runtime coverage requires separate verification."
       ],
       "accessStatus": "Readable via authorized GitHub connector; production writes not performed.",
-      "blocker": "No module-specific runtime blocker established by inventory alone",
-      "status": "PASS",
+      "blocker": "Failure cause is not established: the workflow-run jobs API returned zero jobs and no artifacts were available.",
+      "status": "FAIL",
       "latestRun": {
+        "id": 40772544482,
+        "conclusion": "failure",
+        "url": "https://github.com/lostgodsgods-ops/super-chatty-jarvis/actions/runs/40772544482"
+      },
+      "historicalLatestRun": {
         "id": 40761716116,
         "conclusion": "success",
         "url": "https://github.com/lostgodsgods-ops/super-chatty-jarvis/actions/runs/40761716116",
@@ -201,15 +212,16 @@
       "kind": "workflow",
       "purpose": "workflow: Static Site Checks. Purpose inferred from filename/path; full content review is not implied.",
       "evidence": [
-        "Git tree 8c749f0e0e3dfdcceb2fafcc0fd5a9fb3d4e5935"
+        "Git tree 0a35a8dda07b5217497ec1c45bdc64e3a7d0147c"
       ],
       "tests": [
         "No direct sibling test mapping established from filename; suite/runtime coverage requires separate verification."
       ],
       "accessStatus": "Readable via authorized GitHub connector; production writes not performed.",
-      "blocker": "No module-specific runtime blocker established by inventory alone",
-      "status": "PASS",
-      "latestRun": {
+      "blocker": "PR-head pass is not a current-main or live-PWA result.",
+      "status": "NOT TESTED",
+      "latestRun": null,
+      "historicalLatestRun": {
         "id": 40761716093,
         "conclusion": "success",
         "url": "https://github.com/lostgodsgods-ops/super-chatty-jarvis/actions/runs/40761716093",
@@ -221,15 +233,16 @@
       "kind": "workflow",
       "purpose": "workflow: Test Central Agent. Purpose inferred from filename/path; full content review is not implied.",
       "evidence": [
-        "Git tree 8c749f0e0e3dfdcceb2fafcc0fd5a9fb3d4e5935"
+        "Git tree 0a35a8dda07b5217497ec1c45bdc64e3a7d0147c"
       ],
       "tests": [
         "No direct sibling test mapping established from filename; suite/runtime coverage requires separate verification."
       ],
       "accessStatus": "Readable via authorized GitHub connector; production writes not performed.",
-      "blocker": "No module-specific runtime blocker established by inventory alone",
-      "status": "PASS",
-      "latestRun": {
+      "blocker": "PR-head pass does not prove production D1/auth behavior.",
+      "status": "NOT TESTED",
+      "latestRun": null,
+      "historicalLatestRun": {
         "id": 40761716102,
         "conclusion": "success",
         "url": "https://github.com/lostgodsgods-ops/super-chatty-jarvis/actions/runs/40761716102",
@@ -241,13 +254,13 @@
       "kind": "workflow",
       "purpose": "workflow: Test Hybrid Core. Purpose inferred from filename/path; full content review is not implied.",
       "evidence": [
-        "Git tree 8c749f0e0e3dfdcceb2fafcc0fd5a9fb3d4e5935"
+        "Git tree 0a35a8dda07b5217497ec1c45bdc64e3a7d0147c"
       ],
       "tests": [
         "No direct sibling test mapping established from filename; suite/runtime coverage requires separate verification."
       ],
       "accessStatus": "Readable via authorized GitHub connector; production writes not performed.",
-      "blocker": "No run on snapshot SHA observed",
+      "blocker": "Authenticated live Python execution remains unverified.",
       "status": "NOT TESTED",
       "latestRun": null
     },
@@ -256,7 +269,7 @@
       "kind": "project-file",
       "purpose": "project file: AI AGENT PROMPT. Purpose inferred from filename/path; full content review is not implied.",
       "evidence": [
-        "Git tree 8c749f0e0e3dfdcceb2fafcc0fd5a9fb3d4e5935"
+        "Git tree 0a35a8dda07b5217497ec1c45bdc64e3a7d0147c"
       ],
       "tests": [
         "No direct sibling test mapping established from filename; suite/runtime coverage requires separate verification."
@@ -271,7 +284,7 @@
       "kind": "project-file",
       "purpose": "project file: ARCHITECTURE EXPANSION PLAN. Purpose inferred from filename/path; full content review is not implied.",
       "evidence": [
-        "Git tree 8c749f0e0e3dfdcceb2fafcc0fd5a9fb3d4e5935"
+        "Git tree 0a35a8dda07b5217497ec1c45bdc64e3a7d0147c"
       ],
       "tests": [
         "No direct sibling test mapping established from filename; suite/runtime coverage requires separate verification."
@@ -286,83 +299,7 @@
       "kind": "project-file",
       "purpose": "project file: BOUNDED RESEARCH AGENTS BLUEPRINT. Purpose inferred from filename/path; full content review is not implied.",
       "evidence": [
-        "Git tree 8c749f0e0e3dfdcceb2fafcc0fd5a9fb3d4e5935"
-      ],
-      "tests": [
-        "No direct sibling test mapping established from filename; suite/runtime coverage requires separate verification."
-      ],
-      "accessStatus": "Readable via authorized GitHub connector; production writes not performed.",
-      "blocker": "No module-specific runtime blocker established by inventory alone",
-      "status": "NOT TESTED unless linked workflow evidence is cited",
-      "latestRun": null
-    },
-    {
-      "path": "README_HI.txt",
-      "kind": "project-file",
-      "purpose": "project file: README HI. Purpose inferred from filename/path; full content review is not implied.",
-      "evidence": [
-        "Git tree 8c749f0e0e3dfdcceb2fafcc0fd5a9fb3d4e5935"
-      ],
-      "tests": [
-        "No direct sibling test mapping established from filename; suite/runtime coverage requires separate verification."
-      ],
-      "accessStatus": "Readable via authorized GitHub connector; production writes not performed.",
-      "blocker": "No module-specific runtime blocker established by inventory alone",
-      "status": "NOT TESTED unless linked workflow evidence is cited",
-      "latestRun": null
-    },
-    {
-      "path": "SUPER_CHATTY_JARVIS_MASTER_SPEC.md",
-      "kind": "project-file",
-      "purpose": "project file: SUPER CHATTY JARVIS MASTER SPEC. Purpose inferred from filename/path; full content review is not implied.",
-      "evidence": [
-        "Git tree 8c749f0e0e3dfdcceb2fafcc0fd5a9fb3d4e5935"
-      ],
-      "tests": [
-        "No direct sibling test mapping established from filename; suite/runtime coverage requires separate verification."
-      ],
-      "accessStatus": "Readable via authorized GitHub connector; production writes not performed.",
-      "blocker": "No module-specific runtime blocker established by inventory alone",
-      "status": "NOT TESTED unless linked workflow evidence is cited",
-      "latestRun": null
-    },
-    {
-      "path": "central-agent/HINGLISH_TONE_PROMPT.md",
-      "kind": "central-agent-module",
-      "purpose": "central agent module: HINGLISH TONE PROMPT. Purpose inferred from filename/path; full content review is not implied.",
-      "evidence": [
-        "Git tree 8c749f0e0e3dfdcceb2fafcc0fd5a9fb3d4e5935"
-      ],
-      "tests": [
-        "No direct sibling test mapping established from filename; suite/runtime coverage requires separate verification."
-      ],
-      "accessStatus": "Readable via authorized GitHub connector; production writes not performed.",
-      "blocker": "No module-specific runtime blocker established by inventory alone",
-      "status": "NOT TESTED unless linked workflow evidence is cited",
-      "latestRun": null
-    },
-    {
-      "path": "central-agent/KNOWLEDGE_LEARNING.md",
-      "kind": "central-agent-module",
-      "purpose": "Documentation for persistent learning endpoint and verification boundary.",
-      "evidence": [
-        "Git tree 8c749f0e0e3dfdcceb2fafcc0fd5a9fb3d4e5935",
-        "Relevant source inspected during mission"
-      ],
-      "tests": [
-        "No filename-based test mapping established; runtime coverage not inferred."
-      ],
-      "accessStatus": "Readable via authorized GitHub connector; production writes not performed.",
-      "status": "NOT TESTED unless linked workflow evidence is cited",
-      "blocker": "Documentation explicitly says live D1 persistence, deployed auth and knowledge reuse remain NOT TESTED.",
-      "latestRun": null
-    },
-    {
-      "path": "central-agent/README.md",
-      "kind": "central-agent-module",
-      "purpose": "central agent module: README. Purpose inferred from filename/path; full content review is not implied.",
-      "evidence": [
-        "Git tree 8c749f0e0e3dfdcceb2fafcc0fd5a9fb3d4e5935"
+        "Git tree 0a35a8dda07b5217497ec1c45bdc64e3a7d0147c"
       ],
       "tests": [
         "No direct sibling test mapping established from filename; suite/runtime coverage requires separate verification."
@@ -377,7 +314,7 @@
       "kind": "central-agent-module",
       "purpose": "Bounded agent run orchestration and task lifecycle.",
       "evidence": [
-        "Git tree 8c749f0e0e3dfdcceb2fafcc0fd5a9fb3d4e5935"
+        "Git tree 0a35a8dda07b5217497ec1c45bdc64e3a7d0147c"
       ],
       "tests": [
         "central-agent/agent-orchestrator.test.mjs"
@@ -392,7 +329,7 @@
       "kind": "test",
       "purpose": "test: Agent Orchestrator.Test. Purpose inferred from filename/path; full content review is not implied.",
       "evidence": [
-        "Git tree 8c749f0e0e3dfdcceb2fafcc0fd5a9fb3d4e5935"
+        "Git tree 0a35a8dda07b5217497ec1c45bdc64e3a7d0147c"
       ],
       "tests": [
         "central-agent/agent-orchestrator.test.mjs"
@@ -407,7 +344,7 @@
       "kind": "architecture-module",
       "purpose": "architecture module: Access Readiness. Purpose inferred from filename/path; full content review is not implied.",
       "evidence": [
-        "Git tree 8c749f0e0e3dfdcceb2fafcc0fd5a9fb3d4e5935"
+        "Git tree 0a35a8dda07b5217497ec1c45bdc64e3a7d0147c"
       ],
       "tests": [
         "central-agent/architecture/access-readiness.test.mjs"
@@ -422,7 +359,7 @@
       "kind": "test",
       "purpose": "test: Access Readiness.Test. Purpose inferred from filename/path; full content review is not implied.",
       "evidence": [
-        "Git tree 8c749f0e0e3dfdcceb2fafcc0fd5a9fb3d4e5935"
+        "Git tree 0a35a8dda07b5217497ec1c45bdc64e3a7d0147c"
       ],
       "tests": [
         "central-agent/architecture/access-readiness.test.mjs"
@@ -437,7 +374,7 @@
       "kind": "test",
       "purpose": "test: Architecture.Test. Purpose inferred from filename/path; full content review is not implied.",
       "evidence": [
-        "Git tree 8c749f0e0e3dfdcceb2fafcc0fd5a9fb3d4e5935"
+        "Git tree 0a35a8dda07b5217497ec1c45bdc64e3a7d0147c"
       ],
       "tests": [
         "central-agent/architecture/architecture.test.mjs"
@@ -452,7 +389,7 @@
       "kind": "architecture-module",
       "purpose": "architecture module: Blockchain Adapter. Purpose inferred from filename/path; full content review is not implied.",
       "evidence": [
-        "Git tree 8c749f0e0e3dfdcceb2fafcc0fd5a9fb3d4e5935"
+        "Git tree 0a35a8dda07b5217497ec1c45bdc64e3a7d0147c"
       ],
       "tests": [
         "central-agent/architecture/blockchain-adapter.test.mjs"
@@ -467,7 +404,7 @@
       "kind": "test",
       "purpose": "test: Blockchain Adapter.Test. Purpose inferred from filename/path; full content review is not implied.",
       "evidence": [
-        "Git tree 8c749f0e0e3dfdcceb2fafcc0fd5a9fb3d4e5935"
+        "Git tree 0a35a8dda07b5217497ec1c45bdc64e3a7d0147c"
       ],
       "tests": [
         "central-agent/architecture/blockchain-adapter.test.mjs"
@@ -482,7 +419,7 @@
       "kind": "architecture-module",
       "purpose": "architecture module: Capability Api. Purpose inferred from filename/path; full content review is not implied.",
       "evidence": [
-        "Git tree 8c749f0e0e3dfdcceb2fafcc0fd5a9fb3d4e5935"
+        "Git tree 0a35a8dda07b5217497ec1c45bdc64e3a7d0147c"
       ],
       "tests": [
         "No direct sibling test mapping established from filename; suite/runtime coverage requires separate verification."
@@ -497,7 +434,7 @@
       "kind": "architecture-module",
       "purpose": "architecture module: Capability Evaluation. Purpose inferred from filename/path; full content review is not implied.",
       "evidence": [
-        "Git tree 8c749f0e0e3dfdcceb2fafcc0fd5a9fb3d4e5935"
+        "Git tree 0a35a8dda07b5217497ec1c45bdc64e3a7d0147c"
       ],
       "tests": [
         "central-agent/architecture/capability-evaluation.test.mjs"
@@ -512,7 +449,7 @@
       "kind": "test",
       "purpose": "test: Capability Evaluation.Test. Purpose inferred from filename/path; full content review is not implied.",
       "evidence": [
-        "Git tree 8c749f0e0e3dfdcceb2fafcc0fd5a9fb3d4e5935"
+        "Git tree 0a35a8dda07b5217497ec1c45bdc64e3a7d0147c"
       ],
       "tests": [
         "central-agent/architecture/capability-evaluation.test.mjs"
@@ -527,7 +464,7 @@
       "kind": "architecture-module",
       "purpose": "architecture module: Capability Ingestion. Purpose inferred from filename/path; full content review is not implied.",
       "evidence": [
-        "Git tree 8c749f0e0e3dfdcceb2fafcc0fd5a9fb3d4e5935"
+        "Git tree 0a35a8dda07b5217497ec1c45bdc64e3a7d0147c"
       ],
       "tests": [
         "central-agent/architecture/capability-ingestion.test.mjs"
@@ -542,7 +479,7 @@
       "kind": "test",
       "purpose": "test: Capability Ingestion.Test. Purpose inferred from filename/path; full content review is not implied.",
       "evidence": [
-        "Git tree 8c749f0e0e3dfdcceb2fafcc0fd5a9fb3d4e5935"
+        "Git tree 0a35a8dda07b5217497ec1c45bdc64e3a7d0147c"
       ],
       "tests": [
         "central-agent/architecture/capability-ingestion.test.mjs"
@@ -557,23 +494,37 @@
       "kind": "architecture-module",
       "purpose": "Catalog-bounded capability proposals and owner-reviewed persistence; no tool install/execute.",
       "evidence": [
-        "Git tree 8c749f0e0e3dfdcceb2fafcc0fd5a9fb3d4e5935",
+        "Git tree 0a35a8dda07b5217497ec1c45bdc64e3a7d0147c",
         "Relevant source inspected during mission"
       ],
       "tests": [
         "central-agent/architecture/capability-request-queue.test.mjs"
       ],
       "accessStatus": "Readable via authorized GitHub connector; production writes not performed.",
-      "blocker": "Production capability_requests table absent in current targeted D1 query; staging POST→D1→GET not tested.",
-      "status": "NOT TESTED unless linked workflow evidence is cited",
+      "blocker": "D1 mock round-trip tests exist; authenticated staging/production create→persist→list round-trip is NOT TESTED. No production rows were written.",
+      "status": "PASS — repository implementation; NOT TESTED live",
       "latestRun": null
+    },
+    {
+      "path": "central-agent/architecture/capability-request-queue.persistence.test.mjs",
+      "kind": "test",
+      "purpose": "Automated regression-test file; CI execution on current main SHA was not observed.",
+      "evidence": [
+        "Git tree 0a35a8dda07b5217497ec1c45bdc64e3a7d0147c"
+      ],
+      "tests": [
+        "central-agent/architecture/capability-request-queue.persistence.test.mjs"
+      ],
+      "accessStatus": "Readable through authorized GitHub connector; no production writes performed.",
+      "blocker": "Execution on current main SHA was not observed.",
+      "status": "NOT TESTED"
     },
     {
       "path": "central-agent/architecture/capability-request-queue.test.mjs",
       "kind": "test",
       "purpose": "test: Capability Request Queue.Test. Purpose inferred from filename/path; full content review is not implied.",
       "evidence": [
-        "Git tree 8c749f0e0e3dfdcceb2fafcc0fd5a9fb3d4e5935"
+        "Git tree 0a35a8dda07b5217497ec1c45bdc64e3a7d0147c"
       ],
       "tests": [
         "central-agent/architecture/capability-request-queue.test.mjs"
@@ -588,7 +539,7 @@
       "kind": "architecture-module",
       "purpose": "architecture module: Cognitive Core Contract. Purpose inferred from filename/path; full content review is not implied.",
       "evidence": [
-        "Git tree 8c749f0e0e3dfdcceb2fafcc0fd5a9fb3d4e5935"
+        "Git tree 0a35a8dda07b5217497ec1c45bdc64e3a7d0147c"
       ],
       "tests": [
         "central-agent/architecture/cognitive-core-contract.test.mjs"
@@ -603,7 +554,7 @@
       "kind": "test",
       "purpose": "test: Cognitive Core Contract.Test. Purpose inferred from filename/path; full content review is not implied.",
       "evidence": [
-        "Git tree 8c749f0e0e3dfdcceb2fafcc0fd5a9fb3d4e5935"
+        "Git tree 0a35a8dda07b5217497ec1c45bdc64e3a7d0147c"
       ],
       "tests": [
         "central-agent/architecture/cognitive-core-contract.test.mjs"
@@ -618,7 +569,7 @@
       "kind": "architecture-module",
       "purpose": "architecture module: Finance Sandbox. Purpose inferred from filename/path; full content review is not implied.",
       "evidence": [
-        "Git tree 8c749f0e0e3dfdcceb2fafcc0fd5a9fb3d4e5935"
+        "Git tree 0a35a8dda07b5217497ec1c45bdc64e3a7d0147c"
       ],
       "tests": [
         "No direct sibling test mapping established from filename; suite/runtime coverage requires separate verification."
@@ -633,7 +584,7 @@
       "kind": "architecture-module",
       "purpose": "architecture module: Goal Lifecycle. Purpose inferred from filename/path; full content review is not implied.",
       "evidence": [
-        "Git tree 8c749f0e0e3dfdcceb2fafcc0fd5a9fb3d4e5935"
+        "Git tree 0a35a8dda07b5217497ec1c45bdc64e3a7d0147c"
       ],
       "tests": [
         "central-agent/architecture/goal-lifecycle.test.mjs"
@@ -648,7 +599,7 @@
       "kind": "test",
       "purpose": "test: Goal Lifecycle.Test. Purpose inferred from filename/path; full content review is not implied.",
       "evidence": [
-        "Git tree 8c749f0e0e3dfdcceb2fafcc0fd5a9fb3d4e5935"
+        "Git tree 0a35a8dda07b5217497ec1c45bdc64e3a7d0147c"
       ],
       "tests": [
         "central-agent/architecture/goal-lifecycle.test.mjs"
@@ -663,7 +614,7 @@
       "kind": "architecture-module",
       "purpose": "Authenticated Python/PHP adapter with bounded task and result-schema validation.",
       "evidence": [
-        "Git tree 8c749f0e0e3dfdcceb2fafcc0fd5a9fb3d4e5935",
+        "Git tree 0a35a8dda07b5217497ec1c45bdc64e3a7d0147c",
         "Relevant source inspected during mission"
       ],
       "tests": [
@@ -679,7 +630,7 @@
       "kind": "test",
       "purpose": "test: Hybrid Core.Test. Purpose inferred from filename/path; full content review is not implied.",
       "evidence": [
-        "Git tree 8c749f0e0e3dfdcceb2fafcc0fd5a9fb3d4e5935"
+        "Git tree 0a35a8dda07b5217497ec1c45bdc64e3a7d0147c"
       ],
       "tests": [
         "central-agent/architecture/hybrid-core.test.mjs"
@@ -694,7 +645,7 @@
       "kind": "architecture-module",
       "purpose": "Evidence-backed integration catalog and readiness contracts.",
       "evidence": [
-        "Git tree 8c749f0e0e3dfdcceb2fafcc0fd5a9fb3d4e5935"
+        "Git tree 0a35a8dda07b5217497ec1c45bdc64e3a7d0147c"
       ],
       "tests": [
         "central-agent/architecture/integration-registry.test.mjs"
@@ -709,7 +660,7 @@
       "kind": "test",
       "purpose": "test: Integration Registry.Test. Purpose inferred from filename/path; full content review is not implied.",
       "evidence": [
-        "Git tree 8c749f0e0e3dfdcceb2fafcc0fd5a9fb3d4e5935"
+        "Git tree 0a35a8dda07b5217497ec1c45bdc64e3a7d0147c"
       ],
       "tests": [
         "central-agent/architecture/integration-registry.test.mjs"
@@ -724,7 +675,7 @@
       "kind": "architecture-module",
       "purpose": "architecture module: Middleware. Purpose inferred from filename/path; full content review is not implied.",
       "evidence": [
-        "Git tree 8c749f0e0e3dfdcceb2fafcc0fd5a9fb3d4e5935"
+        "Git tree 0a35a8dda07b5217497ec1c45bdc64e3a7d0147c"
       ],
       "tests": [
         "No direct sibling test mapping established from filename; suite/runtime coverage requires separate verification."
@@ -739,7 +690,7 @@
       "kind": "architecture-module",
       "purpose": "architecture module: Mission Grid. Purpose inferred from filename/path; full content review is not implied.",
       "evidence": [
-        "Git tree 8c749f0e0e3dfdcceb2fafcc0fd5a9fb3d4e5935"
+        "Git tree 0a35a8dda07b5217497ec1c45bdc64e3a7d0147c"
       ],
       "tests": [
         "central-agent/architecture/mission-grid.test.mjs"
@@ -754,7 +705,7 @@
       "kind": "test",
       "purpose": "test: Mission Grid.Test. Purpose inferred from filename/path; full content review is not implied.",
       "evidence": [
-        "Git tree 8c749f0e0e3dfdcceb2fafcc0fd5a9fb3d4e5935"
+        "Git tree 0a35a8dda07b5217497ec1c45bdc64e3a7d0147c"
       ],
       "tests": [
         "central-agent/architecture/mission-grid.test.mjs"
@@ -769,7 +720,7 @@
       "kind": "architecture-module",
       "purpose": "architecture module: Model Provider Adapter. Purpose inferred from filename/path; full content review is not implied.",
       "evidence": [
-        "Git tree 8c749f0e0e3dfdcceb2fafcc0fd5a9fb3d4e5935"
+        "Git tree 0a35a8dda07b5217497ec1c45bdc64e3a7d0147c"
       ],
       "tests": [
         "No direct sibling test mapping established from filename; suite/runtime coverage requires separate verification."
@@ -784,7 +735,7 @@
       "kind": "architecture-module",
       "purpose": "architecture module: Owner Control Service. Purpose inferred from filename/path; full content review is not implied.",
       "evidence": [
-        "Git tree 8c749f0e0e3dfdcceb2fafcc0fd5a9fb3d4e5935"
+        "Git tree 0a35a8dda07b5217497ec1c45bdc64e3a7d0147c"
       ],
       "tests": [
         "central-agent/architecture/owner-control-service.test.mjs"
@@ -799,7 +750,7 @@
       "kind": "test",
       "purpose": "test: Owner Control Service.Test. Purpose inferred from filename/path; full content review is not implied.",
       "evidence": [
-        "Git tree 8c749f0e0e3dfdcceb2fafcc0fd5a9fb3d4e5935"
+        "Git tree 0a35a8dda07b5217497ec1c45bdc64e3a7d0147c"
       ],
       "tests": [
         "central-agent/architecture/owner-control-service.test.mjs"
@@ -814,7 +765,7 @@
       "kind": "architecture-module",
       "purpose": "architecture module: Owner Control. Purpose inferred from filename/path; full content review is not implied.",
       "evidence": [
-        "Git tree 8c749f0e0e3dfdcceb2fafcc0fd5a9fb3d4e5935"
+        "Git tree 0a35a8dda07b5217497ec1c45bdc64e3a7d0147c"
       ],
       "tests": [
         "No direct sibling test mapping established from filename; suite/runtime coverage requires separate verification."
@@ -829,7 +780,7 @@
       "kind": "architecture-module",
       "purpose": "architecture module: Owner Execution Gate. Purpose inferred from filename/path; full content review is not implied.",
       "evidence": [
-        "Git tree 8c749f0e0e3dfdcceb2fafcc0fd5a9fb3d4e5935"
+        "Git tree 0a35a8dda07b5217497ec1c45bdc64e3a7d0147c"
       ],
       "tests": [
         "No direct sibling test mapping established from filename; suite/runtime coverage requires separate verification."
@@ -844,7 +795,7 @@
       "kind": "architecture-module",
       "purpose": "architecture module: Platform Module Registry. Purpose inferred from filename/path; full content review is not implied.",
       "evidence": [
-        "Git tree 8c749f0e0e3dfdcceb2fafcc0fd5a9fb3d4e5935"
+        "Git tree 0a35a8dda07b5217497ec1c45bdc64e3a7d0147c"
       ],
       "tests": [
         "No direct sibling test mapping established from filename; suite/runtime coverage requires separate verification."
@@ -859,7 +810,7 @@
       "kind": "architecture-module",
       "purpose": "architecture module: Provider Router. Purpose inferred from filename/path; full content review is not implied.",
       "evidence": [
-        "Git tree 8c749f0e0e3dfdcceb2fafcc0fd5a9fb3d4e5935"
+        "Git tree 0a35a8dda07b5217497ec1c45bdc64e3a7d0147c"
       ],
       "tests": [
         "No direct sibling test mapping established from filename; suite/runtime coverage requires separate verification."
@@ -874,7 +825,7 @@
       "kind": "architecture-module",
       "purpose": "architecture module: Quantum Adapter. Purpose inferred from filename/path; full content review is not implied.",
       "evidence": [
-        "Git tree 8c749f0e0e3dfdcceb2fafcc0fd5a9fb3d4e5935"
+        "Git tree 0a35a8dda07b5217497ec1c45bdc64e3a7d0147c"
       ],
       "tests": [
         "central-agent/architecture/quantum-adapter.test.mjs"
@@ -889,7 +840,7 @@
       "kind": "test",
       "purpose": "test: Quantum Adapter.Test. Purpose inferred from filename/path; full content review is not implied.",
       "evidence": [
-        "Git tree 8c749f0e0e3dfdcceb2fafcc0fd5a9fb3d4e5935"
+        "Git tree 0a35a8dda07b5217497ec1c45bdc64e3a7d0147c"
       ],
       "tests": [
         "central-agent/architecture/quantum-adapter.test.mjs"
@@ -904,7 +855,7 @@
       "kind": "architecture-module",
       "purpose": "architecture module: Red Queen Registry. Purpose inferred from filename/path; full content review is not implied.",
       "evidence": [
-        "Git tree 8c749f0e0e3dfdcceb2fafcc0fd5a9fb3d4e5935"
+        "Git tree 0a35a8dda07b5217497ec1c45bdc64e3a7d0147c"
       ],
       "tests": [
         "No direct sibling test mapping established from filename; suite/runtime coverage requires separate verification."
@@ -919,7 +870,7 @@
       "kind": "architecture-module",
       "purpose": "architecture module: Robotics Simulator. Purpose inferred from filename/path; full content review is not implied.",
       "evidence": [
-        "Git tree 8c749f0e0e3dfdcceb2fafcc0fd5a9fb3d4e5935"
+        "Git tree 0a35a8dda07b5217497ec1c45bdc64e3a7d0147c"
       ],
       "tests": [
         "No direct sibling test mapping established from filename; suite/runtime coverage requires separate verification."
@@ -934,7 +885,7 @@
       "kind": "architecture-module",
       "purpose": "architecture module: Tool Forge. Purpose inferred from filename/path; full content review is not implied.",
       "evidence": [
-        "Git tree 8c749f0e0e3dfdcceb2fafcc0fd5a9fb3d4e5935"
+        "Git tree 0a35a8dda07b5217497ec1c45bdc64e3a7d0147c"
       ],
       "tests": [
         "No direct sibling test mapping established from filename; suite/runtime coverage requires separate verification."
@@ -949,7 +900,7 @@
       "kind": "architecture-module",
       "purpose": "architecture module: Treasury Ledger. Purpose inferred from filename/path; full content review is not implied.",
       "evidence": [
-        "Git tree 8c749f0e0e3dfdcceb2fafcc0fd5a9fb3d4e5935"
+        "Git tree 0a35a8dda07b5217497ec1c45bdc64e3a7d0147c"
       ],
       "tests": [
         "central-agent/architecture/treasury-ledger.test.mjs"
@@ -964,7 +915,7 @@
       "kind": "test",
       "purpose": "test: Treasury Ledger.Test. Purpose inferred from filename/path; full content review is not implied.",
       "evidence": [
-        "Git tree 8c749f0e0e3dfdcceb2fafcc0fd5a9fb3d4e5935"
+        "Git tree 0a35a8dda07b5217497ec1c45bdc64e3a7d0147c"
       ],
       "tests": [
         "central-agent/architecture/treasury-ledger.test.mjs"
@@ -979,7 +930,7 @@
       "kind": "architecture-module",
       "purpose": "architecture module: Universal Tool Registry. Purpose inferred from filename/path; full content review is not implied.",
       "evidence": [
-        "Git tree 8c749f0e0e3dfdcceb2fafcc0fd5a9fb3d4e5935"
+        "Git tree 0a35a8dda07b5217497ec1c45bdc64e3a7d0147c"
       ],
       "tests": [
         "central-agent/architecture/universal-tool-registry.test.mjs"
@@ -994,7 +945,7 @@
       "kind": "test",
       "purpose": "test: Universal Tool Registry.Test. Purpose inferred from filename/path; full content review is not implied.",
       "evidence": [
-        "Git tree 8c749f0e0e3dfdcceb2fafcc0fd5a9fb3d4e5935"
+        "Git tree 0a35a8dda07b5217497ec1c45bdc64e3a7d0147c"
       ],
       "tests": [
         "central-agent/architecture/universal-tool-registry.test.mjs"
@@ -1009,7 +960,7 @@
       "kind": "test",
       "purpose": "test: Worker Status.Test. Purpose inferred from filename/path; full content review is not implied.",
       "evidence": [
-        "Git tree 8c749f0e0e3dfdcceb2fafcc0fd5a9fb3d4e5935"
+        "Git tree 0a35a8dda07b5217497ec1c45bdc64e3a7d0147c"
       ],
       "tests": [
         "central-agent/architecture/worker-status.test.mjs"
@@ -1024,7 +975,7 @@
       "kind": "central-agent-module",
       "purpose": "central agent module: Bootstrap Owner. Purpose inferred from filename/path; full content review is not implied.",
       "evidence": [
-        "Git tree 8c749f0e0e3dfdcceb2fafcc0fd5a9fb3d4e5935"
+        "Git tree 0a35a8dda07b5217497ec1c45bdc64e3a7d0147c"
       ],
       "tests": [
         "central-agent/bootstrap-owner.test.mjs"
@@ -1039,7 +990,7 @@
       "kind": "test",
       "purpose": "test: Bootstrap Owner.Test. Purpose inferred from filename/path; full content review is not implied.",
       "evidence": [
-        "Git tree 8c749f0e0e3dfdcceb2fafcc0fd5a9fb3d4e5935"
+        "Git tree 0a35a8dda07b5217497ec1c45bdc64e3a7d0147c"
       ],
       "tests": [
         "central-agent/bootstrap-owner.test.mjs"
@@ -1054,7 +1005,7 @@
       "kind": "central-agent-module",
       "purpose": "Bounded improvement proposals and audit; not unrestricted self-modification.",
       "evidence": [
-        "Git tree 8c749f0e0e3dfdcceb2fafcc0fd5a9fb3d4e5935",
+        "Git tree 0a35a8dda07b5217497ec1c45bdc64e3a7d0147c",
         "Relevant source inspected during mission"
       ],
       "tests": [
@@ -1070,7 +1021,7 @@
       "kind": "test",
       "purpose": "test: Continuous Improvement.Test. Purpose inferred from filename/path; full content review is not implied.",
       "evidence": [
-        "Git tree 8c749f0e0e3dfdcceb2fafcc0fd5a9fb3d4e5935"
+        "Git tree 0a35a8dda07b5217497ec1c45bdc64e3a7d0147c"
       ],
       "tests": [
         "central-agent/continuous-improvement.test.mjs"
@@ -1085,7 +1036,7 @@
       "kind": "central-agent-module",
       "purpose": "central agent module: Current Info Query. Purpose inferred from filename/path; full content review is not implied.",
       "evidence": [
-        "Git tree 8c749f0e0e3dfdcceb2fafcc0fd5a9fb3d4e5935"
+        "Git tree 0a35a8dda07b5217497ec1c45bdc64e3a7d0147c"
       ],
       "tests": [
         "central-agent/current-info-query.test.mjs"
@@ -1100,7 +1051,7 @@
       "kind": "test",
       "purpose": "test: Current Info Query.Test. Purpose inferred from filename/path; full content review is not implied.",
       "evidence": [
-        "Git tree 8c749f0e0e3dfdcceb2fafcc0fd5a9fb3d4e5935"
+        "Git tree 0a35a8dda07b5217497ec1c45bdc64e3a7d0147c"
       ],
       "tests": [
         "central-agent/current-info-query.test.mjs"
@@ -1115,7 +1066,7 @@
       "kind": "central-agent-module",
       "purpose": "central agent module: Edge Guard. Purpose inferred from filename/path; full content review is not implied.",
       "evidence": [
-        "Git tree 8c749f0e0e3dfdcceb2fafcc0fd5a9fb3d4e5935"
+        "Git tree 0a35a8dda07b5217497ec1c45bdc64e3a7d0147c"
       ],
       "tests": [
         "central-agent/edge-guard.test.mjs"
@@ -1130,7 +1081,7 @@
       "kind": "test",
       "purpose": "test: Edge Guard.Test. Purpose inferred from filename/path; full content review is not implied.",
       "evidence": [
-        "Git tree 8c749f0e0e3dfdcceb2fafcc0fd5a9fb3d4e5935"
+        "Git tree 0a35a8dda07b5217497ec1c45bdc64e3a7d0147c"
       ],
       "tests": [
         "central-agent/edge-guard.test.mjs"
@@ -1145,7 +1096,7 @@
       "kind": "central-agent-module",
       "purpose": "Module event bus and event-stream responses.",
       "evidence": [
-        "Git tree 8c749f0e0e3dfdcceb2fafcc0fd5a9fb3d4e5935"
+        "Git tree 0a35a8dda07b5217497ec1c45bdc64e3a7d0147c"
       ],
       "tests": [
         "central-agent/event-bus.test.mjs"
@@ -1160,10 +1111,25 @@
       "kind": "test",
       "purpose": "test: Event Bus.Test. Purpose inferred from filename/path; full content review is not implied.",
       "evidence": [
-        "Git tree 8c749f0e0e3dfdcceb2fafcc0fd5a9fb3d4e5935"
+        "Git tree 0a35a8dda07b5217497ec1c45bdc64e3a7d0147c"
       ],
       "tests": [
         "central-agent/event-bus.test.mjs"
+      ],
+      "accessStatus": "Readable via authorized GitHub connector; production writes not performed.",
+      "blocker": "No module-specific runtime blocker established by inventory alone",
+      "status": "NOT TESTED unless linked workflow evidence is cited",
+      "latestRun": null
+    },
+    {
+      "path": "central-agent/HINGLISH_TONE_PROMPT.md",
+      "kind": "central-agent-module",
+      "purpose": "central agent module: HINGLISH TONE PROMPT. Purpose inferred from filename/path; full content review is not implied.",
+      "evidence": [
+        "Git tree 0a35a8dda07b5217497ec1c45bdc64e3a7d0147c"
+      ],
+      "tests": [
+        "No direct sibling test mapping established from filename; suite/runtime coverage requires separate verification."
       ],
       "accessStatus": "Readable via authorized GitHub connector; production writes not performed.",
       "blocker": "No module-specific runtime blocker established by inventory alone",
@@ -1175,7 +1141,7 @@
       "kind": "central-agent-module",
       "purpose": "central agent module: Intel Cron. Purpose inferred from filename/path; full content review is not implied.",
       "evidence": [
-        "Git tree 8c749f0e0e3dfdcceb2fafcc0fd5a9fb3d4e5935"
+        "Git tree 0a35a8dda07b5217497ec1c45bdc64e3a7d0147c"
       ],
       "tests": [
         "No direct sibling test mapping established from filename; suite/runtime coverage requires separate verification."
@@ -1190,7 +1156,7 @@
       "kind": "test",
       "purpose": "test: Internal Search.Test. Purpose inferred from filename/path; full content review is not implied.",
       "evidence": [
-        "Git tree 8c749f0e0e3dfdcceb2fafcc0fd5a9fb3d4e5935"
+        "Git tree 0a35a8dda07b5217497ec1c45bdc64e3a7d0147c"
       ],
       "tests": [
         "central-agent/internal-search.test.mjs"
@@ -1201,11 +1167,27 @@
       "latestRun": null
     },
     {
+      "path": "central-agent/KNOWLEDGE_LEARNING.md",
+      "kind": "central-agent-module",
+      "purpose": "Documentation for persistent learning endpoint and verification boundary.",
+      "evidence": [
+        "Git tree 0a35a8dda07b5217497ec1c45bdc64e3a7d0147c",
+        "Relevant source inspected during mission"
+      ],
+      "tests": [
+        "No filename-based test mapping established; runtime coverage not inferred."
+      ],
+      "accessStatus": "Readable via authorized GitHub connector; production writes not performed.",
+      "status": "NOT TESTED unless linked workflow evidence is cited",
+      "blocker": "Documentation explicitly says live D1 persistence, deployed auth and knowledge reuse remain NOT TESTED.",
+      "latestRun": null
+    },
+    {
       "path": "central-agent/knowledge-learning.mjs",
       "kind": "central-agent-module",
       "purpose": "Owner-session-protected D1 knowledge store; HTTPS sources, supplied test evidence, redaction, bounded search; no model-weight changes.",
       "evidence": [
-        "Git tree 8c749f0e0e3dfdcceb2fafcc0fd5a9fb3d4e5935",
+        "Git tree 0a35a8dda07b5217497ec1c45bdc64e3a7d0147c",
         "Relevant source inspected during mission"
       ],
       "tests": [
@@ -1221,7 +1203,7 @@
       "kind": "test",
       "purpose": "Tests for knowledge validation, source URL constraints, redaction, owner-scoped query construction and bounded limits.",
       "evidence": [
-        "Git tree 8c749f0e0e3dfdcceb2fafcc0fd5a9fb3d4e5935",
+        "Git tree 0a35a8dda07b5217497ec1c45bdc64e3a7d0147c",
         "Relevant source inspected during mission"
       ],
       "tests": [
@@ -1237,15 +1219,15 @@
       "kind": "central-agent-module",
       "purpose": "Multi-provider search, timeout/fallback, diagnostics and bounded cache freshness.",
       "evidence": [
-        "Git tree 8c749f0e0e3dfdcceb2fafcc0fd5a9fb3d4e5935",
+        "Git tree 0a35a8dda07b5217497ec1c45bdc64e3a7d0147c",
         "Relevant source inspected during mission"
       ],
       "tests": [
         "central-agent/live-search-agent.test.mjs"
       ],
       "accessStatus": "Readable via authorized GitHub connector; production writes not performed.",
-      "blocker": "Live provider reachability not tested.",
-      "status": "NOT TESTED unless linked workflow evidence is cited",
+      "blocker": "Live provider reachability, freshness and fallback were not verified against the deployed Worker in this run.",
+      "status": "PASS — repository implementation; NOT TESTED live",
       "latestRun": null
     },
     {
@@ -1253,7 +1235,7 @@
       "kind": "test",
       "purpose": "test: Live Search Agent.Test. Purpose inferred from filename/path; full content review is not implied.",
       "evidence": [
-        "Git tree 8c749f0e0e3dfdcceb2fafcc0fd5a9fb3d4e5935"
+        "Git tree 0a35a8dda07b5217497ec1c45bdc64e3a7d0147c"
       ],
       "tests": [
         "central-agent/live-search-agent.test.mjs"
@@ -1268,7 +1250,7 @@
       "kind": "test",
       "purpose": "test: Live Search Brave.Test. Purpose inferred from filename/path; full content review is not implied.",
       "evidence": [
-        "Git tree 8c749f0e0e3dfdcceb2fafcc0fd5a9fb3d4e5935"
+        "Git tree 0a35a8dda07b5217497ec1c45bdc64e3a7d0147c"
       ],
       "tests": [
         "central-agent/live-search-brave.test.mjs"
@@ -1283,7 +1265,7 @@
       "kind": "test",
       "purpose": "test: Memory Bridge.Test. Purpose inferred from filename/path; full content review is not implied.",
       "evidence": [
-        "Git tree 8c749f0e0e3dfdcceb2fafcc0fd5a9fb3d4e5935"
+        "Git tree 0a35a8dda07b5217497ec1c45bdc64e3a7d0147c"
       ],
       "tests": [
         "central-agent/memory-bridge.test.mjs"
@@ -1298,7 +1280,7 @@
       "kind": "central-agent-module",
       "purpose": "central agent module: Nasa Media Connector. Purpose inferred from filename/path; full content review is not implied.",
       "evidence": [
-        "Git tree 8c749f0e0e3dfdcceb2fafcc0fd5a9fb3d4e5935"
+        "Git tree 0a35a8dda07b5217497ec1c45bdc64e3a7d0147c"
       ],
       "tests": [
         "central-agent/nasa-media-connector.test.mjs"
@@ -1313,7 +1295,7 @@
       "kind": "test",
       "purpose": "test: Nasa Media Connector.Test. Purpose inferred from filename/path; full content review is not implied.",
       "evidence": [
-        "Git tree 8c749f0e0e3dfdcceb2fafcc0fd5a9fb3d4e5935"
+        "Git tree 0a35a8dda07b5217497ec1c45bdc64e3a7d0147c"
       ],
       "tests": [
         "central-agent/nasa-media-connector.test.mjs"
@@ -1328,7 +1310,7 @@
       "kind": "test",
       "purpose": "test: Observability Config.Test. Purpose inferred from filename/path; full content review is not implied.",
       "evidence": [
-        "Git tree 8c749f0e0e3dfdcceb2fafcc0fd5a9fb3d4e5935"
+        "Git tree 0a35a8dda07b5217497ec1c45bdc64e3a7d0147c"
       ],
       "tests": [
         "central-agent/observability-config.test.mjs"
@@ -1343,7 +1325,7 @@
       "kind": "test",
       "purpose": "test: Owner Auth.Test. Purpose inferred from filename/path; full content review is not implied.",
       "evidence": [
-        "Git tree 8c749f0e0e3dfdcceb2fafcc0fd5a9fb3d4e5935"
+        "Git tree 0a35a8dda07b5217497ec1c45bdc64e3a7d0147c"
       ],
       "tests": [
         "central-agent/owner-auth.test.mjs"
@@ -1358,7 +1340,7 @@
       "kind": "test",
       "purpose": "test: Owner Secret Workflow.Test. Purpose inferred from filename/path; full content review is not implied.",
       "evidence": [
-        "Git tree 8c749f0e0e3dfdcceb2fafcc0fd5a9fb3d4e5935"
+        "Git tree 0a35a8dda07b5217497ec1c45bdc64e3a7d0147c"
       ],
       "tests": [
         "central-agent/owner-secret-workflow.test.mjs"
@@ -1373,7 +1355,7 @@
       "kind": "central-agent-module",
       "purpose": "central agent module: Patch Passkey Staging. Purpose inferred from filename/path; full content review is not implied.",
       "evidence": [
-        "Git tree 8c749f0e0e3dfdcceb2fafcc0fd5a9fb3d4e5935"
+        "Git tree 0a35a8dda07b5217497ec1c45bdc64e3a7d0147c"
       ],
       "tests": [
         "central-agent/patch-passkey-staging.test.mjs"
@@ -1388,7 +1370,7 @@
       "kind": "test",
       "purpose": "test: Patch Passkey Staging.Test. Purpose inferred from filename/path; full content review is not implied.",
       "evidence": [
-        "Git tree 8c749f0e0e3dfdcceb2fafcc0fd5a9fb3d4e5935"
+        "Git tree 0a35a8dda07b5217497ec1c45bdc64e3a7d0147c"
       ],
       "tests": [
         "central-agent/patch-passkey-staging.test.mjs"
@@ -1403,7 +1385,7 @@
       "kind": "central-agent-module",
       "purpose": "central agent module: Policy. Purpose inferred from filename/path; full content review is not implied.",
       "evidence": [
-        "Git tree 8c749f0e0e3dfdcceb2fafcc0fd5a9fb3d4e5935"
+        "Git tree 0a35a8dda07b5217497ec1c45bdc64e3a7d0147c"
       ],
       "tests": [
         "central-agent/policy.test.mjs"
@@ -1418,7 +1400,7 @@
       "kind": "test",
       "purpose": "test: Policy.Test. Purpose inferred from filename/path; full content review is not implied.",
       "evidence": [
-        "Git tree 8c749f0e0e3dfdcceb2fafcc0fd5a9fb3d4e5935"
+        "Git tree 0a35a8dda07b5217497ec1c45bdc64e3a7d0147c"
       ],
       "tests": [
         "central-agent/policy.test.mjs"
@@ -1433,10 +1415,25 @@
       "kind": "test",
       "purpose": "test: Pwa Dashboard.Test. Purpose inferred from filename/path; full content review is not implied.",
       "evidence": [
-        "Git tree 8c749f0e0e3dfdcceb2fafcc0fd5a9fb3d4e5935"
+        "Git tree 0a35a8dda07b5217497ec1c45bdc64e3a7d0147c"
       ],
       "tests": [
         "central-agent/pwa-dashboard.test.mjs"
+      ],
+      "accessStatus": "Readable via authorized GitHub connector; production writes not performed.",
+      "blocker": "No module-specific runtime blocker established by inventory alone",
+      "status": "NOT TESTED unless linked workflow evidence is cited",
+      "latestRun": null
+    },
+    {
+      "path": "central-agent/README.md",
+      "kind": "central-agent-module",
+      "purpose": "central agent module: README. Purpose inferred from filename/path; full content review is not implied.",
+      "evidence": [
+        "Git tree 0a35a8dda07b5217497ec1c45bdc64e3a7d0147c"
+      ],
+      "tests": [
+        "No direct sibling test mapping established from filename; suite/runtime coverage requires separate verification."
       ],
       "accessStatus": "Readable via authorized GitHub connector; production writes not performed.",
       "blocker": "No module-specific runtime blocker established by inventory alone",
@@ -1448,7 +1445,7 @@
       "kind": "central-agent-module",
       "purpose": "central agent module: Research Agents. Purpose inferred from filename/path; full content review is not implied.",
       "evidence": [
-        "Git tree 8c749f0e0e3dfdcceb2fafcc0fd5a9fb3d4e5935"
+        "Git tree 0a35a8dda07b5217497ec1c45bdc64e3a7d0147c"
       ],
       "tests": [
         "central-agent/research-agents.test.mjs"
@@ -1463,7 +1460,7 @@
       "kind": "test",
       "purpose": "test: Research Agents.Test. Purpose inferred from filename/path; full content review is not implied.",
       "evidence": [
-        "Git tree 8c749f0e0e3dfdcceb2fafcc0fd5a9fb3d4e5935"
+        "Git tree 0a35a8dda07b5217497ec1c45bdc64e3a7d0147c"
       ],
       "tests": [
         "central-agent/research-agents.test.mjs"
@@ -1478,7 +1475,7 @@
       "kind": "central-agent-module",
       "purpose": "central agent module: Saum Coordinator. Purpose inferred from filename/path; full content review is not implied.",
       "evidence": [
-        "Git tree 8c749f0e0e3dfdcceb2fafcc0fd5a9fb3d4e5935"
+        "Git tree 0a35a8dda07b5217497ec1c45bdc64e3a7d0147c"
       ],
       "tests": [
         "central-agent/saum-coordinator.test.mjs"
@@ -1493,7 +1490,7 @@
       "kind": "test",
       "purpose": "test: Saum Coordinator.Test. Purpose inferred from filename/path; full content review is not implied.",
       "evidence": [
-        "Git tree 8c749f0e0e3dfdcceb2fafcc0fd5a9fb3d4e5935"
+        "Git tree 0a35a8dda07b5217497ec1c45bdc64e3a7d0147c"
       ],
       "tests": [
         "central-agent/saum-coordinator.test.mjs"
@@ -1508,7 +1505,7 @@
       "kind": "central-agent-module",
       "purpose": "central agent module: Search Context. Purpose inferred from filename/path; full content review is not implied.",
       "evidence": [
-        "Git tree 8c749f0e0e3dfdcceb2fafcc0fd5a9fb3d4e5935"
+        "Git tree 0a35a8dda07b5217497ec1c45bdc64e3a7d0147c"
       ],
       "tests": [
         "central-agent/search-context.test.mjs"
@@ -1523,7 +1520,7 @@
       "kind": "test",
       "purpose": "test: Search Context.Test. Purpose inferred from filename/path; full content review is not implied.",
       "evidence": [
-        "Git tree 8c749f0e0e3dfdcceb2fafcc0fd5a9fb3d4e5935"
+        "Git tree 0a35a8dda07b5217497ec1c45bdc64e3a7d0147c"
       ],
       "tests": [
         "central-agent/search-context.test.mjs"
@@ -1538,7 +1535,7 @@
       "kind": "central-agent-module",
       "purpose": "central agent module: Sentinel Integrity. Purpose inferred from filename/path; full content review is not implied.",
       "evidence": [
-        "Git tree 8c749f0e0e3dfdcceb2fafcc0fd5a9fb3d4e5935"
+        "Git tree 0a35a8dda07b5217497ec1c45bdc64e3a7d0147c"
       ],
       "tests": [
         "central-agent/sentinel-integrity.test.mjs"
@@ -1553,7 +1550,7 @@
       "kind": "test",
       "purpose": "test: Sentinel Integrity.Test. Purpose inferred from filename/path; full content review is not implied.",
       "evidence": [
-        "Git tree 8c749f0e0e3dfdcceb2fafcc0fd5a9fb3d4e5935"
+        "Git tree 0a35a8dda07b5217497ec1c45bdc64e3a7d0147c"
       ],
       "tests": [
         "central-agent/sentinel-integrity.test.mjs"
@@ -1568,7 +1565,7 @@
       "kind": "central-agent-module",
       "purpose": "Sentinel health and bounded reliability checks.",
       "evidence": [
-        "Git tree 8c749f0e0e3dfdcceb2fafcc0fd5a9fb3d4e5935",
+        "Git tree 0a35a8dda07b5217497ec1c45bdc64e3a7d0147c",
         "Relevant source inspected during mission"
       ],
       "tests": [
@@ -1584,7 +1581,7 @@
       "kind": "test",
       "purpose": "test: Sentinel.Test. Purpose inferred from filename/path; full content review is not implied.",
       "evidence": [
-        "Git tree 8c749f0e0e3dfdcceb2fafcc0fd5a9fb3d4e5935"
+        "Git tree 0a35a8dda07b5217497ec1c45bdc64e3a7d0147c"
       ],
       "tests": [
         "central-agent/sentinel.test.mjs"
@@ -1599,7 +1596,7 @@
       "kind": "central-agent-module",
       "purpose": "central agent module: Task Queue. Purpose inferred from filename/path; full content review is not implied.",
       "evidence": [
-        "Git tree 8c749f0e0e3dfdcceb2fafcc0fd5a9fb3d4e5935"
+        "Git tree 0a35a8dda07b5217497ec1c45bdc64e3a7d0147c"
       ],
       "tests": [
         "central-agent/task-queue.test.mjs"
@@ -1614,7 +1611,7 @@
       "kind": "test",
       "purpose": "test: Task Queue.Test. Purpose inferred from filename/path; full content review is not implied.",
       "evidence": [
-        "Git tree 8c749f0e0e3dfdcceb2fafcc0fd5a9fb3d4e5935"
+        "Git tree 0a35a8dda07b5217497ec1c45bdc64e3a7d0147c"
       ],
       "tests": [
         "central-agent/task-queue.test.mjs"
@@ -1629,7 +1626,7 @@
       "kind": "test",
       "purpose": "test: Tool Forge.Test. Purpose inferred from filename/path; full content review is not implied.",
       "evidence": [
-        "Git tree 8c749f0e0e3dfdcceb2fafcc0fd5a9fb3d4e5935"
+        "Git tree 0a35a8dda07b5217497ec1c45bdc64e3a7d0147c"
       ],
       "tests": [
         "central-agent/tool-forge.test.mjs"
@@ -1644,7 +1641,7 @@
       "kind": "test",
       "purpose": "test: Voice Lifecycle Mainline.Test. Purpose inferred from filename/path; full content review is not implied.",
       "evidence": [
-        "Git tree 8c749f0e0e3dfdcceb2fafcc0fd5a9fb3d4e5935"
+        "Git tree 0a35a8dda07b5217497ec1c45bdc64e3a7d0147c"
       ],
       "tests": [
         "central-agent/voice-lifecycle-mainline.test.mjs"
@@ -1659,7 +1656,7 @@
       "kind": "central-agent-module",
       "purpose": "central agent module: Webauthn. Purpose inferred from filename/path; full content review is not implied.",
       "evidence": [
-        "Git tree 8c749f0e0e3dfdcceb2fafcc0fd5a9fb3d4e5935"
+        "Git tree 0a35a8dda07b5217497ec1c45bdc64e3a7d0147c"
       ],
       "tests": [
         "No direct sibling test mapping established from filename; suite/runtime coverage requires separate verification."
@@ -1674,7 +1671,7 @@
       "kind": "test",
       "purpose": "test: Worker Auth.Test. Purpose inferred from filename/path; full content review is not implied.",
       "evidence": [
-        "Git tree 8c749f0e0e3dfdcceb2fafcc0fd5a9fb3d4e5935"
+        "Git tree 0a35a8dda07b5217497ec1c45bdc64e3a7d0147c"
       ],
       "tests": [
         "central-agent/worker-auth.test.mjs"
@@ -1689,7 +1686,7 @@
       "kind": "test",
       "purpose": "test: Worker Hybrid Core.Test. Purpose inferred from filename/path; full content review is not implied.",
       "evidence": [
-        "Git tree 8c749f0e0e3dfdcceb2fafcc0fd5a9fb3d4e5935"
+        "Git tree 0a35a8dda07b5217497ec1c45bdc64e3a7d0147c"
       ],
       "tests": [
         "central-agent/worker-hybrid-core.test.mjs"
@@ -1704,7 +1701,7 @@
       "kind": "test",
       "purpose": "test: Worker Live Search.Test. Purpose inferred from filename/path; full content review is not implied.",
       "evidence": [
-        "Git tree 8c749f0e0e3dfdcceb2fafcc0fd5a9fb3d4e5935"
+        "Git tree 0a35a8dda07b5217497ec1c45bdc64e3a7d0147c"
       ],
       "tests": [
         "central-agent/worker-live-search.test.mjs"
@@ -1719,7 +1716,7 @@
       "kind": "central-agent-module",
       "purpose": "Main Worker router, owner auth, D1-backed services and runtime APIs.",
       "evidence": [
-        "Git tree 8c749f0e0e3dfdcceb2fafcc0fd5a9fb3d4e5935",
+        "Git tree 0a35a8dda07b5217497ec1c45bdc64e3a7d0147c",
         "Relevant source inspected during mission"
       ],
       "tests": [
@@ -1735,7 +1732,7 @@
       "kind": "central-agent-module",
       "purpose": "central agent module: Wrangler. Purpose inferred from filename/path; full content review is not implied.",
       "evidence": [
-        "Git tree 8c749f0e0e3dfdcceb2fafcc0fd5a9fb3d4e5935"
+        "Git tree 0a35a8dda07b5217497ec1c45bdc64e3a7d0147c"
       ],
       "tests": [
         "No direct sibling test mapping established from filename; suite/runtime coverage requires separate verification."
@@ -1750,7 +1747,7 @@
       "kind": "configuration",
       "purpose": "configuration: Agent Registry. Purpose inferred from filename/path; full content review is not implied.",
       "evidence": [
-        "Git tree 8c749f0e0e3dfdcceb2fafcc0fd5a9fb3d4e5935"
+        "Git tree 0a35a8dda07b5217497ec1c45bdc64e3a7d0147c"
       ],
       "tests": [
         "No direct sibling test mapping established from filename; suite/runtime coverage requires separate verification."
@@ -1761,11 +1758,25 @@
       "latestRun": null
     },
     {
+      "path": "config/autonomy-directive.json",
+      "kind": "configuration",
+      "purpose": "Bounded autonomy directive configuration; actual authorization remains governed by runtime policy and owner approval.",
+      "evidence": [
+        "Git tree 0a35a8dda07b5217497ec1c45bdc64e3a7d0147c"
+      ],
+      "tests": [
+        "tests/autonomy-directive.test.mjs"
+      ],
+      "accessStatus": "Readable through authorized GitHub connector; no production writes performed.",
+      "blocker": "Configuration does not grant new permissions; runtime enforcement was not tested live.",
+      "status": "NOT TESTED"
+    },
+    {
       "path": "core/policy-gate.mjs",
       "kind": "project-file",
       "purpose": "project file: Policy Gate. Purpose inferred from filename/path; full content review is not implied.",
       "evidence": [
-        "Git tree 8c749f0e0e3dfdcceb2fafcc0fd5a9fb3d4e5935"
+        "Git tree 0a35a8dda07b5217497ec1c45bdc64e3a7d0147c"
       ],
       "tests": [
         "No direct sibling test mapping established from filename; suite/runtime coverage requires separate verification."
@@ -1780,7 +1791,7 @@
       "kind": "documentation",
       "purpose": "documentation: 90 Agent Ghost Mode. Purpose inferred from filename/path; full content review is not implied.",
       "evidence": [
-        "Git tree 8c749f0e0e3dfdcceb2fafcc0fd5a9fb3d4e5935"
+        "Git tree 0a35a8dda07b5217497ec1c45bdc64e3a7d0147c"
       ],
       "tests": [
         "No direct sibling test mapping established from filename; suite/runtime coverage requires separate verification."
@@ -1791,116 +1802,25 @@
       "latestRun": null
     },
     {
-      "path": "docs/PWA-SECURITY-DEPLOYMENT.md",
+      "path": "docs/AI_PROVIDER_OPERATIONS.md",
       "kind": "documentation",
-      "purpose": "documentation: PWA SECURITY DEPLOYMENT. Purpose inferred from filename/path; full content review is not implied.",
+      "purpose": "Project documentation; contents are not proof that the described runtime behavior is deployed.",
       "evidence": [
-        "Git tree 8c749f0e0e3dfdcceb2fafcc0fd5a9fb3d4e5935"
+        "Git tree 0a35a8dda07b5217497ec1c45bdc64e3a7d0147c"
       ],
       "tests": [
-        "No direct sibling test mapping established from filename; suite/runtime coverage requires separate verification."
+        "No direct test mapping established; runtime coverage not inferred."
       ],
-      "accessStatus": "Readable via authorized GitHub connector; production writes not performed.",
-      "blocker": "No module-specific runtime blocker established by inventory alone",
-      "status": "NOT TESTED unless linked workflow evidence is cited",
-      "latestRun": null
-    },
-    {
-      "path": "docs/REDULTRON-RECOVERY.md",
-      "kind": "documentation",
-      "purpose": "documentation: REDULTRON RECOVERY. Purpose inferred from filename/path; full content review is not implied.",
-      "evidence": [
-        "Git tree 8c749f0e0e3dfdcceb2fafcc0fd5a9fb3d4e5935"
-      ],
-      "tests": [
-        "No direct sibling test mapping established from filename; suite/runtime coverage requires separate verification."
-      ],
-      "accessStatus": "Readable via authorized GitHub connector; production writes not performed.",
-      "blocker": "No module-specific runtime blocker established by inventory alone",
-      "status": "NOT TESTED unless linked workflow evidence is cited",
-      "latestRun": null
-    },
-    {
-      "path": "docs/REDULTRON_HUMAN_ETHICS_CONTROL_MATRIX.md",
-      "kind": "documentation",
-      "purpose": "documentation: REDULTRON HUMAN ETHICS CONTROL MATRIX. Purpose inferred from filename/path; full content review is not implied.",
-      "evidence": [
-        "Git tree 8c749f0e0e3dfdcceb2fafcc0fd5a9fb3d4e5935"
-      ],
-      "tests": [
-        "No direct sibling test mapping established from filename; suite/runtime coverage requires separate verification."
-      ],
-      "accessStatus": "Readable via authorized GitHub connector; production writes not performed.",
-      "blocker": "No module-specific runtime blocker established by inventory alone",
-      "status": "NOT TESTED unless linked workflow evidence is cited",
-      "latestRun": null
-    },
-    {
-      "path": "docs/REDULTRON_INTEGRATION_REGISTRY.md",
-      "kind": "documentation",
-      "purpose": "documentation: REDULTRON INTEGRATION REGISTRY. Purpose inferred from filename/path; full content review is not implied.",
-      "evidence": [
-        "Git tree 8c749f0e0e3dfdcceb2fafcc0fd5a9fb3d4e5935"
-      ],
-      "tests": [
-        "No direct sibling test mapping established from filename; suite/runtime coverage requires separate verification."
-      ],
-      "accessStatus": "Readable via authorized GitHub connector; production writes not performed.",
-      "blocker": "No module-specific runtime blocker established by inventory alone",
-      "status": "NOT TESTED unless linked workflow evidence is cited",
-      "latestRun": null
-    },
-    {
-      "path": "docs/REDULTRON_RELEASE_PACKAGE.md",
-      "kind": "documentation",
-      "purpose": "documentation: REDULTRON RELEASE PACKAGE. Purpose inferred from filename/path; full content review is not implied.",
-      "evidence": [
-        "Git tree 8c749f0e0e3dfdcceb2fafcc0fd5a9fb3d4e5935"
-      ],
-      "tests": [
-        "No direct sibling test mapping established from filename; suite/runtime coverage requires separate verification."
-      ],
-      "accessStatus": "Readable via authorized GitHub connector; production writes not performed.",
-      "blocker": "No module-specific runtime blocker established by inventory alone",
-      "status": "NOT TESTED unless linked workflow evidence is cited",
-      "latestRun": null
-    },
-    {
-      "path": "docs/RED_QUEEN_OWNER_CONTROL_ROADMAP.md",
-      "kind": "documentation",
-      "purpose": "documentation: RED QUEEN OWNER CONTROL ROADMAP. Purpose inferred from filename/path; full content review is not implied.",
-      "evidence": [
-        "Git tree 8c749f0e0e3dfdcceb2fafcc0fd5a9fb3d4e5935"
-      ],
-      "tests": [
-        "No direct sibling test mapping established from filename; suite/runtime coverage requires separate verification."
-      ],
-      "accessStatus": "Readable via authorized GitHub connector; production writes not performed.",
-      "blocker": "No module-specific runtime blocker established by inventory alone",
-      "status": "NOT TESTED unless linked workflow evidence is cited",
-      "latestRun": null
-    },
-    {
-      "path": "docs/SECURITY_PRIVACY_HARDENING.md",
-      "kind": "documentation",
-      "purpose": "documentation: SECURITY PRIVACY HARDENING. Purpose inferred from filename/path; full content review is not implied.",
-      "evidence": [
-        "Git tree 8c749f0e0e3dfdcceb2fafcc0fd5a9fb3d4e5935"
-      ],
-      "tests": [
-        "No direct sibling test mapping established from filename; suite/runtime coverage requires separate verification."
-      ],
-      "accessStatus": "Readable via authorized GitHub connector; production writes not performed.",
-      "blocker": "No module-specific runtime blocker established by inventory alone",
-      "status": "NOT TESTED unless linked workflow evidence is cited",
-      "latestRun": null
+      "accessStatus": "Readable through authorized GitHub connector; no production writes performed.",
+      "blocker": "Source presence is not proof of runtime operation.",
+      "status": "NOT TESTED"
     },
     {
       "path": "docs/core3-auth-and-swarm-activation-gates.md",
       "kind": "documentation",
       "purpose": "documentation: Core3 Auth And Swarm Activation Gates. Purpose inferred from filename/path; full content review is not implied.",
       "evidence": [
-        "Git tree 8c749f0e0e3dfdcceb2fafcc0fd5a9fb3d4e5935"
+        "Git tree 0a35a8dda07b5217497ec1c45bdc64e3a7d0147c"
       ],
       "tests": [
         "No direct sibling test mapping established from filename; suite/runtime coverage requires separate verification."
@@ -1915,7 +1835,7 @@
       "kind": "documentation",
       "purpose": "documentation: Core3 Execution Readiness Runbook. Purpose inferred from filename/path; full content review is not implied.",
       "evidence": [
-        "Git tree 8c749f0e0e3dfdcceb2fafcc0fd5a9fb3d4e5935"
+        "Git tree 0a35a8dda07b5217497ec1c45bdc64e3a7d0147c"
       ],
       "tests": [
         "No direct sibling test mapping established from filename; suite/runtime coverage requires separate verification."
@@ -1926,11 +1846,25 @@
       "latestRun": null
     },
     {
+      "path": "docs/GPT_ACTION_SETUP.md",
+      "kind": "documentation",
+      "purpose": "Project documentation; contents are not proof that the described runtime behavior is deployed.",
+      "evidence": [
+        "Git tree 0a35a8dda07b5217497ec1c45bdc64e3a7d0147c"
+      ],
+      "tests": [
+        "No direct test mapping established; runtime coverage not inferred."
+      ],
+      "accessStatus": "Readable through authorized GitHub connector; no production writes performed.",
+      "blocker": "Source presence is not proof of runtime operation.",
+      "status": "NOT TESTED"
+    },
+    {
       "path": "docs/guarded-omni-agent-architecture.md",
       "kind": "documentation",
       "purpose": "documentation: Guarded Omni Agent Architecture. Purpose inferred from filename/path; full content review is not implied.",
       "evidence": [
-        "Git tree 8c749f0e0e3dfdcceb2fafcc0fd5a9fb3d4e5935"
+        "Git tree 0a35a8dda07b5217497ec1c45bdc64e3a7d0147c"
       ],
       "tests": [
         "No direct sibling test mapping established from filename; suite/runtime coverage requires separate verification."
@@ -1945,7 +1879,7 @@
       "kind": "documentation",
       "purpose": "documentation: Human Ethics Controls. Purpose inferred from filename/path; full content review is not implied.",
       "evidence": [
-        "Git tree 8c749f0e0e3dfdcceb2fafcc0fd5a9fb3d4e5935"
+        "Git tree 0a35a8dda07b5217497ec1c45bdc64e3a7d0147c"
       ],
       "tests": [
         "No direct sibling test mapping established from filename; suite/runtime coverage requires separate verification."
@@ -1960,7 +1894,7 @@
       "kind": "documentation",
       "purpose": "Evidence-indexed integration catalog and status vocabulary.",
       "evidence": [
-        "Git tree 8c749f0e0e3dfdcceb2fafcc0fd5a9fb3d4e5935",
+        "Git tree 0a35a8dda07b5217497ec1c45bdc64e3a7d0147c",
         "Relevant source inspected during mission"
       ],
       "tests": [
@@ -1972,11 +1906,129 @@
       "latestRun": null
     },
     {
+      "path": "docs/overnight-coverage-matrix.json",
+      "kind": "documentation",
+      "purpose": "Human/machine-readable evidence-indexed coverage inventory.",
+      "evidence": [
+        "Git tree 0a35a8dda07b5217497ec1c45bdc64e3a7d0147c"
+      ],
+      "tests": [
+        "tests/overnight-coverage-matrix.test.mjs"
+      ],
+      "accessStatus": "Readable through authorized GitHub connector; no production writes performed.",
+      "blocker": "Coverage-matrix contract test exists; current-main CI run was not observed.",
+      "status": "NOT TESTED"
+    },
+    {
+      "path": "docs/PWA-SECURITY-DEPLOYMENT.md",
+      "kind": "documentation",
+      "purpose": "documentation: PWA SECURITY DEPLOYMENT. Purpose inferred from filename/path; full content review is not implied.",
+      "evidence": [
+        "Git tree 0a35a8dda07b5217497ec1c45bdc64e3a7d0147c"
+      ],
+      "tests": [
+        "No direct sibling test mapping established from filename; suite/runtime coverage requires separate verification."
+      ],
+      "accessStatus": "Readable via authorized GitHub connector; production writes not performed.",
+      "blocker": "No module-specific runtime blocker established by inventory alone",
+      "status": "NOT TESTED unless linked workflow evidence is cited",
+      "latestRun": null
+    },
+    {
+      "path": "docs/RED_QUEEN_OWNER_CONTROL_ROADMAP.md",
+      "kind": "documentation",
+      "purpose": "documentation: RED QUEEN OWNER CONTROL ROADMAP. Purpose inferred from filename/path; full content review is not implied.",
+      "evidence": [
+        "Git tree 0a35a8dda07b5217497ec1c45bdc64e3a7d0147c"
+      ],
+      "tests": [
+        "No direct sibling test mapping established from filename; suite/runtime coverage requires separate verification."
+      ],
+      "accessStatus": "Readable via authorized GitHub connector; production writes not performed.",
+      "blocker": "No module-specific runtime blocker established by inventory alone",
+      "status": "NOT TESTED unless linked workflow evidence is cited",
+      "latestRun": null
+    },
+    {
+      "path": "docs/REDULTRON_HUMAN_ETHICS_CONTROL_MATRIX.md",
+      "kind": "documentation",
+      "purpose": "documentation: REDULTRON HUMAN ETHICS CONTROL MATRIX. Purpose inferred from filename/path; full content review is not implied.",
+      "evidence": [
+        "Git tree 0a35a8dda07b5217497ec1c45bdc64e3a7d0147c"
+      ],
+      "tests": [
+        "No direct sibling test mapping established from filename; suite/runtime coverage requires separate verification."
+      ],
+      "accessStatus": "Readable via authorized GitHub connector; production writes not performed.",
+      "blocker": "No module-specific runtime blocker established by inventory alone",
+      "status": "NOT TESTED unless linked workflow evidence is cited",
+      "latestRun": null
+    },
+    {
+      "path": "docs/REDULTRON_INTEGRATION_REGISTRY.md",
+      "kind": "documentation",
+      "purpose": "documentation: REDULTRON INTEGRATION REGISTRY. Purpose inferred from filename/path; full content review is not implied.",
+      "evidence": [
+        "Git tree 0a35a8dda07b5217497ec1c45bdc64e3a7d0147c"
+      ],
+      "tests": [
+        "No direct sibling test mapping established from filename; suite/runtime coverage requires separate verification."
+      ],
+      "accessStatus": "Readable via authorized GitHub connector; production writes not performed.",
+      "blocker": "No module-specific runtime blocker established by inventory alone",
+      "status": "NOT TESTED unless linked workflow evidence is cited",
+      "latestRun": null
+    },
+    {
+      "path": "docs/REDULTRON_OVERNIGHT_COVERAGE_MATRIX.md",
+      "kind": "documentation",
+      "purpose": "Human/machine-readable evidence-indexed coverage inventory.",
+      "evidence": [
+        "Git tree 0a35a8dda07b5217497ec1c45bdc64e3a7d0147c"
+      ],
+      "tests": [
+        "tests/overnight-coverage-matrix.test.mjs"
+      ],
+      "accessStatus": "Readable through authorized GitHub connector; no production writes performed.",
+      "blocker": "Coverage-matrix contract test exists; current-main CI run was not observed.",
+      "status": "NOT TESTED"
+    },
+    {
+      "path": "docs/REDULTRON_RELEASE_PACKAGE.md",
+      "kind": "documentation",
+      "purpose": "documentation: REDULTRON RELEASE PACKAGE. Purpose inferred from filename/path; full content review is not implied.",
+      "evidence": [
+        "Git tree 0a35a8dda07b5217497ec1c45bdc64e3a7d0147c"
+      ],
+      "tests": [
+        "No direct sibling test mapping established from filename; suite/runtime coverage requires separate verification."
+      ],
+      "accessStatus": "Readable via authorized GitHub connector; production writes not performed.",
+      "blocker": "No module-specific runtime blocker established by inventory alone",
+      "status": "NOT TESTED unless linked workflow evidence is cited",
+      "latestRun": null
+    },
+    {
+      "path": "docs/REDULTRON-RECOVERY.md",
+      "kind": "documentation",
+      "purpose": "documentation: REDULTRON RECOVERY. Purpose inferred from filename/path; full content review is not implied.",
+      "evidence": [
+        "Git tree 0a35a8dda07b5217497ec1c45bdc64e3a7d0147c"
+      ],
+      "tests": [
+        "No direct sibling test mapping established from filename; suite/runtime coverage requires separate verification."
+      ],
+      "accessStatus": "Readable via authorized GitHub connector; production writes not performed.",
+      "blocker": "No module-specific runtime blocker established by inventory alone",
+      "status": "NOT TESTED unless linked workflow evidence is cited",
+      "latestRun": null
+    },
+    {
       "path": "docs/redultron-release-package.json",
       "kind": "documentation",
       "purpose": "documentation: Redultron Release Package. Purpose inferred from filename/path; full content review is not implied.",
       "evidence": [
-        "Git tree 8c749f0e0e3dfdcceb2fafcc0fd5a9fb3d4e5935"
+        "Git tree 0a35a8dda07b5217497ec1c45bdc64e3a7d0147c"
       ],
       "tests": [
         "No direct sibling test mapping established from filename; suite/runtime coverage requires separate verification."
@@ -1991,7 +2043,22 @@
       "kind": "documentation",
       "purpose": "documentation: Revenue Opportunity Sprint. Purpose inferred from filename/path; full content review is not implied.",
       "evidence": [
-        "Git tree 8c749f0e0e3dfdcceb2fafcc0fd5a9fb3d4e5935"
+        "Git tree 0a35a8dda07b5217497ec1c45bdc64e3a7d0147c"
+      ],
+      "tests": [
+        "No direct sibling test mapping established from filename; suite/runtime coverage requires separate verification."
+      ],
+      "accessStatus": "Readable via authorized GitHub connector; production writes not performed.",
+      "blocker": "No module-specific runtime blocker established by inventory alone",
+      "status": "NOT TESTED unless linked workflow evidence is cited",
+      "latestRun": null
+    },
+    {
+      "path": "docs/SECURITY_PRIVACY_HARDENING.md",
+      "kind": "documentation",
+      "purpose": "documentation: SECURITY PRIVACY HARDENING. Purpose inferred from filename/path; full content review is not implied.",
+      "evidence": [
+        "Git tree 0a35a8dda07b5217497ec1c45bdc64e3a7d0147c"
       ],
       "tests": [
         "No direct sibling test mapping established from filename; suite/runtime coverage requires separate verification."
@@ -2006,37 +2073,7 @@
       "kind": "python-core",
       "purpose": "python core: Dockerfile. Purpose inferred from filename/path; full content review is not implied.",
       "evidence": [
-        "Git tree 8c749f0e0e3dfdcceb2fafcc0fd5a9fb3d4e5935"
-      ],
-      "tests": [
-        "No direct sibling test mapping established from filename; suite/runtime coverage requires separate verification."
-      ],
-      "accessStatus": "Readable via authorized GitHub connector; production writes not performed.",
-      "blocker": "No module-specific runtime blocker established by inventory alone",
-      "status": "NOT TESTED unless linked workflow evidence is cited",
-      "latestRun": null
-    },
-    {
-      "path": "hybrid-core/Procfile",
-      "kind": "python-core",
-      "purpose": "python core: Procfile. Purpose inferred from filename/path; full content review is not implied.",
-      "evidence": [
-        "Git tree 8c749f0e0e3dfdcceb2fafcc0fd5a9fb3d4e5935"
-      ],
-      "tests": [
-        "No direct sibling test mapping established from filename; suite/runtime coverage requires separate verification."
-      ],
-      "accessStatus": "Readable via authorized GitHub connector; production writes not performed.",
-      "blocker": "No module-specific runtime blocker established by inventory alone",
-      "status": "NOT TESTED unless linked workflow evidence is cited",
-      "latestRun": null
-    },
-    {
-      "path": "hybrid-core/README.md",
-      "kind": "python-core",
-      "purpose": "python core: README. Purpose inferred from filename/path; full content review is not implied.",
-      "evidence": [
-        "Git tree 8c749f0e0e3dfdcceb2fafcc0fd5a9fb3d4e5935"
+        "Git tree 0a35a8dda07b5217497ec1c45bdc64e3a7d0147c"
       ],
       "tests": [
         "No direct sibling test mapping established from filename; suite/runtime coverage requires separate verification."
@@ -2051,10 +2088,25 @@
       "kind": "python-core",
       "purpose": "Bounded Render cold-start/health probe logic.",
       "evidence": [
-        "Git tree 8c749f0e0e3dfdcceb2fafcc0fd5a9fb3d4e5935"
+        "Git tree 0a35a8dda07b5217497ec1c45bdc64e3a7d0147c"
       ],
       "tests": [
         "hybrid-core/test_health_probe.py"
+      ],
+      "accessStatus": "Readable via authorized GitHub connector; production writes not performed.",
+      "blocker": "No module-specific runtime blocker established by inventory alone",
+      "status": "NOT TESTED unless linked workflow evidence is cited",
+      "latestRun": null
+    },
+    {
+      "path": "hybrid-core/Procfile",
+      "kind": "python-core",
+      "purpose": "python core: Procfile. Purpose inferred from filename/path; full content review is not implied.",
+      "evidence": [
+        "Git tree 0a35a8dda07b5217497ec1c45bdc64e3a7d0147c"
+      ],
+      "tests": [
+        "No direct sibling test mapping established from filename; suite/runtime coverage requires separate verification."
       ],
       "accessStatus": "Readable via authorized GitHub connector; production writes not performed.",
       "blocker": "No module-specific runtime blocker established by inventory alone",
@@ -2066,7 +2118,7 @@
       "kind": "python-core",
       "purpose": "Python sidecar for allowlisted deterministic transforms, not arbitrary code execution.",
       "evidence": [
-        "Git tree 8c749f0e0e3dfdcceb2fafcc0fd5a9fb3d4e5935",
+        "Git tree 0a35a8dda07b5217497ec1c45bdc64e3a7d0147c",
         "Relevant source inspected during mission"
       ],
       "tests": [
@@ -2078,11 +2130,26 @@
       "latestRun": null
     },
     {
+      "path": "hybrid-core/README.md",
+      "kind": "python-core",
+      "purpose": "python core: README. Purpose inferred from filename/path; full content review is not implied.",
+      "evidence": [
+        "Git tree 0a35a8dda07b5217497ec1c45bdc64e3a7d0147c"
+      ],
+      "tests": [
+        "No direct sibling test mapping established from filename; suite/runtime coverage requires separate verification."
+      ],
+      "accessStatus": "Readable via authorized GitHub connector; production writes not performed.",
+      "blocker": "No module-specific runtime blocker established by inventory alone",
+      "status": "NOT TESTED unless linked workflow evidence is cited",
+      "latestRun": null
+    },
+    {
       "path": "hybrid-core/test_health_probe.py",
       "kind": "test",
       "purpose": "test: Test Health Probe. Purpose inferred from filename/path; full content review is not implied.",
       "evidence": [
-        "Git tree 8c749f0e0e3dfdcceb2fafcc0fd5a9fb3d4e5935"
+        "Git tree 0a35a8dda07b5217497ec1c45bdc64e3a7d0147c"
       ],
       "tests": [
         "hybrid-core/test_health_probe.py"
@@ -2097,7 +2164,7 @@
       "kind": "test",
       "purpose": "test: Test Python Core. Purpose inferred from filename/path; full content review is not implied.",
       "evidence": [
-        "Git tree 8c749f0e0e3dfdcceb2fafcc0fd5a9fb3d4e5935"
+        "Git tree 0a35a8dda07b5217497ec1c45bdc64e3a7d0147c"
       ],
       "tests": [
         "hybrid-core/test_python_core.py"
@@ -2112,7 +2179,7 @@
       "kind": "pwa",
       "purpose": "pwa: Index. Purpose inferred from filename/path; full content review is not implied.",
       "evidence": [
-        "Git tree 8c749f0e0e3dfdcceb2fafcc0fd5a9fb3d4e5935"
+        "Git tree 0a35a8dda07b5217497ec1c45bdc64e3a7d0147c"
       ],
       "tests": [
         "No direct sibling test mapping established from filename; suite/runtime coverage requires separate verification."
@@ -2127,7 +2194,7 @@
       "kind": "pwa",
       "purpose": "pwa: Core3. Purpose inferred from filename/path; full content review is not implied.",
       "evidence": [
-        "Git tree 8c749f0e0e3dfdcceb2fafcc0fd5a9fb3d4e5935"
+        "Git tree 0a35a8dda07b5217497ec1c45bdc64e3a7d0147c"
       ],
       "tests": [
         "No direct sibling test mapping established from filename; suite/runtime coverage requires separate verification."
@@ -2142,7 +2209,7 @@
       "kind": "pwa",
       "purpose": "pwa: Diagnostics.Js. Purpose inferred from filename/path; full content review is not implied.",
       "evidence": [
-        "Git tree 8c749f0e0e3dfdcceb2fafcc0fd5a9fb3d4e5935"
+        "Git tree 0a35a8dda07b5217497ec1c45bdc64e3a7d0147c"
       ],
       "tests": [
         "No direct sibling test mapping established from filename; suite/runtime coverage requires separate verification."
@@ -2157,7 +2224,7 @@
       "kind": "pwa",
       "purpose": "pwa: Icon 192. Purpose inferred from filename/path; full content review is not implied.",
       "evidence": [
-        "Git tree 8c749f0e0e3dfdcceb2fafcc0fd5a9fb3d4e5935"
+        "Git tree 0a35a8dda07b5217497ec1c45bdc64e3a7d0147c"
       ],
       "tests": [
         "No direct sibling test mapping established from filename; suite/runtime coverage requires separate verification."
@@ -2172,7 +2239,7 @@
       "kind": "pwa",
       "purpose": "pwa: Icon 512. Purpose inferred from filename/path; full content review is not implied.",
       "evidence": [
-        "Git tree 8c749f0e0e3dfdcceb2fafcc0fd5a9fb3d4e5935"
+        "Git tree 0a35a8dda07b5217497ec1c45bdc64e3a7d0147c"
       ],
       "tests": [
         "No direct sibling test mapping established from filename; suite/runtime coverage requires separate verification."
@@ -2187,7 +2254,7 @@
       "kind": "pwa",
       "purpose": "pwa: Icon. Purpose inferred from filename/path; full content review is not implied.",
       "evidence": [
-        "Git tree 8c749f0e0e3dfdcceb2fafcc0fd5a9fb3d4e5935"
+        "Git tree 0a35a8dda07b5217497ec1c45bdc64e3a7d0147c"
       ],
       "tests": [
         "No direct sibling test mapping established from filename; suite/runtime coverage requires separate verification."
@@ -2202,14 +2269,14 @@
       "kind": "pwa",
       "purpose": "Installable PWA shell and owner-facing dashboard.",
       "evidence": [
-        "Git tree 8c749f0e0e3dfdcceb2fafcc0fd5a9fb3d4e5935"
+        "Git tree 0a35a8dda07b5217497ec1c45bdc64e3a7d0147c"
       ],
       "tests": [
         "No direct sibling test mapping established from filename; suite/runtime coverage requires separate verification."
       ],
       "accessStatus": "Readable via authorized GitHub connector; production writes not performed.",
-      "blocker": "No module-specific runtime blocker established by inventory alone",
-      "status": "NOT TESTED unless linked workflow evidence is cited",
+      "blocker": "Repository cache marker is v18; live served version, installability and Android update lifecycle were not verified.",
+      "status": "PASS — repository assets present; NOT TESTED live",
       "latestRun": null
     },
     {
@@ -2217,14 +2284,14 @@
       "kind": "pwa",
       "purpose": "PWA identity, icons, display and install metadata.",
       "evidence": [
-        "Git tree 8c749f0e0e3dfdcceb2fafcc0fd5a9fb3d4e5935"
+        "Git tree 0a35a8dda07b5217497ec1c45bdc64e3a7d0147c"
       ],
       "tests": [
         "No direct sibling test mapping established from filename; suite/runtime coverage requires separate verification."
       ],
       "accessStatus": "Readable via authorized GitHub connector; production writes not performed.",
-      "blocker": "No module-specific runtime blocker established by inventory alone",
-      "status": "NOT TESTED unless linked workflow evidence is cited",
+      "blocker": "Repository cache marker is v18; live served version, installability and Android update lifecycle were not verified.",
+      "status": "PASS — repository assets present; NOT TESTED live",
       "latestRun": null
     },
     {
@@ -2232,15 +2299,15 @@
       "kind": "pwa",
       "purpose": "PWA cache lifecycle, offline shell and update activation.",
       "evidence": [
-        "Git tree 8c749f0e0e3dfdcceb2fafcc0fd5a9fb3d4e5935",
+        "Git tree 0a35a8dda07b5217497ec1c45bdc64e3a7d0147c",
         "Relevant source inspected during mission"
       ],
       "tests": [
         "No direct sibling test mapping established from filename; suite/runtime coverage requires separate verification."
       ],
       "accessStatus": "Readable via authorized GitHub connector; production writes not performed.",
-      "blocker": "Live Android install/update/offline behavior not tested.",
-      "status": "NOT TESTED unless linked workflow evidence is cited",
+      "blocker": "Repository cache marker is v18; live served version, installability and Android update lifecycle were not verified.",
+      "status": "PASS — repository assets present; NOT TESTED live",
       "latestRun": null
     },
     {
@@ -2248,7 +2315,7 @@
       "kind": "pwa",
       "purpose": "pwa: Voice Diagnostics. Purpose inferred from filename/path; full content review is not implied.",
       "evidence": [
-        "Git tree 8c749f0e0e3dfdcceb2fafcc0fd5a9fb3d4e5935"
+        "Git tree 0a35a8dda07b5217497ec1c45bdc64e3a7d0147c"
       ],
       "tests": [
         "No direct sibling test mapping established from filename; suite/runtime coverage requires separate verification."
@@ -2263,7 +2330,7 @@
       "kind": "migration",
       "purpose": "migration: 0002 Conversation Memory.Sql. Purpose inferred from filename/path; full content review is not implied.",
       "evidence": [
-        "Git tree 8c749f0e0e3dfdcceb2fafcc0fd5a9fb3d4e5935"
+        "Git tree 0a35a8dda07b5217497ec1c45bdc64e3a7d0147c"
       ],
       "tests": [
         "No direct sibling test mapping established from filename; suite/runtime coverage requires separate verification."
@@ -2274,11 +2341,25 @@
       "latestRun": null
     },
     {
+      "path": "openapi/redultron-learning-action.json",
+      "kind": "api-schema",
+      "purpose": "OpenAPI contract for the learning action; schema presence does not prove endpoint reachability.",
+      "evidence": [
+        "Git tree 0a35a8dda07b5217497ec1c45bdc64e3a7d0147c"
+      ],
+      "tests": [
+        "No direct test mapping established; runtime coverage not inferred."
+      ],
+      "accessStatus": "Readable through authorized GitHub connector; no production writes performed.",
+      "blocker": "No live authenticated contract test was run.",
+      "status": "NOT TESTED"
+    },
+    {
       "path": "package.json",
       "kind": "project-file",
       "purpose": "project file: Package. Purpose inferred from filename/path; full content review is not implied.",
       "evidence": [
-        "Git tree 8c749f0e0e3dfdcceb2fafcc0fd5a9fb3d4e5935"
+        "Git tree 0a35a8dda07b5217497ec1c45bdc64e3a7d0147c"
       ],
       "tests": [
         "No direct sibling test mapping established from filename; suite/runtime coverage requires separate verification."
@@ -2293,22 +2374,7 @@
       "kind": "php-core",
       "purpose": "php core: Dockerfile. Purpose inferred from filename/path; full content review is not implied.",
       "evidence": [
-        "Git tree 8c749f0e0e3dfdcceb2fafcc0fd5a9fb3d4e5935"
-      ],
-      "tests": [
-        "No direct sibling test mapping established from filename; suite/runtime coverage requires separate verification."
-      ],
-      "accessStatus": "Readable via authorized GitHub connector; production writes not performed.",
-      "blocker": "No module-specific runtime blocker established by inventory alone",
-      "status": "NOT TESTED unless linked workflow evidence is cited",
-      "latestRun": null
-    },
-    {
-      "path": "php-core/README.md",
-      "kind": "php-core",
-      "purpose": "php core: README. Purpose inferred from filename/path; full content review is not implied.",
-      "evidence": [
-        "Git tree 8c749f0e0e3dfdcceb2fafcc0fd5a9fb3d4e5935"
+        "Git tree 0a35a8dda07b5217497ec1c45bdc64e3a7d0147c"
       ],
       "tests": [
         "No direct sibling test mapping established from filename; suite/runtime coverage requires separate verification."
@@ -2323,7 +2389,22 @@
       "kind": "php-core",
       "purpose": "PHP hybrid sidecar entrypoint; runtime contract requires separate live verification.",
       "evidence": [
-        "Git tree 8c749f0e0e3dfdcceb2fafcc0fd5a9fb3d4e5935"
+        "Git tree 0a35a8dda07b5217497ec1c45bdc64e3a7d0147c"
+      ],
+      "tests": [
+        "No direct sibling test mapping established from filename; suite/runtime coverage requires separate verification."
+      ],
+      "accessStatus": "Readable via authorized GitHub connector; production writes not performed.",
+      "blocker": "No module-specific runtime blocker established by inventory alone",
+      "status": "NOT TESTED unless linked workflow evidence is cited",
+      "latestRun": null
+    },
+    {
+      "path": "php-core/README.md",
+      "kind": "php-core",
+      "purpose": "php core: README. Purpose inferred from filename/path; full content review is not implied.",
+      "evidence": [
+        "Git tree 0a35a8dda07b5217497ec1c45bdc64e3a7d0147c"
       ],
       "tests": [
         "No direct sibling test mapping established from filename; suite/runtime coverage requires separate verification."
@@ -2338,7 +2419,22 @@
       "kind": "php-core",
       "purpose": "php core: Tests. Purpose inferred from filename/path; full content review is not implied.",
       "evidence": [
-        "Git tree 8c749f0e0e3dfdcceb2fafcc0fd5a9fb3d4e5935"
+        "Git tree 0a35a8dda07b5217497ec1c45bdc64e3a7d0147c"
+      ],
+      "tests": [
+        "No direct sibling test mapping established from filename; suite/runtime coverage requires separate verification."
+      ],
+      "accessStatus": "Readable via authorized GitHub connector; production writes not performed.",
+      "blocker": "No module-specific runtime blocker established by inventory alone",
+      "status": "NOT TESTED unless linked workflow evidence is cited",
+      "latestRun": null
+    },
+    {
+      "path": "README_HI.txt",
+      "kind": "project-file",
+      "purpose": "project file: README HI. Purpose inferred from filename/path; full content review is not implied.",
+      "evidence": [
+        "Git tree 0a35a8dda07b5217497ec1c45bdc64e3a7d0147c"
       ],
       "tests": [
         "No direct sibling test mapping established from filename; suite/runtime coverage requires separate verification."
@@ -2353,7 +2449,7 @@
       "kind": "test",
       "purpose": "test: Red Queen Owner Priority.Test. Purpose inferred from filename/path; full content review is not implied.",
       "evidence": [
-        "Git tree 8c749f0e0e3dfdcceb2fafcc0fd5a9fb3d4e5935"
+        "Git tree 0a35a8dda07b5217497ec1c45bdc64e3a7d0147c"
       ],
       "tests": [
         "red-queen-owner-priority.test.mjs"
@@ -2368,7 +2464,7 @@
       "kind": "project-file",
       "purpose": "project file: ANDROID PWA INSTALL. Purpose inferred from filename/path; full content review is not implied.",
       "evidence": [
-        "Git tree 8c749f0e0e3dfdcceb2fafcc0fd5a9fb3d4e5935"
+        "Git tree 0a35a8dda07b5217497ec1c45bdc64e3a7d0147c"
       ],
       "tests": [
         "No direct sibling test mapping established from filename; suite/runtime coverage requires separate verification."
@@ -2383,7 +2479,7 @@
       "kind": "project-file",
       "purpose": "project file: REDULTRON CORE 3 RELEASE PACKAGE. Purpose inferred from filename/path; full content review is not implied.",
       "evidence": [
-        "Git tree 8c749f0e0e3dfdcceb2fafcc0fd5a9fb3d4e5935"
+        "Git tree 0a35a8dda07b5217497ec1c45bdc64e3a7d0147c"
       ],
       "tests": [
         "No direct sibling test mapping established from filename; suite/runtime coverage requires separate verification."
@@ -2398,7 +2494,7 @@
       "kind": "project-file",
       "purpose": "project file: Robots. Purpose inferred from filename/path; full content review is not implied.",
       "evidence": [
-        "Git tree 8c749f0e0e3dfdcceb2fafcc0fd5a9fb3d4e5935"
+        "Git tree 0a35a8dda07b5217497ec1c45bdc64e3a7d0147c"
       ],
       "tests": [
         "No direct sibling test mapping established from filename; suite/runtime coverage requires separate verification."
@@ -2413,7 +2509,7 @@
       "kind": "script",
       "purpose": "script: Redultron Package Check. Purpose inferred from filename/path; full content review is not implied.",
       "evidence": [
-        "Git tree 8c749f0e0e3dfdcceb2fafcc0fd5a9fb3d4e5935"
+        "Git tree 0a35a8dda07b5217497ec1c45bdc64e3a7d0147c"
       ],
       "tests": [
         "No direct sibling test mapping established from filename; suite/runtime coverage requires separate verification."
@@ -2428,7 +2524,7 @@
       "kind": "script",
       "purpose": "script: Redultron Recovery Policy. Purpose inferred from filename/path; full content review is not implied.",
       "evidence": [
-        "Git tree 8c749f0e0e3dfdcceb2fafcc0fd5a9fb3d4e5935"
+        "Git tree 0a35a8dda07b5217497ec1c45bdc64e3a7d0147c"
       ],
       "tests": [
         "No direct sibling test mapping established from filename; suite/runtime coverage requires separate verification."
@@ -2443,7 +2539,22 @@
       "kind": "project-file",
       "purpose": "project file: Worker. Purpose inferred from filename/path; full content review is not implied.",
       "evidence": [
-        "Git tree 8c749f0e0e3dfdcceb2fafcc0fd5a9fb3d4e5935"
+        "Git tree 0a35a8dda07b5217497ec1c45bdc64e3a7d0147c"
+      ],
+      "tests": [
+        "No direct sibling test mapping established from filename; suite/runtime coverage requires separate verification."
+      ],
+      "accessStatus": "Readable via authorized GitHub connector; production writes not performed.",
+      "blocker": "No module-specific runtime blocker established by inventory alone",
+      "status": "NOT TESTED unless linked workflow evidence is cited",
+      "latestRun": null
+    },
+    {
+      "path": "SUPER_CHATTY_JARVIS_MASTER_SPEC.md",
+      "kind": "project-file",
+      "purpose": "project file: SUPER CHATTY JARVIS MASTER SPEC. Purpose inferred from filename/path; full content review is not implied.",
+      "evidence": [
+        "Git tree 0a35a8dda07b5217497ec1c45bdc64e3a7d0147c"
       ],
       "tests": [
         "No direct sibling test mapping established from filename; suite/runtime coverage requires separate verification."
@@ -2458,7 +2569,7 @@
       "kind": "pwa",
       "purpose": "pwa: Sw.Js. Purpose inferred from filename/path; full content review is not implied.",
       "evidence": [
-        "Git tree 8c749f0e0e3dfdcceb2fafcc0fd5a9fb3d4e5935"
+        "Git tree 0a35a8dda07b5217497ec1c45bdc64e3a7d0147c"
       ],
       "tests": [
         "No direct sibling test mapping established from filename; suite/runtime coverage requires separate verification."
@@ -2473,7 +2584,7 @@
       "kind": "test",
       "purpose": "test: Agent Registry.Test. Purpose inferred from filename/path; full content review is not implied.",
       "evidence": [
-        "Git tree 8c749f0e0e3dfdcceb2fafcc0fd5a9fb3d4e5935"
+        "Git tree 0a35a8dda07b5217497ec1c45bdc64e3a7d0147c"
       ],
       "tests": [
         "tests/agent-registry.test.mjs"
@@ -2484,11 +2595,25 @@
       "latestRun": null
     },
     {
+      "path": "tests/autonomy-directive.test.mjs",
+      "kind": "test",
+      "purpose": "Automated regression-test file; CI execution on current main SHA was not observed.",
+      "evidence": [
+        "Git tree 0a35a8dda07b5217497ec1c45bdc64e3a7d0147c"
+      ],
+      "tests": [
+        "tests/autonomy-directive.test.mjs"
+      ],
+      "accessStatus": "Readable through authorized GitHub connector; no production writes performed.",
+      "blocker": "Execution on current main SHA was not observed.",
+      "status": "NOT TESTED"
+    },
+    {
       "path": "tests/core3-policy-gate.test.mjs",
       "kind": "test",
       "purpose": "test: Core3 Policy Gate.Test. Purpose inferred from filename/path; full content review is not implied.",
       "evidence": [
-        "Git tree 8c749f0e0e3dfdcceb2fafcc0fd5a9fb3d4e5935"
+        "Git tree 0a35a8dda07b5217497ec1c45bdc64e3a7d0147c"
       ],
       "tests": [
         "tests/core3-policy-gate.test.mjs"
@@ -2503,7 +2628,7 @@
       "kind": "test",
       "purpose": "test: Finance Sandbox.Test. Purpose inferred from filename/path; full content review is not implied.",
       "evidence": [
-        "Git tree 8c749f0e0e3dfdcceb2fafcc0fd5a9fb3d4e5935"
+        "Git tree 0a35a8dda07b5217497ec1c45bdc64e3a7d0147c"
       ],
       "tests": [
         "tests/finance-sandbox.test.mjs"
@@ -2518,7 +2643,7 @@
       "kind": "test",
       "purpose": "test: Human Ethics Policy.Test. Purpose inferred from filename/path; full content review is not implied.",
       "evidence": [
-        "Git tree 8c749f0e0e3dfdcceb2fafcc0fd5a9fb3d4e5935"
+        "Git tree 0a35a8dda07b5217497ec1c45bdc64e3a7d0147c"
       ],
       "tests": [
         "tests/human-ethics-policy.test.mjs"
@@ -2533,7 +2658,7 @@
       "kind": "test",
       "purpose": "test: Integration Registry.Test. Purpose inferred from filename/path; full content review is not implied.",
       "evidence": [
-        "Git tree 8c749f0e0e3dfdcceb2fafcc0fd5a9fb3d4e5935"
+        "Git tree 0a35a8dda07b5217497ec1c45bdc64e3a7d0147c"
       ],
       "tests": [
         "tests/integration-registry.test.mjs"
@@ -2548,7 +2673,7 @@
       "kind": "test",
       "purpose": "test: Live Probe Core Selection.Test. Purpose inferred from filename/path; full content review is not implied.",
       "evidence": [
-        "Git tree 8c749f0e0e3dfdcceb2fafcc0fd5a9fb3d4e5935"
+        "Git tree 0a35a8dda07b5217497ec1c45bdc64e3a7d0147c"
       ],
       "tests": [
         "tests/live-probe-core-selection.test.mjs"
@@ -2563,7 +2688,7 @@
       "kind": "test",
       "purpose": "test: Memory.Test. Purpose inferred from filename/path; full content review is not implied.",
       "evidence": [
-        "Git tree 8c749f0e0e3dfdcceb2fafcc0fd5a9fb3d4e5935"
+        "Git tree 0a35a8dda07b5217497ec1c45bdc64e3a7d0147c"
       ],
       "tests": [
         "tests/memory.test.mjs"
@@ -2574,11 +2699,25 @@
       "latestRun": null
     },
     {
+      "path": "tests/overnight-coverage-matrix.test.mjs",
+      "kind": "test",
+      "purpose": "Automated regression-test file; CI execution on current main SHA was not observed.",
+      "evidence": [
+        "Git tree 0a35a8dda07b5217497ec1c45bdc64e3a7d0147c"
+      ],
+      "tests": [
+        "tests/overnight-coverage-matrix.test.mjs"
+      ],
+      "accessStatus": "Readable through authorized GitHub connector; no production writes performed.",
+      "blocker": "Execution on current main SHA was not observed.",
+      "status": "NOT TESTED"
+    },
+    {
       "path": "tests/owner-control-service.test.mjs",
       "kind": "test",
       "purpose": "test: Owner Control Service.Test. Purpose inferred from filename/path; full content review is not implied.",
       "evidence": [
-        "Git tree 8c749f0e0e3dfdcceb2fafcc0fd5a9fb3d4e5935"
+        "Git tree 0a35a8dda07b5217497ec1c45bdc64e3a7d0147c"
       ],
       "tests": [
         "tests/owner-control-service.test.mjs"
@@ -2593,7 +2732,7 @@
       "kind": "test",
       "purpose": "test: Owner Control.Test. Purpose inferred from filename/path; full content review is not implied.",
       "evidence": [
-        "Git tree 8c749f0e0e3dfdcceb2fafcc0fd5a9fb3d4e5935"
+        "Git tree 0a35a8dda07b5217497ec1c45bdc64e3a7d0147c"
       ],
       "tests": [
         "tests/owner-control.test.mjs"
@@ -2608,7 +2747,7 @@
       "kind": "test",
       "purpose": "test: Owner Execution Gate Routes.Test. Purpose inferred from filename/path; full content review is not implied.",
       "evidence": [
-        "Git tree 8c749f0e0e3dfdcceb2fafcc0fd5a9fb3d4e5935"
+        "Git tree 0a35a8dda07b5217497ec1c45bdc64e3a7d0147c"
       ],
       "tests": [
         "tests/owner-execution-gate-routes.test.mjs"
@@ -2623,7 +2762,7 @@
       "kind": "test",
       "purpose": "test: Owner Execution Gate.Test. Purpose inferred from filename/path; full content review is not implied.",
       "evidence": [
-        "Git tree 8c749f0e0e3dfdcceb2fafcc0fd5a9fb3d4e5935"
+        "Git tree 0a35a8dda07b5217497ec1c45bdc64e3a7d0147c"
       ],
       "tests": [
         "tests/owner-execution-gate.test.mjs"
@@ -2638,7 +2777,7 @@
       "kind": "test",
       "purpose": "test: Platform Module Registry.Test. Purpose inferred from filename/path; full content review is not implied.",
       "evidence": [
-        "Git tree 8c749f0e0e3dfdcceb2fafcc0fd5a9fb3d4e5935"
+        "Git tree 0a35a8dda07b5217497ec1c45bdc64e3a7d0147c"
       ],
       "tests": [
         "tests/platform-module-registry.test.mjs"
@@ -2653,7 +2792,7 @@
       "kind": "test",
       "purpose": "test: Provenance Core Selection.Test. Purpose inferred from filename/path; full content review is not implied.",
       "evidence": [
-        "Git tree 8c749f0e0e3dfdcceb2fafcc0fd5a9fb3d4e5935"
+        "Git tree 0a35a8dda07b5217497ec1c45bdc64e3a7d0147c"
       ],
       "tests": [
         "tests/provenance-core-selection.test.mjs"
@@ -2668,7 +2807,7 @@
       "kind": "test",
       "purpose": "test: Provenance Deploy.Test. Purpose inferred from filename/path; full content review is not implied.",
       "evidence": [
-        "Git tree 8c749f0e0e3dfdcceb2fafcc0fd5a9fb3d4e5935"
+        "Git tree 0a35a8dda07b5217497ec1c45bdc64e3a7d0147c"
       ],
       "tests": [
         "tests/provenance-deploy.test.mjs"
@@ -2683,7 +2822,7 @@
       "kind": "test",
       "purpose": "test: Provenance Render Secret Sync.Test. Purpose inferred from filename/path; full content review is not implied.",
       "evidence": [
-        "Git tree 8c749f0e0e3dfdcceb2fafcc0fd5a9fb3d4e5935"
+        "Git tree 0a35a8dda07b5217497ec1c45bdc64e3a7d0147c"
       ],
       "tests": [
         "tests/provenance-render-secret-sync.test.mjs"
@@ -2698,7 +2837,7 @@
       "kind": "test",
       "purpose": "test: Pwa Service Worker Cache.Test. Purpose inferred from filename/path; full content review is not implied.",
       "evidence": [
-        "Git tree 8c749f0e0e3dfdcceb2fafcc0fd5a9fb3d4e5935"
+        "Git tree 0a35a8dda07b5217497ec1c45bdc64e3a7d0147c"
       ],
       "tests": [
         "tests/pwa-service-worker-cache.test.mjs"
@@ -2713,7 +2852,7 @@
       "kind": "test",
       "purpose": "test: Red Queen Routes.Test. Purpose inferred from filename/path; full content review is not implied.",
       "evidence": [
-        "Git tree 8c749f0e0e3dfdcceb2fafcc0fd5a9fb3d4e5935"
+        "Git tree 0a35a8dda07b5217497ec1c45bdc64e3a7d0147c"
       ],
       "tests": [
         "tests/red-queen-routes.test.mjs"
@@ -2728,7 +2867,7 @@
       "kind": "test",
       "purpose": "test: Redultron Package Check.Test. Purpose inferred from filename/path; full content review is not implied.",
       "evidence": [
-        "Git tree 8c749f0e0e3dfdcceb2fafcc0fd5a9fb3d4e5935"
+        "Git tree 0a35a8dda07b5217497ec1c45bdc64e3a7d0147c"
       ],
       "tests": [
         "tests/redultron-package-check.test.mjs"
@@ -2743,7 +2882,7 @@
       "kind": "test",
       "purpose": "test: Redultron Recovery.Test. Purpose inferred from filename/path; full content review is not implied.",
       "evidence": [
-        "Git tree 8c749f0e0e3dfdcceb2fafcc0fd5a9fb3d4e5935"
+        "Git tree 0a35a8dda07b5217497ec1c45bdc64e3a7d0147c"
       ],
       "tests": [
         "tests/redultron-recovery.test.mjs"
@@ -2758,7 +2897,7 @@
       "kind": "test",
       "purpose": "test: Robotics Simulator.Test. Purpose inferred from filename/path; full content review is not implied.",
       "evidence": [
-        "Git tree 8c749f0e0e3dfdcceb2fafcc0fd5a9fb3d4e5935"
+        "Git tree 0a35a8dda07b5217497ec1c45bdc64e3a7d0147c"
       ],
       "tests": [
         "tests/robotics-simulator.test.mjs"
@@ -2773,7 +2912,7 @@
       "kind": "test",
       "purpose": "test: Static Site.Test. Purpose inferred from filename/path; full content review is not implied.",
       "evidence": [
-        "Git tree 8c749f0e0e3dfdcceb2fafcc0fd5a9fb3d4e5935"
+        "Git tree 0a35a8dda07b5217497ec1c45bdc64e3a7d0147c"
       ],
       "tests": [
         "tests/static-site.test.mjs"
@@ -2788,7 +2927,7 @@
       "kind": "test",
       "purpose": "test: Treasury Payload Bound.Test. Purpose inferred from filename/path; full content review is not implied.",
       "evidence": [
-        "Git tree 8c749f0e0e3dfdcceb2fafcc0fd5a9fb3d4e5935"
+        "Git tree 0a35a8dda07b5217497ec1c45bdc64e3a7d0147c"
       ],
       "tests": [
         "tests/treasury-payload-bound.test.mjs"
@@ -2803,7 +2942,7 @@
       "kind": "test",
       "purpose": "test: Unified Visual Layout.Test. Purpose inferred from filename/path; full content review is not implied.",
       "evidence": [
-        "Git tree 8c749f0e0e3dfdcceb2fafcc0fd5a9fb3d4e5935"
+        "Git tree 0a35a8dda07b5217497ec1c45bdc64e3a7d0147c"
       ],
       "tests": [
         "tests/unified-visual-layout.test.mjs"
@@ -2818,7 +2957,7 @@
       "kind": "test",
       "purpose": "test: Worker.Test. Purpose inferred from filename/path; full content review is not implied.",
       "evidence": [
-        "Git tree 8c749f0e0e3dfdcceb2fafcc0fd5a9fb3d4e5935"
+        "Git tree 0a35a8dda07b5217497ec1c45bdc64e3a7d0147c"
       ],
       "tests": [
         "tests/worker.test.mjs"
@@ -2833,7 +2972,7 @@
       "kind": "runtime-config",
       "purpose": "Cloudflare Worker bindings, cron and D1/KV configuration.",
       "evidence": [
-        "Git tree 8c749f0e0e3dfdcceb2fafcc0fd5a9fb3d4e5935",
+        "Git tree 0a35a8dda07b5217497ec1c45bdc64e3a7d0147c",
         "Relevant source inspected during mission"
       ],
       "tests": [
@@ -2849,134 +2988,147 @@
     {
       "path": ".github/workflows/ci.yml",
       "purpose": "Node/Python tests and syntax",
-      "status": "PASS",
-      "evidence": "Run 40761716096 at 8c749f0e0e3dfdcceb2fafcc0fd5a9fb3d4e5935",
-      "latestRun": {
+      "status": "NOT TESTED",
+      "evidence": "No CI run found on exact main SHA 0a35a8dda07b5217497ec1c45bdc64e3a7d0147c; PR #803 CI run 40767091631 passed on separate head 1fedc8dca472b47b2b03350184f4899bd5eb84ad.",
+      "latestRun": null,
+      "blocker": "Do not treat PR-head checks as a current-main result.",
+      "historicalLatestRun": {
         "id": 40761716096,
         "conclusion": "success",
         "url": "https://github.com/lostgodsgods-ops/super-chatty-jarvis/actions/runs/40761716096"
-      },
-      "blocker": "No workflow-specific blocker from latest run"
+      }
     },
     {
       "path": ".github/workflows/deploy-central-agent.yml",
       "purpose": "Central Agent deploy",
       "status": "NOT TESTED",
-      "evidence": "No current-SHA run found in latest 100 main runs",
+      "evidence": "No deploy run tied to the exact main SHA was observed.",
       "latestRun": null,
-      "blocker": "No run on exact snapshot SHA observed"
+      "blocker": "Production workflow remains approval-gated; no deployment was dispatched."
     },
     {
       "path": ".github/workflows/deploy-cloudflare.yml",
       "purpose": "Cloudflare Worker deploy",
       "status": "NOT TESTED",
-      "evidence": "No current-SHA run found in latest 100 main runs",
+      "evidence": "No deploy run tied to the exact main SHA was observed.",
       "latestRun": null,
-      "blocker": "No run on exact snapshot SHA observed"
+      "blocker": "Production deployment was not performed."
     },
     {
       "path": ".github/workflows/deploy-nexus-pwa.yml",
       "purpose": "PWA/static asset deploy",
       "status": "NOT TESTED",
-      "evidence": "No current-SHA run found in latest 100 main runs",
+      "evidence": "No deployment run tied to the exact main SHA was observed; public asset endpoints could not be verified with available tools.",
       "latestRun": null,
-      "blocker": "No run on exact snapshot SHA observed"
+      "blocker": "Live asset routing and Android install/update remain unverified."
     },
     {
       "path": ".github/workflows/integration-registry.yml",
       "purpose": "Integration registry contract",
       "status": "NOT TESTED",
-      "evidence": "No current-SHA run found in latest 100 main runs",
+      "evidence": "No run tied to the exact main SHA was observed.",
       "latestRun": null,
-      "blocker": "No run on exact snapshot SHA observed"
+      "blocker": "Registry contracts have repository tests but no current-main run was found."
     },
     {
       "path": ".github/workflows/monitor-central-agent.yml",
       "purpose": "Scheduled live health/search/auth/queue probes",
       "status": "NOT TESTED",
-      "evidence": "No current-SHA run found in latest 100 main runs",
+      "evidence": "No run tied to the exact main SHA was observed.",
       "latestRun": null,
-      "blocker": "No run on exact snapshot SHA observed"
+      "blocker": "No new live health/search/auth probe was completed."
     },
     {
       "path": ".github/workflows/php-core.yml",
       "purpose": "PHP sidecar checks",
       "status": "NOT TESTED",
-      "evidence": "No current-SHA run found in latest 100 main runs",
+      "evidence": "No run tied to the exact main SHA was observed.",
       "latestRun": null,
-      "blocker": "No run on exact snapshot SHA observed"
+      "blocker": "PHP Core runtime was not probed."
     },
     {
       "path": ".github/workflows/redultron-failure-sentinel.yml",
       "purpose": "Bounded retry/incident handling",
       "status": "NOT TESTED",
-      "evidence": "Run 40762571547 at 8c749f0e0e3dfdcceb2fafcc0fd5a9fb3d4e5935",
+      "evidence": "Current-main runs 40773676027 and 40773672706 completed with workflow jobs skipped; the skip reason was not confirmed from logs.",
       "latestRun": {
+        "id": 40773676027,
+        "conclusion": "skipped",
+        "url": "https://github.com/lostgodsgods-ops/super-chatty-jarvis/actions/runs/40773676027"
+      },
+      "blocker": "Need a controlled duplicate-event test and logs; skipped jobs alone do not prove retry suppression.",
+      "historicalLatestRun": {
         "id": 40762571547,
         "conclusion": "skipped",
         "url": "https://github.com/lostgodsgods-ops/super-chatty-jarvis/actions/runs/40762571547"
-      },
-      "blocker": "No workflow-specific blocker from latest run"
+      }
     },
     {
       "path": ".github/workflows/redultron-live-probe.yml",
       "purpose": "Strict authenticated hybrid certification",
       "status": "NOT TESTED",
-      "evidence": "No current-SHA run found in latest 100 main runs",
+      "evidence": "No authenticated live-probe run tied to the exact main SHA was observed.",
       "latestRun": null,
-      "blocker": "No run on exact snapshot SHA observed"
+      "blocker": "Authenticated Python execution still lacks a new live HTTP 200 proof."
     },
     {
       "path": ".github/workflows/redultron-provenance-deploy.yml",
       "purpose": "Provenance/deployment verification",
       "status": "NOT TESTED",
-      "evidence": "No current-SHA run found in latest 100 main runs",
+      "evidence": "Guarded provenance/deploy workflow was not dispatched.",
       "latestRun": null,
-      "blocker": "No run on exact snapshot SHA observed"
+      "blocker": "No production authorization was supplied for this run; do not bypass the gate."
     },
     {
       "path": ".github/workflows/redultron-release-package.yml",
       "purpose": "Release package generation",
-      "status": "PASS",
-      "evidence": "Run 40761716116 at 8c749f0e0e3dfdcceb2fafcc0fd5a9fb3d4e5935",
+      "status": "FAIL",
+      "evidence": "Four failed runs were observed on exact main SHA 0a35a8dda07b5217497ec1c45bdc64e3a7d0147c; latest is run 40772544482.",
       "latestRun": {
+        "id": 40772544482,
+        "conclusion": "failure",
+        "url": "https://github.com/lostgodsgods-ops/super-chatty-jarvis/actions/runs/40772544482"
+      },
+      "blocker": "Failure cause is not established: the workflow-run jobs API returned zero jobs and no artifacts were available.",
+      "historicalLatestRun": {
         "id": 40761716116,
         "conclusion": "success",
         "url": "https://github.com/lostgodsgods-ops/super-chatty-jarvis/actions/runs/40761716116"
-      },
-      "blocker": "No workflow-specific blocker from latest run"
+      }
     },
     {
       "path": ".github/workflows/static-site-checks.yml",
       "purpose": "Static/PWA contracts",
-      "status": "PASS",
-      "evidence": "Run 40761716093 at 8c749f0e0e3dfdcceb2fafcc0fd5a9fb3d4e5935",
-      "latestRun": {
+      "status": "NOT TESTED",
+      "evidence": "No run tied to exact main SHA 0a35a8dda07b5217497ec1c45bdc64e3a7d0147c; PR #803 Static site checks run 40767091667 passed on separate head 1fedc8dca472b47b2b03350184f4899bd5eb84ad.",
+      "latestRun": null,
+      "blocker": "PR-head pass is not a current-main or live-PWA result.",
+      "historicalLatestRun": {
         "id": 40761716093,
         "conclusion": "success",
         "url": "https://github.com/lostgodsgods-ops/super-chatty-jarvis/actions/runs/40761716093"
-      },
-      "blocker": "No workflow-specific blocker from latest run"
+      }
     },
     {
       "path": ".github/workflows/test-central-agent.yml",
       "purpose": "Central Agent tests",
-      "status": "PASS",
-      "evidence": "Run 40761716102 at 8c749f0e0e3dfdcceb2fafcc0fd5a9fb3d4e5935",
-      "latestRun": {
+      "status": "NOT TESTED",
+      "evidence": "No run tied to exact main SHA 0a35a8dda07b5217497ec1c45bdc64e3a7d0147c; PR #803 Central Agent tests run 40767091652 passed on separate head 1fedc8dca472b47b2b03350184f4899bd5eb84ad.",
+      "latestRun": null,
+      "blocker": "PR-head pass does not prove production D1/auth behavior.",
+      "historicalLatestRun": {
         "id": 40761716102,
         "conclusion": "success",
         "url": "https://github.com/lostgodsgods-ops/super-chatty-jarvis/actions/runs/40761716102"
-      },
-      "blocker": "No workflow-specific blocker from latest run"
+      }
     },
     {
       "path": ".github/workflows/test-hybrid-core.yml",
       "purpose": "Hybrid Core tests",
       "status": "NOT TESTED",
-      "evidence": "No current-SHA run found in latest 100 main runs",
+      "evidence": "No dedicated run tied to exact main SHA 0a35a8dda07b5217497ec1c45bdc64e3a7d0147c was observed; PR #803 CI run 40767091631 passed on separate head 1fedc8dca472b47b2b03350184f4899bd5eb84ad.",
       "latestRun": null,
-      "blocker": "No run on exact snapshot SHA observed"
+      "blocker": "Authenticated live Python execution remains unverified."
     }
   ],
   "integrations": [
@@ -8263,47 +8415,59 @@
       "title": "Render Logging Documentation",
       "url": "https://render.com/docs/logging",
       "purpose": "Runtime log filtering and retention limitations."
+    },
+    {
+      "id": "OWASP_SECRETS",
+      "title": "OWASP Secrets Management Cheat Sheet",
+      "url": "https://cheatsheetseries.owasp.org/cheatsheets/Secrets_Management_Cheat_Sheet.html",
+      "purpose": "Least privilege, secret lifecycle, redaction and avoiding plaintext secret logs."
+    },
+    {
+      "id": "CLOUDFLARE_D1_MIGRATIONS",
+      "title": "Cloudflare D1 Migrations",
+      "url": "https://developers.cloudflare.com/d1/reference/migrations/",
+      "purpose": "Versioned schema changes and migration tracking; avoid untracked production schema mutation."
+    },
+    {
+      "id": "NIST_AI_RMF_CORE",
+      "title": "NIST AI RMF Core",
+      "url": "https://airc.nist.gov/airmf-resources/airmf/5-sec-core/",
+      "purpose": "Continuous governance, risk measurement, management, transparency and accountability."
+    },
+    {
+      "id": "NIST_AI_RMF_PLAYBOOK",
+      "title": "NIST AI RMF Playbook",
+      "url": "https://airc.nist.gov/airmf-resources/playbook/",
+      "purpose": "Voluntary implementation suggestions aligned to Govern, Map, Measure and Manage."
     }
   ],
   "liveEvidence": {
-    "currentMainSha": "8c749f0e0e3dfdcceb2fafcc0fd5a9fb3d4e5935",
-    "currentMainCommitTime": "2026-10-28T20:15:53Z",
+    "currentMainSha": "0a35a8dda07b5217497ec1c45bdc64e3a7d0147c",
+    "currentMainCommitTime": "2026-10-28T20:40:20Z",
     "mainBranchProtection": {
       "status": "FAIL",
       "protected": false,
       "requiredStatusChecks": "off",
-      "evidence": "GET /repos/.../branches/main returned protected=false; protection endpoint returned HTTP 403 Resource not accessible by integration."
+      "evidence": "GET /branches/main reports protected=false; branch-protection endpoint returned HTTP 403 Resource not accessible by integration. No settings were changed."
     },
     "currentMainCi": [
       {
-        "workflow": "CI",
-        "runId": 40761716096,
-        "status": "PASS",
-        "url": "https://github.com/lostgodsgods-ops/super-chatty-jarvis/actions/runs/40761716096"
+        "workflow": "REDULTRON release package",
+        "runId": 40772544482,
+        "status": "FAIL",
+        "url": "https://github.com/lostgodsgods-ops/super-chatty-jarvis/actions/runs/40772544482"
       },
       {
-        "workflow": "Static site checks",
-        "runId": 40761716093,
-        "status": "PASS",
-        "url": "https://github.com/lostgodsgods-ops/super-chatty-jarvis/actions/runs/40761716093"
+        "workflow": "REDULTRON Failure Sentinel",
+        "runId": 40773676027,
+        "status": "SKIPPED",
+        "url": "https://github.com/lostgodsgods-ops/super-chatty-jarvis/actions/runs/40773676027"
       },
       {
-        "workflow": "Test Central Agent",
-        "runId": 40761716102,
-        "status": "PASS",
-        "url": "https://github.com/lostgodsgods-ops/super-chatty-jarvis/actions/runs/40761716102"
-      },
-      {
-        "workflow": "Release package",
-        "runId": 40761716116,
-        "status": "PASS",
-        "url": "https://github.com/lostgodsgods-ops/super-chatty-jarvis/actions/runs/40761716116"
-      },
-      {
-        "workflow": "Failure Sentinel",
-        "runId": 40761716129,
-        "status": "PASS",
-        "url": "https://github.com/lostgodsgods-ops/super-chatty-jarvis/actions/runs/40761716129"
+        "workflow": "REDULTRON Failure Sentinel",
+        "runId": 40773672706,
+        "status": "SKIPPED",
+        "url": "https://github.com/lostgodsgods-ops/super-chatty-jarvis/actions/runs/40773672706"
       }
     ],
     "cloudflareWorker": {
@@ -8331,7 +8495,7 @@
       "lastCheckedAt": "2026-10-29T01:51:57+05:30"
     },
     "d1": {
-      "status": "PASS — read-only query",
+      "status": "PASS — read-only query; live write/readback NOT TESTED",
       "ownerAuthDatabaseId": "cb1a54a2-eafe-4e02-8187-90c9e471edc0",
       "queryHTTPStatus": 200,
       "rowsWritten": 0,
@@ -8345,40 +8509,57 @@
         "query": "SELECT name FROM sqlite_master WHERE type='table' AND name IN ('capability_requests','verified_knowledge')",
         "matchingTables": [],
         "rowsWritten": 0,
-        "checkedAt": "2026-10-29T01:51:57+05:30"
-      }
+        "checkedAt": "2026-10-29T02:11:55+05:30"
+      },
+      "verifiedKnowledgeTablePresent": false,
+      "lastCheckedAt": "2026-10-29T02:11:55+05:30"
     },
     "capabilityRequests": {
-      "status": "BLOCKED — staging/production round-trip not tested",
+      "status": "BLOCKED — live authenticated persistence round-trip NOT TESTED",
       "requestState": "pending_owner_review",
       "executionEnabled": false,
       "requiresOwnerApproval": true,
-      "openPR": 763,
       "pr": 763,
-      "prState": "open",
-      "prDraft": false,
-      "headSha": "420e6038fff10c0773b52e37d860ff6b50b3420d",
+      "prState": "merged",
+      "mergeSha": "5705cab8611c50ce2b27adddd550adaff0af19d2",
       "ciStatus": "PASS",
-      "ciRunId": 40761440557
+      "ciRunId": 40761440557,
+      "centralAgentTestRunId": 40761440483,
+      "d1Evidence": "Read-only query HTTP 200 at 2026-10-29 02:11:55 IST; 26 tables; capability_requests and d1_migrations absent; zero rows written.",
+      "caveat": "The module lazily creates capability_requests. Table absence alone is not proof of a defect; mock D1 tests do not prove live persistence."
     },
     "liveSearch": {
-      "status": "NOT TESTED — live reachability",
+      "status": "NOT TESTED — live provider reachability",
       "configuredMode": "open-source-first",
-      "sourcePR": 746
+      "sourcePR": 746,
+      "configuredTimeoutMs": 5000,
+      "staleCacheTtlHours": 24,
+      "evidence": "Repository has provider fallback, timeout and stale-cache tests; last known health metadata explicitly reported searchProviderReachabilityChecked=false. No live provider probe completed in this run."
     },
     "pwa": {
       "status": "BLOCKED — live install/update not tested",
       "repositoryCache": "redultron-core-shell-v18-core-3",
-      "browserAccess": "Web open tool could not access Worker/Render health URLs."
+      "browserAccess": "Web endpoint opens failed; Browser Use returned insufficient_credits; KERNEL connection-context request required user input in non-interactive mode.",
+      "releasePackageStatus": "FAIL — current-main run 40772544482",
+      "liveHTTPStatus": "NOT TESTED",
+      "androidChromeInstallUpdate": "NOT TESTED"
     },
     "agents": {
       "agentRelay": "BLOCKED — workspace not connected to a relay",
-      "consensusResearchAgent": "BLOCKED — create_thread rejected: user input required in non-interactive mode"
+      "consensusResearchAgent": "BLOCKED — prior non-interactive thread-creation rejection; public sources researched directly instead.",
+      "codeAgentMobile": "BLOCKED — no online sessions found on either connected account link.",
+      "jackHamr": "BLOCKED — credits exhausted; balance -11.737204 USD; no agents started.",
+      "agentSwarm": "BLOCKED — zero linked swarms.",
+      "browserUse": "BLOCKED — insufficient credits.",
+      "kernelBrowser": "BLOCKED — connection context requires user input in non-interactive mode."
     },
     "notes": [
-      "No secrets read or modified.",
-      "No production writes, deployments, merges or financial actions performed.",
-      "Capability requests remain owner-reviewed; learning/proposal does not grant install or execute permission."
+      "No secrets were read or changed.",
+      "No production D1 rows were written; no production deployment or merge was performed.",
+      "PR #803 CI passed on its branch head but the PR remains unmerged; live Python auth is not verified.",
+      "Main branch protection remains disabled according to the branch endpoint; the protection endpoint itself returned HTTP 403.",
+      "Release-package workflow failures on the current main SHA remain unexplained because job logs/artifacts were unavailable through the current connector response.",
+      "Catalog visibility does not imply each app is connected or authorized for REDULTRON runtime."
     ],
     "persistentLearning": {
       "status": "PASS — repository checks; NOT TESTED live",
@@ -8394,7 +8575,71 @@
       "tablePresentInLatestTargetedQuery": false,
       "rowsWritten": 0,
       "verificationCaveat": "The module requires testsPassed=true, a test summary and evidence strings but does not independently validate a GitHub Actions run; records are marked verified from owner-authenticated submissions.",
-      "runtimeStatus": "NOT TESTED — production Worker SHA predates PR #774."
+      "runtimeStatus": "NOT TESTED — Worker SHA last observed as a0d6087dedb7a29aaa07c9302167ddbda5b352da predates the learning feature and current main; no new live endpoint probe succeeded."
+    },
+    "pr803": {
+      "status": "PASS — PR-head CI only; open and unmerged",
+      "headSha": "1fedc8dca472b47b2b03350184f4899bd5eb84ad",
+      "state": "open",
+      "merged": false,
+      "runs": [
+        {
+          "workflow": "CI",
+          "runId": 40767091631,
+          "status": "PASS",
+          "url": "https://github.com/lostgodsgods-ops/super-chatty-jarvis/actions/runs/40767091631"
+        },
+        {
+          "workflow": "Test Central Agent",
+          "runId": 40767091652,
+          "status": "PASS",
+          "url": "https://github.com/lostgodsgods-ops/super-chatty-jarvis/actions/runs/40767091652"
+        },
+        {
+          "workflow": "Static site checks",
+          "runId": 40767091667,
+          "status": "PASS",
+          "url": "https://github.com/lostgodsgods-ops/super-chatty-jarvis/actions/runs/40767091667"
+        }
+      ],
+      "scope": "Whitespace/line-break owner-secret preflight and workflow-contract tests; not proof of live secret parity or authenticated Python execution.",
+      "review": "Codex review could not complete because its usage limit was reached."
+    },
+    "releasePackageFailure": {
+      "status": "FAIL",
+      "sha": "0a35a8dda07b5217497ec1c45bdc64e3a7d0147c",
+      "runIds": [
+        40772544482,
+        40771842906,
+        40770973337,
+        40770648736
+      ],
+      "latestRunId": 40772544482,
+      "artifactsAvailable": false,
+      "jobListReturnedZeroJobs": true,
+      "rootCause": "NOT TESTED — failure logs/jobs were not exposed by the available GitHub connector response."
+    },
+    "sentinel": {
+      "status": "NOT TESTED — current sampled runs skipped",
+      "mergedPR": 735,
+      "mergeSha": "d5c2b232962439d20870cabe68882a9fa7543df9",
+      "historicalPassingRuns": [
+        40737494616,
+        40737495719,
+        40737495588,
+        40737486845
+      ],
+      "sampledCurrentMainRuns": [
+        {
+          "runId": 40773676027,
+          "conclusion": "skipped"
+        },
+        {
+          "runId": 40773672706,
+          "conclusion": "skipped"
+        }
+      ],
+      "caveat": "A skipped workflow job is not by itself proof that a duplicate retry was correctly suppressed; no controlled live replay was performed."
     }
   },
   "coveragePolicy": {
@@ -8409,5 +8654,40 @@
     "externalContentIsUntrustedData": true,
     "learningDoesNotGrantPermission": true,
     "productionWritesAllowed": false
+  },
+  "snapshotScope": "File inventory reflects main Git tree at 0a35a8dda07b5217497ec1c45bdc64e3a7d0147c. File-level latestRun fields may be historical and are not proof of current-main or production behavior unless the SHA matches.",
+  "agentInventory": {
+    "visibleToolCatalog": {
+      "functionCount": 15511,
+      "applicationNamespaces": 714,
+      "limitation": "Visible tool metadata is not proof of account authorization or runtime integration."
+    },
+    "services": [
+      {
+        "service": "CodeAgent Mobile",
+        "status": "BLOCKED",
+        "evidence": "No online sessions on either connected account link."
+      },
+      {
+        "service": "JackHamr",
+        "status": "BLOCKED",
+        "evidence": "Credits exhausted; balance -11.737204 USD; no new agent started."
+      },
+      {
+        "service": "Agent Swarm",
+        "status": "BLOCKED",
+        "evidence": "No linked swarms."
+      },
+      {
+        "service": "Browser Use",
+        "status": "BLOCKED",
+        "evidence": "Insufficient credits."
+      },
+      {
+        "service": "KERNEL browser",
+        "status": "BLOCKED",
+        "evidence": "Connection-context call required user input in non-interactive mode."
+      }
+    ]
   }
 }
