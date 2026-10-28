@@ -1,6 +1,6 @@
 # REDULTRON CORE 3.0 — Overnight Coverage Matrix
 
-**Snapshot:** 2026-10-29T02:37:02+05:30
+**Snapshot:** 2026-10-29T02:48:18+05:30
 **Repository:** `lostgodsgods-ops/super-chatty-jarvis`  
 **Branch:** `main`  
 **Commit SHA:** `0a35a8dda07b5217497ec1c45bdc64e3a7d0147c`  
@@ -38,8 +38,8 @@ The machine-readable inventory contains one row per tracked file at snapshot SHA
 | Authenticated hybrid execution | FAIL — last known result | [Probe run 40722808598](https://github.com/lostgodsgods-ops/super-chatty-jarvis/actions/runs/40722808598) | HTTP 502 `HYBRID_CORE_AUTH_REJECTED_401`; exact secret/config mismatch remains unconfirmed. No new authenticated probe was run. |
 | D1 owner-auth DB | PASS — read-only query | HTTP 200; 26 tables; zero rows written | `capability_requests`, `d1_migrations` and `verified_knowledge` are absent in the current production query. |
 | Capability request queue | BLOCKED | [PR #763](https://github.com/lostgodsgods-ops/super-chatty-jarvis/pull/763) merged at `5705cab8611c50ce2b27adddd550adaff0af19d2` | Production and staging target tables are absent; authenticated POST→D1→GET is NOT TESTED. Requests remain owner-reviewed. |
-| Live Search | NOT TESTED | `SEARCH_PROVIDER_MODE=open-source-first`; [PR #746](https://github.com/lostgodsgods-ops/super-chatty-jarvis/pull/746) merged | Live provider reachability, timeout, fallback and freshness behavior remain unverified. |
-| PWA install/update | BLOCKED | Repository cache `redultron-core-shell-v18-core-3`; last deployed source cache `redultron-core-shell-v17-core-3` | No actual Android browser install/update/offline evidence was obtained. |
+| Live Search | FAIL — one provider HTTP 403 observed | Cloudflare Observability dry query at 2026-10-29 02:45 IST: `wikipedia-api`, HTTP 403, Worker version 882 | Current Wikipedia request lacks a descriptive User-Agent; plausible cause, not confirmed. PR #820 proposes the fix; other providers remain NOT TESTED. |
+| PWA install/update | BLOCKED | Repository cache `redultron-core-shell-v18-core-3`; deployed source cache `redultron-core-shell-v17-core-3` | Browser Use public-read run was blocked by insufficient credits; actual Android install/update is NOT TESTED. |
 | Agent/task execution | BLOCKED | Agent Swarm has no linked swarm; JackHamr credit balance is exhausted; Super account has 0 connected devices | No agent was spawned, no recruitment occurred and no background execution is claimed. |
 | Human ethics controls | PASS — policy contract tests | [Human Ethics controls](https://github.com/lostgodsgods-ops/super-chatty-jarvis/blob/main/docs/REDULTRON_HUMAN_ETHICS_CONTROL_MATRIX.md) | Policy/test contract exists; implementation and legal compliance are not certified by documentation alone. |
 
@@ -1021,6 +1021,9 @@ There are 15511 visible tool functions across 714 namespaces in the current Chat
 | RENDER_LOGS | [Render Logging Documentation](https://render.com/docs/logging) | Runtime log filtering and retention limitations. |
 | DPDP_ACT_2023 | [India Digital Personal Data Protection Act, 2023 — MeitY official page](https://www.meity.gov.in/data-governance/digital-personal-data-protection-act-2023) | Indian personal-data protection statute; applicability and commencement dates require legal review. |
 | DPDP_RULES_2025 | [Digital Personal Data Protection Rules, 2025 — MeitY official Gazette PDF](https://www.meity.gov.in/static/uploads/2025/11/53450e6e5dc0bfa85ebd78686cadad39.pdf) | Official rules and phased commencement schedule; verify applicable provisions for the relevant date. |
+| WIKIMEDIA_USER_AGENT_POLICY | [Wikimedia Foundation User-Agent Policy](https://foundation.wikimedia.org/wiki/Policy%3AWikimedia_Foundation_User-Agent_Policy) | A meaningful User-Agent is required; missing/generic values may be rejected with HTTP 403. |
+| WIKIMEDIA_API_ACCESS_POLICY | [Wikimedia APIs Access Policy](https://www.mediawiki.org/wiki/Wikimedia_APIs/Access_policy) | Client identification, rate limits and API access expectations. |
+| CLOUDFLARE_WORKERS_FETCH | [Cloudflare Workers Fetch API](https://developers.cloudflare.com/workers/runtime-apis/fetch/) | Official documentation for outbound fetch and custom request headers in Workers. |
 
 ## 8. Ethics/control principles mapped to engineering evidence
 
@@ -1041,12 +1044,12 @@ There are 15511 visible tool functions across 714 namespaces in the current Chat
 
 ## 9. Priority queue
 
-1. **Release workflow:** PR #801 is ready for review; main release-package push runs fail before jobs. Review and merge only through repository controls.
+1. **Release workflow:** PR #801 is ready for review; main release-package push runs fail before jobs due duplicate `push:` keys. Review and merge only through repository controls.
 2. **Python Core:** preserve the latest known HTTP 502 / upstream 401 evidence; obtain a secret-safe parity attestation and run the strict authenticated probe only through an authorized workflow.
 3. **Deployment provenance:** Cloudflare is 115 commits behind main and Render is 43 commits behind main. Do not trigger production mutation without the existing production approval gate.
 4. **Capability persistence:** PR #763 is merged, but production and staging lack `capability_requests`; run an authenticated POST→D1→GET test only in authorized staging.
-5. **Live Search:** test provider reachability, timeouts, fallback and freshness with bounded real responses; mocked tests do not prove reachability.
-6. **PWA:** verify manifest, served cache version, service-worker activation, offline navigation and install/update in an actual Android browser session.
+5. **Live Search:** production telemetry observed one Wikipedia API HTTP 403; PR #820 adds a policy-aligned User-Agent and PR #816 hardens malformed HTML parsing. Other provider reachability remains NOT TESTED.
+6. **PWA:** verify manifest, served cache version, service-worker activation, offline navigation and install/update in an actual Android browser session; browser tool credits are currently insufficient.
 7. **Branch protection:** `GET /branches/main` reports `protected=false`; detailed settings are inaccessible to this connection and require repository-admin verification.
 8. **Human ethics:** keep the 12-principle / 24-requirement matrix linked to implementation and test evidence; legal applicability of Indian DPDP provisions requires date/scope review.
 9. **Agent capacity:** no linked Agent Swarm; JackHamr credits exhausted; browser-agent account has no connected device. Do not claim agent execution or background work.
