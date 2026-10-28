@@ -28,8 +28,8 @@ test("architecture status route returns explicit layer and provider readiness", 
   const body = await response.json();
   assert.equal(body.ok, true);
   assert.equal(body.layers.length, 7);
-  assert.equal(body.providers.find(x => x.id === "workers-ai").status, "available");
-  assert.equal(body.providers.find(x => x.id === "gemini").status, "not_implemented");
+  assert.equal(body.providers.find(x => x.id === "workers-ai").status, "configured_not_verified");
+  assert.equal(body.providers.find(x => x.id === "gemini").status, "not_configured");
 });
 
 test("MCP and vector status endpoints cannot imply execution is enabled", async () => {
@@ -81,4 +81,16 @@ test("research status selects only bounded-research-coordinator audit rows", asy
   assert.equal(body.lastRun.status, "completed");
   assert.equal(body.lastRun.errorCount, 0);
   assert.ok(queries.some(query => query.sql.includes("agent_id = ?") && query.bindings[0] === "bounded-research-coordinator"));
+});
+
+
+test("model provider registry and chat execution reject unauthenticated requests", async () => {
+  const providers = await request("/api/models/providers", false);
+  assert.equal(providers.status, 401);
+  const chat = await worker.fetch(new Request("https://central-agent.test/api/models/chat", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ provider: "openai", prompt: "test" })
+  }), mockEnv());
+  assert.equal(chat.status, 401);
 });

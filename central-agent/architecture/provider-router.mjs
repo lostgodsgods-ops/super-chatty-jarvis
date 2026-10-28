@@ -7,9 +7,15 @@
 const PROVIDERS = Object.freeze({
   "workers-ai": { families: ["llm", "slm"], transport: "cloudflare-ai-binding", implemented: true, env: "AI" },
   "tavily": { families: ["search"], transport: "https", implemented: true, env: "SEARCH_API_KEY" },
-  "openai": { families: ["llm", "vlm"], transport: "https", implemented: false, env: "OPENAI_API_KEY" },
-  "claude": { families: ["llm", "vlm"], transport: "https", implemented: false, env: "ANTHROPIC_API_KEY" },
-  "gemini": { families: ["llm", "vlm"], transport: "https", implemented: false, env: "GEMINI_API_KEY" },
+  "openai": { families: ["llm", "vlm"], transport: "https", implemented: true, env: "OPENAI_API_KEY" },
+  "claude": { families: ["llm", "vlm"], transport: "https", implemented: true, env: "ANTHROPIC_API_KEY" },
+  "gemini": { families: ["llm", "vlm"], transport: "https", implemented: true, env: "GEMINI_API_KEY" },
+  "deepseek": { families: ["llm"], transport: "https", implemented: true, env: "DEEPSEEK_API_KEY" },
+  "groq": { families: ["llm", "slm"], transport: "https", implemented: true, env: "GROQ_API_KEY" },
+  "mistral": { families: ["llm", "slm"], transport: "https", implemented: true, env: "MISTRAL_API_KEY" },
+  "together-ai": { families: ["llm"], transport: "https", implemented: true, env: "TOGETHER_API_KEY" },
+  "fireworks-ai": { families: ["llm"], transport: "https", implemented: true, env: "FIREWORKS_API_KEY" },
+  "openrouter": { families: ["llm"], transport: "https", implemented: true, env: "OPENROUTER_API_KEY" },
   "llama-hosted": { families: ["llm", "slm"], transport: "https", implemented: false, env: "LLAMA_API_KEY" },
   "lcm": { families: ["long-context-memory"], transport: "adapter", implemented: false, env: "LCM_ADAPTER" },
   "lam": { families: ["language-action-model"], transport: "adapter", implemented: false, env: "LAM_ADAPTER" },
@@ -23,7 +29,7 @@ export function listProviderCapabilities(env = {}) {
   return Object.entries(PROVIDERS).map(([id, provider]) => ({
     id, families: [...provider.families], transport: provider.transport,
     implemented: provider.implemented, configured: Boolean(provider.env && env[provider.env]),
-    status: !provider.implemented ? "not_implemented" : !env[provider.env] ? "not_configured" : "available"
+    status: !provider.implemented ? "not_implemented" : !env[provider.env] ? "not_configured" : "configured_not_verified"
   }));
 }
 export function resolveProvider(providerId, env = {}) {
