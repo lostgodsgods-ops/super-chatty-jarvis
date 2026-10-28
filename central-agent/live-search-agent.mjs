@@ -85,6 +85,21 @@ async function ddg(query, fetchImpl, signal) {
   const sources = parseDdg(await response.text());
   return sources.length ? { provider: "duckduckgo-html", sources } : null;
 }
+function normalizeNewsUrl(value) {
+  const original = safeUrl(value);
+  if (!original) return "";
+  try {
+    const parsed = new URL(original);
+    // Bing's RSS endpoint wraps the publisher destination in an apiclick URL.
+    // Return only a valid HTTP(S) destination; retain the wrapper if it cannot be decoded.
+    if (/(^|\\.)bing\\.com$/i.test(parsed.hostname) && parsed.pathname === "/news/apiclick.aspx") {
+      const target = safeUrl(parsed.searchParams.get("url") || "");
+      if (target) return target;
+    }
+  } catch {}
+  return original;
+}
+
 async function newsRss(query, fetchImpl, provider, signal) {
   const url = new URL(provider === "bing-news-rss" ? "https://www.bing.com/news/search" : "https://news.google.com/rss/search");
   url.searchParams.set("q", query);
@@ -98,7 +113,7 @@ async function newsRss(query, fetchImpl, provider, signal) {
       const found = item.match(new RegExp("<" + name + "(?:\\s+[^>]*)?>([\\s\\S]*?)<\\/" + name + ">", "i"));
       return found ? decodeHtml(found[1].replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g, "$1").replace(/<[^>]+>/g, " ")) : "";
     };
-    return { title: field("title"), url: field("link"), content: field("description"), published_date: field("pubDate") };
+    return { title: field("title"), url: normalizeNewsUrl(field("link")), content: field("description"), published_date: field("pubDate") };
   });
   const sources = normalizeItems(items);
   return sources.length ? { provider, sources } : null;
