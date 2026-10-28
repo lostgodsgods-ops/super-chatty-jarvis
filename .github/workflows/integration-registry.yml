@@ -1,0 +1,32 @@
+name: Integration Registry Contract
+
+on:
+  pull_request:
+    paths:
+      - "docs/integration-registry.json"
+      - "docs/REDULTRON_INTEGRATION_REGISTRY.md"
+      - "tests/integration-registry.test.mjs"
+      - ".github/workflows/integration-registry.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate-registry:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Validate JSON syntax
+        run: node -e 'JSON.parse(require("node:fs").readFileSync("docs/integration-registry.json", "utf8"))'
+
+      - name: Run registry contract tests
+        run: node --test tests/integration-registry.test.mjs
