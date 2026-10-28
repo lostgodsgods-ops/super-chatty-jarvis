@@ -60,7 +60,8 @@ export function inspectHybridCoreConfiguration(env = {}) {
   const ownerSecretConfigured = secret.length > 0;
   // Do not silently normalize a shared authentication secret: the sidecar compares
   // the configured value exactly, so surrounding whitespace can cause auth drift.
-  const ownerSecretPolicyValid = secret.length >= MIN_OWNER_SECRET_LENGTH && secret === secret.trim();
+  const ownerSecretPolicyValid = secret.length >= MIN_OWNER_SECRET_LENGTH &&
+    secret === secret.trim() && !/[\r\n]/.test(secret);
 
   let failureCode = null;
   if (!endpointConfigured || !ownerSecretConfigured) failureCode = "HYBRID_CORE_NOT_CONFIGURED";
