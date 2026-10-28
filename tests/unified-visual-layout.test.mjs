@@ -40,3 +40,23 @@ test("the unified layout has explicit phone-first breakpoints and reduced-motion
   const legacy = await readFile(new URL("../jarvis/core3.html", import.meta.url), "utf8");
   assert.match(legacy, /location\.replace\(.*index\.html/);
 });
+
+test("the refreshed command deck retains the requested utility modules with safe defaults", async () => {
+  for (const id of [
+    "utilityDockTitle",
+    "newsOpenBtn",
+    "webSearchBtn",
+    "utilityVideoUrl",
+    "videoLoadBtn",
+    "videoStopBtn",
+    "walletSafetyBtn",
+    "qrCameraBtn",
+    "localFilesInput",
+    "utilitySecurityStatus"
+  ]) {
+    assert.ok(html.includes(`id="${id}"`), `missing requested utility module: ${id}`);
+  }
+  assert.match(html, /QR decoding and payment execution are not enabled/i);
+  assert.match(html, /No private keys, card data, or seed phrases are collected/i);
+  assert.match(html, /local preview only/i);
+});
