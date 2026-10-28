@@ -31,6 +31,11 @@ function createD1Mock() {
           if (normalizedSql.startsWith("INSERT INTO capability_requests")) {
             if (!state.schemaCreated) throw new Error("schema was not created before insert");
             const [id, goal, rationale, requestedToolsJson, createdAt] = boundValues;
+            const existing = state.rows.find(row => row.id === id);
+            if (existing && normalizedSql.includes("ON CONFLICT(id) DO NOTHING")) {
+              return { success: true, meta: { changes: 0 } };
+            }
+            if (existing) throw new Error("UNIQUE constraint failed: capability_requests.id");
             state.rows.push({
               id, goal, rationale, requestedToolsJson,
               status: "pending_owner_review",
@@ -41,6 +46,22 @@ function createD1Mock() {
             return { success: true, meta: { changes: 1 } };
           }
           throw new Error("Unexpected D1 run statement");
+        },
+        async first() {
+          if (!normalizedSql.includes("FROM capability_requests WHERE id = ?")) {
+            throw new Error("Unexpected D1 single-row query statement");
+          }
+          const row = state.rows.find(item => item.id === boundValues[0]);
+          return row ? {
+            id: row.id,
+            goal: row.goal,
+            rationale: row.rationale,
+            requestedToolsJson: row.requestedToolsJson,
+            status: row.status,
+            executionEnabled: row.executionEnabled,
+            requiresOwnerApproval: row.requiresOwnerApproval,
+            createdAt: row.createdAt
+          } : null;
         },
         async all() {
           if (!normalizedSql.startsWith("SELECT id,goal,rationale,requested_tools_json AS requestedToolsJson")) {
