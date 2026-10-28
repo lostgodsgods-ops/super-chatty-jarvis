@@ -32,11 +32,24 @@ function redultron_header(array $headers, string $name): string {
     return '';
 }
 
+function redultron_char_length(string $value): int {
+    $count = preg_match_all('/./us', $value);
+    return $count === false ? PHP_INT_MAX : $count;
+}
+
+function redultron_char_slice(string $value, int $limit): string {
+    $chars = preg_split('//u', $value, -1, PREG_SPLIT_NO_EMPTY);
+    if (!is_array($chars)) {
+        return '';
+    }
+    return implode('', array_slice($chars, 0, $limit));
+}
+
 function redultron_process_task(mixed $task, mixed $text): mixed {
     if (!is_string($task) || !in_array($task, REDULTRON_ALLOWED_TASKS, true)) {
         throw new DomainException('HYBRID_TASK_NOT_ALLOWED');
     }
-    if (!is_string($text) || trim($text) === '' || mb_strlen($text, 'UTF-8') > REDULTRON_MAX_TEXT_CHARS) {
+    if (!is_string($text) || trim($text) === '' || redultron_char_length($text) > REDULTRON_MAX_TEXT_CHARS) {
         throw new DomainException('HYBRID_TEXT_LENGTH_INVALID');
     }
 
@@ -48,7 +61,7 @@ function redultron_process_task(mixed $task, mixed $text): mixed {
     if ($task === 'summarize') {
         preg_match_all('/.*?(?:[.!?]+(?=\s|$)|$)/u', $normalized, $matches);
         $sentences = array_values(array_filter(array_map('trim', $matches[0]), static fn($s) => $s !== ''));
-        return mb_substr(implode(' ', array_slice($sentences, 0, 3)), 0, 2000, 'UTF-8');
+        return redultron_char_slice(implode(' ', array_slice($sentences, 0, 3)), 2000);
     }
 
     if ($task === 'extract_keywords') {
@@ -85,7 +98,7 @@ function redultron_process_task(mixed $task, mixed $text): mixed {
     if ($labels === []) {
         $labels[] = 'general';
     }
-    return ['labels' => $labels, 'characters' => mb_strlen($normalized, 'UTF-8')];
+    return ['labels' => $labels, 'characters' => redultron_char_length($normalized)];
 }
 
 function redultron_handle_request(string $method, string $path, array $headers, string $rawBody, string $expectedSecret): array {
