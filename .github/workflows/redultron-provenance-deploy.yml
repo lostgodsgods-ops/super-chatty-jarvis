@@ -115,7 +115,7 @@ jobs:
             deploy_state="$(jq -r 'if type == "object" and (.status | type) == "string" then .status else "UNKNOWN" end' "$status_response" 2>/dev/null || printf 'UNKNOWN')"
             case "$deploy_state" in
               live)
-                echo "PASS: Render sidecar deploy reached live state; deploy ID and response body suppressed."
+                echo "PASS: Render deploy status is live; deploy ID and response body suppressed."
                 break
                 ;;
               build_failed|update_failed|canceled|pre_deploy_failed)
