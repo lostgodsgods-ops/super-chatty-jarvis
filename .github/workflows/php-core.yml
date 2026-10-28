@@ -39,7 +39,11 @@ jobs:
             fi
             sleep 0.25
           done
-          grep -Fq '"service":"redultron-php-core"' /tmp/redultron-health.json
+          if ! grep -Fq '"service":"redultron-php-core"' /tmp/redultron-health.json; then
+            cat /tmp/redultron-php-core.log
+            cat /tmp/redultron-health.json
+            exit 1
+          fi
           status="$(curl --silent --show-error -o /tmp/redultron-result.json -w '%{http_code}' \
             -X POST http://127.0.0.1:8788/v1/execute \
             -H 'Content-Type: application/json' \
