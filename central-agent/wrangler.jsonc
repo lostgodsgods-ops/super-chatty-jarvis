@@ -33,7 +33,8 @@
     {
       "binding": "DB",
       "database_name": "super-chatty-owner-auth",
-      "database_id": "cb1a54a2-eafe-4e02-8187-90c9e471edc0"
+      "database_id": "cb1a54a2-eafe-4e02-8187-90c9e471edc0",
+      "migrations_dir": "../migrations"
     }
   ],
   "durable_objects": {
