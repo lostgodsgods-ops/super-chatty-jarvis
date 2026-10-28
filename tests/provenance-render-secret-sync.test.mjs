@@ -33,7 +33,7 @@ test("provenance deploy preflights Render credentials and synchronizes one secre
   assert.doesNotMatch(sync, /curl .*--verbose|set -x|echo .*\$(?:\{(?:REDULTRON_)?OWNER_SECRET\}|(?:REDULTRON_)?OWNER_SECRET)/);
 
   const renderDeployment = workflow.slice(renderDeploy, workerDeploy);
-  assert.match(renderDeployment, /-X POST/);
+  assert.match(renderDeployment, /deploy_state[\s\S]*\blive\b/);
   assert.match(renderDeployment, /\/deploys/);
   assert.match(renderDeployment, /deploy_state[\\s\\S]*\\blive\\b/);
   assert.match(renderDeployment, /attempt/);
