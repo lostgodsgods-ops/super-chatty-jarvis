@@ -349,7 +349,7 @@ class PythonCoreStartupSecretGuardTests(unittest.TestCase):
         previous_port = os.environ.get("PORT")
         os.environ["OWNER_SECRET"] = padded_secret
         os.environ["HOST"] = "127.0.0.1"
-        os.environ["PORT"] = "0"
+        os.environ["PORT"] = "8788"
         original_server = python_core.SecureThreadingHTTPServer
 
         class UnexpectedServer:
