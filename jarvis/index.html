@@ -1950,9 +1950,7 @@ body.auth-locked #ownerSessionStatus{font-weight:700}
   
   // Load diagnostics as a deferred auxiliary module while preserving the single self-contained app script.
   const diagnosticsScript = document.createElement("script"); diagnosticsScript.src = "./diagnostics.js"; diagnosticsScript.async = true; document.head.append(diagnosticsScript);
-</script>
 
-<script id="redultron-utility-dock-v18">
 (() => {
   "use strict";
   const $ = (id) => document.getElementById(id);
@@ -2033,7 +2031,10 @@ body.auth-locked #ownerSessionStatus{font-weight:700}
   if (ownerBadge && "MutationObserver" in window) new MutationObserver(syncOwnerVisual).observe(ownerBadge,{childList:true,subtree:true,characterData:true});
   syncOwnerVisual();
 })();
+
 </script>
+
+
 
 </body>
 </html>
