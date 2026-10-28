@@ -238,3 +238,28 @@ test("rejects redirects for sidecar calls so the owner secret cannot be forwarde
   assert.equal(request.options.headers["x-owner-secret"], env.OWNER_SECRET);
   assert.equal(request.options.headers.authorization, undefined);
 });
+
+
+test("whitespace-padded owner secrets fail closed instead of being silently normalized", async () => {
+  const secret = " owner-secret-test-value-at-least-32-characters ";
+  const diagnostics = inspectHybridCoreConfiguration({
+    PYTHON_CORE_URL: "https://python.example/v1/execute",
+    OWNER_SECRET: secret
+  });
+  assert.equal(diagnostics.ownerSecretConfigured, true);
+  assert.equal(diagnostics.ownerSecretPolicyValid, false);
+  assert.equal(diagnostics.readyForRequest, false);
+  assert.equal(diagnostics.failureCode, "HYBRID_CORE_SECRET_INVALID");
+  assert.equal(JSON.stringify(diagnostics).includes(secret), false);
+
+  let called = false;
+  await assert.rejects(
+    executeHybridTask(
+      { task: "summarize", text: "Hello." },
+      { PYTHON_CORE_URL: "https://python.example/v1/execute", OWNER_SECRET: secret },
+      { fetchImpl: async () => { called = true; return new Response("{}", { status: 200 }); } }
+    ),
+    error => error instanceof HybridCoreError && error.code === "HYBRID_CORE_SECRET_INVALID"
+  );
+  assert.equal(called, false);
+});
