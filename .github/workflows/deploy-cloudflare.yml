@@ -96,6 +96,7 @@ jobs:
 
           fetch_asset "/" "$tmp/index.html" "$tmp/root.headers" "text/html"
           grep -Fq 'REDULTRON CORE 3.0 · Neural Console' "$tmp/index.html"
+          grep -Fq 'name="application-version"' "$tmp/index.html" || { echo "::error::Deployed HTML is missing the application-version marker."; exit 1; }
           grep -Fq "$expected_version" "$tmp/index.html" || { echo "::error::Deployed HTML version does not match repository source ($expected_version)"; exit 1; }
 
           fetch_asset "/sw.js" "$tmp/sw-root.js" "$tmp/sw-root.headers" "javascript"
