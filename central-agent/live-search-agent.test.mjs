@@ -226,3 +226,37 @@ test("stale cache is not reused across provider modes or fetch implementations",
     error => error.code === "LIVE_SEARCH_ALL_PROVIDERS_FAILED"
   );
 });
+
+
+test("sends a descriptive User-Agent to the Wikimedia API fallback", async () => {
+  let seenUserAgent = null;
+  const fetchImpl = async (url, init = {}) => {
+    const value = String(url);
+    if (value.includes("duckduckgo.com/html")) {
+      return new Response("", { status: 503 });
+    }
+    if (value.includes("en.wikipedia.org/w/api.php")) {
+      seenUserAgent = new Headers(init.headers || {}).get("user-agent");
+      return new Response(
+        JSON.stringify({ query: { search: [
+          { title: "Test article", pageid: 123, snippet: "A safe snippet" }
+        ] } }),
+        { status: 200, headers: { "content-type": "application/json" } }
+      );
+    }
+    throw new Error("Unexpected provider: " + value);
+  };
+
+  const result = await searchLiveWeb(
+    "general technology research",
+    { SEARCH_PROVIDER_MODE: "public" },
+    { fetchImpl }
+  );
+
+  assert.equal(result.provider, "wikipedia-api");
+  assert.equal(result.sources[0].url, "https://en.wikipedia.org/?curid=123");
+  assert.equal(
+    seenUserAgent,
+    "REDULTRON-Core/3.0 (https://github.com/lostgodsgods-ops/super-chatty-jarvis)"
+  );
+});
