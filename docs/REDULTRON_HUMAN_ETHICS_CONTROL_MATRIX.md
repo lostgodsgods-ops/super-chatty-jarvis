@@ -9,7 +9,7 @@
 
 Translate authoritative human-rights, AI-governance, privacy, accessibility, child-rights and application-security guidance into requirements that can be tested or reviewed in REDULTRON. The source documents differ in legal status and scope: the UDHR is a declaration; UNESCO/OECD recommendations and NIST frameworks are not themselves a universal legal compliance certificate; WCAG is a technical W3C Recommendation; legislation applies only where its jurisdiction and commencement conditions are met.
 
-This matrix defines **proposed controls**, not proof that all controls are implemented. Each control must be verified against code, tests, configuration and live behavior. Record **PASS / FAIL / BLOCKED / NOT TESTED** with evidence. A policy file or passing static contract test is not proof of production compliance.
+This matrix defines **proposed controls** and is not a claim of legal compliance or proof that all controls are implemented. Each control must be verified against code, tests, configuration and live behavior. Record **PASS / FAIL / BLOCKED / NOT TESTED** with evidence. A policy file or passing static contract test is not proof of production compliance.
 
 ## Non-negotiable operating constraints
 
