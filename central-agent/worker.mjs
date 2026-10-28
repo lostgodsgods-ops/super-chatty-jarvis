@@ -2184,10 +2184,13 @@ export default {
         }, 200, cors);
       } catch (error) {
         const status = error instanceof HybridCoreError ? error.status : 502;
-        const code = error instanceof HybridCoreError
-          ? (Number.isInteger(error.upstreamStatus) ? `${error.code}_${error.upstreamStatus}` : error.code)
-          : "HYBRID_CORE_FAILED";
-        console.warn("hybrid_probe_failed", { code, status });
+        const upstreamStatus = error instanceof HybridCoreError &&
+          Number.isInteger(error.upstreamStatus) && error.upstreamStatus >= 100 && error.upstreamStatus <= 599
+          ? error.upstreamStatus : undefined;
+        const code = error instanceof HybridCoreError ? error.code : "HYBRID_CORE_FAILED";
+        console.warn("hybrid_probe_failed", {
+          code, status, ...(upstreamStatus === undefined ? {} : { upstreamStatus })
+        });
 
         // A local deterministic fallback keeps the authenticated health probe
         // available when the external sidecar is down. It is explicitly labeled
@@ -2202,6 +2205,7 @@ export default {
           return json({
             ok: false,
             code,
+            ...(upstreamStatus === undefined ? {} : { upstreamStatus }),
             probe: "authenticated-hybrid-roundtrip",
             engine: "guarded-local-fallback",
             task: "summarize",
@@ -2213,7 +2217,7 @@ export default {
             hybridPythonCoreExecutionVerified: false
           }, status, cors);
         }
-        return json({ ok: false, code }, status, cors);
+        return json({ ok: false, code, ...(upstreamStatus === undefined ? {} : { upstreamStatus }) }, status, cors);
       }
     }
 

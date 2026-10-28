@@ -94,3 +94,16 @@ test("accepts each task's documented result type and rejects cross-task schema m
     );
   }
 });
+
+test("upstream auth rejections retain numeric status for sanitized diagnostics", async () => {
+  for (const status of [401, 403]) {
+    await assert.rejects(
+      executeHybridTask(
+        { task: "summarize", text: "Hi." },
+        { PYTHON_CORE_URL: "https://python.example/v1/execute", OWNER_SECRET: "x".repeat(32) },
+        { fetchImpl: async () => new Response("{}", { status }) }
+      ),
+      error => error.code === "HYBRID_CORE_AUTH_REJECTED" && error.upstreamStatus === status
+    );
+  }
+});
