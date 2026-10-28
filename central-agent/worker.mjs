@@ -1491,6 +1491,7 @@ export default {
 
     const gatewayChatRoute = request.method === "POST" && (url.pathname === "/chat" || url.pathname === "/internal/chat");
     const memoryBridgeRoute = url.pathname === "/api/memory";
+    const learningKnowledgeRoute = url.pathname === "/api/learning/knowledge";
     // This internal probe uses its own route-specific OWNER_SECRET gate below,
     // not a browser owner session. Keep the exception narrowly scoped to POST.
     const internalHybridProbeRoute = request.method === "POST" && url.pathname === "/api/internal/hybrid-probe";
@@ -1501,8 +1502,8 @@ export default {
     // an expired token, or unavailable session storage. It only deletes the supplied
     // token's hash and always clears the cookie; it never grants access to protected routes.
     const logoutRoute = url.pathname === "/auth/logout" && request.method === "POST";
-    if (!gatewayChatRoute && !memoryBridgeRoute && !logoutRoute && !recoveryLoginRoute && !internalHybridProbeRoute && (!env.DB || !env.SESSIONS)) return json({ error: "Owner authentication storage is not configured." }, 503, cors);
-    if (!gatewayChatRoute && !memoryBridgeRoute && !logoutRoute && !recoveryLoginRoute && !internalHybridProbeRoute && !(await authorized(request, env))) {
+    if (!gatewayChatRoute && !memoryBridgeRoute && !learningKnowledgeRoute && !logoutRoute && !recoveryLoginRoute && !internalHybridProbeRoute && (!env.DB || !env.SESSIONS)) return json({ error: "Owner authentication storage is not configured." }, 503, cors);
+    if (!gatewayChatRoute && !memoryBridgeRoute && !learningKnowledgeRoute && !logoutRoute && !recoveryLoginRoute && !internalHybridProbeRoute && !(await authorized(request, env))) {
       await publishEvent(env, { type: "security.auth.denied", source: "owner-auth", payload: { path: url.pathname, method: request.method } });
       return json({ error: "Unauthorized. Sign in with your Owner password." }, 401, cors);
     }
@@ -2782,6 +2783,21 @@ export default {
         return json({ ok: true, results }, 200, cors);
       } catch {
         return json({ error: "Durable task results are unavailable." }, 503, cors);
+      }
+    }
+
+    // Persistent learning store supports either the owner session or a private GPT Action
+    // bearer secret. The route is excluded from the generic gate only because it enforces
+    // its own route-specific authorization immediately below.
+    if (learningKnowledgeRoute) {
+      const header = request.headers.get("authorization") || "";
+      const supplied = header.startsWith("Bearer ") ? header.slice(7).trim() : "";
+      const bridgeSecret = typeof env.BRIDGE_SECRET === "string" ? env.BRIDGE_SECRET.trim() : "";
+      const bridgeAuthorized = Boolean(bridgeSecret && equalSecret(supplied, bridgeSecret));
+      const ownerAuthorized = await authorized(request, env);
+      if (!bridgeAuthorized && !ownerAuthorized) {
+        await publishEvent(env, { type: "security.auth.denied", source: "persistent-learning-engine", payload: { path: url.pathname, method: request.method } });
+        return json({ ok: false, error: "Unauthorized" }, 401, cors);
       }
     }
 
