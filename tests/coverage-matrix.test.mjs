@@ -61,7 +61,7 @@ test("coverage matrix inventories top-level regression test files", async () => 
 });
 
 test("coverage matrix records fresh runtime blockers and agent access limits", () => {
-  assert.ok(matrix.includes("## 10. Fresh evidence refresh — 2026-10-29 02:22 IST"), "fresh evidence section is required");
+  assert.ok(matrix.includes("## 10. Fresh evidence refresh — 2026-10-29 02:28 IST"), "fresh evidence section is required");
   for (const evidence of [
     "GITHUB_COMMIT_SHA=a0d6087dedb7a29aaa07c9302167ddbda5b352da",
     "Render deployment dep-dbh59ga9lscs73e2d38g",
