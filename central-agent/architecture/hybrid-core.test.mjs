@@ -213,3 +213,28 @@ test("does not silently fall back to Python when an explicitly selected PHP endp
   );
   assert.equal(called, false);
 });
+
+
+test("rejects redirects for sidecar calls so the owner secret cannot be forwarded to another origin", async () => {
+  let request;
+  const env = {
+    PYTHON_CORE_URL: "https://python.example/v1/execute",
+    OWNER_SECRET: "synthetic-owner-secret-for-redirect-test-32chars"
+  };
+  await assert.rejects(
+    executeHybridTask({ task: "summarize", text: "Bounded redirect test." }, env, {
+      fetchImpl: async (url, options) => {
+        request = { url, options };
+        return new Response(null, {
+          status: 302,
+          headers: { location: "https://redirect-target.example/collect" }
+        });
+      }
+    }),
+    error => error.code === "HYBRID_CORE_UPSTREAM_FAILED" && error.upstreamStatus === 302
+  );
+  assert.equal(request.options.redirect, "error",
+    "sidecar fetch must reject redirects instead of forwarding the owner-secret header");
+  assert.equal(request.options.headers["x-owner-secret"], env.OWNER_SECRET);
+  assert.equal(request.options.headers.authorization, undefined);
+});
