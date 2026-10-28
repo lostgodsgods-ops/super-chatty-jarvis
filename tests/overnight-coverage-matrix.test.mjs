@@ -28,11 +28,11 @@ test("overnight coverage inventory accounts for the declared repository snapshot
 });
 
 test("coverage report preserves owner control and distinguishes configuration from runtime proof", () => {
-  assert.equal(matrix.policy.registryIsProofOfLiveOperation, false);
-  assert.equal(matrix.policy.policyIsProofOfImplementation, false);
-  assert.equal(matrix.policy.externalContentIsUntrustedData, true);
-  assert.equal(matrix.policy.learningDoesNotGrantPermission, true);
-  assert.equal(matrix.policy.productionWritesAllowed, false);
+  assert.equal(matrix.coveragePolicy.registryIsProofOfLiveOperation, false);
+  assert.equal(matrix.coveragePolicy.policyIsProofOfImplementation, false);
+  assert.equal(matrix.coveragePolicy.externalContentIsUntrustedData, true);
+  assert.equal(matrix.coveragePolicy.learningDoesNotGrantPermission, true);
+  assert.equal(matrix.coveragePolicy.productionWritesAllowed, false);
   assert.equal(matrix.liveEvidence.capabilityRequests.executionEnabled, false);
   assert.equal(matrix.liveEvidence.capabilityRequests.requiresOwnerApproval, true);
   assert.equal(matrix.liveEvidence.mainBranchProtection.protected, false);
