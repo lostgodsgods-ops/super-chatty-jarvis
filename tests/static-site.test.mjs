@@ -457,7 +457,7 @@ test("Central Agent runtime and PWA shell release markers stay synchronized", ()
   assert.equal(headerVersion, runtimeVersion, "source header and runtime health version must match");
 
   const appVersion = jarvisHtml.match(/application-version" content="REDULTRON-[0-9]{4}\.[0-9]{2}\.[0-9]{2}-CORE-3\.0-V([0-9]+)/)?.[1];
-  const cacheVersion = serviceWorker.match(/CACHE_NAME\s*=\s*"redultron-core-shell-v([0-9]+)-cognitive-core"/)?.[1];
+  const cacheVersion = serviceWorker.match(/CACHE_NAME\s*=\s*"redultron-core-shell-v([0-9]+)-core-3"/)?.[1];
   assert.ok(appVersion, "PWA HTML must declare its release version");
   assert.ok(cacheVersion, "service worker must declare its shell cache version");
   assert.equal(appVersion, cacheVersion, "PWA app and service-worker cache versions must match");
@@ -466,12 +466,12 @@ test("Central Agent runtime and PWA shell release markers stay synchronized", ()
 
 
 test("REDULTRON CORE 3.0 is the canonical app identity with preferred male voice selection", () => {
-  assert.match(jarvisHtml, /REDULTRON CORE 2\.0/, "the primary interface must use the new core identity");
+  assert.match(jarvisHtml, /REDULTRON CORE 3\.0/, "the primary interface must use the new core identity");
   assert.equal(manifest.name, "REDULTRON CORE 3.0", "the installable app name must use the new identity");
   assert.match(jarvisHtml, /function selectPreferredMaleVoice\(/, "voice selection must prefer available male-sounding Hindi/Indian English voices");
   assert.match(jarvisHtml, /voiceschanged/, "voice selection must refresh when the device voice catalog loads");
   assert.match(jarvisHtml, /COGNITIVE CORE/, "the interface must expose cognitive-core framing");
-  assert.match(centralWorker, /REDULTRON CORE 2\.0/, "backend system prompts must share the canonical identity");
+  assert.match(centralWorker, /REDULTRON CORE 3\.0/, "backend system prompts must share the canonical identity");
 });
 
 
