@@ -58,6 +58,8 @@ test("live gateway probe checks DNS before HTTP and verifies invalid owner crede
 
 test("owner-secret match diagnostic is read-only and never prints secret values", () => {
   const diagnostic = readWorkflow("../.github/workflows/redultron-owner-secret-readonly-check.yml");
+  assert.match(diagnostic.split(/^permissions:/m)[0], /workflow_dispatch:/,
+    "read-only comparison must be manually rerunnable after the missing API credential is configured");
 
   assert.match(diagnostic, /fix\/python-owner-secret-sync/);
   assert.match(diagnostic, /secrets\.RENDER_API_KEY/);
