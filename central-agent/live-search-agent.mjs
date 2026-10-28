@@ -92,7 +92,7 @@ function normalizeNewsUrl(value) {
     const parsed = new URL(original);
     // Bing's RSS endpoint wraps the publisher destination in an apiclick URL.
     // Return only a valid HTTP(S) destination; retain the wrapper if it cannot be decoded.
-    if (/(^|\\.)bing\\.com$/i.test(parsed.hostname) && parsed.pathname === "/news/apiclick.aspx") {
+    if (/(^|\.)bing\.com$/i.test(parsed.hostname) && parsed.pathname === "/news/apiclick.aspx") {
       const target = safeUrl(parsed.searchParams.get("url") || "");
       if (target) return target;
     }
