@@ -25,7 +25,7 @@ test("hybrid probe and Worker deployment use the same canonical owner secret", (
 
 test("provenance deploy synchronizes the canonical secret to Render before changing Worker bindings", () => {
   const provenance = readWorkflow("../.github/workflows/redultron-provenance-deploy.yml");
-  assert.match(provenance, /RENDER_API_KEY:\s*\$\{\{\s*secrets\.RENDER_API_KEY\s*\}\}/,
+  assert.match(provenance, /\$\{#REDULTRON_OWNER_SECRET\}.*-lt 32/,\n    "deployment must reject a canonical owner secret shorter than 32 characters before any production changes");\n  assert.match(provenance, /RENDER_API_KEY:\s*\$\{\{\s*secrets\.RENDER_API_KEY\s*\}\}/,
     "Render API credential must come from GitHub Actions secrets");
   assert.ok(provenance.includes("RENDER_SERVICE_ID: srv-dbdhr0mi0phs739rv98g"),
     "the canonical Python Core Render service ID must be pinned");
