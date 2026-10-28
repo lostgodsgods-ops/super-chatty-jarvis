@@ -164,3 +164,22 @@ test("serves a bounded-age stale cache when the same provider context fails late
   assert.equal(stale.sources[0].url, "https://example.com/cached-source");
   assert.ok(stale.diagnostics.some(item => item.provider === "stale-cache" && item.status === "served-stale"));
 });
+
+
+test("Bing News RSS tracking links are normalized to the publisher article URL", async () => {
+  const fetchImpl = async url => {
+    const value = String(url);
+    if (value.includes("bing.com/news/search")) {
+      return new Response(
+        '<rss><channel><item><title>Publisher article</title><link>https://www.bing.com/news/apiclick.aspx?ref=tracked&amp;url=https%3A%2F%2Fpublisher.example%2Fstory%3Fid%3D42&amp;c=tracking</link><description>Original report</description><pubDate>Wed, 28 Oct 2026 00:00:00 GMT</pubDate></item></channel></rss>',
+        { status: 200, headers: { "content-type": "application/rss+xml" } }
+      );
+    }
+    if (value.includes("news.google.com")) return new Response("", { status: 503 });
+    if (value.includes("gdeltproject.org")) return new Response(JSON.stringify({ articles: [] }), { status: 200 });
+    throw new Error("Unexpected provider: " + value);
+  };
+  const result = await searchLiveWeb("latest news today", { SEARCH_PROVIDER_MODE: "public" }, { fetchImpl });
+  assert.equal(result.provider, "bing-news-rss");
+  assert.equal(result.sources[0].url, "https://publisher.example/story?id=42");
+});
