@@ -1179,7 +1179,11 @@ export default {
           sentinelMonitoring: true,
           kvHotState: Boolean(env.SESSIONS),
           realtimeOwnerEvents: true,
+          hybridCoreConfigured: Boolean(((typeof env.PHP_CORE_URL === "string" && env.PHP_CORE_URL.trim()) || (typeof env.PYTHON_CORE_URL === "string" && env.PYTHON_CORE_URL.trim())) && typeof env.OWNER_SECRET === "string" && env.OWNER_SECRET.trim()),
+          hybridPhpCoreConfigured: Boolean(typeof env.PHP_CORE_URL === "string" && env.PHP_CORE_URL.trim() && typeof env.OWNER_SECRET === "string" && env.OWNER_SECRET.trim()),
           hybridPythonCoreConfigured: Boolean(typeof env.PYTHON_CORE_URL === "string" && env.PYTHON_CORE_URL.trim() && typeof env.OWNER_SECRET === "string" && env.OWNER_SECRET.trim()),
+          hybridCoreExecutionVerified: false,
+          hybridPhpCoreExecutionVerified: false,
           hybridPythonCoreExecutionVerified: false,
           universalToolRegistry: true
         }
@@ -2180,6 +2184,8 @@ export default {
           resultSchemaValid: schemaValid,
           resultsSchemaValid: schemaValid,
           fallbackEngaged: false,
+          hybridCoreExecutionVerified: schemaValid && (result.engine === "python-edge-hybrid" || result.engine === "php-edge-hybrid"),
+          hybridPhpCoreExecutionVerified: schemaValid && result.engine === "php-edge-hybrid",
           hybridPythonCoreExecutionVerified: schemaValid && result.engine === "python-edge-hybrid"
         }, 200, cors);
       } catch (error) {
@@ -2210,6 +2216,8 @@ export default {
             resultsSchemaValid: true,
             fallbackEngaged: true,
             fallbackReason: code,
+            hybridCoreExecutionVerified: false,
+            hybridPhpCoreExecutionVerified: false,
             hybridPythonCoreExecutionVerified: false
           }, status, cors);
         }
