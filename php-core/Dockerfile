@@ -11,7 +11,9 @@ RUN printf '%s\n' \
 
 WORKDIR /var/www/html
 COPY index.php /var/www/html/index.php
+COPY start-apache.sh /usr/local/bin/redultron-start-apache
+RUN chmod 0755 /usr/local/bin/redultron-start-apache
 
-EXPOSE 80
-
-# Terminate TLS and enforce rate limits at the hosting ingress; inject OWNER_SECRET via secret manager.
+ENV PORT=10000
+EXPOSE 10000
+CMD ["/usr/local/bin/redultron-start-apache"]
