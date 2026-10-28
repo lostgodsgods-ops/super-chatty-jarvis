@@ -293,14 +293,22 @@ class HybridCoreAuthRedactionRegressionTests(unittest.TestCase):
         request_id = "diag-test-12345678"
         wrong_secret = "wrong-secret-must-not-appear-in-logs"
         with self.assertLogs("redultron.python_core", level="INFO") as captured:
-            status, headers, body = self.request(
-                json.dumps({"task": "summarize", "text": "safe test"}),
-                {
+            conn = http.client.HTTPConnection("127.0.0.1", self.port, timeout=8)
+            conn.request(
+                "POST",
+                "/v1/execute",
+                body=json.dumps({"task": "summarize", "text": "safe test"}),
+                headers={
                     "Content-Type": "application/json",
                     "X-Owner-Secret": wrong_secret,
                     "X-Request-ID": request_id,
                 },
             )
+            response = conn.getresponse()
+            status = response.status
+            headers = dict(response.getheaders())
+            body = response.read().decode("utf-8")
+            conn.close()
 
         self.assertEqual(status, 401)
         self.assertEqual(headers.get("X-Request-ID"), request_id)
