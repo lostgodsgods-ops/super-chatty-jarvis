@@ -190,10 +190,11 @@
       "evidence": [
         "config/agent-registry.json",
         "central-agent/agent-orchestrator.mjs",
-        "central-agent/agent-orchestrator.test.mjs"
+        "central-agent/agent-orchestrator.test.mjs",
+        "POST /agents/collaborate"
       ],
-      "nextAction": "Provision a small allowlisted pilot cohort, add per-agent health and execution evidence, then expand only after scoped permissions, audit, timeout, cancellation and owner approval tests pass.",
-      "risk": "The catalog registers 90 agent specifications but reports agentsProvisioned=0 and automaticDispatchEnabled=false; do not represent these entries as running agents or bulk-enable unverified actions."
+      "nextAction": "Keep the eight bounded runtime roles owner-session gated and side-effect-free; provision catalog-only roles through a reviewed pilot with per-agent health, audit, timeout, cancellation and approval checks before expanding.",
+      "risk": "The catalog lists 90 specifications (0 provisioned, automatic dispatch disabled); the Central Agent separately defines eight bounded runtime roles. Do not conflate either count with 90 running agents."
     },
     {
       "id": "BANKING",
@@ -227,6 +228,9 @@
     "automaticDispatchEnabled": false,
     "status": "blocked",
     "evidenceAsOf": "2026-10-28",
-    "note": "Catalog entries are specifications only; no registered agent is proven to be running by this file."
+    "note": "Catalog entries are specifications only; no registered agent is proven to be running by this file.",
+    "boundedRuntimeRoles": 8,
+    "runtimeEntryPoint": "POST /agents/collaborate",
+    "runtimePolicy": "owner-session-required; side effects disabled"
   }
 }
