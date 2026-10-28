@@ -87,3 +87,38 @@ test("chat provider adapter rejects invalid prompts and does not log or echo cre
   await assert.rejects(() => executeChatCompletion({ provider: "openai", prompt: " " }, { OPENAI_API_KEY: "secret" }, fetchImpl), /INVALID_PROMPT/);
   assert.equal(calls, 0);
 });
+
+
+test("Claude adapter uses its dedicated headers and normalized response", async () => {
+  let url = "";
+  let headers;
+  const fetchImpl = async (input, init) => {
+    url = String(input);
+    headers = init.headers;
+    return new Response(JSON.stringify({ content: [{ type: "text", text: "claude reply" }] }), {
+      status: 200, headers: { "content-type": "application/json" }
+    });
+  };
+  const result = await executeChatCompletion({ provider: "claude", prompt: "hello" }, { ANTHROPIC_API_KEY: "test-key" }, fetchImpl);
+  assert.equal(url, "https://api.anthropic.com/v1/messages");
+  assert.equal(headers["x-api-key"], "test-key");
+  assert.equal(headers["anthropic-version"], "2023-06-01");
+  assert.equal(result.text, "claude reply");
+});
+
+test("Gemini adapter sends its key in a header rather than a query string", async () => {
+  let url = "";
+  let headers;
+  const fetchImpl = async (input, init) => {
+    url = String(input);
+    headers = init.headers;
+    return new Response(JSON.stringify({ candidates: [{ content: { parts: [{ text: "gemini reply" }] } }] }), {
+      status: 200, headers: { "content-type": "application/json" }
+    });
+  };
+  const result = await executeChatCompletion({ provider: "gemini", prompt: "hello" }, { GEMINI_API_KEY: "test-key" }, fetchImpl);
+  assert.equal(url, "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent");
+  assert.equal(headers["x-goog-api-key"], "test-key");
+  assert.equal(url.includes("test-key"), false);
+  assert.equal(result.text, "gemini reply");
+});
