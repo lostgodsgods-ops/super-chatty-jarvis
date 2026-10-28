@@ -8864,7 +8864,7 @@
       "superBrowserSessions": 0,
       "superChatUsage": "NOT USED — credit-billed persistent assistant; no bounded per-task cost exposed.",
       "visibleToolFunctionCount": 15511,
-      "visibleToolNamespaceCount": 709,
+      "visibleToolNamespaceCount": 714,
       "browserUse": "BLOCKED — insufficient credits"
     },
     "notes": [
@@ -9857,6 +9857,7 @@
       "Run an owner-approved secret-safe parity attestation and authenticated hybrid probe; do not read or modify secret values.",
       "Apply the additive capability-request migration only through an approved deployment/migration workflow, then test authorized staging POST→D1→GET.",
       "Verify live search from the Worker runtime and PWA V18 in actual Android Chrome."
-    ]
+    ],
+    "visibleToolNamespaceCount": 714
   }
 }
