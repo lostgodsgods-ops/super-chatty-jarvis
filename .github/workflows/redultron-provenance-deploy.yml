@@ -20,7 +20,7 @@ jobs:
       CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
       CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
       WORKER_URL: https://shrill-silence-164f.lostgodsgods.workers.dev
-      PYTHON_CORE_URL: ${{ secrets.PYTHON_CORE_URL }}
+      PYTHON_CORE_URL: https://super-chatty-jarvis.onrender.com
       REDULTRON_OWNER_SECRET: ${{ secrets.REDULTRON_OWNER_SECRET }}
     steps:
       - uses: actions/checkout@v4
