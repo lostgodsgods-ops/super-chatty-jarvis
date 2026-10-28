@@ -3620,7 +3620,7 @@
       "status": "NOT TESTED for REDULTRON-specific access"
     },
     {
-      "namespace": "24",
+      "namespace": "24__7_Calendar",
       "functionCount": 1,
       "projectRelevant": false,
       "accessStatus": "Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime.",
@@ -3648,7 +3648,7 @@
       "status": "NOT TESTED for REDULTRON-specific access"
     },
     {
-      "namespace": "A_I",
+      "namespace": "A_I__Slides_by_Brightdeck",
       "functionCount": 15,
       "projectRelevant": false,
       "accessStatus": "Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime.",
@@ -3676,7 +3676,7 @@
       "status": "NOT TESTED for REDULTRON-specific access"
     },
     {
-      "namespace": "AccurateScribe_ai",
+      "namespace": "AccurateScribe_ai___Transcribe",
       "functionCount": 8,
       "projectRelevant": false,
       "accessStatus": "Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime.",
@@ -3711,7 +3711,7 @@
       "status": "NOT TESTED for REDULTRON-specific access"
     },
     {
-      "namespace": "Adobe_Marketing_Agent",
+      "namespace": "Adobe_Marketing_Agent_",
       "functionCount": 9,
       "projectRelevant": false,
       "accessStatus": "Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime.",
@@ -3872,7 +3872,7 @@
       "status": "NOT TESTED for REDULTRON-specific access"
     },
     {
-      "namespace": "AI_Interpretation_Layer_Audit",
+      "namespace": "AI_Interpretation_Layer_Audit_",
       "functionCount": 1,
       "projectRelevant": false,
       "accessStatus": "Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime.",
@@ -4019,14 +4019,14 @@
       "status": "NOT TESTED for REDULTRON-specific access"
     },
     {
-      "namespace": "AnyConversion",
+      "namespace": "AnyConversion__Imperial__Metric",
       "functionCount": 2,
       "projectRelevant": false,
       "accessStatus": "Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime.",
       "status": "NOT TESTED for REDULTRON-specific access"
     },
     {
-      "namespace": "AnyPDF",
+      "namespace": "AnyPDF___Your_PDF_Converter",
       "functionCount": 7,
       "projectRelevant": false,
       "accessStatus": "Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime.",
@@ -4040,7 +4040,7 @@
       "status": "NOT TESTED for REDULTRON-specific access"
     },
     {
-      "namespace": "AnyWhereMap",
+      "namespace": "AnyWhereMap___Navigate_Locate",
       "functionCount": 1,
       "projectRelevant": false,
       "accessStatus": "Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime.",
@@ -4201,21 +4201,21 @@
       "status": "NOT TESTED for REDULTRON-specific access"
     },
     {
-      "namespace": "Awesome_Record",
+      "namespace": "Awesome_Record__voice___sound_",
       "functionCount": 1,
       "projectRelevant": false,
       "accessStatus": "Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime.",
       "status": "NOT TESTED for REDULTRON-specific access"
     },
     {
-      "namespace": "Awesome_Slides",
+      "namespace": "Awesome_Slides_",
       "functionCount": 1,
       "projectRelevant": false,
       "accessStatus": "Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime.",
       "status": "NOT TESTED for REDULTRON-specific access"
     },
     {
-      "namespace": "AWS_Core",
+      "namespace": "AWS_Core__aws_",
       "functionCount": 8,
       "projectRelevant": false,
       "accessStatus": "Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime.",
@@ -4229,8 +4229,15 @@
       "status": "NOT TESTED for REDULTRON-specific access"
     },
     {
-      "namespace": "B_A",
-      "functionCount": 15,
+      "namespace": "B_A__Diagrams",
+      "functionCount": 8,
+      "projectRelevant": false,
+      "accessStatus": "Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime.",
+      "status": "NOT TESTED for REDULTRON-specific access"
+    },
+    {
+      "namespace": "B_A__Draw_Sketches",
+      "functionCount": 7,
       "projectRelevant": false,
       "accessStatus": "Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime.",
       "status": "NOT TESTED for REDULTRON-specific access"
@@ -4307,7 +4314,14 @@
     },
     {
       "namespace": "Binance",
-      "functionCount": 84,
+      "functionCount": 83,
+      "projectRelevant": false,
+      "accessStatus": "Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime.",
+      "status": "NOT TESTED for REDULTRON-specific access"
+    },
+    {
+      "namespace": "Binance__get_spot_historical_block_trades",
+      "functionCount": 1,
       "projectRelevant": false,
       "accessStatus": "Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime.",
       "status": "NOT TESTED for REDULTRON-specific access"
@@ -4321,7 +4335,21 @@
     },
     {
       "namespace": "BitsWeave",
-      "functionCount": 84,
+      "functionCount": 21,
+      "projectRelevant": false,
+      "accessStatus": "Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime.",
+      "status": "NOT TESTED for REDULTRON-specific access"
+    },
+    {
+      "namespace": "BitsWeave__api",
+      "functionCount": 10,
+      "projectRelevant": false,
+      "accessStatus": "Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime.",
+      "status": "NOT TESTED for REDULTRON-specific access"
+    },
+    {
+      "namespace": "BitsWeave__records",
+      "functionCount": 53,
       "projectRelevant": false,
       "accessStatus": "Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime.",
       "status": "NOT TESTED for REDULTRON-specific access"
@@ -4349,7 +4377,14 @@
     },
     {
       "namespace": "Blockscout_Blockchain_Data",
-      "functionCount": 16,
+      "functionCount": 15,
+      "projectRelevant": false,
+      "accessStatus": "Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime.",
+      "status": "NOT TESTED for REDULTRON-specific access"
+    },
+    {
+      "namespace": "Blockscout_Blockchain_Data____unlock_blockchain_analysis",
+      "functionCount": 1,
       "projectRelevant": false,
       "accessStatus": "Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime.",
       "status": "NOT TESTED for REDULTRON-specific access"
@@ -4404,7 +4439,7 @@
       "status": "NOT TESTED for REDULTRON-specific access"
     },
     {
-      "namespace": "BurnFat",
+      "namespace": "BurnFat___Calorie_Tracker",
       "functionCount": 1,
       "projectRelevant": false,
       "accessStatus": "Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime.",
@@ -4565,7 +4600,7 @@
       "status": "NOT TESTED for REDULTRON-specific access"
     },
     {
-      "namespace": "Cinem",
+      "namespace": "Cinem_",
       "functionCount": 3,
       "projectRelevant": false,
       "accessStatus": "Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime.",
@@ -4691,7 +4726,7 @@
       "status": "NOT TESTED for REDULTRON-specific access"
     },
     {
-      "namespace": "Code_Tytor",
+      "namespace": "Code_Tytor__Python",
       "functionCount": 11,
       "projectRelevant": false,
       "accessStatus": "Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime.",
@@ -4810,7 +4845,7 @@
       "status": "NOT TESTED for REDULTRON-specific access"
     },
     {
-      "namespace": "Cortex",
+      "namespace": "Cortex___Semantic_Memory",
       "functionCount": 6,
       "projectRelevant": false,
       "accessStatus": "Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime.",
@@ -4873,7 +4908,7 @@
       "status": "NOT TESTED for REDULTRON-specific access"
     },
     {
-      "namespace": "CVpop",
+      "namespace": "CVpop___Resume___CV_Builder",
       "functionCount": 1,
       "projectRelevant": false,
       "accessStatus": "Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime.",
@@ -4943,7 +4978,7 @@
       "status": "NOT TESTED for REDULTRON-specific access"
     },
     {
-      "namespace": "DNS_Doctor",
+      "namespace": "DNS_Doctor___DNS___DMARC_Tools",
       "functionCount": 27,
       "projectRelevant": false,
       "accessStatus": "Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime.",
@@ -5496,7 +5531,7 @@
       "status": "NOT TESTED for REDULTRON-specific access"
     },
     {
-      "namespace": "GSA_CALC",
+      "namespace": "GSA_CALC__by_1102tools",
       "functionCount": 8,
       "projectRelevant": false,
       "accessStatus": "Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime.",
@@ -5517,7 +5552,7 @@
       "status": "NOT TESTED for REDULTRON-specific access"
     },
     {
-      "namespace": "GTD_Brain",
+      "namespace": "GTD_Brain__Getting_Things_Done",
       "functionCount": 21,
       "projectRelevant": false,
       "accessStatus": "Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime.",
@@ -5629,7 +5664,7 @@
       "status": "NOT TESTED for REDULTRON-specific access"
     },
     {
-      "namespace": "Honeycomb",
+      "namespace": "Honeycomb__EU_",
       "functionCount": 38,
       "projectRelevant": false,
       "accessStatus": "Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime.",
@@ -5643,7 +5678,7 @@
       "status": "NOT TESTED for REDULTRON-specific access"
     },
     {
-      "namespace": "HTML",
+      "namespace": "HTML__CSS_to_Image_API",
       "functionCount": 24,
       "projectRelevant": false,
       "accessStatus": "Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime.",
@@ -5741,7 +5776,7 @@
       "status": "NOT TESTED for REDULTRON-specific access"
     },
     {
-      "namespace": "Is_This_AI_Agent_Safe",
+      "namespace": "Is_This_AI_Agent_Safe_",
       "functionCount": 12,
       "projectRelevant": false,
       "accessStatus": "Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime.",
@@ -5783,7 +5818,7 @@
       "status": "NOT TESTED for REDULTRON-specific access"
     },
     {
-      "namespace": "joblet_ai",
+      "namespace": "joblet_ai___AI_Job_Search",
       "functionCount": 1,
       "projectRelevant": false,
       "accessStatus": "Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime.",
@@ -5811,7 +5846,7 @@
       "status": "NOT TESTED for REDULTRON-specific access"
     },
     {
-      "namespace": "Julius",
+      "namespace": "Julius__AI_Homework_Helper",
       "functionCount": 8,
       "projectRelevant": false,
       "accessStatus": "Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime.",
@@ -6413,7 +6448,7 @@
       "status": "NOT TESTED for REDULTRON-specific access"
     },
     {
-      "namespace": "Nitrosend",
+      "namespace": "Nitrosend___AI_Native_Email",
       "functionCount": 59,
       "projectRelevant": false,
       "accessStatus": "Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime.",
@@ -6441,7 +6476,7 @@
       "status": "NOT TESTED for REDULTRON-specific access"
     },
     {
-      "namespace": "NORMS",
+      "namespace": "NORMS__Evidence___Scope",
       "functionCount": 8,
       "projectRelevant": false,
       "accessStatus": "Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime.",
@@ -6630,7 +6665,7 @@
       "status": "NOT TESTED for REDULTRON-specific access"
     },
     {
-      "namespace": "Pacing",
+      "namespace": "Pacing__Run_Coach___Tracker",
       "functionCount": 2,
       "projectRelevant": false,
       "accessStatus": "Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime.",
@@ -6672,7 +6707,7 @@
       "status": "NOT TESTED for REDULTRON-specific access"
     },
     {
-      "namespace": "PartnerProf",
+      "namespace": "PartnerProf___Quanntum_Core",
       "functionCount": 20,
       "projectRelevant": false,
       "accessStatus": "Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime.",
@@ -6847,7 +6882,7 @@
       "status": "NOT TESTED for REDULTRON-specific access"
     },
     {
-      "namespace": "poste",
+      "namespace": "poste___Slovenian_post_offices",
       "functionCount": 3,
       "projectRelevant": false,
       "accessStatus": "Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime.",
@@ -7015,7 +7050,7 @@
       "status": "NOT TESTED for REDULTRON-specific access"
     },
     {
-      "namespace": "Rail_Monsters",
+      "namespace": "Rail_Monsters___Train_Tickets",
       "functionCount": 4,
       "projectRelevant": false,
       "accessStatus": "Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime.",
@@ -7344,14 +7379,14 @@
       "status": "NOT TESTED for REDULTRON-specific access"
     },
     {
-      "namespace": "Show",
+      "namespace": "Show___Tell",
       "functionCount": 7,
       "projectRelevant": false,
       "accessStatus": "Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime.",
       "status": "NOT TESTED for REDULTRON-specific access"
     },
     {
-      "namespace": "Sider_Recorder",
+      "namespace": "Sider_Recorder___Transcriber",
       "functionCount": 2,
       "projectRelevant": false,
       "accessStatus": "Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime.",
@@ -7463,7 +7498,7 @@
       "status": "NOT TESTED for REDULTRON-specific access"
     },
     {
-      "namespace": "smarts_bio",
+      "namespace": "smarts_bio__AI_for_biology",
       "functionCount": 19,
       "projectRelevant": false,
       "accessStatus": "Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime.",
@@ -7491,7 +7526,7 @@
       "status": "NOT TESTED for REDULTRON-specific access"
     },
     {
-      "namespace": "Snake_Retro",
+      "namespace": "Snake_Retro__Neon_Arcade",
       "functionCount": 1,
       "projectRelevant": false,
       "accessStatus": "Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime.",
@@ -7547,7 +7582,7 @@
       "status": "NOT TESTED for REDULTRON-specific access"
     },
     {
-      "namespace": "Spkr",
+      "namespace": "Spkr___Chat_to_Podcast_Episode",
       "functionCount": 3,
       "projectRelevant": false,
       "accessStatus": "Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime.",
@@ -7589,7 +7624,7 @@
       "status": "NOT TESTED for REDULTRON-specific access"
     },
     {
-      "namespace": "Stabile",
+      "namespace": "Stabile__Loyalty_Rewards_Agent",
       "functionCount": 5,
       "projectRelevant": false,
       "accessStatus": "Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime.",
@@ -7925,7 +7960,7 @@
       "status": "NOT TESTED for REDULTRON-specific access"
     },
     {
-      "namespace": "TickTick_To_Do_List",
+      "namespace": "TickTick_To_Do_List___Calendar",
       "functionCount": 57,
       "projectRelevant": false,
       "accessStatus": "Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime.",
@@ -7981,7 +8016,7 @@
       "status": "NOT TESTED for REDULTRON-specific access"
     },
     {
-      "namespace": "Todoist",
+      "namespace": "Todoist__To_Do_List___Calendar",
       "functionCount": 47,
       "projectRelevant": false,
       "accessStatus": "Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime.",
@@ -8086,7 +8121,7 @@
       "status": "NOT TESTED for REDULTRON-specific access"
     },
     {
-      "namespace": "TTS_Studio",
+      "namespace": "TTS_Studio__AI_Text_to_Speech",
       "functionCount": 1,
       "projectRelevant": false,
       "accessStatus": "Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime.",
@@ -8282,14 +8317,14 @@
       "status": "NOT TESTED for REDULTRON-specific access"
     },
     {
-      "namespace": "WalkMyPlan",
+      "namespace": "WalkMyPlan___Floor_Plans_in_3D",
       "functionCount": 63,
       "projectRelevant": false,
       "accessStatus": "Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime.",
       "status": "NOT TESTED for REDULTRON-specific access"
     },
     {
-      "namespace": "Weavely_Forms",
+      "namespace": "Weavely_Forms___Surveys",
       "functionCount": 17,
       "projectRelevant": false,
       "accessStatus": "Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime.",
@@ -8380,7 +8415,7 @@
       "status": "NOT TESTED for REDULTRON-specific access"
     },
     {
-      "namespace": "Wordy",
+      "namespace": "Wordy__Highlight_Annotate_Text",
       "functionCount": 1,
       "projectRelevant": false,
       "accessStatus": "Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime.",
@@ -8471,7 +8506,7 @@
       "status": "NOT TESTED for REDULTRON-specific access"
     },
     {
-      "namespace": "YNAB",
+      "namespace": "YNAB__Get_Good_At_Money",
       "functionCount": 1,
       "projectRelevant": false,
       "accessStatus": "Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime.",
