@@ -9,6 +9,8 @@ test("provenance deploy validates the owner secret before production mutation", 
   assert.ok(validation >= 0 && deploy > validation, "credential validation must precede deployment");
   const preDeploy = workflow.slice(validation, deploy);
   assert.match(preDeploy, /REDULTRON_OWNER_SECRET/);
+  assert.match(preDeploy, /secret !== secret\.trim\(\)/);
+  assert.match(preDeploy, /surrounding whitespace/);
   assert.match(preDeploy, /-ge 32/);
   assert.match(preDeploy, /value suppressed/);
 });

@@ -54,11 +54,13 @@ export function inspectHybridCoreConfiguration(env = {}) {
   const pythonEndpoint = typeof env?.PYTHON_CORE_URL === "string" ? env.PYTHON_CORE_URL.trim() : "";
   const provider = phpEndpoint ? "php" : pythonEndpoint ? "python" : "none";
   const endpoint = provider === "php" ? phpEndpoint : pythonEndpoint;
-  const secret = typeof env?.OWNER_SECRET === "string" ? env.OWNER_SECRET.trim() : "";
+  const rawSecret = typeof env?.OWNER_SECRET === "string" ? env.OWNER_SECRET : "";
+  const secret = rawSecret.trim();
   const endpointConfigured = endpoint.length > 0;
   const endpointValid = endpointConfigured && parseHybridEndpoint(endpoint) !== null;
   const ownerSecretConfigured = secret.length > 0;
-  const ownerSecretPolicyValid = secret.length >= MIN_OWNER_SECRET_LENGTH;
+  const ownerSecretPolicyValid = secret.length >= MIN_OWNER_SECRET_LENGTH &&
+    rawSecret === secret && !/[\r\n]/.test(rawSecret);
 
   let failureCode = null;
   if (!endpointConfigured || !ownerSecretConfigured) failureCode = "HYBRID_CORE_NOT_CONFIGURED";
