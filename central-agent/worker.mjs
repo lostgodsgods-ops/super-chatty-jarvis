@@ -589,6 +589,12 @@ function equalSecret(a, b) {
   return diff === 0;
 }
 
+const MIN_BRIDGE_SECRET_LENGTH = 32;
+function configuredBridgeSecret(env) {
+  const secret = typeof env?.BRIDGE_SECRET === "string" ? env.BRIDGE_SECRET.trim() : "";
+  return secret.length >= MIN_BRIDGE_SECRET_LENGTH ? secret : "";
+}
+
 function base64url(bytes) {
   let binary = "";
   for (const byte of bytes) binary += String.fromCharCode(byte);
@@ -2792,7 +2798,7 @@ export default {
     if (learningKnowledgeRoute) {
       const header = request.headers.get("authorization") || "";
       const supplied = header.startsWith("Bearer ") ? header.slice(7).trim() : "";
-      const bridgeSecret = typeof env.BRIDGE_SECRET === "string" ? env.BRIDGE_SECRET.trim() : "";
+      const bridgeSecret = configuredBridgeSecret(env);
       const bridgeAuthorized = Boolean(bridgeSecret && equalSecret(supplied, bridgeSecret));
       const ownerAuthorized = await authorized(request, env);
       if (!bridgeAuthorized && !ownerAuthorized) {
@@ -2836,7 +2842,7 @@ export default {
       }
       const header = request.headers.get("authorization") || "";
       const supplied = header.startsWith("Bearer ") ? header.slice(7).trim() : "";
-      const bridgeSecret = typeof env.BRIDGE_SECRET === "string" ? env.BRIDGE_SECRET.trim() : "";
+      const bridgeSecret = configuredBridgeSecret(env);
       const bridgeAuthorized = Boolean(bridgeSecret && equalSecret(supplied, bridgeSecret));
       const ownerAuthorized = await authorized(request, env);
       if (!bridgeAuthorized && !ownerAuthorized) return json({ ok: false, error: "Unauthorized" }, 401, cors);
