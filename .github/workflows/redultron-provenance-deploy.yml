@@ -37,7 +37,7 @@ jobs:
           test -n "$CLOUDFLARE_API_TOKEN"
           test -n "$PYTHON_CORE_URL"
           test -n "$REDULTRON_OWNER_SECRET"
-          node -e 'const u=new URL(process.env.PYTHON_CORE_URL); if(u.protocol!=="https:"||u.username||u.password||u.search||u.hash||(u.pathname!=="/"&&u.pathname!=="/v1/execute")) process.exit(2); console.log("PASS: Python endpoint configuration valid; value suppressed.")'
+          node -e 'const u=new URL(process.env.PYTHON_CORE_URL); if(u.protocol!=="https:"||u.username||u.password||u.search||u.hash||(u.pathname!=="/"&&u.pathname!=="/v1/execute")) process.exit(2); if(u.hostname!=="super-chatty-jarvis.onrender.com") { console.error("FAIL: PYTHON_CORE_URL hostname does not match the configured Render service; value suppressed."); process.exit(3); } console.log("PASS: Python endpoint hostname matches the configured Render service; hostname and value suppressed.")'
           [[ "$GITHUB_SHA" =~ ^[0-9a-f]{40}$ ]]
       - name: Synchronize owner secret to the deployed Worker without logging it
         shell: bash
