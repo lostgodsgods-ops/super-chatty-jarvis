@@ -178,3 +178,31 @@ test("persistent learning GET and POST reject unauthenticated requests before to
       `${method} must not read or write the knowledge table before authentication`);
   }
 });
+
+
+test("short BRIDGE_SECRET cannot authorize persistent learning or memory routes", async () => {
+  const shortSecret = "short-secret";
+  for (const path of ["/api/learning/knowledge?q=test", "/api/memory?session_id=owner-global"]) {
+    const statements = [];
+    const response = await worker.fetch(new Request("https://example.test" + path, {
+      headers: { authorization: "Bearer " + shortSecret }
+    }), {
+      BRIDGE_SECRET: shortSecret,
+      DB: {
+        prepare(sql) {
+          statements.push(sql);
+          return {
+            bind() { return this; },
+            async first() { return null; },
+            async all() { return { results: [] }; },
+            async run() { return { meta: { changes: 1 } }; }
+          };
+        }
+      },
+      SESSIONS: { get: async () => null }
+    });
+    assert.equal(response.status, 401, "a bridge secret shorter than the documented minimum must fail closed");
+    assert.equal(statements.some(sql => /verified_knowledge|conversation_memory/.test(sql)), false,
+      "invalid bridge credentials must not reach either knowledge table");
+  }
+});
