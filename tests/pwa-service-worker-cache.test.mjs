@@ -15,8 +15,8 @@ test("service worker activation removes superseded REDULTRON shell caches", () =
 test("PWA shell cache version advances when the worker shell changes", () => {
   assert.match(
     worker,
-    /CACHE_NAME\s*=\s*["']redultron-core-shell-v15-cognitive-core["']/,
-    "the shell cache version must be bumped to v15"
+    /CACHE_NAME\s*=\s*["']redultron-core-shell-v16-cognitive-core["']/,
+    "the shell cache version must be bumped to v16"
   );
 });
 
