@@ -57,17 +57,17 @@ test("live gateway probe checks DNS before HTTP and verifies invalid owner crede
 test("owner-secret match diagnostic is read-only and never prints secret values", () => {
   const diagnostic = readWorkflow("../.github/workflows/redultron-owner-secret-readonly-check.yml");
 
-  assert.match(diagnostic, /fix\\/python-owner-secret-sync/);
-  assert.match(diagnostic, /secrets\\.RENDER_API_KEY/);
-  assert.match(diagnostic, /secrets\\.REDULTRON_OWNER_SECRET/);
-  assert.match(diagnostic, /env-vars\\/OWNER_SECRET/);
-  assert.match(diagnostic, /curl[\\s\\S]*-o "\\$current_file"/);
+  assert.match(diagnostic, /fix\/python-owner-secret-sync/);
+  assert.match(diagnostic, /secrets\.RENDER_API_KEY/);
+  assert.match(diagnostic, /secrets\.REDULTRON_OWNER_SECRET/);
+  assert.match(diagnostic, /env-vars\/OWNER_SECRET/);
+  assert.match(diagnostic, /curl[\s\S]*-o "\$current_file"/);
   assert.match(diagnostic, /PASS: GitHub REDULTRON_OWNER_SECRET matches Render OWNER_SECRET/);
   assert.match(diagnostic, /FAIL: GitHub REDULTRON_OWNER_SECRET does not match Render OWNER_SECRET/);
-  assert.doesNotMatch(diagnostic, /-X\\s+(?:PUT|POST|PATCH|DELETE)/i,
+  assert.doesNotMatch(diagnostic, /-X\s+(?:PUT|POST|PATCH|DELETE)/i,
     "diagnostic must not mutate Render settings");
-  assert.doesNotMatch(diagnostic, /wrangler[^\\n]*deploy|api\\/deploys/i,
+  assert.doesNotMatch(diagnostic, /wrangler[^\n]*deploy|api\/deploys/i,
     "diagnostic must not trigger a deployment");
-  assert.doesNotMatch(diagnostic, /echo\\s+["']?\\$current_value|echo\\s+["']?\\$REDULTRON_OWNER_SECRET|printf[^\\n]*(?:current_value|REDULTRON_OWNER_SECRET)/i,
+  assert.doesNotMatch(diagnostic, /echo\s+["']?\$current_value|echo\s+["']?\$REDULTRON_OWNER_SECRET|printf[^\n]*(?:current_value|REDULTRON_OWNER_SECRET)/i,
     "diagnostic must not print secret values");
 });
