@@ -2,6 +2,9 @@ import http.client
 import json
 import os
 import socket
+import subprocess
+import sys
+from pathlib import Path
 import threading
 import unittest
 from http.server import ThreadingHTTPServer
@@ -284,3 +287,24 @@ class HybridCoreAuthRedactionRegressionTests(unittest.TestCase):
         self.assertEqual(status, 401)
         self.assertEqual(json.loads(body), {"ok": False, "code": "OWNER_AUTH_REQUIRED"})
         self.assertNotIn(TEST_SECRET, body)
+
+class PythonCoreStartupSecretGuardTests(unittest.TestCase):
+    def test_startup_rejects_short_owner_secret_without_echoing_it(self):
+        short_secret = "short-test-secret"
+        env = os.environ.copy()
+        env["OWNER_SECRET"] = short_secret
+        env["HOST"] = "127.0.0.1"
+        env["PORT"] = "0"
+
+        completed = subprocess.run(
+            [sys.executable, str(Path(__file__).with_name("python_core.py"))],
+            env=env,
+            capture_output=True,
+            text=True,
+            timeout=5,
+            check=False,
+        )
+        output = completed.stdout + completed.stderr
+        self.assertNotEqual(completed.returncode, 0)
+        self.assertIn("OWNER_SECRET must be configured with at least 32 characters.", output)
+        self.assertNotIn(short_secret, output)

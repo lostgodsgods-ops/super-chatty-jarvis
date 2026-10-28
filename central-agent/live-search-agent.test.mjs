@@ -202,3 +202,27 @@ test("provider diagnostics never log raw upstream exception messages", async () 
   assert.equal(warnings.some(args => JSON.stringify(args).includes(privateMarker)), false);
 });
 
+test("stale cache is not reused across provider modes or fetch implementations", async () => {
+  const query = "stale cache context isolation regression 2026-10-28";
+  const fetchImplA = async url => {
+    if (String(url).includes("api.tavily.com")) {
+      return new Response(JSON.stringify({ results: [
+        { title: "Context A source", url: "https://example.com/context-a", content: "Provider-context evidence" }
+      ] }), { status: 200, headers: { "content-type": "application/json" } });
+    }
+    throw new TypeError("simulated provider outage");
+  };
+  const envTavily = { SEARCH_PROVIDER_MODE: "tavily", TAVILY_API_KEY: "test-only-cache-key" };
+  const first = await searchLiveWeb(query, envTavily, { fetchImpl: fetchImplA });
+  assert.equal(first.sources[0].url, "https://example.com/context-a");
+
+  const fetchImplB = async () => { throw new TypeError("isolated provider outage"); };
+  await assert.rejects(
+    searchLiveWeb(query, envTavily, { fetchImpl: fetchImplB, allowStale: true }),
+    error => error.code === "LIVE_SEARCH_ALL_PROVIDERS_FAILED"
+  );
+  await assert.rejects(
+    searchLiveWeb(query, { SEARCH_PROVIDER_MODE: "public" }, { fetchImpl: fetchImplA, allowStale: true }),
+    error => error.code === "LIVE_SEARCH_ALL_PROVIDERS_FAILED"
+  );
+});
