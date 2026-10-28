@@ -1,7 +1,7 @@
 "use strict";
-const CACHE_NAME = "redultron-core-shell-v14-cognitive-core";
+const CACHE_NAME = "redultron-core-shell-v15-cognitive-core";
 const SHELL = ["./", "./index.html", "./manifest.webmanifest", "./icon.svg", "./icon-192.png", "./icon-512.png", "./diagnostics.js"];
-const LEGACY_CACHE_PREFIXES = ["super-chatty-jarvis-shell-", "super-chatty-jarvis-", "chatty-jarvis-"];
+const LEGACY_CACHE_PREFIXES = ["redultron-core-shell-", "super-chatty-jarvis-shell-", "super-chatty-jarvis-", "chatty-jarvis-"];
 self.addEventListener("install", (event) => {
   event.waitUntil((async () => {
     try {
@@ -52,21 +52,6 @@ self.addEventListener("fetch", (event) => {
   if (request.method !== "GET") return;
   const url = new URL(request.url);
   if (url.origin !== self.location.origin) return;
-  if (request.mode === "navigate") {
-    event.respondWith((async () => {
-      try {
-        const response = await fetch(new Request(request, { cache: "no-store" }));
-        if (response.ok) {
-          const cache = await caches.open(CACHE_NAME);
-          cache.put("./index.html", response.clone()).catch(() => {});
-        }
-        return response;
-      } catch {
-        return (await caches.match(request)) || (await caches.match("./index.html")) || Response.error();
-      }
-    })());
-    return;
-  }
   if (url.pathname.endsWith("/sw.js") || url.pathname.endsWith("/manifest.webmanifest") || url.pathname.endsWith("/index.html")) {
     event.respondWith((async () => {
       try {
