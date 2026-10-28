@@ -1,9 +1,16 @@
 name: REDULTRON Provenance Deploy and Strict Live Certification
 
 on:
-  push:
-    branches: [main]
   workflow_dispatch:
+    inputs:
+      authorize_production_changes:
+        description: "Approve only after reviewing the exact production secret synchronization and deployment plan."
+        required: true
+        type: choice
+        options:
+          - deny
+          - approve
+        default: deny
 
 permissions:
   contents: read
@@ -14,6 +21,7 @@ concurrency:
 
 jobs:
   deploy-and-certify:
+    if: ${{ inputs.authorize_production_changes == 'approve' }}
     runs-on: ubuntu-latest
     timeout-minutes: 15
     env:
