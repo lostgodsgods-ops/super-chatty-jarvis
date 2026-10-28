@@ -141,17 +141,40 @@ test("mission-grid API fails closed when the audit store is unavailable", async 
 });
 
 
-test("persistent learning GET and POST reject unauthenticated requests before touching D1", async () => {
+test("persistent learning GET and POST reject unauthenticated requests before touching the knowledge table", async () => {
   for (const method of ["GET", "POST"]) {
-    let databaseTouched = false;
+    const statements = [];
     const init = method === "POST"
-      ? { method, headers: { "content-type": "application/json" }, body: JSON.stringify({}) }
+      ? {
+          method,
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({
+            title: "Synthetic test record",
+            problem: "Test owner authentication.",
+            solution: "Reject unauthenticated requests before knowledge persistence.",
+            sources: [{ title: "Example documentation", url: "https://example.com/docs" }],
+            testsPassed: true,
+            testSummary: "Synthetic test only.",
+            testEvidence: ["synthetic test evidence"]
+          })
+        }
       : { method };
     const response = await worker.fetch(new Request("https://example.test/api/learning/knowledge?q=private", init), {
-      DB: { prepare() { databaseTouched = true; throw new Error("unauthenticated learning request must not touch D1"); } },
+      DB: {
+        prepare(sql) {
+          statements.push(sql);
+          return {
+            bind() { return this; },
+            async first() { return null; },
+            async run() { return { meta: { changes: 1 } }; },
+            async all() { return { results: [] }; }
+          };
+        }
+      },
       SESSIONS: { get: async () => null }
     });
-    assert.equal(response.status, 401, `${method} must require owner authentication`);
-    assert.equal(databaseTouched, false, `${method} must not touch D1 before authentication`);
+    assert.equal(response.status, 401, `${method} must require owner or configured bridge authentication`);
+    assert.equal(statements.some(sql => /verified_knowledge/.test(sql)), false,
+      `${method} must not read or write the knowledge table before authentication`);
   }
 });
