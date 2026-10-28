@@ -56,6 +56,26 @@ jobs:
           code="$(curl --silent --show-error --max-time 20 -o "$body" -w '%{http_code}' "$WORKER_URL/health")"
           test "$code" = "200"
           jq -e '.ok == true' "$body"
+      - name: Verify Python Core health before execution probe
+        shell: bash
+        run: |
+          set -euo pipefail
+          body="$(mktemp)"
+          trap 'rm -f "$body"' EXIT
+          health_url="$(node -e 'const u=new URL(process.env.PYTHON_CORE_URL); u.pathname="/health"; u.search=""; u.hash=""; process.stdout.write(u.toString())')"
+          code="$(curl --silent --show-error --max-time 15 -o "$body" -w '%{http_code}' "$health_url")"
+          if [[ "$code" != "200" ]]; then
+            safe_code="$(jq -r 'if type == "object" then (.code // .error // .service // "UNKNOWN") | if type == "string" then gsub("[^A-Za-z0-9_-]"; "")[0:64] else "UNKNOWN" end else "UNKNOWN" end' "$body" 2>/dev/null || printf 'UNREADABLE_RESPONSE')"
+            echo "::error::Python Core health returned HTTP $code; sanitized code=$safe_code."
+            exit 1
+          fi
+          if ! jq -e '.ok == true and .service == "redultron-python-core"' "$body" >/dev/null; then
+            safe_code="$(jq -r 'if type == "object" then (.code // .error // .service // "UNKNOWN") | if type == "string" then gsub("[^A-Za-z0-9_-]"; "")[0:64] else "UNKNOWN" end else "UNKNOWN" end' "$body" 2>/dev/null || printf 'UNREADABLE_RESPONSE')"
+            echo "::error::Python Core health schema mismatch; sanitized code=$safe_code."
+            exit 1
+          fi
+          echo "PASS: Python Core health endpoint is reachable; authenticated execution is verified separately."
+
       - name: Require actual authenticated Python hybrid execution
         shell: bash
         run: |
