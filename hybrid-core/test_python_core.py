@@ -185,7 +185,6 @@ class HybridDeploymentConfigTests(unittest.TestCase):
 
 
     def test_response_logs_request_id_status_and_latency_without_secrets_or_body(self):
-        import logging
         with self.assertLogs("redultron.python_core", level="INFO") as captured:
             status, headers, body = self.request(
                 json.dumps({"task": "classify_text", "text": "diagnostic body must not be logged"}),
@@ -194,7 +193,7 @@ class HybridDeploymentConfigTests(unittest.TestCase):
         self.assertEqual(status, 200)
         response_headers = dict(headers)
         self.assertRegex(response_headers.get("X-Request-ID", ""), r"^[a-f0-9]{16}$")
-        entries = [json.loads(line) for line in captured.output]
+        entries = [json.loads(record.getMessage()) for record in captured.records]
         self.assertEqual(len(entries), 1)
         event = entries[0]
         self.assertEqual(event["request_id"], response_headers["X-Request-ID"])
