@@ -34,7 +34,8 @@ test("provenance deploy preflights Render credentials and synchronizes one secre
   assert.doesNotMatch(sync, /echo[^\n]*\$(?:\{(?:REDULTRON_)?OWNER_SECRET\}|(?:REDULTRON_)?OWNER_SECRET)/);
 
   const renderDeployment = workflow.slice(renderDeploy, workerDeploy);
-  assert.match(renderDeployment, /deploy_state[\s\S]*\blive\b/);
+  assert.ok(renderDeployment.includes('case "$deploy_state" in') && renderDeployment.includes("live)"),
+    "Render deployment must poll its state and require live before Worker rollout");
   assert.match(renderDeployment, /\/deploys/);
   assert.match(renderDeployment, /attempt/);
 });
