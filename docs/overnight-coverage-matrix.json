@@ -8411,7 +8411,7 @@
     "productionWritesAllowed": false
   },
   "evidenceUpdates": {
-    "recordedAt": "2026-10-29T02:55:08+05:30",
+    "recordedAt": "2026-10-29T02:58:16+05:30",
     "directProbeAt": "2026-10-29T02:52:35+05:30",
     "currentMainSha": "0a35a8dda07b5217497ec1c45bdc64e3a7d0147c",
     "inventorySnapshotSha": "8c749f0e0e3dfdcceb2fafcc0fd5a9fb3d4e5935",
@@ -8524,7 +8524,7 @@
             "status": "PASS"
           }
         ],
-        "liveD1RoundTrip": "NOT TESTED"
+        "liveD1RoundTrip": "NOT TESTED — capability_requests table absent in production and staging"
       },
       "ownerSecretGuard": {
         "pr": 803,
@@ -8583,6 +8583,24 @@
         "requiredStatusChecks": "off",
         "lastObservedAt": "2026-10-29T01:51:57+05:30",
         "note": "Not rechecked or changed in this refresh."
+      },
+      "d1": {
+        "status": "FAIL — required tables absent in both queried databases",
+        "query": "SELECT name FROM sqlite_master WHERE type='table' AND name IN ('capability_requests','verified_knowledge') ORDER BY name",
+        "production": {
+          "databaseId": "cb1a54a2-eafe-4e02-8187-90c9e471edc0",
+          "httpStatus": 200,
+          "matchingTables": [],
+          "rowsWritten": 0
+        },
+        "staging": {
+          "databaseId": "b705aa4e-a9fa-4592-ba4c-7a59cc55e12b",
+          "httpStatus": 200,
+          "matchingTables": [],
+          "rowsWritten": 0
+        },
+        "writesPerformed": false,
+        "capabilityRequestCreateListRoundTrip": "NOT TESTED"
       }
     },
     "toolAvailability": {
