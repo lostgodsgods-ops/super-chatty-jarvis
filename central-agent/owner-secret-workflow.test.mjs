@@ -32,3 +32,21 @@ test("live gateway probe checks DNS before HTTP and verifies invalid owner crede
   assert.match(probe, /401|403/,
     "probe must require unauthorized credentials to be rejected");
 });
+
+test("Python Core health probe retries only transient failures with a hard attempt cap", () => {
+  const provenance = readWorkflow("../.github/workflows/redultron-provenance-deploy.yml");
+  const healthStep = provenance.split("- name: Verify Python Core health before execution probe")[1]
+    ?.split("\n      - name: ")[0] ?? "";
+  assert.notEqual(healthStep, "", "Python Core health gate must exist");
+  assert.match(healthStep, /for attempt in 1 2 3/,
+    "health probe must have exactly three bounded attempts");
+  assert.match(healthStep, /502\|503\|504|502.*503.*504/s,
+    "only transient gateway/service HTTP failures should trigger retries");
+  assert.match(healthStep, /sleep 2/);
+  assert.match(healthStep, /sleep 4/);
+  assert.ok(healthStep.includes(".ok == true and .service =="),
+    "strict JSON schema must remain required after retries");
+  assert.match(healthStep, /redultron-python-core/);
+  assert.match(healthStep, /response_kind.*HTML_PAGE|HTML_PAGE/,
+    "HTML diagnostics must remain visible and HTML must not count as success");
+});
