@@ -36,16 +36,30 @@ jobs:
           test -n "$CLOUDFLARE_ACCOUNT_ID"
           test -n "$CLOUDFLARE_API_TOKEN"
           test -n "$PYTHON_CORE_URL"
-          test -n "$REDULTRON_OWNER_SECRET"
+          node -e 'const s=process.env.REDULTRON_OWNER_SECRET; if(typeof s!=="string"||s.length<32) { console.error("FAIL: REDULTRON_OWNER_SECRET must be at least 32 characters; value suppressed."); process.exit(4); } console.log("PASS: owner secret length requirement met; value suppressed.")'
           node -e 'const u=new URL(process.env.PYTHON_CORE_URL); if(u.protocol!=="https:"||u.username||u.password||u.search||u.hash||(u.pathname!=="/"&&u.pathname!=="/v1/execute")) process.exit(2); if(u.hostname!=="super-chatty-jarvis.onrender.com") { console.error("FAIL: PYTHON_CORE_URL hostname does not match the configured Render service; value suppressed."); process.exit(3); } console.log("PASS: Python endpoint hostname matches the configured Render service; hostname and value suppressed.")'
           [[ "$GITHUB_SHA" =~ ^[0-9a-f]{40}$ ]]
       - name: Synchronize owner secret to the deployed Worker without logging it
         shell: bash
         run: |
           set -euo pipefail
-          printf '%s' "$PYTHON_CORE_URL" | npx --yes wrangler@4 secret put PYTHON_CORE_URL --config central-agent/wrangler.jsonc
-          printf '%s' "$REDULTRON_OWNER_SECRET" | npx --yes wrangler@4 secret put OWNER_SECRET --config central-agent/wrangler.jsonc
-          echo "PASS: PYTHON_CORE_URL and OWNER_SECRET bindings synchronized; values were not printed."
+          umask 077
+          secrets_file="$(mktemp)"
+          trap 'rm -f "$secrets_file"' EXIT
+          node - "$secrets_file" <<'NODE'
+          const fs = require("node:fs");
+          const path = process.argv[2];
+          const payload = {
+            PYTHON_CORE_URL: process.env.PYTHON_CORE_URL,
+            OWNER_SECRET: process.env.REDULTRON_OWNER_SECRET
+          };
+          if (!payload.PYTHON_CORE_URL || typeof payload.OWNER_SECRET !== "string" || payload.OWNER_SECRET.length < 32) {
+            throw new Error("Required Worker secret metadata validation failed; values suppressed.");
+          }
+          fs.writeFileSync(path, JSON.stringify(payload), { mode: 0o600 });
+          NODE
+          npx --yes wrangler@4 versions secret bulk "$secrets_file" --config central-agent/wrangler.jsonc
+          echo "PASS: PYTHON_CORE_URL and OWNER_SECRET staged in one secret-version operation; values were not printed."
       - name: Deploy exact GitHub commit provenance
         run: |
           npx --yes wrangler@4 deploy --config central-agent/wrangler.jsonc --var "GITHUB_COMMIT_SHA:$GITHUB_SHA"
