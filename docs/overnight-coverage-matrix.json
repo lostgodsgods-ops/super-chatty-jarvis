@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "project": "REDULTRON CORE 3.0",
-  "snapshotTime": "2026-10-29T03:26:33+05:30",
+  "snapshotTime": "2026-10-29T03:31:44+05:30",
   "repository": "lostgodsgods-ops/super-chatty-jarvis",
   "branch": "main",
   "commitSha": "0a35a8dda07b5217497ec1c45bdc64e3a7d0147c",
@@ -622,9 +622,15 @@
         "central-agent/architecture/hybrid-core.test.mjs"
       ],
       "accessStatus": "Readable via authorized GitHub connector; production writes not performed.",
-      "blocker": "Previous authenticated probe failed HTTP 502 HYBRID_CORE_AUTH_REJECTED_401; root cause not confirmed.",
-      "status": "NOT TESTED unless linked workflow evidence is cited",
-      "latestRun": null
+      "blocker": "PR #803 is open/unmerged; production Worker/Python Core are not updated by this branch, and authenticated live execution remains NOT TESTED.",
+      "status": "NOT TESTED on main; PR #803 branch tests PASS",
+      "latestRun": null,
+      "prEvidence": {
+        "pr": 803,
+        "headSha": "c92adcb464212ca7b1b1c16a0d9b6b1e748f9b62",
+        "testRunId": 40776577235,
+        "status": "PASS — PR branch only"
+      }
     },
     {
       "path": "central-agent/architecture/hybrid-core.test.mjs",
@@ -637,9 +643,15 @@
         "central-agent/architecture/hybrid-core.test.mjs"
       ],
       "accessStatus": "Readable via authorized GitHub connector; production writes not performed.",
-      "blocker": "No module-specific runtime blocker established by inventory alone",
-      "status": "NOT TESTED unless linked workflow evidence is cited",
-      "latestRun": null
+      "blocker": "PR #803 is open/unmerged; production Worker/Python Core are not updated by this branch, and authenticated live execution remains NOT TESTED.",
+      "status": "NOT TESTED on main; PR #803 branch tests PASS",
+      "latestRun": null,
+      "prEvidence": {
+        "pr": 803,
+        "headSha": "c92adcb464212ca7b1b1c16a0d9b6b1e748f9b62",
+        "testRunId": 40776577235,
+        "status": "PASS — PR branch only"
+      }
     },
     {
       "path": "central-agent/architecture/integration-registry.mjs",
@@ -2126,9 +2138,15 @@
         "hybrid-core/test_python_core.py"
       ],
       "accessStatus": "Readable via authorized GitHub connector; production writes not performed.",
-      "blocker": "Render deployment is behind main; authenticated execution not certified.",
-      "status": "NOT TESTED unless linked workflow evidence is cited",
-      "latestRun": null
+      "blocker": "PR #803 is open/unmerged; production Worker/Python Core are not updated by this branch, and authenticated live execution remains NOT TESTED.",
+      "status": "NOT TESTED on main; PR #803 branch tests PASS",
+      "latestRun": null,
+      "prEvidence": {
+        "pr": 803,
+        "headSha": "c92adcb464212ca7b1b1c16a0d9b6b1e748f9b62",
+        "testRunId": 40776577235,
+        "status": "PASS — PR branch only"
+      }
     },
     {
       "path": "hybrid-core/README.md",
@@ -2171,9 +2189,15 @@
         "hybrid-core/test_python_core.py"
       ],
       "accessStatus": "Readable via authorized GitHub connector; production writes not performed.",
-      "blocker": "No module-specific runtime blocker established by inventory alone",
-      "status": "NOT TESTED unless linked workflow evidence is cited",
-      "latestRun": null
+      "blocker": "PR #803 is open/unmerged; production Worker/Python Core are not updated by this branch, and authenticated live execution remains NOT TESTED.",
+      "status": "NOT TESTED on main; PR #803 branch tests PASS",
+      "latestRun": null,
+      "prEvidence": {
+        "pr": 803,
+        "headSha": "c92adcb464212ca7b1b1c16a0d9b6b1e748f9b62",
+        "testRunId": 40776577235,
+        "status": "PASS — PR branch only"
+      }
     },
     {
       "path": "index.html",
@@ -8584,10 +8608,10 @@
     "notes": [
       "No secrets were read or changed.",
       "No production D1 rows were written; no production deployment or merge was performed.",
-      "PR #803 CI passed on its branch head but remains unmerged; live Python auth is not verified.",
+      "PR #803 now includes Worker and Python Core whitespace-secret guards; its CI, Hybrid Core, Static and Central Agent tests pass on head c92adcb, but it remains unmerged and the live HTTP 502 has not been re-tested.",
       "PR #833 reproduced the duplicate release-package push-trigger defect in a test-only red stage, then passed CI/static/release-package checks after consolidation; PR remains open and unmerged.",
-      "Current main release-package failures remain in history; historical job logs were unavailable, so their exact cause is strongly indicated but not directly confirmed.",
-      "Cloudflare deployment metadata was refreshed with HTTP 200; direct Worker/PWA HTTP checks were not verified.",
+      "Current main release-package failures remain in history; historical job logs were unavailable, so the exact cause is strongly indicated but not directly confirmed.",
+      "Cloudflare deployment metadata and D1 schema were queried read-only; no production writes or secret access occurred.",
       "Catalog visibility does not imply each app is connected or authorized for REDULTRON runtime."
     ],
     "persistentLearning": {
@@ -8607,31 +8631,73 @@
       "runtimeStatus": "NOT TESTED — Worker SHA last observed as a0d6087dedb7a29aaa07c9302167ddbda5b352da predates the learning feature and current main; no new live endpoint probe succeeded."
     },
     "pr803": {
-      "status": "PASS — PR-head CI only; open and unmerged",
-      "headSha": "1fedc8dca472b47b2b03350184f4899bd5eb84ad",
+      "status": "PASS — branch CI; PR open and unmerged",
+      "headSha": "c92adcb464212ca7b1b1c16a0d9b6b1e748f9b62",
       "state": "open",
       "merged": false,
-      "runs": [
+      "scope": "Worker and Python Core both fail closed on surrounding whitespace in the owner secret; diagnostics remain sanitized. No production secret values were read or changed.",
+      "redStage": {
+        "headSha": "2d479b4e5ca231da52fe59534136cddf1c3e4ea8",
+        "runId": 40776465954,
+        "workflow": "Test REDULTRON Hybrid Core",
+        "status": "FAIL as expected",
+        "failure": "Startup proceeded to server creation with a whitespace-padded OWNER_SECRET instead of exiting before server creation."
+      },
+      "greenStageRuns": [
         {
           "workflow": "CI",
-          "runId": 40767091631,
+          "runId": 40776577221,
           "status": "PASS",
-          "url": "https://github.com/lostgodsgods-ops/super-chatty-jarvis/actions/runs/40767091631"
+          "url": "https://github.com/lostgodsgods-ops/super-chatty-jarvis/actions/runs/40776577221"
         },
         {
-          "workflow": "Test Central Agent",
-          "runId": 40767091652,
+          "workflow": "Test REDULTRON Hybrid Core",
+          "runId": 40776577235,
           "status": "PASS",
-          "url": "https://github.com/lostgodsgods-ops/super-chatty-jarvis/actions/runs/40767091652"
+          "url": "https://github.com/lostgodsgods-ops/super-chatty-jarvis/actions/runs/40776577235"
         },
         {
           "workflow": "Static site checks",
-          "runId": 40767091667,
+          "runId": 40776577228,
           "status": "PASS",
-          "url": "https://github.com/lostgodsgods-ops/super-chatty-jarvis/actions/runs/40767091667"
+          "url": "https://github.com/lostgodsgods-ops/super-chatty-jarvis/actions/runs/40776577228"
+        },
+        {
+          "workflow": "Test Central Agent",
+          "runId": 40776577301,
+          "status": "PASS",
+          "url": "https://github.com/lostgodsgods-ops/super-chatty-jarvis/actions/runs/40776577301"
+        },
+        {
+          "workflow": "CI push",
+          "runId": 40776570998,
+          "status": "PASS",
+          "url": "https://github.com/lostgodsgods-ops/super-chatty-jarvis/actions/runs/40776570998"
+        },
+        {
+          "workflow": "Static site checks push",
+          "runId": 40776570954,
+          "status": "PASS",
+          "url": "https://github.com/lostgodsgods-ops/super-chatty-jarvis/actions/runs/40776570954"
+        },
+        {
+          "workflow": "Failure Sentinel push",
+          "runId": 40776570945,
+          "status": "PASS",
+          "url": "https://github.com/lostgodsgods-ops/super-chatty-jarvis/actions/runs/40776570945"
         }
       ],
-      "scope": "Whitespace/line-break owner-secret preflight and workflow-contract tests; not proof of live secret parity or authenticated Python execution.",
+      "blockedCheck": {
+        "workflow": "Release package",
+        "runId": 40776567784,
+        "status": "FAIL — old duplicate-push workflow still present on this branch; separate fix PR #833 has green run 40775604577."
+      },
+      "liveProbe": {
+        "status": "NOT TESTED",
+        "lastObservedHTTPStatus": 502,
+        "lastObservedCode": "HYBRID_CORE_AUTH_REJECTED_401",
+        "rootCause": "NOT CONFIRMED — exact secret parity was not checked; no secret values read."
+      },
       "review": "Codex review could not complete because its usage limit was reached."
     },
     "releasePackageFailure": {
@@ -8646,8 +8712,9 @@
       "latestRunId": 40772544482,
       "artifactsAvailable": false,
       "jobListReturnedZeroJobs": true,
-      "rootCause": "NOT DIRECTLY CONFIRMED from historical main-run logs; the main workflow source had duplicate top-level push keys. PR #833 reproduced the defect in red-stage tests and passed the release-package workflow after consolidating the trigger.",
-      "likelyCause": "Duplicate top-level push keys in .github/workflows/redultron-release-package.yml; historical main-run logs/jobs were unavailable, so this remains strongly indicated rather than directly confirmed."
+      "rootCause": "NOT DIRECTLY CONFIRMED from historical main-run logs; duplicate top-level push keys remain the strongest explanation. PR #833 reproduced the defect in red-stage tests and passed the release-package workflow after consolidating the trigger.",
+      "likelyCause": "Duplicate top-level push keys in .github/workflows/redultron-release-package.yml; historical main-run logs/jobs were unavailable, so this remains strongly indicated rather than directly confirmed.",
+      "pr803BranchRunId": 40776567784
     },
     "sentinel": {
       "status": "NOT TESTED — current sampled runs skipped",
@@ -8736,6 +8803,14 @@
         "expiresAt": "2026-11-11T21:53:25Z"
       },
       "scope": "Repository test, PWA contract, ZIP/checksum build and artifact upload passed on PR branch. No production deployment or merge."
+    },
+    "authenticatedHybridExecution": {
+      "status": "FAIL — previous live evidence; branch hardening tests PASS; NOT DEPLOYED",
+      "lastObservedHTTPStatus": 502,
+      "lastObservedCode": "HYBRID_CORE_AUTH_REJECTED_401",
+      "currentRunLiveProbe": false,
+      "productionSecretParity": "NOT TESTED",
+      "rootCause": "NOT CONFIRMED; no secret values read, compared, or changed."
     }
   },
   "coveragePolicy": {
