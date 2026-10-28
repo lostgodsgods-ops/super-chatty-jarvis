@@ -49,7 +49,7 @@ test("PWA update button checks for the latest service worker and applies availab
 });
 
 test("service worker cache version changes and explicit activation messages are handled", () => {
-  assert.match(serviceWorker, /redultron-core-shell-v15-cognitive-core/);
+  assert.match(serviceWorker, /redultron-core-shell-v16-core-3/);
   assert.match(serviceWorker, /event\.data\.type === "SKIP_WAITING"/);
   assert.match(serviceWorker, /self\.skipWaiting\(\)/);
   assert.match(serviceWorker, /self\.clients\.claim\(\)/);
