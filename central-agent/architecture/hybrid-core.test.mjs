@@ -96,7 +96,7 @@ test("owner secrets with surrounding whitespace fail closed before any upstream 
 });
 
 test("owner secrets containing line breaks fail closed before any upstream request", async () => {
-  const secret = "x".repeat(16) + "\\n" + "x".repeat(16);
+  const secret = "x".repeat(16) + "\n" + "x".repeat(16);
   const env = { PYTHON_CORE_URL: "https://python.example/v1/execute", OWNER_SECRET: secret };
   const diagnostics = inspectHybridCoreConfiguration(env);
   assert.equal(diagnostics.ownerSecretPolicyValid, false);
