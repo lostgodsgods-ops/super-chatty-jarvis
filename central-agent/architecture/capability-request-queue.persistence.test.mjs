@@ -11,7 +11,7 @@ function createD1Mock() {
   const state = { schemaCreated: false, rows: [], lastLimit: null, statements: [] };
   const db = {
     prepare(sql) {
-      const normalizedSql = sql.replace(/\\s+/g, " ").trim();
+      const normalizedSql = sql.replace(/\s+/g, " ").trim();
       let boundValues = [];
       const statementRecord = {
         sql: normalizedSql,
