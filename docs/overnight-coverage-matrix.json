@@ -8409,5 +8409,252 @@
     "externalContentIsUntrustedData": true,
     "learningDoesNotGrantPermission": true,
     "productionWritesAllowed": false
+  },
+  "evidenceUpdates": {
+    "recordedAt": "2026-10-29T02:55:08+05:30",
+    "directProbeAt": "2026-10-29T02:52:35+05:30",
+    "currentMainSha": "0a35a8dda07b5217497ec1c45bdc64e3a7d0147c",
+    "inventorySnapshotSha": "8c749f0e0e3dfdcceb2fafcc0fd5a9fb3d4e5935",
+    "inventoryNote": "fileInventory and inventorySummary remain anchored to the older snapshot SHA; this is a runtime evidence refresh, not a regenerated Git tree inventory.",
+    "runtime": {
+      "cloudflareWorker": {
+        "status": "FAIL — deployed SHA drift; public health PASS only",
+        "deploymentId": "1947abf4-39b2-4be0-880d-8bfbabb60294",
+        "versionId": "ddae66f9-dfcc-4a38-907d-6bfa5843a604",
+        "versionNumber": 882,
+        "trafficPercent": 100,
+        "configuredDeployedSha": "a0d6087dedb7a29aaa07c9302167ddbda5b352da",
+        "currentMainSha": "0a35a8dda07b5217497ec1c45bdc64e3a7d0147c",
+        "health": {
+          "httpStatus": 200,
+          "service": "super-chatty-central-agent",
+          "version": "1.4.1",
+          "hybridPythonCoreExecutionVerified": false,
+          "searchProviderReachabilityChecked": false,
+          "tavilySearchEnabled": false,
+          "searchProviderMode": "open-source-first"
+        }
+      },
+      "renderPythonCore": {
+        "status": "FAIL — deployed SHA drift; public health PASS only",
+        "serviceId": "srv-dbdhr0mi0phs739rv98g",
+        "deploymentId": "dep-dbh59ga9lscs73e2d38g",
+        "deployedSha": "55de9ebdb7a753cb700e2411a7e8852dd9853866",
+        "deploymentStatus": "live",
+        "health": {
+          "httpStatus": 200,
+          "service": "redultron-python-core"
+        }
+      },
+      "hybridExecution": {
+        "unauthenticatedNegativeControl": {
+          "httpStatus": 401,
+          "code": "OWNER_AUTH_REQUIRED"
+        },
+        "authenticatedPositiveProbe": "NOT TESTED",
+        "lastRecordedPositiveFailure": "HTTP 502 HYBRID_CORE_AUTH_REJECTED_401",
+        "secretsReadOrChanged": false,
+        "productionDeploymentPerformed": false
+      },
+      "pwa": {
+        "sourceVersion": "REDULTRON-2026.10.28-CORE-3.0-V18",
+        "sourceCache": "redultron-core-shell-v18-core-3",
+        "servedVersion": "REDULTRON-2026.10.28-CORE-3.0-V17",
+        "servedCache": "redultron-core-shell-v17-core-3",
+        "swHttpStatus": 200,
+        "swContentType": "application/javascript; charset=utf-8",
+        "indexHttpStatus": 200,
+        "indexContentType": "text/html",
+        "manifestHttpStatus": 200,
+        "manifestContentType": "application/manifest+json",
+        "status": "FAIL — served V17 while source is V18; Android install/update NOT TESTED"
+      },
+      "liveSearch": {
+        "status": "NOT TESTED — Worker reachability",
+        "workerHealthReportsReachabilityChecked": false,
+        "tavilyEnabled": false,
+        "browserEgressProbes": [
+          {
+            "provider": "DuckDuckGo HTML",
+            "httpStatus": 200,
+            "scope": "browser egress only"
+          },
+          {
+            "provider": "Bing News RSS",
+            "httpStatus": 200,
+            "scope": "browser egress only"
+          },
+          {
+            "provider": "Google News RSS",
+            "httpStatus": 200,
+            "scope": "browser egress only"
+          },
+          {
+            "provider": "GDELT Doc API",
+            "httpStatus": 429,
+            "scope": "browser egress only"
+          }
+        ],
+        "note": "Browser egress results do not prove provider reachability from the Worker."
+      },
+      "capabilityRequests": {
+        "pr": 821,
+        "state": "open-draft",
+        "headSha": "b4587a0988dabf6586f072af56e64fa78eb02053",
+        "testFirstCommit": "ff00b444638bbd8ba868e51760eeeadb9cf2e6f6",
+        "testFirstStaticRun": {
+          "id": 40771023141,
+          "status": "FAIL as expected",
+          "detail": "515 tests passed; 2 new idempotency assertions failed before implementation"
+        },
+        "finalChecks": [
+          {
+            "workflow": "CI",
+            "runId": 40771327809,
+            "status": "PASS"
+          },
+          {
+            "workflow": "Test Central Agent",
+            "runId": 40771327778,
+            "status": "PASS"
+          },
+          {
+            "workflow": "Static site checks",
+            "runId": 40771327759,
+            "status": "PASS"
+          }
+        ],
+        "liveD1RoundTrip": "NOT TESTED"
+      },
+      "ownerSecretGuard": {
+        "pr": 803,
+        "state": "open-not-merged",
+        "headSha": "1fedc8dca472b47b2b03350184f4899bd5eb84ad",
+        "checks": [
+          {
+            "workflow": "CI",
+            "runId": 40767091631,
+            "status": "PASS"
+          },
+          {
+            "workflow": "Test Central Agent",
+            "runId": 40767091652,
+            "status": "PASS"
+          },
+          {
+            "workflow": "Static site checks",
+            "runId": 40767091667,
+            "status": "PASS"
+          }
+        ],
+        "review": "Code-review automation unavailable due usage limits; secret parity and authenticated execution NOT TESTED"
+      },
+      "sentinel": {
+        "pr": 735,
+        "state": "merged",
+        "mergeSha": "d9334c4ed578e81be9653a955f82443ad7942060",
+        "checks": [
+          {
+            "workflow": "CI",
+            "runId": 40737494616,
+            "status": "PASS"
+          },
+          {
+            "workflow": "Static checks",
+            "runId": 40737495719,
+            "status": "PASS"
+          },
+          {
+            "workflow": "Release package",
+            "runId": 40737495588,
+            "status": "PASS"
+          },
+          {
+            "workflow": "Failure Sentinel",
+            "runId": 40737486845,
+            "status": "PASS"
+          }
+        ],
+        "productionAlertDeliveryReplay": "NOT TESTED"
+      },
+      "mainBranchProtection": {
+        "status": "FAIL — last observed",
+        "protected": false,
+        "requiredStatusChecks": "off",
+        "lastObservedAt": "2026-10-29T01:51:57+05:30",
+        "note": "Not rechecked or changed in this refresh."
+      }
+    },
+    "toolAvailability": {
+      "github": "Connected; repository read/write used for branch and PR work.",
+      "cloudflare": "Connected; read-only Worker deployment/version metadata queried.",
+      "render": "Connected; read-only service/deployment metadata queried.",
+      "kernelBrowser": "Read-only public probes completed; temporary session deleted.",
+      "browserUse": "BLOCKED — insufficient credits.",
+      "codeAgentMobile": "BLOCKED — no online sessions in either connected account.",
+      "jackHamr": {
+        "status": "BLOCKED — exhausted",
+        "balanceUsd": -11.737204
+      },
+      "agentRelay": "BLOCKED — workspace not connected in last inventory.",
+      "consensusResearchAgent": "BLOCKED — thread creation requires user input in non-interactive mode."
+    },
+    "researchSources": [
+      {
+        "title": "Cloudflare D1 migrations",
+        "url": "https://developers.cloudflare.com/d1/reference/migrations/",
+        "finding": "Versioned SQL migrations and applied-migration tracking; mock persistence is not production migration proof."
+      },
+      {
+        "title": "OWASP Secrets Management Cheat Sheet",
+        "url": "https://cheatsheetseries.owasp.org/cheatsheets/Secrets_Management_Cheat_Sheet.html",
+        "finding": "Avoid hardcoded/logged secrets; preserve exact credential handling."
+      },
+      {
+        "title": "GitHub Actions security guidance",
+        "url": "https://docs.github.com/en/actions/how-tos/secure-your-work",
+        "finding": "Least-privilege permissions and action dependency pinning."
+      },
+      {
+        "title": "NIST Secure Software Development Framework",
+        "url": "https://csrc.nist.gov/Projects/ssdf/publications",
+        "finding": "Traceable secure development practices and verification."
+      },
+      {
+        "title": "NIST AI Risk Management Framework",
+        "url": "https://www.nist.gov/itl/ai-risk-management-framework",
+        "finding": "Risk governance, measurement, and accountability."
+      },
+      {
+        "title": "W3C WCAG 2.2",
+        "url": "https://www.w3.org/TR/WCAG22/",
+        "finding": "Testable accessibility criteria, including focus visibility, target size, and accessible authentication."
+      },
+      {
+        "title": "UNESCO Recommendation on the Ethics of AI",
+        "url": "https://www.unesco.org/ethics-ai/en/recommendation",
+        "finding": "Human rights, privacy, transparency, auditability, accountability, and human oversight."
+      },
+      {
+        "title": "MDN Service Worker lifecycle",
+        "url": "https://developer.mozilla.org/en-US/docs/Web/API/Service_Worker_API/Using_Service_Workers.",
+        "finding": "Install/activate/update lifecycle and the roles of skipWaiting and clients.claim."
+      },
+      {
+        "title": "OWASP GenAI LLM Top 10",
+        "url": "https://owasp.github.io/www-project-top-10-for-large-language-model-applications/",
+        "finding": "Prompt injection, sensitive information disclosure, and excessive agency require bounded tools and human oversight."
+      }
+    ],
+    "nextActions": [
+      "Review PR #803; do not merge until required review and branch protection requirements are satisfied.",
+      "Verify owner-secret parity only through the guarded workflow; never read or log secret values.",
+      "Run authorized staging capability-request create/replay/list tests and verify D1 persistence.",
+      "Reconcile Worker and Render deployed revisions through the guarded provenance workflow.",
+      "Run the positive authenticated hybrid probe and verify exact result schema, expected engine, fallbackEngaged=false, and hybridPythonCoreExecutionVerified=true.",
+      "Deploy PWA V18 only through the approved path; verify served markers and manually test Android Chrome install/update/offline/accessibility.",
+      "Verify search-provider reachability from the Worker runtime; browser-egress checks are insufficient.",
+      "Regenerate the full file inventory at the current main tree SHA."
+    ]
   }
 }
