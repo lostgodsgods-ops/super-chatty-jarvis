@@ -30,7 +30,8 @@ test("provenance deploy preflights Render credentials and synchronizes one secre
   assert.match(sync, /\/env-vars\/OWNER_SECRET/);
   assert.match(sync, /JSON\.stringify\(\{ value: secret \}\)/);
   assert.match(sync, /curl --silent/);
-  assert.doesNotMatch(sync, /curl .*--verbose|set -x|echo .*\$(?:\{(?:REDULTRON_)?OWNER_SECRET\}|(?:REDULTRON_)?OWNER_SECRET)/);
+  assert.doesNotMatch(sync, /curl .*--verbose|set -x/);
+  assert.doesNotMatch(sync, /echo[^\n]*\$(?:\{(?:REDULTRON_)?OWNER_SECRET\}|(?:REDULTRON_)?OWNER_SECRET)/);
 
   const renderDeployment = workflow.slice(renderDeploy, workerDeploy);
   assert.match(renderDeployment, /deploy_state[\s\S]*\blive\b/);
