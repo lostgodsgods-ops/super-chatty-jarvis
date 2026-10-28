@@ -19,6 +19,22 @@ class HealthProbeError(RuntimeError):
     """Safe, bounded health probe failure with no response-body leakage."""
 
 
+def _is_render_cold_start_interstitial(error: HTTPError) -> bool:
+    """Recognize only Render's known HTML wake-up page; never retry arbitrary 403s."""
+    if int(error.code) != 403:
+        return False
+    headers = error.headers
+    content_type = headers.get("Content-Type", "") if headers is not None else ""
+    if content_type.split(";", 1)[0].strip().lower() != "text/html":
+        return False
+    try:
+        # Inspect only a small bounded prefix and never print or persist the body.
+        body = error.read(4096).decode("utf-8", errors="replace").lower()
+    except Exception:
+        return False
+    return "render - application loading" in body and "service waking up" in body
+
+
 def _health_url(base_url: str) -> str:
     parts = urlsplit(base_url)
     if (parts.scheme != "https" or not parts.hostname or parts.username or parts.password
@@ -53,7 +69,8 @@ def check_health(base_url: str, *, attempts: int = MAX_ATTEMPTS,
                 return {"ok": True, "attempts": attempt, "service": EXPECTED_SERVICE}
         except HTTPError as error:
             status = int(error.code)
-            if status not in RETRYABLE_STATUSES or attempt >= attempts:
+            transient = status in RETRYABLE_STATUSES or _is_render_cold_start_interstitial(error)
+            if not transient or attempt >= attempts:
                 raise HealthProbeError("HTTP_" + str(status)) from None
         except URLError:
             # Network and DNS errors can indicate a wrong endpoint/configuration; do not hide them with retries.

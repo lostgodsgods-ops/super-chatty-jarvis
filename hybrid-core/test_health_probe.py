@@ -39,6 +39,31 @@ class HealthProbeTests(unittest.TestCase):
         sleep.assert_called_once_with(0.1)
 
     @patch("health_probe.urlopen")
+    def test_retries_render_free_cold_start_interstitial_403(self, open_url):
+        interstitial = HTTPError(
+            "https://core.invalid/health", 403, "forbidden",
+            {"Content-Type": "text/html"},
+            io.BytesIO(b"<html><title>Render - Application loading</title>Service waking up</html>"),
+        )
+        open_url.side_effect = [interstitial, Response()]
+        with patch("health_probe.time.sleep") as sleep:
+            result = health_probe.check_health("https://core.invalid", attempts=3, timeout=1, backoff=0.1)
+        self.assertEqual(result["attempts"], 2)
+        self.assertEqual(open_url.call_count, 2)
+        sleep.assert_called_once_with(0.1)
+
+    @patch("health_probe.urlopen")
+    def test_does_not_retry_unrecognized_html_403(self, open_url):
+        open_url.side_effect = HTTPError(
+            "https://core.invalid/health", 403, "forbidden",
+            {"Content-Type": "text/html"},
+            io.BytesIO(b"<html>Access denied</html>"),
+        )
+        with self.assertRaisesRegex(health_probe.HealthProbeError, "HTTP_403"):
+            health_probe.check_health("https://core.invalid", attempts=3, timeout=1, backoff=0.1)
+        self.assertEqual(open_url.call_count, 1)
+
+    @patch("health_probe.urlopen")
     def test_does_not_retry_non_transient_401(self, open_url):
         open_url.side_effect = HTTPError("https://core.invalid/health", 401, "unauthorized", {}, io.BytesIO(b"{}"))
         with self.assertRaisesRegex(health_probe.HealthProbeError, "HTTP_401"):
