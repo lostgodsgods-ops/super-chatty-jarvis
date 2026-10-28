@@ -27,8 +27,10 @@ test("provenance deploy synchronizes the canonical secret to Render before chang
   const provenance = readWorkflow("../.github/workflows/redultron-provenance-deploy.yml");
   assert.match(provenance, /RENDER_API_KEY:\s*\$\{\{\s*secrets\.RENDER_API_KEY\s*\}\}/,
     "Render API credential must come from GitHub Actions secrets");
-  assert.ok(provenance.includes("services/srv-dbdhr0mi0phs739rv98g/env-vars/OWNER_SECRET"),
-    "the known Python Core Render service must receive the canonical owner secret");
+  assert.ok(provenance.includes("RENDER_SERVICE_ID: srv-dbdhr0mi0phs739rv98g"),
+    "the canonical Python Core Render service ID must be pinned");
+  assert.ok(provenance.includes('"$api/env-vars/OWNER_SECRET"'),
+    "the canonical owner secret must be read and updated through the Render service env-var API");
   assert.ok(provenance.includes("services/$RENDER_SERVICE_ID/deploys"),
     "Render must be redeployed when its owner secret changes");
   const renderSync = provenance.indexOf("Synchronize canonical owner secret to Render Python Core");
