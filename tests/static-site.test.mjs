@@ -466,12 +466,12 @@ test("Central Agent runtime and PWA shell release markers stay synchronized", ()
 
 
 test("REDULTRON CORE 3.0 is the canonical app identity with preferred male voice selection", () => {
-  assert.match(jarvisHtml, /REDULTRON CORE 2\.0/, "the primary interface must use the new core identity");
+  assert.match(jarvisHtml, /REDULTRON CORE 3\.0/, "the primary interface must use the new core identity");
   assert.equal(manifest.name, "REDULTRON CORE 3.0", "the installable app name must use the new identity");
   assert.match(jarvisHtml, /function selectPreferredMaleVoice\(/, "voice selection must prefer available male-sounding Hindi/Indian English voices");
   assert.match(jarvisHtml, /voiceschanged/, "voice selection must refresh when the device voice catalog loads");
   assert.match(jarvisHtml, /COGNITIVE CORE/, "the interface must expose cognitive-core framing");
-  assert.match(centralWorker, /REDULTRON CORE 2\.0/, "backend system prompts must share the canonical identity");
+  assert.match(centralWorker, /REDULTRON CORE 3\.0/, "backend system prompts must share the canonical identity");
 });
 
 
