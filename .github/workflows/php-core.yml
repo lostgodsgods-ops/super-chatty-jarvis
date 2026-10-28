@@ -26,3 +26,31 @@ jobs:
         run: php -l php-core/index.php
       - name: Run contract tests
         run: php php-core/tests.php
+      - name: HTTP smoke test
+        shell: bash
+        run: |
+          export OWNER_SECRET='ci-only-secret-with-more-than-32-characters'
+          php -S 127.0.0.1:8788 php-core/index.php > /tmp/redultron-php-core.log 2>&1 &
+          server_pid=$!
+          trap 'kill "$server_pid" 2>/dev/null || true' EXIT
+          for attempt in $(seq 1 20); do
+            if curl --silent --show-error --fail http://127.0.0.1:8788/health > /tmp/redultron-health.json; then
+              break
+            fi
+            sleep 0.25
+          done
+          grep -Fq '"service":"redultron-php-core"' /tmp/redultron-health.json
+          status="$(curl --silent --show-error -o /tmp/redultron-result.json -w '%{http_code}' \
+            -X POST http://127.0.0.1:8788/v1/execute \
+            -H 'Content-Type: application/json' \
+            -H "X-Owner-Secret: $OWNER_SECRET" \
+            -d '{"task":"summarize","text":"One. Two. Three. Four."}')"
+          test "$status" = "200"
+          grep -Fq '"result":"One. Two. Three."' /tmp/redultron-result.json
+          auth_status="$(curl --silent --show-error -o /tmp/redultron-auth.json -w '%{http_code}' \
+            -X POST http://127.0.0.1:8788/v1/execute \
+            -H 'Content-Type: application/json' \
+            -H 'X-Owner-Secret: incorrect-test-secret' \
+            -d '{"task":"summarize","text":"One."}')"
+          test "$auth_status" = "401"
+          echo "PASS: PHP Core live HTTP health, authenticated execution, and auth rejection"
