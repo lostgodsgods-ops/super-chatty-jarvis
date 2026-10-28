@@ -36,7 +36,7 @@ test("provenance deploy synchronizes the canonical secret to Render before chang
   const workerDeploy = provenance.indexOf("Deploy exact GitHub commit provenance");
   assert.ok(renderSync >= 0 && workerSync > renderSync && workerDeploy > workerSync,
     "Render secret sync must succeed before Worker secret update and deployment");
-  assert.match(provenance, /RENDER_OWNER_SECRET_MISMATCH|Render owner secret sync/,
+  assert.match(provenance, /RENDER_OWNER_SECRET_SYNC|RENDER_OWNER_SECRET_MISMATCH|Render owner secret sync/,
     "Render secret synchronization must fail closed with a sanitized diagnostic");
 });
 
