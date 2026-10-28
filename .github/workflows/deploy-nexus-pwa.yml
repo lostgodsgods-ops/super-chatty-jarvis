@@ -47,8 +47,8 @@ jobs:
           # Derive the expected release markers from the checked-out source.
           # Hard-coded versions caused false failures whenever the PWA cache
           # or application version was bumped in a later release.
-          expected_version="$(grep -oE 'REDULTRON-[0-9]{4}\.[0-9]{2}\.[0-9]{2}-COGNITIVE-CORE-V[0-9]+' jarvis/index.html | head -n 1)"
-          expected_cache="$(grep -oE 'redultron-core-shell-v[0-9]+-cognitive-core' jarvis/sw.js | head -n 1)"
+          expected_version="$(grep -oE 'REDULTRON-[0-9]{4}\.[0-9]{2}\.[0-9]{2}-CORE-3\.0-V[0-9]+' jarvis/index.html | head -n 1)"
+          expected_cache="$(grep -oE 'redultron-core-shell-v[0-9]+-core-3' jarvis/sw.js | head -n 1)"
           test -n "$expected_version" || { echo "::error::Could not derive the expected REDULTRON version from jarvis/index.html"; exit 1; }
           test -n "$expected_cache" || { echo "::error::Could not derive the expected PWA cache from jarvis/sw.js"; exit 1; }
 
