@@ -1,6 +1,6 @@
 # REDULTRON CORE 3.0 — Overnight Coverage Matrix
 
-**Snapshot:** 2026-10-29T02:48:18+05:30
+**Snapshot:** 2026-10-29T02:49:40+05:30
 **Repository:** `lostgodsgods-ops/super-chatty-jarvis`  
 **Branch:** `main`  
 **Commit SHA:** `0a35a8dda07b5217497ec1c45bdc64e3a7d0147c`  
@@ -28,10 +28,10 @@ The machine-readable inventory contains one row per tracked file at snapshot SHA
 
 | Component | Status | Evidence | Blocker / next step |
 |---|---|---|---|
-| Main CI | PASS | [Run 40766128960](https://github.com/lostgodsgods-ops/super-chatty-jarvis/actions/runs/40766128960) at `0a35a8dda07b5217497ec1c45bdc64e3a7d0147c` | Node test suite, Python unittest discovery and selected syntax checks passed. |
-| Static checks | PASS | [Run 40766128993](https://github.com/lostgodsgods-ops/super-chatty-jarvis/actions/runs/40766128993) at `0a35a8dda07b5217497ec1c45bdc64e3a7d0147c` | Repository/static safety checks passed. |
-| Release package | FAIL | [Run 40766126980](https://github.com/lostgodsgods-ops/super-chatty-jarvis/actions/runs/40766126980) at `0a35a8dda07b5217497ec1c45bdc64e3a7d0147c` | Main push workflow fails before jobs; PR #801 has the tested duplicate-trigger fix and remains open. |
-| Failure Sentinel | PASS | [Run 40766128956](https://github.com/lostgodsgods-ops/super-chatty-jarvis/actions/runs/40766128956) at `0a35a8dda07b5217497ec1c45bdc64e3a7d0147c` | This push-triggered run succeeded; this is not a complete live recovery replay. |
+| Main CI | PASS | [Run 40770650646](https://github.com/lostgodsgods-ops/super-chatty-jarvis/actions/runs/40770650646) at `0a35a8dda07b5217497ec1c45bdc64e3a7d0147c` | Node test suite, Python unittest discovery and selected syntax checks passed. |
+| Static checks | PASS | [Run 40770650616](https://github.com/lostgodsgods-ops/super-chatty-jarvis/actions/runs/40770650616) at `0a35a8dda07b5217497ec1c45bdc64e3a7d0147c` | Repository/static safety checks passed. |
+| Release package | FAIL | [Run 40770648736](https://github.com/lostgodsgods-ops/super-chatty-jarvis/actions/runs/40770648736) at `0a35a8dda07b5217497ec1c45bdc64e3a7d0147c` | Main push workflow fails before jobs; PR #801 has the tested duplicate-trigger fix and remains open. |
+| Failure Sentinel | PASS | [Run 40770650632](https://github.com/lostgodsgods-ops/super-chatty-jarvis/actions/runs/40770650632) at `0a35a8dda07b5217497ec1c45bdc64e3a7d0147c` | This push-triggered run succeeded; this is not a complete live recovery replay. |
 | Main branch protection | FAIL | GitHub branch API: `protected=false`; detail endpoint HTTP 403 | Required checks/rulesets are not fully verifiable with the connected GitHub permissions; repository administrator must verify. |
 | Cloudflare Worker provenance | FAIL — SHA drift | Deployment `1947abf4-39b2-4be0-880d-8bfbabb60294`, version 882, SHA `a0d6087dedb7a29aaa07c9302167ddbda5b352da` | 115 commits behind main. Do not deploy outside the existing protected workflow. |
 | Render Python Core | FAIL — behind main | Deployment `dep-dbh59ga9lscs73e2d38g`, SHA `55de9ebdb7a753cb700e2411a7e8852dd9853866`, state `live` | 43 commits behind main. The latest recorded authenticated probe remains HTTP 502 with upstream HTTP 401. |
@@ -47,18 +47,18 @@ The machine-readable inventory contains one row per tracked file at snapshot SHA
 
 | Workflow | Purpose | Status | Evidence | Blocker / next action |
 |---|---|---|---|---|
-| `.github/workflows/ci.yml` | Node/Python tests and syntax | PASS | [Run 40766128960](https://github.com/lostgodsgods-ops/super-chatty-jarvis/actions/runs/40766128960) at `0a35a8dda07b5217497ec1c45bdc64e3a7d0147c` (success) | No workflow-specific blocker established by this run. |
+| `.github/workflows/ci.yml` | Node/Python tests and syntax | PASS | [Run 40770650646](https://github.com/lostgodsgods-ops/super-chatty-jarvis/actions/runs/40770650646) at `0a35a8dda07b5217497ec1c45bdc64e3a7d0147c` (success) | No workflow-specific blocker established by this run. |
 | `.github/workflows/deploy-central-agent.yml` | Central Agent deploy | NOT TESTED | No push-triggered run observed on exact snapshot SHA. | No push-triggered workflow run on the exact snapshot SHA was observed. |
 | `.github/workflows/deploy-cloudflare.yml` | Cloudflare Worker deploy | NOT TESTED | No push-triggered run observed on exact snapshot SHA. | No push-triggered workflow run on the exact snapshot SHA was observed. |
 | `.github/workflows/deploy-nexus-pwa.yml` | PWA/static asset deploy | NOT TESTED | No push-triggered run observed on exact snapshot SHA. | No push-triggered workflow run on the exact snapshot SHA was observed. |
 | `.github/workflows/integration-registry.yml` | Integration registry contract | NOT TESTED | No push-triggered run observed on exact snapshot SHA. | No push-triggered workflow run on the exact snapshot SHA was observed. |
 | `.github/workflows/monitor-central-agent.yml` | Scheduled live health/search/auth/queue probes | NOT TESTED | No push-triggered run observed on exact snapshot SHA. | No push-triggered workflow run on the exact snapshot SHA was observed. |
 | `.github/workflows/php-core.yml` | PHP sidecar checks | NOT TESTED | No push-triggered run observed on exact snapshot SHA. | No push-triggered workflow run on the exact snapshot SHA was observed. |
-| `.github/workflows/redultron-failure-sentinel.yml` | Bounded retry/incident handling | PASS | [Run 40766128956](https://github.com/lostgodsgods-ops/super-chatty-jarvis/actions/runs/40766128956) at `0a35a8dda07b5217497ec1c45bdc64e3a7d0147c` (success) | Push run succeeded; scheduled/duplicate-event behavior is not a complete production reliability certification. |
+| `.github/workflows/redultron-failure-sentinel.yml` | Bounded retry/incident handling | PASS | [Run 40770650632](https://github.com/lostgodsgods-ops/super-chatty-jarvis/actions/runs/40770650632) at `0a35a8dda07b5217497ec1c45bdc64e3a7d0147c` (success) | Push run succeeded; scheduled/duplicate-event behavior is not a complete production reliability certification. |
 | `.github/workflows/redultron-live-probe.yml` | Strict authenticated hybrid certification | NOT TESTED | No push-triggered run observed on exact snapshot SHA. | No push-triggered workflow run on the exact snapshot SHA was observed. |
 | `.github/workflows/redultron-provenance-deploy.yml` | Provenance/deployment verification | NOT TESTED | No push-triggered run observed on exact snapshot SHA. | No push-triggered workflow run on the exact snapshot SHA was observed. |
-| `.github/workflows/redultron-release-package.yml` | Release package generation | FAIL | [Run 40766126980](https://github.com/lostgodsgods-ops/super-chatty-jarvis/actions/runs/40766126980) at `0a35a8dda07b5217497ec1c45bdc64e3a7d0147c` (failure) | Main push run failed before jobs; PR #801 has a passing trigger-key fix and remains open. |
-| `.github/workflows/static-site-checks.yml` | Static/PWA contracts | PASS | [Run 40766128993](https://github.com/lostgodsgods-ops/super-chatty-jarvis/actions/runs/40766128993) at `0a35a8dda07b5217497ec1c45bdc64e3a7d0147c` (success) | No workflow-specific blocker established by this run. |
+| `.github/workflows/redultron-release-package.yml` | Release package generation | FAIL | [Run 40770648736](https://github.com/lostgodsgods-ops/super-chatty-jarvis/actions/runs/40770648736) at `0a35a8dda07b5217497ec1c45bdc64e3a7d0147c` (failure) | Main push run failed before jobs; PR #801 has a passing trigger-key fix and remains open. |
+| `.github/workflows/static-site-checks.yml` | Static/PWA contracts | PASS | [Run 40770650616](https://github.com/lostgodsgods-ops/super-chatty-jarvis/actions/runs/40770650616) at `0a35a8dda07b5217497ec1c45bdc64e3a7d0147c` (success) | No workflow-specific blocker established by this run. |
 | `.github/workflows/test-central-agent.yml` | Central Agent tests | NOT TESTED | No push-triggered run observed on exact snapshot SHA. | No push-triggered workflow run on the exact snapshot SHA was observed. |
 | `.github/workflows/test-hybrid-core.yml` | Hybrid Core tests | NOT TESTED | No push-triggered run observed on exact snapshot SHA. | No push-triggered workflow run on the exact snapshot SHA was observed. |
 
