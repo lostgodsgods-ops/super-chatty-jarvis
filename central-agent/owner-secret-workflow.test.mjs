@@ -32,3 +32,20 @@ test("live gateway probe checks DNS before HTTP and verifies invalid owner crede
   assert.match(probe, /401|403/,
     "probe must require unauthorized credentials to be rejected");
 });
+
+
+test("production provenance deployment is manual-only and requires explicit approval", () => {
+  const workflow = readWorkflow("../.github/workflows/redultron-provenance-deploy.yml");
+  const triggers = workflow.split(/^permissions:/m)[0] ?? workflow;
+
+  assert.doesNotMatch(triggers, /^\s{2}push:/m,
+    "production provenance deployment must not auto-run on pushes");
+  assert.match(triggers, /workflow_dispatch:[\s\S]*inputs:/,
+    "manual dispatch must expose an explicit approval input");
+  assert.match(triggers, /authorize_production_changes/,
+    "the workflow must name its production approval input");
+  assert.match(triggers, /default:\s*deny/,
+    "production approval must default to deny");
+  assert.match(workflow, /if:\s*\$\{\{\s*inputs\.authorize_production_changes\s*==\s*'approve'\s*\}\}/,
+    "the production-changing job must require explicit approval");
+});
