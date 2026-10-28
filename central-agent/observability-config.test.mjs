@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 
 const rawConfig = readFileSync(new URL("./wrangler.jsonc", import.meta.url), "utf8");
-const config = JSON.parse(rawConfig.replace(/^\\s*\\/\\/.*$/gm, ""));
+const config = JSON.parse(rawConfig.replace(/^\s*\/\/.*$/gm, ""));
 
 test("Worker observability keeps query redaction on and raw invocation logs off", () => {
   const obs = config.observability;
