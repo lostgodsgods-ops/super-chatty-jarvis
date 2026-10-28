@@ -1,5 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import { listAgentDefinitions } from "../central-agent/agent-orchestrator.mjs";
 import { readFile } from "node:fs/promises";
 
 const registry = JSON.parse(
@@ -59,4 +60,8 @@ test("registered agent catalog is not misrepresented as a running agent fleet", 
   assert.equal(agentRegistry.runtime.automaticDispatchEnabled, false);
   assert.equal(agents.layers.production, "blocked");
   assert.match(agents.nextAction, /provision|dispatch|runtime/i);
+  const runtimeRoles = listAgentDefinitions();
+  assert.equal(runtimeRoles.length, 8, "Central Agent currently defines eight bounded runtime roles");
+  assert.ok(runtimeRoles.every(role => role.requiresOwnerSession && role.autoExecutesSideEffects === false),
+    "runtime roles must remain owner-session gated and must not execute external side effects");
 });
