@@ -40,3 +40,50 @@ test("configured integrations deny execution until adapters exist", () => {
   assert.equal(resolveMcpServer("github", { MCP_GITHUB_URL: "https://example.invalid", MCP_GITHUB_TOKEN: "present" }).status, 501);
   assert.equal(resolveVectorBackend("qdrant", { QDRANT_URL: "https://example.invalid", QDRANT_API_KEY: "present" }).status, 501);
 });
+
+import { executeChatCompletion, listChatProviders } from "./model-provider-adapter.mjs";
+
+test("chat provider catalog distinguishes supported adapters from missing credentials", () => {
+  const catalog = listChatProviders({});
+  assert.ok(catalog.some(provider => provider.id === "openai" && provider.status === "not_configured"));
+  assert.ok(catalog.some(provider => provider.id === "anthropic" && provider.status === "not_configured"));
+  assert.ok(catalog.every(provider => provider.liveVerified === false));
+});
+
+test("chat provider adapter rejects unknown providers and missing credentials without network calls", async () => {
+  let calls = 0;
+  const fetchImpl = async () => { calls++; throw new Error("unexpected network call"); };
+  await assert.rejects(() => executeChatCompletion({ provider: "unknown", prompt: "hello" }, {}, fetchImpl), /UNKNOWN_PROVIDER/);
+  await assert.rejects(() => executeChatCompletion({ provider: "openai", prompt: "hello" }, {}, fetchImpl), /PROVIDER_NOT_CONFIGURED/);
+  assert.equal(calls, 0);
+});
+
+test("OpenAI-compatible provider adapter uses fixed endpoint, bounded request and normalized response", async () => {
+  let requestedUrl = "";
+  let requestBody;
+  const fetchImpl = async (url, init) => {
+    requestedUrl = String(url);
+    requestBody = JSON.parse(init.body);
+    assert.equal(init.headers.authorization, "Bearer test-key");
+    assert.equal(init.redirect, "error");
+    return new Response(JSON.stringify({ choices: [{ message: { content: "hello from provider" } }] }), {
+      status: 200, headers: { "content-type": "application/json" }
+    });
+  };
+  const result = await executeChatCompletion({
+    provider: "openai", prompt: "say hello", model: "gpt-4o-mini", maxTokens: 64
+  }, { OPENAI_API_KEY: "test-key" }, fetchImpl);
+  assert.equal(requestedUrl, "https://api.openai.com/v1/chat/completions");
+  assert.equal(requestBody.messages[0].content, "say hello");
+  assert.equal(requestBody.max_tokens, 64);
+  assert.equal(result.ok, true);
+  assert.equal(result.text, "hello from provider");
+  assert.equal(result.provider, "openai");
+});
+
+test("chat provider adapter rejects invalid prompts and does not log or echo credentials", async () => {
+  let calls = 0;
+  const fetchImpl = async () => { calls++; return new Response("{}", { status: 200 }); };
+  await assert.rejects(() => executeChatCompletion({ provider: "openai", prompt: " " }, { OPENAI_API_KEY: "secret" }, fetchImpl), /INVALID_PROMPT/);
+  assert.equal(calls, 0);
+});
