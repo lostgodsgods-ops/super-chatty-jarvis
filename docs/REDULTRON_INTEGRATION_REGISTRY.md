@@ -4,6 +4,12 @@
 > Last reviewed: 2026-10-28. Source of truth: repository code/configuration and cited run records.
 > Never store credential values in this document.
 
+## Machine-readable source
+
+- Structured catalog: `docs/integration-registry.json`
+- Contract tests: `tests/integration-registry.test.mjs`
+- The JSON catalog is intended for dashboards and automated audits; it records layer-specific states and next actions. It does not itself prove runtime behavior.
+
 ## Status vocabulary
 
 - `implemented`: adapter or code path exists in the inspected repository.
