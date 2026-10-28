@@ -46,7 +46,7 @@ test("production provenance deployment is manual-only and requires explicit appr
     "the workflow must name its production approval input");
   assert.match(triggers, /default:\s*deny/,
     "production approval must default to deny");
-  assert.match(workflow, /if:\s*\$\{\{\s*github\.ref\s*==\s*'refs\\/heads\\/main'\s*&&\s*inputs\.authorize_production_changes\s*==\s*'approve'\s*\}\}/,
+  assert.ok(workflow.includes("if: ${{ github.ref == 'refs/heads/main' && inputs.authorize_production_changes == 'approve' }}"),
     "the production-changing job must require main-branch dispatch and explicit approval");
 });
 
@@ -83,7 +83,7 @@ test("all production deploy workflows require main-branch approval and do not au
       path + " must name its production approval input");
     assert.match(triggers, /default:\s*deny/,
       path + " must default production approval to deny");
-    assert.match(workflow, /if:\s*\$\{\{\s*github\.ref\s*==\s*'refs\\/heads\\/main'\s*&&\s*inputs\.authorize_production_changes\s*==\s*'approve'\s*\}\}/,
+    assert.ok(workflow.includes("if: ${{ github.ref == 'refs/heads/main' && inputs.authorize_production_changes == 'approve' }}"),
       path + " must require main-branch dispatch and explicit approval");
   }
 });
