@@ -123,3 +123,27 @@ test("D1 schema initialization failures return a sanitized storage error", async
   await assert.rejects(createCapabilityRequest(env, input, catalog), isSanitizedStorageError);
   await assert.rejects(listCapabilityRequests(env, 10), isSanitizedStorageError);
 });
+
+
+test("D1 list query failures return a sanitized storage error", async () => {
+  const internalDetail = "SQLITE_QUERY_PLAN_INTERNAL_DETAIL";
+  const env = {
+    DB: {
+      prepare(sql) {
+        if (sql.startsWith("CREATE TABLE IF NOT EXISTS capability_requests")) {
+          return { async run() { return { success: true }; } };
+        }
+        return {
+          bind() { return this; },
+          async all() { throw new Error(internalDetail); }
+        };
+      }
+    }
+  };
+  await assert.rejects(listCapabilityRequests(env, 10), error =>
+    error.code === "CAPABILITY_REQUEST_STORAGE_UNAVAILABLE" &&
+    error.status === 503 &&
+    error.message === "CAPABILITY_REQUEST_STORAGE_UNAVAILABLE" &&
+    !error.message.includes(internalDetail)
+  );
+});
