@@ -271,7 +271,7 @@ export async function verifySentinelAuditChain(db) {
     return { ok: false, code: "D1_BINDING_UNAVAILABLE", sequence: 0 };
   }
   try {
-    await ensureSentinelHashSchema(db);
+    // Verification is strictly read-only: schema creation and initialization belong to migrations/setup.
     const [chainResult, head] = await Promise.all([
       db.prepare(`SELECT sequence, record_id AS recordId, previous_hash AS previousHash,
         timestamp, canonical_payload AS canonicalPayload, commit_sha AS commitSha,
