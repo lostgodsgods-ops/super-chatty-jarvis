@@ -30,7 +30,7 @@ import { DEFAULT_OWNER_CONTROL_SETTINGS, normalizeOwnerControlCommand, validateO
 import { createSandboxLedger, postSandboxTransaction } from "./architecture/finance-sandbox.mjs";
 import { appendTreasuryEvent, listTreasuryEvents, TreasuryError } from "./architecture/treasury-ledger.mjs";
 import { executeQuantumOrFallback, QuantumAdapterError } from "./architecture/quantum-adapter.mjs";
-import { executeHybridTask, HybridCoreError } from "./architecture/hybrid-core.mjs";
+import { executeHybridTask, HybridCoreError, inspectHybridCoreConfiguration, validateHybridResultSchema } from "./architecture/hybrid-core.mjs";
 import { listUniversalTools } from "./architecture/universal-tool-registry.mjs";
 import { createCapabilityRequest, listCapabilityRequests, proposeCapabilityRequest, CapabilityRequestError } from "./architecture/capability-request-queue.mjs";
 import { executeChatCompletion, listChatProviders, ChatProviderError } from "./architecture/model-provider-adapter.mjs";
@@ -2219,11 +2219,13 @@ export default {
         return json({ ok: false, code: "OWNER_AUTH_REQUIRED" }, 401, cors);
       }
       const probeText = "REDULTRON authenticated gateway to Python sidecar health probe.";
+      const configDiagnostics = inspectHybridCoreConfiguration(env);
       try {
         const result = await executeHybridTask({ task: "summarize", text: probeText }, env);
-        const schemaValid = result.ok === true && result.task === "summarize" && Object.prototype.hasOwnProperty.call(result, "result");
+        const schemaValid = result.ok === true && result.task === "summarize" &&
+          validateHybridResultSchema(result.task, result.result);
         return json({
-          ok: true,
+          ok: schemaValid,
           probe: "authenticated-hybrid-roundtrip",
           engine: result.engine,
           task: result.task,
@@ -2232,7 +2234,12 @@ export default {
           fallbackEngaged: false,
           hybridCoreExecutionVerified: schemaValid && (result.engine === "python-edge-hybrid" || result.engine === "php-edge-hybrid"),
           hybridPhpCoreExecutionVerified: schemaValid && result.engine === "php-edge-hybrid",
-          hybridPythonCoreExecutionVerified: schemaValid && result.engine === "python-edge-hybrid"
+          hybridPythonCoreExecutionVerified: schemaValid && result.engine === "python-edge-hybrid",
+          configDiagnostics: {
+            ...configDiagnostics,
+            runtimeReachabilityVerified: schemaValid,
+            ownerSecretMatchVerified: schemaValid
+          }
         }, 200, cors);
       } catch (error) {
         const status = error instanceof HybridCoreError ? error.status : 502;
@@ -2264,10 +2271,11 @@ export default {
             fallbackReason: code,
             hybridCoreExecutionVerified: false,
             hybridPhpCoreExecutionVerified: false,
-            hybridPythonCoreExecutionVerified: false
+            hybridPythonCoreExecutionVerified: false,
+            configDiagnostics
           }, status, cors);
         }
-        return json({ ok: false, code }, status, cors);
+        return json({ ok: false, code, configDiagnostics }, status, cors);
       }
     }
 
@@ -2559,12 +2567,14 @@ export default {
       try {
         const result = await executeHybridTask(body, env);
         await publishEvent(env, { type: "hybrid.task.completed", source: "hybrid-core", payload: { task: result.task, engine: result.engine } });
+        const schemaValid = result.ok === true && result.task === body?.task &&
+          validateHybridResultSchema(result.task, result.result);
         return json({
           ...result,
-          resultSchemaValid: result.ok === true && result.task === body?.task && result.result !== null && typeof result.result === "object",
-          resultsSchemaValid: result.ok === true && result.task === body?.task && result.result !== null && typeof result.result === "object",
+          resultSchemaValid: schemaValid,
+          resultsSchemaValid: schemaValid,
           fallbackEngaged: false,
-          hybridPythonCoreExecutionVerified: result.engine === "python-edge-hybrid"
+          hybridPythonCoreExecutionVerified: schemaValid && result.engine === "python-edge-hybrid"
         }, 200, cors);
       } catch (error) {
         const status = error instanceof HybridCoreError ? error.status : 502;
