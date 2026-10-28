@@ -2164,7 +2164,8 @@ export default {
             fallbackReason: code
           };
           return json({
-            ok: true,
+            ok: false,
+            code,
             probe: "authenticated-hybrid-roundtrip",
             engine: "guarded-local-fallback",
             task: "summarize",
@@ -2174,7 +2175,7 @@ export default {
             fallbackEngaged: true,
             fallbackReason: code,
             hybridPythonCoreExecutionVerified: false
-          }, 200, cors);
+          }, status, cors);
         }
         return json({ ok: false, code }, status, cors);
       }

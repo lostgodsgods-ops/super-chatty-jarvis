@@ -205,18 +205,17 @@ test("internal hybrid probe rejects missing and incorrect owner secrets", async 
   assert.equal((await invalid.json()).code, "OWNER_AUTH_REQUIRED");
 });
 
-test("internal hybrid probe uses guarded local fallback when the sidecar is unconfigured", async () => {
+test("internal hybrid certification probe fails closed when the sidecar is unconfigured", async () => {
   const response = await worker.fetch(new Request("https://example.test/api/internal/hybrid-probe", {
     method: "POST", headers: { "content-type": "application/json", "x-owner-secret": "correct-secret-with-at-least-32-characters" }, body: "{}"
   }), { ...env(new FakeDB()), OWNER_SECRET: "correct-secret-with-at-least-32-characters" });
-  assert.equal(response.status, 200);
+  assert.equal(response.status, 503);
   const payload = await response.json();
-  assert.equal(payload.ok, true);
+  assert.equal(payload.ok, false);
   assert.equal(payload.probe, "authenticated-hybrid-roundtrip");
   assert.equal(payload.engine, "guarded-local-fallback");
   assert.equal(payload.task, "summarize");
-  assert.equal(payload.resultSchemaValid, true);
-  assert.equal(payload.resultsSchemaValid, true);
+  assert.equal(payload.code, "HYBRID_CORE_NOT_CONFIGURED");
   assert.equal(payload.fallbackEngaged, true);
   assert.equal(payload.hybridPythonCoreExecutionVerified, false);
   assert.equal(payload.result.mode, "guarded-local-fallback");
