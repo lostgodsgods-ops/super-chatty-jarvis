@@ -1,10 +1,17 @@
-FROM php:8.3-cli
+FROM php:8.3-apache
 
-WORKDIR /app
-COPY index.php /app/index.php
+RUN printf '%s\n' \
+    '<Directory /var/www/html>' \
+    '    Require all granted' \
+    '    Options -Indexes' \
+    '    LimitRequestBody 10240' \
+    '    FallbackResource /index.php' \
+    '</Directory>' > /etc/apache2/conf-available/redultron.conf \
+    && a2enconf redultron
 
-ENV HOST=0.0.0.0 PORT=8788
-EXPOSE 8788
+WORKDIR /var/www/html
+COPY index.php /var/www/html/index.php
 
-# Built-in server is local/staging only; use a production-grade PHP server for production traffic.
-CMD ["sh", "-c", "php -S ${HOST}:${PORT} /app/index.php"]
+EXPOSE 80
+
+# Terminate TLS and enforce rate limits at the hosting ingress; inject OWNER_SECRET via secret manager.
