@@ -23,6 +23,24 @@ test("hybrid probe and Worker deployment use the same canonical owner secret", (
 });
 
 
+test("provenance deploy synchronizes the canonical secret to Render before changing Worker bindings", () => {
+  const provenance = readWorkflow("../.github/workflows/redultron-provenance-deploy.yml");
+  assert.match(provenance, /RENDER_API_KEY:\\s*\\$\\{\\{\\s*secrets\\.RENDER_API_KEY\\s*\\}\\}/,
+    "Render API credential must come from GitHub Actions secrets");
+  assert.match(provenance, /services\\/srv-dbdhr0mi0phs739rv98g\\/env-vars\\/OWNER_SECRET/,
+    "the known Python Core Render service must receive the canonical owner secret");
+  assert.match(provenance, /services\\/srv-dbdhr0mi0phs739rv98g\\/deploys/,
+    "Render must be redeployed when its owner secret changes");
+  const renderSync = provenance.indexOf("Synchronize canonical owner secret to Render Python Core");
+  const workerSync = provenance.indexOf("Synchronize owner secret to the deployed Worker");
+  const workerDeploy = provenance.indexOf("Deploy exact GitHub commit provenance");
+  assert.ok(renderSync >= 0 && workerSync > renderSync && workerDeploy > workerSync,
+    "Render secret sync must succeed before Worker secret update and deployment");
+  assert.match(provenance, /RENDER_OWNER_SECRET_MISMATCH|Render owner secret sync/,
+    "Render secret synchronization must fail closed with a sanitized diagnostic");
+});
+
+
 test("live gateway probe checks DNS before HTTP and verifies invalid owner credentials are rejected", () => {
   const probe = readWorkflow("../.github/workflows/redultron-live-probe.yml");
   assert.match(probe, /getent\s+ahosts|dns\.promises\.lookup|dns\.lookup/,
