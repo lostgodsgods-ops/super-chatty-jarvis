@@ -8,6 +8,7 @@ on:
       - "scripts/redultron-package-check.mjs"
       - "tests/redultron-package-check.test.mjs"
       - "docs/REDULTRON_INTEGRATION_REGISTRY.md"
+      - "docs/REDULTRON_RELEASE_PACKAGE.md"
       - "tests/integration-registry.test.mjs"
       - ".github/workflows/integration-registry.yml"
   workflow_dispatch:
