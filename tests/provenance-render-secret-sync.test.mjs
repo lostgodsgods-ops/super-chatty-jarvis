@@ -16,5 +16,5 @@ test("provenance deploy synchronizes the same owner secret to Render before auth
   assert.match(sync, /OWNER_SECRET/);
   assert.match(sync, /PATCH/);
   assert.match(sync, /curl --silent/);
-  assert.doesNotMatch(sync, /curl .*--verbose|set -x|echo .*\$(?:\\{(?:REDULTRON_)?OWNER_SECRET\\}|(?:REDULTRON_)?OWNER_SECRET)/);
+  assert.doesNotMatch(sync, /curl .*--verbose|set -x|echo .*\$(?:\{(?:REDULTRON_)?OWNER_SECRET\}|(?:REDULTRON_)?OWNER_SECRET)/);
 });
