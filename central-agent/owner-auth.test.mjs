@@ -410,7 +410,7 @@ test("time-sensitive research refuses stale cached evidence when live providers 
     const second = await call(e, "/research/query", { query }, token);
     assert.equal(second.status, 502);
     const secondPayload = await second.json();
-    assert.equal(secondPayload.ok, false);
+    assert.equal(typeof secondPayload.error, "string");
     assert.equal(secondPayload.code, "LIVE_SEARCH_ALL_PROVIDERS_FAILED");
     assert.notEqual(secondPayload.stale, true);
     assert.equal(JSON.stringify(secondPayload).includes("Test evidence"), false);
