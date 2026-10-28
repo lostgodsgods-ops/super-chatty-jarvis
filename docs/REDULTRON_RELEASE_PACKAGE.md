@@ -13,6 +13,8 @@ node scripts/redultron-package-check.mjs
 
 The package checker exits non-zero only when the package contract is structurally invalid. A structurally valid package can still report `PACKAGE_VALIDATED_WITH_BLOCKERS`; that is expected until every production gate has independently passed.
 
+The `Integration Registry Contract` GitHub Actions workflow also creates a ZIP of the **exact tested repository commit** and a `SHA256SUMS.txt` checksum, then uploads both as a workflow artifact for 14 days. Download it from the successful run's **Artifacts** section. The artifact is a source snapshot, not a production deployment or a claim that all integrations are live.
+
 ## Bundle contents
 
 - `docs/redultron-release-package.json` — release manifest, acceptance gates, and known blockers.
