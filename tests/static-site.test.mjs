@@ -520,9 +520,13 @@ test("Core release metadata is current and voice output uses clear, full-volume 
 test("Cloudflare deployment verifies the exact deployed PWA release after Worker publish", () => {
   const deployIndex = deployWorkflow.indexOf("name: Deploy Worker");
   const verifyIndex = deployWorkflow.indexOf("name: Verify deployed PWA release markers");
-  assert.ok(deployIndex >= 0 && verifyIndex > deployIndex, "production deployment must be followed by a live PWA verification step");
+  assert.ok(deployIndex >= 0 && verifyIndex > deployIndex, "production deployment must be followed by live PWA verification");
   assert.match(deployWorkflow, /application-version/);
   assert.match(deployWorkflow, /redultron-core-shell-v/);
   assert.match(deployWorkflow, /Content-Type/);
   assert.match(deployWorkflow, /\/health/);
+  assert.ok(deployWorkflow.includes("REDULTRON-[0-9]{4}\\.[0-9]{2}\\.[0-9]{2}-CORE-3\\.0-V[0-9]+"), "version extraction must escape literal dots correctly");
+  assert.match(deployWorkflow, /REDULTRON_WORKER_BASE_URL/);
+  assert.match(deployWorkflow, /for attempt in 1 2 3 4 5 6/);
+  assert.match(deployWorkflow, /expected_meta=.*application-version.*expected_version/);
 });
