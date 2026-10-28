@@ -42,9 +42,17 @@ jobs:
         run: |
           set -euo pipefail
           BASE_URL="${BASE_URL%/}"
+          host="$(node -e 'const u=new URL(process.argv[1]); if(u.protocol!=="https:"||u.username||u.password) process.exit(2); process.stdout.write(u.hostname)' "$BASE_URL")"
+          if ! getent ahosts "$host" >/dev/null 2>&1; then
+            echo "::error::DNS resolution failed for configured Worker hostname; check Cloudflare route, custom-domain binding, and DNS records."
+            exit 1
+          fi
+          echo "PASS: DNS resolved for configured Worker hostname."
+
           health_file="$(mktemp)"
           hybrid_file="$(mktemp)"
-          trap 'rm -f "$health_file" "$hybrid_file"' EXIT
+          invalid_auth_file="$(mktemp)"
+          trap 'rm -f "$health_file" "$hybrid_file" "$invalid_auth_file"' EXIT
 
           health_status="$(curl --silent --show-error --max-time 10 --output "$health_file" --write-out '%{http_code}' "$BASE_URL/health")"
           if [[ "$health_status" != "200" ]]; then
@@ -56,6 +64,17 @@ jobs:
             exit 1
           fi
           echo "PASS: /health returned HTTP 200 and ok=true."
+
+          invalid_auth_status="$(curl --silent --show-error --max-time 10 --output "$invalid_auth_file" --write-out '%{http_code}' \
+            -X POST "$BASE_URL/api/internal/hybrid-probe" \
+            -H 'content-type: application/json' \
+            -H 'x-owner-secret: invalid-redultron-owner-secret-probe' \
+            --data '{}')"
+          if [[ "$invalid_auth_status" != "401" && "$invalid_auth_status" != "403" ]]; then
+            echo "::error::Negative authentication control failed: invalid owner credential returned HTTP $invalid_auth_status (expected 401 or 403)."
+            exit 1
+          fi
+          echo "PASS: invalid owner credential was rejected (HTTP $invalid_auth_status)."
 
           hybrid_status="$(curl --silent --show-error --max-time 15 --output "$hybrid_file" --write-out '%{http_code}' \
             -X POST "$BASE_URL/api/internal/hybrid-probe" \

@@ -1,0 +1,2060 @@
+{
+  "schemaVersion": "1.0.0",
+  "project": "REDULTRON CORE 3.0",
+  "mode": "registry-only",
+  "generatedFrom": "90-agent-ultimate-autonomous-ecosystem",
+  "baseCommit": "a9979d4b5238ca6ed093ead0d8fd92a06d9460c5",
+  "counts": {
+    "total": 90,
+    "groupA": 20,
+    "groupB": 25,
+    "groupC": 30,
+    "groupD": 15
+  },
+  "runtime": {
+    "agentsProvisioned": 0,
+    "automaticDispatchEnabled": false,
+    "financialExecution": "simulation-only",
+    "productionDeploymentEnabled": false
+  },
+  "principles": [
+    "least-privilege",
+    "fail-closed",
+    "no-secret-exfiltration",
+    "audit-retention",
+    "simulation-first",
+    "commander-approval-before-irreversible-actions"
+  ],
+  "agents": [
+    {
+      "id": "AGENT-01",
+      "group": "A",
+      "groupName": "privacy-security",
+      "role": "privacy-policy-auditor",
+      "status": "registered-not-provisioned",
+      "dispatchEnabled": false,
+      "allowedActions": [
+        "read-scoped-inputs",
+        "analyze",
+        "propose-change",
+        "write-audit-result"
+      ],
+      "deniedActions": [
+        "read-or-export-secrets",
+        "bypass-authentication",
+        "erase-required-audit-records",
+        "merge-without-required-review",
+        "deploy-without-release-gate"
+      ],
+      "approvalRequired": "commander-or-policy-gate-for-write-deploy-or-privileged-action"
+    },
+    {
+      "id": "AGENT-02",
+      "group": "A",
+      "groupName": "privacy-security",
+      "role": "secret-leak-scanner",
+      "status": "registered-not-provisioned",
+      "dispatchEnabled": false,
+      "allowedActions": [
+        "read-scoped-inputs",
+        "analyze",
+        "propose-change",
+        "write-audit-result"
+      ],
+      "deniedActions": [
+        "read-or-export-secrets",
+        "bypass-authentication",
+        "erase-required-audit-records",
+        "merge-without-required-review",
+        "deploy-without-release-gate"
+      ],
+      "approvalRequired": "commander-or-policy-gate-for-write-deploy-or-privileged-action"
+    },
+    {
+      "id": "AGENT-03",
+      "group": "A",
+      "groupName": "privacy-security",
+      "role": "session-lifecycle-reviewer",
+      "status": "registered-not-provisioned",
+      "dispatchEnabled": false,
+      "allowedActions": [
+        "read-scoped-inputs",
+        "analyze",
+        "propose-change",
+        "write-audit-result"
+      ],
+      "deniedActions": [
+        "read-or-export-secrets",
+        "bypass-authentication",
+        "erase-required-audit-records",
+        "merge-without-required-review",
+        "deploy-without-release-gate"
+      ],
+      "approvalRequired": "commander-or-policy-gate-for-write-deploy-or-privileged-action"
+    },
+    {
+      "id": "AGENT-04",
+      "group": "A",
+      "groupName": "privacy-security",
+      "role": "encryption-config-reviewer",
+      "status": "registered-not-provisioned",
+      "dispatchEnabled": false,
+      "allowedActions": [
+        "read-scoped-inputs",
+        "analyze",
+        "propose-change",
+        "write-audit-result"
+      ],
+      "deniedActions": [
+        "read-or-export-secrets",
+        "bypass-authentication",
+        "erase-required-audit-records",
+        "merge-without-required-review",
+        "deploy-without-release-gate"
+      ],
+      "approvalRequired": "commander-or-policy-gate-for-write-deploy-or-privileged-action"
+    },
+    {
+      "id": "AGENT-05",
+      "group": "A",
+      "groupName": "privacy-security",
+      "role": "access-control-auditor",
+      "status": "registered-not-provisioned",
+      "dispatchEnabled": false,
+      "allowedActions": [
+        "read-scoped-inputs",
+        "analyze",
+        "propose-change",
+        "write-audit-result"
+      ],
+      "deniedActions": [
+        "read-or-export-secrets",
+        "bypass-authentication",
+        "erase-required-audit-records",
+        "merge-without-required-review",
+        "deploy-without-release-gate"
+      ],
+      "approvalRequired": "commander-or-policy-gate-for-write-deploy-or-privileged-action"
+    },
+    {
+      "id": "AGENT-06",
+      "group": "A",
+      "groupName": "privacy-security",
+      "role": "data-minimization-reviewer",
+      "status": "registered-not-provisioned",
+      "dispatchEnabled": false,
+      "allowedActions": [
+        "read-scoped-inputs",
+        "analyze",
+        "propose-change",
+        "write-audit-result"
+      ],
+      "deniedActions": [
+        "read-or-export-secrets",
+        "bypass-authentication",
+        "erase-required-audit-records",
+        "merge-without-required-review",
+        "deploy-without-release-gate"
+      ],
+      "approvalRequired": "commander-or-policy-gate-for-write-deploy-or-privileged-action"
+    },
+    {
+      "id": "AGENT-07",
+      "group": "A",
+      "groupName": "privacy-security",
+      "role": "dependency-risk-reviewer",
+      "status": "registered-not-provisioned",
+      "dispatchEnabled": false,
+      "allowedActions": [
+        "read-scoped-inputs",
+        "analyze",
+        "propose-change",
+        "write-audit-result"
+      ],
+      "deniedActions": [
+        "read-or-export-secrets",
+        "bypass-authentication",
+        "erase-required-audit-records",
+        "merge-without-required-review",
+        "deploy-without-release-gate"
+      ],
+      "approvalRequired": "commander-or-policy-gate-for-write-deploy-or-privileged-action"
+    },
+    {
+      "id": "AGENT-08",
+      "group": "A",
+      "groupName": "privacy-security",
+      "role": "input-validation-reviewer",
+      "status": "registered-not-provisioned",
+      "dispatchEnabled": false,
+      "allowedActions": [
+        "read-scoped-inputs",
+        "analyze",
+        "propose-change",
+        "write-audit-result"
+      ],
+      "deniedActions": [
+        "read-or-export-secrets",
+        "bypass-authentication",
+        "erase-required-audit-records",
+        "merge-without-required-review",
+        "deploy-without-release-gate"
+      ],
+      "approvalRequired": "commander-or-policy-gate-for-write-deploy-or-privileged-action"
+    },
+    {
+      "id": "AGENT-09",
+      "group": "A",
+      "groupName": "privacy-security",
+      "role": "security-test-author",
+      "status": "registered-not-provisioned",
+      "dispatchEnabled": false,
+      "allowedActions": [
+        "read-scoped-inputs",
+        "analyze",
+        "propose-change",
+        "write-audit-result"
+      ],
+      "deniedActions": [
+        "read-or-export-secrets",
+        "bypass-authentication",
+        "erase-required-audit-records",
+        "merge-without-required-review",
+        "deploy-without-release-gate"
+      ],
+      "approvalRequired": "commander-or-policy-gate-for-write-deploy-or-privileged-action"
+    },
+    {
+      "id": "AGENT-10",
+      "group": "A",
+      "groupName": "privacy-security",
+      "role": "incident-evidence-collector",
+      "status": "registered-not-provisioned",
+      "dispatchEnabled": false,
+      "allowedActions": [
+        "read-scoped-inputs",
+        "analyze",
+        "propose-change",
+        "write-audit-result"
+      ],
+      "deniedActions": [
+        "read-or-export-secrets",
+        "bypass-authentication",
+        "erase-required-audit-records",
+        "merge-without-required-review",
+        "deploy-without-release-gate"
+      ],
+      "approvalRequired": "commander-or-policy-gate-for-write-deploy-or-privileged-action"
+    },
+    {
+      "id": "AGENT-11",
+      "group": "A",
+      "groupName": "privacy-security",
+      "role": "privacy-policy-auditor",
+      "status": "registered-not-provisioned",
+      "dispatchEnabled": false,
+      "allowedActions": [
+        "read-scoped-inputs",
+        "analyze",
+        "propose-change",
+        "write-audit-result"
+      ],
+      "deniedActions": [
+        "read-or-export-secrets",
+        "bypass-authentication",
+        "erase-required-audit-records",
+        "merge-without-required-review",
+        "deploy-without-release-gate"
+      ],
+      "approvalRequired": "commander-or-policy-gate-for-write-deploy-or-privileged-action"
+    },
+    {
+      "id": "AGENT-12",
+      "group": "A",
+      "groupName": "privacy-security",
+      "role": "secret-leak-scanner",
+      "status": "registered-not-provisioned",
+      "dispatchEnabled": false,
+      "allowedActions": [
+        "read-scoped-inputs",
+        "analyze",
+        "propose-change",
+        "write-audit-result"
+      ],
+      "deniedActions": [
+        "read-or-export-secrets",
+        "bypass-authentication",
+        "erase-required-audit-records",
+        "merge-without-required-review",
+        "deploy-without-release-gate"
+      ],
+      "approvalRequired": "commander-or-policy-gate-for-write-deploy-or-privileged-action"
+    },
+    {
+      "id": "AGENT-13",
+      "group": "A",
+      "groupName": "privacy-security",
+      "role": "session-lifecycle-reviewer",
+      "status": "registered-not-provisioned",
+      "dispatchEnabled": false,
+      "allowedActions": [
+        "read-scoped-inputs",
+        "analyze",
+        "propose-change",
+        "write-audit-result"
+      ],
+      "deniedActions": [
+        "read-or-export-secrets",
+        "bypass-authentication",
+        "erase-required-audit-records",
+        "merge-without-required-review",
+        "deploy-without-release-gate"
+      ],
+      "approvalRequired": "commander-or-policy-gate-for-write-deploy-or-privileged-action"
+    },
+    {
+      "id": "AGENT-14",
+      "group": "A",
+      "groupName": "privacy-security",
+      "role": "encryption-config-reviewer",
+      "status": "registered-not-provisioned",
+      "dispatchEnabled": false,
+      "allowedActions": [
+        "read-scoped-inputs",
+        "analyze",
+        "propose-change",
+        "write-audit-result"
+      ],
+      "deniedActions": [
+        "read-or-export-secrets",
+        "bypass-authentication",
+        "erase-required-audit-records",
+        "merge-without-required-review",
+        "deploy-without-release-gate"
+      ],
+      "approvalRequired": "commander-or-policy-gate-for-write-deploy-or-privileged-action"
+    },
+    {
+      "id": "AGENT-15",
+      "group": "A",
+      "groupName": "privacy-security",
+      "role": "access-control-auditor",
+      "status": "registered-not-provisioned",
+      "dispatchEnabled": false,
+      "allowedActions": [
+        "read-scoped-inputs",
+        "analyze",
+        "propose-change",
+        "write-audit-result"
+      ],
+      "deniedActions": [
+        "read-or-export-secrets",
+        "bypass-authentication",
+        "erase-required-audit-records",
+        "merge-without-required-review",
+        "deploy-without-release-gate"
+      ],
+      "approvalRequired": "commander-or-policy-gate-for-write-deploy-or-privileged-action"
+    },
+    {
+      "id": "AGENT-16",
+      "group": "A",
+      "groupName": "privacy-security",
+      "role": "data-minimization-reviewer",
+      "status": "registered-not-provisioned",
+      "dispatchEnabled": false,
+      "allowedActions": [
+        "read-scoped-inputs",
+        "analyze",
+        "propose-change",
+        "write-audit-result"
+      ],
+      "deniedActions": [
+        "read-or-export-secrets",
+        "bypass-authentication",
+        "erase-required-audit-records",
+        "merge-without-required-review",
+        "deploy-without-release-gate"
+      ],
+      "approvalRequired": "commander-or-policy-gate-for-write-deploy-or-privileged-action"
+    },
+    {
+      "id": "AGENT-17",
+      "group": "A",
+      "groupName": "privacy-security",
+      "role": "dependency-risk-reviewer",
+      "status": "registered-not-provisioned",
+      "dispatchEnabled": false,
+      "allowedActions": [
+        "read-scoped-inputs",
+        "analyze",
+        "propose-change",
+        "write-audit-result"
+      ],
+      "deniedActions": [
+        "read-or-export-secrets",
+        "bypass-authentication",
+        "erase-required-audit-records",
+        "merge-without-required-review",
+        "deploy-without-release-gate"
+      ],
+      "approvalRequired": "commander-or-policy-gate-for-write-deploy-or-privileged-action"
+    },
+    {
+      "id": "AGENT-18",
+      "group": "A",
+      "groupName": "privacy-security",
+      "role": "input-validation-reviewer",
+      "status": "registered-not-provisioned",
+      "dispatchEnabled": false,
+      "allowedActions": [
+        "read-scoped-inputs",
+        "analyze",
+        "propose-change",
+        "write-audit-result"
+      ],
+      "deniedActions": [
+        "read-or-export-secrets",
+        "bypass-authentication",
+        "erase-required-audit-records",
+        "merge-without-required-review",
+        "deploy-without-release-gate"
+      ],
+      "approvalRequired": "commander-or-policy-gate-for-write-deploy-or-privileged-action"
+    },
+    {
+      "id": "AGENT-19",
+      "group": "A",
+      "groupName": "privacy-security",
+      "role": "security-test-author",
+      "status": "registered-not-provisioned",
+      "dispatchEnabled": false,
+      "allowedActions": [
+        "read-scoped-inputs",
+        "analyze",
+        "propose-change",
+        "write-audit-result"
+      ],
+      "deniedActions": [
+        "read-or-export-secrets",
+        "bypass-authentication",
+        "erase-required-audit-records",
+        "merge-without-required-review",
+        "deploy-without-release-gate"
+      ],
+      "approvalRequired": "commander-or-policy-gate-for-write-deploy-or-privileged-action"
+    },
+    {
+      "id": "AGENT-20",
+      "group": "A",
+      "groupName": "privacy-security",
+      "role": "incident-evidence-collector",
+      "status": "registered-not-provisioned",
+      "dispatchEnabled": false,
+      "allowedActions": [
+        "read-scoped-inputs",
+        "analyze",
+        "propose-change",
+        "write-audit-result"
+      ],
+      "deniedActions": [
+        "read-or-export-secrets",
+        "bypass-authentication",
+        "erase-required-audit-records",
+        "merge-without-required-review",
+        "deploy-without-release-gate"
+      ],
+      "approvalRequired": "commander-or-policy-gate-for-write-deploy-or-privileged-action"
+    },
+    {
+      "id": "AGENT-21",
+      "group": "B",
+      "groupName": "btc-treasury-simulation",
+      "role": "market-data-reader",
+      "status": "registered-not-provisioned",
+      "dispatchEnabled": false,
+      "allowedActions": [
+        "read-public-market-data",
+        "validate-data",
+        "simulate-only",
+        "write-audit-result"
+      ],
+      "deniedActions": [
+        "read-or-export-secrets",
+        "bypass-authentication",
+        "erase-required-audit-records",
+        "merge-without-required-review",
+        "deploy-without-release-gate",
+        "submit-live-payment",
+        "broadcast-live-transaction"
+      ],
+      "approvalRequired": "commander-approval-for-any-live-financial-action"
+    },
+    {
+      "id": "AGENT-22",
+      "group": "B",
+      "groupName": "btc-treasury-simulation",
+      "role": "price-feed-validator",
+      "status": "registered-not-provisioned",
+      "dispatchEnabled": false,
+      "allowedActions": [
+        "read-public-market-data",
+        "validate-data",
+        "simulate-only",
+        "write-audit-result"
+      ],
+      "deniedActions": [
+        "read-or-export-secrets",
+        "bypass-authentication",
+        "erase-required-audit-records",
+        "merge-without-required-review",
+        "deploy-without-release-gate",
+        "submit-live-payment",
+        "broadcast-live-transaction"
+      ],
+      "approvalRequired": "commander-approval-for-any-live-financial-action"
+    },
+    {
+      "id": "AGENT-23",
+      "group": "B",
+      "groupName": "btc-treasury-simulation",
+      "role": "treasury-reconciler",
+      "status": "registered-not-provisioned",
+      "dispatchEnabled": false,
+      "allowedActions": [
+        "read-public-market-data",
+        "validate-data",
+        "simulate-only",
+        "write-audit-result"
+      ],
+      "deniedActions": [
+        "read-or-export-secrets",
+        "bypass-authentication",
+        "erase-required-audit-records",
+        "merge-without-required-review",
+        "deploy-without-release-gate",
+        "submit-live-payment",
+        "broadcast-live-transaction"
+      ],
+      "approvalRequired": "commander-approval-for-any-live-financial-action"
+    },
+    {
+      "id": "AGENT-24",
+      "group": "B",
+      "groupName": "btc-treasury-simulation",
+      "role": "transaction-simulator",
+      "status": "registered-not-provisioned",
+      "dispatchEnabled": false,
+      "allowedActions": [
+        "read-public-market-data",
+        "validate-data",
+        "simulate-only",
+        "write-audit-result"
+      ],
+      "deniedActions": [
+        "read-or-export-secrets",
+        "bypass-authentication",
+        "erase-required-audit-records",
+        "merge-without-required-review",
+        "deploy-without-release-gate",
+        "submit-live-payment",
+        "broadcast-live-transaction"
+      ],
+      "approvalRequired": "commander-approval-for-any-live-financial-action"
+    },
+    {
+      "id": "AGENT-25",
+      "group": "B",
+      "groupName": "btc-treasury-simulation",
+      "role": "fee-estimator",
+      "status": "registered-not-provisioned",
+      "dispatchEnabled": false,
+      "allowedActions": [
+        "read-public-market-data",
+        "validate-data",
+        "simulate-only",
+        "write-audit-result"
+      ],
+      "deniedActions": [
+        "read-or-export-secrets",
+        "bypass-authentication",
+        "erase-required-audit-records",
+        "merge-without-required-review",
+        "deploy-without-release-gate",
+        "submit-live-payment",
+        "broadcast-live-transaction"
+      ],
+      "approvalRequired": "commander-approval-for-any-live-financial-action"
+    },
+    {
+      "id": "AGENT-26",
+      "group": "B",
+      "groupName": "btc-treasury-simulation",
+      "role": "liquidity-data-reviewer",
+      "status": "registered-not-provisioned",
+      "dispatchEnabled": false,
+      "allowedActions": [
+        "read-public-market-data",
+        "validate-data",
+        "simulate-only",
+        "write-audit-result"
+      ],
+      "deniedActions": [
+        "read-or-export-secrets",
+        "bypass-authentication",
+        "erase-required-audit-records",
+        "merge-without-required-review",
+        "deploy-without-release-gate",
+        "submit-live-payment",
+        "broadcast-live-transaction"
+      ],
+      "approvalRequired": "commander-approval-for-any-live-financial-action"
+    },
+    {
+      "id": "AGENT-27",
+      "group": "B",
+      "groupName": "btc-treasury-simulation",
+      "role": "risk-limit-checker",
+      "status": "registered-not-provisioned",
+      "dispatchEnabled": false,
+      "allowedActions": [
+        "read-public-market-data",
+        "validate-data",
+        "simulate-only",
+        "write-audit-result"
+      ],
+      "deniedActions": [
+        "read-or-export-secrets",
+        "bypass-authentication",
+        "erase-required-audit-records",
+        "merge-without-required-review",
+        "deploy-without-release-gate",
+        "submit-live-payment",
+        "broadcast-live-transaction"
+      ],
+      "approvalRequired": "commander-approval-for-any-live-financial-action"
+    },
+    {
+      "id": "AGENT-28",
+      "group": "B",
+      "groupName": "btc-treasury-simulation",
+      "role": "ledger-consistency-auditor",
+      "status": "registered-not-provisioned",
+      "dispatchEnabled": false,
+      "allowedActions": [
+        "read-public-market-data",
+        "validate-data",
+        "simulate-only",
+        "write-audit-result"
+      ],
+      "deniedActions": [
+        "read-or-export-secrets",
+        "bypass-authentication",
+        "erase-required-audit-records",
+        "merge-without-required-review",
+        "deploy-without-release-gate",
+        "submit-live-payment",
+        "broadcast-live-transaction"
+      ],
+      "approvalRequired": "commander-approval-for-any-live-financial-action"
+    },
+    {
+      "id": "AGENT-29",
+      "group": "B",
+      "groupName": "btc-treasury-simulation",
+      "role": "fraud-signal-reviewer",
+      "status": "registered-not-provisioned",
+      "dispatchEnabled": false,
+      "allowedActions": [
+        "read-public-market-data",
+        "validate-data",
+        "simulate-only",
+        "write-audit-result"
+      ],
+      "deniedActions": [
+        "read-or-export-secrets",
+        "bypass-authentication",
+        "erase-required-audit-records",
+        "merge-without-required-review",
+        "deploy-without-release-gate",
+        "submit-live-payment",
+        "broadcast-live-transaction"
+      ],
+      "approvalRequired": "commander-approval-for-any-live-financial-action"
+    },
+    {
+      "id": "AGENT-30",
+      "group": "B",
+      "groupName": "btc-treasury-simulation",
+      "role": "payment-schema-validator",
+      "status": "registered-not-provisioned",
+      "dispatchEnabled": false,
+      "allowedActions": [
+        "read-public-market-data",
+        "validate-data",
+        "simulate-only",
+        "write-audit-result"
+      ],
+      "deniedActions": [
+        "read-or-export-secrets",
+        "bypass-authentication",
+        "erase-required-audit-records",
+        "merge-without-required-review",
+        "deploy-without-release-gate",
+        "submit-live-payment",
+        "broadcast-live-transaction"
+      ],
+      "approvalRequired": "commander-approval-for-any-live-financial-action"
+    },
+    {
+      "id": "AGENT-31",
+      "group": "B",
+      "groupName": "btc-treasury-simulation",
+      "role": "financial-policy-reviewer",
+      "status": "registered-not-provisioned",
+      "dispatchEnabled": false,
+      "allowedActions": [
+        "read-public-market-data",
+        "validate-data",
+        "simulate-only",
+        "write-audit-result"
+      ],
+      "deniedActions": [
+        "read-or-export-secrets",
+        "bypass-authentication",
+        "erase-required-audit-records",
+        "merge-without-required-review",
+        "deploy-without-release-gate",
+        "submit-live-payment",
+        "broadcast-live-transaction"
+      ],
+      "approvalRequired": "commander-approval-for-any-live-financial-action"
+    },
+    {
+      "id": "AGENT-32",
+      "group": "B",
+      "groupName": "btc-treasury-simulation",
+      "role": "simulation-report-writer",
+      "status": "registered-not-provisioned",
+      "dispatchEnabled": false,
+      "allowedActions": [
+        "read-public-market-data",
+        "validate-data",
+        "simulate-only",
+        "write-audit-result"
+      ],
+      "deniedActions": [
+        "read-or-export-secrets",
+        "bypass-authentication",
+        "erase-required-audit-records",
+        "merge-without-required-review",
+        "deploy-without-release-gate",
+        "submit-live-payment",
+        "broadcast-live-transaction"
+      ],
+      "approvalRequired": "commander-approval-for-any-live-financial-action"
+    },
+    {
+      "id": "AGENT-33",
+      "group": "B",
+      "groupName": "btc-treasury-simulation",
+      "role": "market-source-crosschecker",
+      "status": "registered-not-provisioned",
+      "dispatchEnabled": false,
+      "allowedActions": [
+        "read-public-market-data",
+        "validate-data",
+        "simulate-only",
+        "write-audit-result"
+      ],
+      "deniedActions": [
+        "read-or-export-secrets",
+        "bypass-authentication",
+        "erase-required-audit-records",
+        "merge-without-required-review",
+        "deploy-without-release-gate",
+        "submit-live-payment",
+        "broadcast-live-transaction"
+      ],
+      "approvalRequired": "commander-approval-for-any-live-financial-action"
+    },
+    {
+      "id": "AGENT-34",
+      "group": "B",
+      "groupName": "btc-treasury-simulation",
+      "role": "market-data-reader",
+      "status": "registered-not-provisioned",
+      "dispatchEnabled": false,
+      "allowedActions": [
+        "read-public-market-data",
+        "validate-data",
+        "simulate-only",
+        "write-audit-result"
+      ],
+      "deniedActions": [
+        "read-or-export-secrets",
+        "bypass-authentication",
+        "erase-required-audit-records",
+        "merge-without-required-review",
+        "deploy-without-release-gate",
+        "submit-live-payment",
+        "broadcast-live-transaction"
+      ],
+      "approvalRequired": "commander-approval-for-any-live-financial-action"
+    },
+    {
+      "id": "AGENT-35",
+      "group": "B",
+      "groupName": "btc-treasury-simulation",
+      "role": "price-feed-validator",
+      "status": "registered-not-provisioned",
+      "dispatchEnabled": false,
+      "allowedActions": [
+        "read-public-market-data",
+        "validate-data",
+        "simulate-only",
+        "write-audit-result"
+      ],
+      "deniedActions": [
+        "read-or-export-secrets",
+        "bypass-authentication",
+        "erase-required-audit-records",
+        "merge-without-required-review",
+        "deploy-without-release-gate",
+        "submit-live-payment",
+        "broadcast-live-transaction"
+      ],
+      "approvalRequired": "commander-approval-for-any-live-financial-action"
+    },
+    {
+      "id": "AGENT-36",
+      "group": "B",
+      "groupName": "btc-treasury-simulation",
+      "role": "treasury-reconciler",
+      "status": "registered-not-provisioned",
+      "dispatchEnabled": false,
+      "allowedActions": [
+        "read-public-market-data",
+        "validate-data",
+        "simulate-only",
+        "write-audit-result"
+      ],
+      "deniedActions": [
+        "read-or-export-secrets",
+        "bypass-authentication",
+        "erase-required-audit-records",
+        "merge-without-required-review",
+        "deploy-without-release-gate",
+        "submit-live-payment",
+        "broadcast-live-transaction"
+      ],
+      "approvalRequired": "commander-approval-for-any-live-financial-action"
+    },
+    {
+      "id": "AGENT-37",
+      "group": "B",
+      "groupName": "btc-treasury-simulation",
+      "role": "transaction-simulator",
+      "status": "registered-not-provisioned",
+      "dispatchEnabled": false,
+      "allowedActions": [
+        "read-public-market-data",
+        "validate-data",
+        "simulate-only",
+        "write-audit-result"
+      ],
+      "deniedActions": [
+        "read-or-export-secrets",
+        "bypass-authentication",
+        "erase-required-audit-records",
+        "merge-without-required-review",
+        "deploy-without-release-gate",
+        "submit-live-payment",
+        "broadcast-live-transaction"
+      ],
+      "approvalRequired": "commander-approval-for-any-live-financial-action"
+    },
+    {
+      "id": "AGENT-38",
+      "group": "B",
+      "groupName": "btc-treasury-simulation",
+      "role": "fee-estimator",
+      "status": "registered-not-provisioned",
+      "dispatchEnabled": false,
+      "allowedActions": [
+        "read-public-market-data",
+        "validate-data",
+        "simulate-only",
+        "write-audit-result"
+      ],
+      "deniedActions": [
+        "read-or-export-secrets",
+        "bypass-authentication",
+        "erase-required-audit-records",
+        "merge-without-required-review",
+        "deploy-without-release-gate",
+        "submit-live-payment",
+        "broadcast-live-transaction"
+      ],
+      "approvalRequired": "commander-approval-for-any-live-financial-action"
+    },
+    {
+      "id": "AGENT-39",
+      "group": "B",
+      "groupName": "btc-treasury-simulation",
+      "role": "liquidity-data-reviewer",
+      "status": "registered-not-provisioned",
+      "dispatchEnabled": false,
+      "allowedActions": [
+        "read-public-market-data",
+        "validate-data",
+        "simulate-only",
+        "write-audit-result"
+      ],
+      "deniedActions": [
+        "read-or-export-secrets",
+        "bypass-authentication",
+        "erase-required-audit-records",
+        "merge-without-required-review",
+        "deploy-without-release-gate",
+        "submit-live-payment",
+        "broadcast-live-transaction"
+      ],
+      "approvalRequired": "commander-approval-for-any-live-financial-action"
+    },
+    {
+      "id": "AGENT-40",
+      "group": "B",
+      "groupName": "btc-treasury-simulation",
+      "role": "risk-limit-checker",
+      "status": "registered-not-provisioned",
+      "dispatchEnabled": false,
+      "allowedActions": [
+        "read-public-market-data",
+        "validate-data",
+        "simulate-only",
+        "write-audit-result"
+      ],
+      "deniedActions": [
+        "read-or-export-secrets",
+        "bypass-authentication",
+        "erase-required-audit-records",
+        "merge-without-required-review",
+        "deploy-without-release-gate",
+        "submit-live-payment",
+        "broadcast-live-transaction"
+      ],
+      "approvalRequired": "commander-approval-for-any-live-financial-action"
+    },
+    {
+      "id": "AGENT-41",
+      "group": "B",
+      "groupName": "btc-treasury-simulation",
+      "role": "ledger-consistency-auditor",
+      "status": "registered-not-provisioned",
+      "dispatchEnabled": false,
+      "allowedActions": [
+        "read-public-market-data",
+        "validate-data",
+        "simulate-only",
+        "write-audit-result"
+      ],
+      "deniedActions": [
+        "read-or-export-secrets",
+        "bypass-authentication",
+        "erase-required-audit-records",
+        "merge-without-required-review",
+        "deploy-without-release-gate",
+        "submit-live-payment",
+        "broadcast-live-transaction"
+      ],
+      "approvalRequired": "commander-approval-for-any-live-financial-action"
+    },
+    {
+      "id": "AGENT-42",
+      "group": "B",
+      "groupName": "btc-treasury-simulation",
+      "role": "fraud-signal-reviewer",
+      "status": "registered-not-provisioned",
+      "dispatchEnabled": false,
+      "allowedActions": [
+        "read-public-market-data",
+        "validate-data",
+        "simulate-only",
+        "write-audit-result"
+      ],
+      "deniedActions": [
+        "read-or-export-secrets",
+        "bypass-authentication",
+        "erase-required-audit-records",
+        "merge-without-required-review",
+        "deploy-without-release-gate",
+        "submit-live-payment",
+        "broadcast-live-transaction"
+      ],
+      "approvalRequired": "commander-approval-for-any-live-financial-action"
+    },
+    {
+      "id": "AGENT-43",
+      "group": "B",
+      "groupName": "btc-treasury-simulation",
+      "role": "payment-schema-validator",
+      "status": "registered-not-provisioned",
+      "dispatchEnabled": false,
+      "allowedActions": [
+        "read-public-market-data",
+        "validate-data",
+        "simulate-only",
+        "write-audit-result"
+      ],
+      "deniedActions": [
+        "read-or-export-secrets",
+        "bypass-authentication",
+        "erase-required-audit-records",
+        "merge-without-required-review",
+        "deploy-without-release-gate",
+        "submit-live-payment",
+        "broadcast-live-transaction"
+      ],
+      "approvalRequired": "commander-approval-for-any-live-financial-action"
+    },
+    {
+      "id": "AGENT-44",
+      "group": "B",
+      "groupName": "btc-treasury-simulation",
+      "role": "financial-policy-reviewer",
+      "status": "registered-not-provisioned",
+      "dispatchEnabled": false,
+      "allowedActions": [
+        "read-public-market-data",
+        "validate-data",
+        "simulate-only",
+        "write-audit-result"
+      ],
+      "deniedActions": [
+        "read-or-export-secrets",
+        "bypass-authentication",
+        "erase-required-audit-records",
+        "merge-without-required-review",
+        "deploy-without-release-gate",
+        "submit-live-payment",
+        "broadcast-live-transaction"
+      ],
+      "approvalRequired": "commander-approval-for-any-live-financial-action"
+    },
+    {
+      "id": "AGENT-45",
+      "group": "B",
+      "groupName": "btc-treasury-simulation",
+      "role": "simulation-report-writer",
+      "status": "registered-not-provisioned",
+      "dispatchEnabled": false,
+      "allowedActions": [
+        "read-public-market-data",
+        "validate-data",
+        "simulate-only",
+        "write-audit-result"
+      ],
+      "deniedActions": [
+        "read-or-export-secrets",
+        "bypass-authentication",
+        "erase-required-audit-records",
+        "merge-without-required-review",
+        "deploy-without-release-gate",
+        "submit-live-payment",
+        "broadcast-live-transaction"
+      ],
+      "approvalRequired": "commander-approval-for-any-live-financial-action"
+    },
+    {
+      "id": "AGENT-46",
+      "group": "C",
+      "groupName": "auto-wake-delivery",
+      "role": "task-router-reviewer",
+      "status": "registered-not-provisioned",
+      "dispatchEnabled": false,
+      "allowedActions": [
+        "read-scoped-inputs",
+        "analyze",
+        "propose-change",
+        "write-audit-result"
+      ],
+      "deniedActions": [
+        "read-or-export-secrets",
+        "bypass-authentication",
+        "erase-required-audit-records",
+        "merge-without-required-review",
+        "deploy-without-release-gate"
+      ],
+      "approvalRequired": "commander-or-policy-gate-for-write-deploy-or-privileged-action"
+    },
+    {
+      "id": "AGENT-47",
+      "group": "C",
+      "groupName": "auto-wake-delivery",
+      "role": "queue-health-monitor",
+      "status": "registered-not-provisioned",
+      "dispatchEnabled": false,
+      "allowedActions": [
+        "read-scoped-inputs",
+        "analyze",
+        "propose-change",
+        "write-audit-result"
+      ],
+      "deniedActions": [
+        "read-or-export-secrets",
+        "bypass-authentication",
+        "erase-required-audit-records",
+        "merge-without-required-review",
+        "deploy-without-release-gate"
+      ],
+      "approvalRequired": "commander-or-policy-gate-for-write-deploy-or-privileged-action"
+    },
+    {
+      "id": "AGENT-48",
+      "group": "C",
+      "groupName": "auto-wake-delivery",
+      "role": "schedule-policy-reviewer",
+      "status": "registered-not-provisioned",
+      "dispatchEnabled": false,
+      "allowedActions": [
+        "read-scoped-inputs",
+        "analyze",
+        "propose-change",
+        "write-audit-result"
+      ],
+      "deniedActions": [
+        "read-or-export-secrets",
+        "bypass-authentication",
+        "erase-required-audit-records",
+        "merge-without-required-review",
+        "deploy-without-release-gate"
+      ],
+      "approvalRequired": "commander-or-policy-gate-for-write-deploy-or-privileged-action"
+    },
+    {
+      "id": "AGENT-49",
+      "group": "C",
+      "groupName": "auto-wake-delivery",
+      "role": "github-pr-summarizer",
+      "status": "registered-not-provisioned",
+      "dispatchEnabled": false,
+      "allowedActions": [
+        "read-scoped-inputs",
+        "analyze",
+        "propose-change",
+        "write-audit-result"
+      ],
+      "deniedActions": [
+        "read-or-export-secrets",
+        "bypass-authentication",
+        "erase-required-audit-records",
+        "merge-without-required-review",
+        "deploy-without-release-gate"
+      ],
+      "approvalRequired": "commander-or-policy-gate-for-write-deploy-or-privileged-action"
+    },
+    {
+      "id": "AGENT-50",
+      "group": "C",
+      "groupName": "auto-wake-delivery",
+      "role": "ci-run-analyzer",
+      "status": "registered-not-provisioned",
+      "dispatchEnabled": false,
+      "allowedActions": [
+        "read-scoped-inputs",
+        "analyze",
+        "propose-change",
+        "write-audit-result"
+      ],
+      "deniedActions": [
+        "read-or-export-secrets",
+        "bypass-authentication",
+        "erase-required-audit-records",
+        "merge-without-required-review",
+        "deploy-without-release-gate"
+      ],
+      "approvalRequired": "commander-or-policy-gate-for-write-deploy-or-privileged-action"
+    },
+    {
+      "id": "AGENT-51",
+      "group": "C",
+      "groupName": "auto-wake-delivery",
+      "role": "test-failure-triager",
+      "status": "registered-not-provisioned",
+      "dispatchEnabled": false,
+      "allowedActions": [
+        "read-scoped-inputs",
+        "analyze",
+        "propose-change",
+        "write-audit-result"
+      ],
+      "deniedActions": [
+        "read-or-export-secrets",
+        "bypass-authentication",
+        "erase-required-audit-records",
+        "merge-without-required-review",
+        "deploy-without-release-gate"
+      ],
+      "approvalRequired": "commander-or-policy-gate-for-write-deploy-or-privileged-action"
+    },
+    {
+      "id": "AGENT-52",
+      "group": "C",
+      "groupName": "auto-wake-delivery",
+      "role": "patch-proposer",
+      "status": "registered-not-provisioned",
+      "dispatchEnabled": false,
+      "allowedActions": [
+        "read-scoped-inputs",
+        "analyze",
+        "propose-change",
+        "write-audit-result"
+      ],
+      "deniedActions": [
+        "read-or-export-secrets",
+        "bypass-authentication",
+        "erase-required-audit-records",
+        "merge-without-required-review",
+        "deploy-without-release-gate"
+      ],
+      "approvalRequired": "commander-or-policy-gate-for-write-deploy-or-privileged-action"
+    },
+    {
+      "id": "AGENT-53",
+      "group": "C",
+      "groupName": "auto-wake-delivery",
+      "role": "dependency-update-reviewer",
+      "status": "registered-not-provisioned",
+      "dispatchEnabled": false,
+      "allowedActions": [
+        "read-scoped-inputs",
+        "analyze",
+        "propose-change",
+        "write-audit-result"
+      ],
+      "deniedActions": [
+        "read-or-export-secrets",
+        "bypass-authentication",
+        "erase-required-audit-records",
+        "merge-without-required-review",
+        "deploy-without-release-gate"
+      ],
+      "approvalRequired": "commander-or-policy-gate-for-write-deploy-or-privileged-action"
+    },
+    {
+      "id": "AGENT-54",
+      "group": "C",
+      "groupName": "auto-wake-delivery",
+      "role": "deployment-readiness-checker",
+      "status": "registered-not-provisioned",
+      "dispatchEnabled": false,
+      "allowedActions": [
+        "read-scoped-inputs",
+        "analyze",
+        "propose-change",
+        "write-audit-result"
+      ],
+      "deniedActions": [
+        "read-or-export-secrets",
+        "bypass-authentication",
+        "erase-required-audit-records",
+        "merge-without-required-review",
+        "deploy-without-release-gate"
+      ],
+      "approvalRequired": "commander-or-policy-gate-for-write-deploy-or-privileged-action"
+    },
+    {
+      "id": "AGENT-55",
+      "group": "C",
+      "groupName": "auto-wake-delivery",
+      "role": "release-note-writer",
+      "status": "registered-not-provisioned",
+      "dispatchEnabled": false,
+      "allowedActions": [
+        "read-scoped-inputs",
+        "analyze",
+        "propose-change",
+        "write-audit-result"
+      ],
+      "deniedActions": [
+        "read-or-export-secrets",
+        "bypass-authentication",
+        "erase-required-audit-records",
+        "merge-without-required-review",
+        "deploy-without-release-gate"
+      ],
+      "approvalRequired": "commander-or-policy-gate-for-write-deploy-or-privileged-action"
+    },
+    {
+      "id": "AGENT-56",
+      "group": "C",
+      "groupName": "auto-wake-delivery",
+      "role": "workflow-schema-validator",
+      "status": "registered-not-provisioned",
+      "dispatchEnabled": false,
+      "allowedActions": [
+        "read-scoped-inputs",
+        "analyze",
+        "propose-change",
+        "write-audit-result"
+      ],
+      "deniedActions": [
+        "read-or-export-secrets",
+        "bypass-authentication",
+        "erase-required-audit-records",
+        "merge-without-required-review",
+        "deploy-without-release-gate"
+      ],
+      "approvalRequired": "commander-or-policy-gate-for-write-deploy-or-privileged-action"
+    },
+    {
+      "id": "AGENT-57",
+      "group": "C",
+      "groupName": "auto-wake-delivery",
+      "role": "worker-health-prober",
+      "status": "registered-not-provisioned",
+      "dispatchEnabled": false,
+      "allowedActions": [
+        "read-scoped-inputs",
+        "analyze",
+        "propose-change",
+        "write-audit-result"
+      ],
+      "deniedActions": [
+        "read-or-export-secrets",
+        "bypass-authentication",
+        "erase-required-audit-records",
+        "merge-without-required-review",
+        "deploy-without-release-gate"
+      ],
+      "approvalRequired": "commander-or-policy-gate-for-write-deploy-or-privileged-action"
+    },
+    {
+      "id": "AGENT-58",
+      "group": "C",
+      "groupName": "auto-wake-delivery",
+      "role": "sidecar-health-prober",
+      "status": "registered-not-provisioned",
+      "dispatchEnabled": false,
+      "allowedActions": [
+        "read-scoped-inputs",
+        "analyze",
+        "propose-change",
+        "write-audit-result"
+      ],
+      "deniedActions": [
+        "read-or-export-secrets",
+        "bypass-authentication",
+        "erase-required-audit-records",
+        "merge-without-required-review",
+        "deploy-without-release-gate"
+      ],
+      "approvalRequired": "commander-or-policy-gate-for-write-deploy-or-privileged-action"
+    },
+    {
+      "id": "AGENT-59",
+      "group": "C",
+      "groupName": "auto-wake-delivery",
+      "role": "search-fallback-checker",
+      "status": "registered-not-provisioned",
+      "dispatchEnabled": false,
+      "allowedActions": [
+        "read-scoped-inputs",
+        "analyze",
+        "propose-change",
+        "write-audit-result"
+      ],
+      "deniedActions": [
+        "read-or-export-secrets",
+        "bypass-authentication",
+        "erase-required-audit-records",
+        "merge-without-required-review",
+        "deploy-without-release-gate"
+      ],
+      "approvalRequired": "commander-or-policy-gate-for-write-deploy-or-privileged-action"
+    },
+    {
+      "id": "AGENT-60",
+      "group": "C",
+      "groupName": "auto-wake-delivery",
+      "role": "artifact-provenance-checker",
+      "status": "registered-not-provisioned",
+      "dispatchEnabled": false,
+      "allowedActions": [
+        "read-scoped-inputs",
+        "analyze",
+        "propose-change",
+        "write-audit-result"
+      ],
+      "deniedActions": [
+        "read-or-export-secrets",
+        "bypass-authentication",
+        "erase-required-audit-records",
+        "merge-without-required-review",
+        "deploy-without-release-gate"
+      ],
+      "approvalRequired": "commander-or-policy-gate-for-write-deploy-or-privileged-action"
+    },
+    {
+      "id": "AGENT-61",
+      "group": "C",
+      "groupName": "auto-wake-delivery",
+      "role": "task-router-reviewer",
+      "status": "registered-not-provisioned",
+      "dispatchEnabled": false,
+      "allowedActions": [
+        "read-scoped-inputs",
+        "analyze",
+        "propose-change",
+        "write-audit-result"
+      ],
+      "deniedActions": [
+        "read-or-export-secrets",
+        "bypass-authentication",
+        "erase-required-audit-records",
+        "merge-without-required-review",
+        "deploy-without-release-gate"
+      ],
+      "approvalRequired": "commander-or-policy-gate-for-write-deploy-or-privileged-action"
+    },
+    {
+      "id": "AGENT-62",
+      "group": "C",
+      "groupName": "auto-wake-delivery",
+      "role": "queue-health-monitor",
+      "status": "registered-not-provisioned",
+      "dispatchEnabled": false,
+      "allowedActions": [
+        "read-scoped-inputs",
+        "analyze",
+        "propose-change",
+        "write-audit-result"
+      ],
+      "deniedActions": [
+        "read-or-export-secrets",
+        "bypass-authentication",
+        "erase-required-audit-records",
+        "merge-without-required-review",
+        "deploy-without-release-gate"
+      ],
+      "approvalRequired": "commander-or-policy-gate-for-write-deploy-or-privileged-action"
+    },
+    {
+      "id": "AGENT-63",
+      "group": "C",
+      "groupName": "auto-wake-delivery",
+      "role": "schedule-policy-reviewer",
+      "status": "registered-not-provisioned",
+      "dispatchEnabled": false,
+      "allowedActions": [
+        "read-scoped-inputs",
+        "analyze",
+        "propose-change",
+        "write-audit-result"
+      ],
+      "deniedActions": [
+        "read-or-export-secrets",
+        "bypass-authentication",
+        "erase-required-audit-records",
+        "merge-without-required-review",
+        "deploy-without-release-gate"
+      ],
+      "approvalRequired": "commander-or-policy-gate-for-write-deploy-or-privileged-action"
+    },
+    {
+      "id": "AGENT-64",
+      "group": "C",
+      "groupName": "auto-wake-delivery",
+      "role": "github-pr-summarizer",
+      "status": "registered-not-provisioned",
+      "dispatchEnabled": false,
+      "allowedActions": [
+        "read-scoped-inputs",
+        "analyze",
+        "propose-change",
+        "write-audit-result"
+      ],
+      "deniedActions": [
+        "read-or-export-secrets",
+        "bypass-authentication",
+        "erase-required-audit-records",
+        "merge-without-required-review",
+        "deploy-without-release-gate"
+      ],
+      "approvalRequired": "commander-or-policy-gate-for-write-deploy-or-privileged-action"
+    },
+    {
+      "id": "AGENT-65",
+      "group": "C",
+      "groupName": "auto-wake-delivery",
+      "role": "ci-run-analyzer",
+      "status": "registered-not-provisioned",
+      "dispatchEnabled": false,
+      "allowedActions": [
+        "read-scoped-inputs",
+        "analyze",
+        "propose-change",
+        "write-audit-result"
+      ],
+      "deniedActions": [
+        "read-or-export-secrets",
+        "bypass-authentication",
+        "erase-required-audit-records",
+        "merge-without-required-review",
+        "deploy-without-release-gate"
+      ],
+      "approvalRequired": "commander-or-policy-gate-for-write-deploy-or-privileged-action"
+    },
+    {
+      "id": "AGENT-66",
+      "group": "C",
+      "groupName": "auto-wake-delivery",
+      "role": "test-failure-triager",
+      "status": "registered-not-provisioned",
+      "dispatchEnabled": false,
+      "allowedActions": [
+        "read-scoped-inputs",
+        "analyze",
+        "propose-change",
+        "write-audit-result"
+      ],
+      "deniedActions": [
+        "read-or-export-secrets",
+        "bypass-authentication",
+        "erase-required-audit-records",
+        "merge-without-required-review",
+        "deploy-without-release-gate"
+      ],
+      "approvalRequired": "commander-or-policy-gate-for-write-deploy-or-privileged-action"
+    },
+    {
+      "id": "AGENT-67",
+      "group": "C",
+      "groupName": "auto-wake-delivery",
+      "role": "patch-proposer",
+      "status": "registered-not-provisioned",
+      "dispatchEnabled": false,
+      "allowedActions": [
+        "read-scoped-inputs",
+        "analyze",
+        "propose-change",
+        "write-audit-result"
+      ],
+      "deniedActions": [
+        "read-or-export-secrets",
+        "bypass-authentication",
+        "erase-required-audit-records",
+        "merge-without-required-review",
+        "deploy-without-release-gate"
+      ],
+      "approvalRequired": "commander-or-policy-gate-for-write-deploy-or-privileged-action"
+    },
+    {
+      "id": "AGENT-68",
+      "group": "C",
+      "groupName": "auto-wake-delivery",
+      "role": "dependency-update-reviewer",
+      "status": "registered-not-provisioned",
+      "dispatchEnabled": false,
+      "allowedActions": [
+        "read-scoped-inputs",
+        "analyze",
+        "propose-change",
+        "write-audit-result"
+      ],
+      "deniedActions": [
+        "read-or-export-secrets",
+        "bypass-authentication",
+        "erase-required-audit-records",
+        "merge-without-required-review",
+        "deploy-without-release-gate"
+      ],
+      "approvalRequired": "commander-or-policy-gate-for-write-deploy-or-privileged-action"
+    },
+    {
+      "id": "AGENT-69",
+      "group": "C",
+      "groupName": "auto-wake-delivery",
+      "role": "deployment-readiness-checker",
+      "status": "registered-not-provisioned",
+      "dispatchEnabled": false,
+      "allowedActions": [
+        "read-scoped-inputs",
+        "analyze",
+        "propose-change",
+        "write-audit-result"
+      ],
+      "deniedActions": [
+        "read-or-export-secrets",
+        "bypass-authentication",
+        "erase-required-audit-records",
+        "merge-without-required-review",
+        "deploy-without-release-gate"
+      ],
+      "approvalRequired": "commander-or-policy-gate-for-write-deploy-or-privileged-action"
+    },
+    {
+      "id": "AGENT-70",
+      "group": "C",
+      "groupName": "auto-wake-delivery",
+      "role": "release-note-writer",
+      "status": "registered-not-provisioned",
+      "dispatchEnabled": false,
+      "allowedActions": [
+        "read-scoped-inputs",
+        "analyze",
+        "propose-change",
+        "write-audit-result"
+      ],
+      "deniedActions": [
+        "read-or-export-secrets",
+        "bypass-authentication",
+        "erase-required-audit-records",
+        "merge-without-required-review",
+        "deploy-without-release-gate"
+      ],
+      "approvalRequired": "commander-or-policy-gate-for-write-deploy-or-privileged-action"
+    },
+    {
+      "id": "AGENT-71",
+      "group": "C",
+      "groupName": "auto-wake-delivery",
+      "role": "workflow-schema-validator",
+      "status": "registered-not-provisioned",
+      "dispatchEnabled": false,
+      "allowedActions": [
+        "read-scoped-inputs",
+        "analyze",
+        "propose-change",
+        "write-audit-result"
+      ],
+      "deniedActions": [
+        "read-or-export-secrets",
+        "bypass-authentication",
+        "erase-required-audit-records",
+        "merge-without-required-review",
+        "deploy-without-release-gate"
+      ],
+      "approvalRequired": "commander-or-policy-gate-for-write-deploy-or-privileged-action"
+    },
+    {
+      "id": "AGENT-72",
+      "group": "C",
+      "groupName": "auto-wake-delivery",
+      "role": "worker-health-prober",
+      "status": "registered-not-provisioned",
+      "dispatchEnabled": false,
+      "allowedActions": [
+        "read-scoped-inputs",
+        "analyze",
+        "propose-change",
+        "write-audit-result"
+      ],
+      "deniedActions": [
+        "read-or-export-secrets",
+        "bypass-authentication",
+        "erase-required-audit-records",
+        "merge-without-required-review",
+        "deploy-without-release-gate"
+      ],
+      "approvalRequired": "commander-or-policy-gate-for-write-deploy-or-privileged-action"
+    },
+    {
+      "id": "AGENT-73",
+      "group": "C",
+      "groupName": "auto-wake-delivery",
+      "role": "sidecar-health-prober",
+      "status": "registered-not-provisioned",
+      "dispatchEnabled": false,
+      "allowedActions": [
+        "read-scoped-inputs",
+        "analyze",
+        "propose-change",
+        "write-audit-result"
+      ],
+      "deniedActions": [
+        "read-or-export-secrets",
+        "bypass-authentication",
+        "erase-required-audit-records",
+        "merge-without-required-review",
+        "deploy-without-release-gate"
+      ],
+      "approvalRequired": "commander-or-policy-gate-for-write-deploy-or-privileged-action"
+    },
+    {
+      "id": "AGENT-74",
+      "group": "C",
+      "groupName": "auto-wake-delivery",
+      "role": "search-fallback-checker",
+      "status": "registered-not-provisioned",
+      "dispatchEnabled": false,
+      "allowedActions": [
+        "read-scoped-inputs",
+        "analyze",
+        "propose-change",
+        "write-audit-result"
+      ],
+      "deniedActions": [
+        "read-or-export-secrets",
+        "bypass-authentication",
+        "erase-required-audit-records",
+        "merge-without-required-review",
+        "deploy-without-release-gate"
+      ],
+      "approvalRequired": "commander-or-policy-gate-for-write-deploy-or-privileged-action"
+    },
+    {
+      "id": "AGENT-75",
+      "group": "C",
+      "groupName": "auto-wake-delivery",
+      "role": "artifact-provenance-checker",
+      "status": "registered-not-provisioned",
+      "dispatchEnabled": false,
+      "allowedActions": [
+        "read-scoped-inputs",
+        "analyze",
+        "propose-change",
+        "write-audit-result"
+      ],
+      "deniedActions": [
+        "read-or-export-secrets",
+        "bypass-authentication",
+        "erase-required-audit-records",
+        "merge-without-required-review",
+        "deploy-without-release-gate"
+      ],
+      "approvalRequired": "commander-or-policy-gate-for-write-deploy-or-privileged-action"
+    },
+    {
+      "id": "AGENT-76",
+      "group": "D",
+      "groupName": "verification-shield",
+      "role": "independent-code-verifier",
+      "status": "registered-not-provisioned",
+      "dispatchEnabled": false,
+      "allowedActions": [
+        "read-scoped-inputs",
+        "analyze",
+        "propose-change",
+        "write-audit-result"
+      ],
+      "deniedActions": [
+        "read-or-export-secrets",
+        "bypass-authentication",
+        "erase-required-audit-records",
+        "merge-without-required-review",
+        "deploy-without-release-gate"
+      ],
+      "approvalRequired": "commander-or-policy-gate-for-write-deploy-or-privileged-action"
+    },
+    {
+      "id": "AGENT-77",
+      "group": "D",
+      "groupName": "verification-shield",
+      "role": "audit-evidence-checker",
+      "status": "registered-not-provisioned",
+      "dispatchEnabled": false,
+      "allowedActions": [
+        "read-scoped-inputs",
+        "analyze",
+        "propose-change",
+        "write-audit-result"
+      ],
+      "deniedActions": [
+        "read-or-export-secrets",
+        "bypass-authentication",
+        "erase-required-audit-records",
+        "merge-without-required-review",
+        "deploy-without-release-gate"
+      ],
+      "approvalRequired": "commander-or-policy-gate-for-write-deploy-or-privileged-action"
+    },
+    {
+      "id": "AGENT-78",
+      "group": "D",
+      "groupName": "verification-shield",
+      "role": "schema-contract-verifier",
+      "status": "registered-not-provisioned",
+      "dispatchEnabled": false,
+      "allowedActions": [
+        "read-scoped-inputs",
+        "analyze",
+        "propose-change",
+        "write-audit-result"
+      ],
+      "deniedActions": [
+        "read-or-export-secrets",
+        "bypass-authentication",
+        "erase-required-audit-records",
+        "merge-without-required-review",
+        "deploy-without-release-gate"
+      ],
+      "approvalRequired": "commander-or-policy-gate-for-write-deploy-or-privileged-action"
+    },
+    {
+      "id": "AGENT-79",
+      "group": "D",
+      "groupName": "verification-shield",
+      "role": "permission-boundary-auditor",
+      "status": "registered-not-provisioned",
+      "dispatchEnabled": false,
+      "allowedActions": [
+        "read-scoped-inputs",
+        "analyze",
+        "propose-change",
+        "write-audit-result"
+      ],
+      "deniedActions": [
+        "read-or-export-secrets",
+        "bypass-authentication",
+        "erase-required-audit-records",
+        "merge-without-required-review",
+        "deploy-without-release-gate"
+      ],
+      "approvalRequired": "commander-or-policy-gate-for-write-deploy-or-privileged-action"
+    },
+    {
+      "id": "AGENT-80",
+      "group": "D",
+      "groupName": "verification-shield",
+      "role": "secret-redaction-checker",
+      "status": "registered-not-provisioned",
+      "dispatchEnabled": false,
+      "allowedActions": [
+        "read-scoped-inputs",
+        "analyze",
+        "propose-change",
+        "write-audit-result"
+      ],
+      "deniedActions": [
+        "read-or-export-secrets",
+        "bypass-authentication",
+        "erase-required-audit-records",
+        "merge-without-required-review",
+        "deploy-without-release-gate"
+      ],
+      "approvalRequired": "commander-or-policy-gate-for-write-deploy-or-privileged-action"
+    },
+    {
+      "id": "AGENT-81",
+      "group": "D",
+      "groupName": "verification-shield",
+      "role": "release-gate-reviewer",
+      "status": "registered-not-provisioned",
+      "dispatchEnabled": false,
+      "allowedActions": [
+        "read-scoped-inputs",
+        "analyze",
+        "propose-change",
+        "write-audit-result"
+      ],
+      "deniedActions": [
+        "read-or-export-secrets",
+        "bypass-authentication",
+        "erase-required-audit-records",
+        "merge-without-required-review",
+        "deploy-without-release-gate"
+      ],
+      "approvalRequired": "commander-or-policy-gate-for-write-deploy-or-privileged-action"
+    },
+    {
+      "id": "AGENT-82",
+      "group": "D",
+      "groupName": "verification-shield",
+      "role": "reproducibility-checker",
+      "status": "registered-not-provisioned",
+      "dispatchEnabled": false,
+      "allowedActions": [
+        "read-scoped-inputs",
+        "analyze",
+        "propose-change",
+        "write-audit-result"
+      ],
+      "deniedActions": [
+        "read-or-export-secrets",
+        "bypass-authentication",
+        "erase-required-audit-records",
+        "merge-without-required-review",
+        "deploy-without-release-gate"
+      ],
+      "approvalRequired": "commander-or-policy-gate-for-write-deploy-or-privileged-action"
+    },
+    {
+      "id": "AGENT-83",
+      "group": "D",
+      "groupName": "verification-shield",
+      "role": "policy-compliance-reviewer",
+      "status": "registered-not-provisioned",
+      "dispatchEnabled": false,
+      "allowedActions": [
+        "read-scoped-inputs",
+        "analyze",
+        "propose-change",
+        "write-audit-result"
+      ],
+      "deniedActions": [
+        "read-or-export-secrets",
+        "bypass-authentication",
+        "erase-required-audit-records",
+        "merge-without-required-review",
+        "deploy-without-release-gate"
+      ],
+      "approvalRequired": "commander-or-policy-gate-for-write-deploy-or-privileged-action"
+    },
+    {
+      "id": "AGENT-84",
+      "group": "D",
+      "groupName": "verification-shield",
+      "role": "independent-code-verifier",
+      "status": "registered-not-provisioned",
+      "dispatchEnabled": false,
+      "allowedActions": [
+        "read-scoped-inputs",
+        "analyze",
+        "propose-change",
+        "write-audit-result"
+      ],
+      "deniedActions": [
+        "read-or-export-secrets",
+        "bypass-authentication",
+        "erase-required-audit-records",
+        "merge-without-required-review",
+        "deploy-without-release-gate"
+      ],
+      "approvalRequired": "commander-or-policy-gate-for-write-deploy-or-privileged-action"
+    },
+    {
+      "id": "AGENT-85",
+      "group": "D",
+      "groupName": "verification-shield",
+      "role": "audit-evidence-checker",
+      "status": "registered-not-provisioned",
+      "dispatchEnabled": false,
+      "allowedActions": [
+        "read-scoped-inputs",
+        "analyze",
+        "propose-change",
+        "write-audit-result"
+      ],
+      "deniedActions": [
+        "read-or-export-secrets",
+        "bypass-authentication",
+        "erase-required-audit-records",
+        "merge-without-required-review",
+        "deploy-without-release-gate"
+      ],
+      "approvalRequired": "commander-or-policy-gate-for-write-deploy-or-privileged-action"
+    },
+    {
+      "id": "AGENT-86",
+      "group": "D",
+      "groupName": "verification-shield",
+      "role": "schema-contract-verifier",
+      "status": "registered-not-provisioned",
+      "dispatchEnabled": false,
+      "allowedActions": [
+        "read-scoped-inputs",
+        "analyze",
+        "propose-change",
+        "write-audit-result"
+      ],
+      "deniedActions": [
+        "read-or-export-secrets",
+        "bypass-authentication",
+        "erase-required-audit-records",
+        "merge-without-required-review",
+        "deploy-without-release-gate"
+      ],
+      "approvalRequired": "commander-or-policy-gate-for-write-deploy-or-privileged-action"
+    },
+    {
+      "id": "AGENT-87",
+      "group": "D",
+      "groupName": "verification-shield",
+      "role": "permission-boundary-auditor",
+      "status": "registered-not-provisioned",
+      "dispatchEnabled": false,
+      "allowedActions": [
+        "read-scoped-inputs",
+        "analyze",
+        "propose-change",
+        "write-audit-result"
+      ],
+      "deniedActions": [
+        "read-or-export-secrets",
+        "bypass-authentication",
+        "erase-required-audit-records",
+        "merge-without-required-review",
+        "deploy-without-release-gate"
+      ],
+      "approvalRequired": "commander-or-policy-gate-for-write-deploy-or-privileged-action"
+    },
+    {
+      "id": "AGENT-88",
+      "group": "D",
+      "groupName": "verification-shield",
+      "role": "secret-redaction-checker",
+      "status": "registered-not-provisioned",
+      "dispatchEnabled": false,
+      "allowedActions": [
+        "read-scoped-inputs",
+        "analyze",
+        "propose-change",
+        "write-audit-result"
+      ],
+      "deniedActions": [
+        "read-or-export-secrets",
+        "bypass-authentication",
+        "erase-required-audit-records",
+        "merge-without-required-review",
+        "deploy-without-release-gate"
+      ],
+      "approvalRequired": "commander-or-policy-gate-for-write-deploy-or-privileged-action"
+    },
+    {
+      "id": "AGENT-89",
+      "group": "D",
+      "groupName": "verification-shield",
+      "role": "release-gate-reviewer",
+      "status": "registered-not-provisioned",
+      "dispatchEnabled": false,
+      "allowedActions": [
+        "read-scoped-inputs",
+        "analyze",
+        "propose-change",
+        "write-audit-result"
+      ],
+      "deniedActions": [
+        "read-or-export-secrets",
+        "bypass-authentication",
+        "erase-required-audit-records",
+        "merge-without-required-review",
+        "deploy-without-release-gate"
+      ],
+      "approvalRequired": "commander-or-policy-gate-for-write-deploy-or-privileged-action"
+    },
+    {
+      "id": "AGENT-90",
+      "group": "D",
+      "groupName": "verification-shield",
+      "role": "reproducibility-checker",
+      "status": "registered-not-provisioned",
+      "dispatchEnabled": false,
+      "allowedActions": [
+        "read-scoped-inputs",
+        "analyze",
+        "propose-change",
+        "write-audit-result"
+      ],
+      "deniedActions": [
+        "read-or-export-secrets",
+        "bypass-authentication",
+        "erase-required-audit-records",
+        "merge-without-required-review",
+        "deploy-without-release-gate"
+      ],
+      "approvalRequired": "commander-or-policy-gate-for-write-deploy-or-privileged-action"
+    }
+  ]
+}

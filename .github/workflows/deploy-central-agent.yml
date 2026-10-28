@@ -46,7 +46,7 @@ jobs:
           SEARCH_KEY: ${{ secrets.SEARCH_API_KEY }}
           BRIDGE_TOKEN: ${{ secrets.AGENT_GATEWAY_TOKEN }}
           PYTHON_CORE_URL: ${{ secrets.PYTHON_CORE_URL }}
-          OWNER_SECRET: ${{ secrets.OWNER_SECRET }}
+          OWNER_SECRET: ${{ secrets.REDULTRON_OWNER_SECRET }}
         run: |
           set -euo pipefail
           test -n "$CF_TOKEN" || { echo "Missing CLOUDFLARE_API_TOKEN"; exit 1; }
@@ -55,7 +55,7 @@ jobs:
           echo "SEARCH_API_KEY is optional; direct DuckDuckGo search is the fallback."
           test -n "$BRIDGE_TOKEN" || { echo "Missing AGENT_GATEWAY_TOKEN"; exit 1; }
           test -n "$PYTHON_CORE_URL" || { echo "Missing PYTHON_CORE_URL"; exit 1; }
-          test -n "$OWNER_SECRET" || { echo "Missing OWNER_SECRET"; exit 1; }
+          test -n "$OWNER_SECRET" || { echo "Missing REDULTRON_OWNER_SECRET"; exit 1; }
           node -e 'const u=new URL(process.env.PYTHON_CORE_URL); if(u.protocol!=="https:"||u.username||u.password||u.search||u.hash) process.exit(2); console.log("Hybrid Core secrets present; URL is HTTPS. Values are not printed.")'
 
       - name: Deploy isolated Central Agent
@@ -122,7 +122,7 @@ jobs:
           AGENT_GATEWAY_TOKEN: ${{ secrets.AGENT_GATEWAY_TOKEN }}
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           PYTHON_CORE_URL: ${{ secrets.PYTHON_CORE_URL }}
-          OWNER_SECRET: ${{ secrets.OWNER_SECRET }}
+          OWNER_SECRET: ${{ secrets.REDULTRON_OWNER_SECRET }}
         run: |
           set -euo pipefail
           umask 077
