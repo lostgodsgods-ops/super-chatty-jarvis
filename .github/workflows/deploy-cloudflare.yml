@@ -94,7 +94,7 @@ jobs:
                 [[ -z "$marker1" ]] || grep -Fq "$marker1" "$output" || matches=false
                 [[ -z "$marker2" ]] || grep -Fq "$marker2" "$output" || matches=false
                 cache_ok=true
-                if [[ "$require_no_cache" == "true" ]] && ! grep -Eiq '^cache-control: no-cache, must-revalidate' "$headers"; then cache_ok=false; fi
+                if [[ "$require_no_cache" == "true" ]] && { ! grep -Eiq '^cache-control:.*no-cache' "$headers" || ! grep -Eiq '^cache-control:.*must-revalidate' "$headers"; }; then cache_ok=false; fi
                 if [[ "$status" == "200" && "$content_type" == *"$expected_type"* && "$matches" == "true" && "$cache_ok" == "true" ]]; then
                   return 0
                 fi
@@ -126,7 +126,19 @@ jobs:
 
           cp jarvis/manifest.webmanifest "$tmp/source-manifest.json"
           fetch_asset "/manifest.webmanifest" "$tmp/manifest.json" "$tmp/manifest.headers" "application/manifest+json"
-          node -e 'const fs=require("node:fs"); const expected=JSON.parse(fs.readFileSync(process.argv[1],"utf8")); const actual=JSON.parse(fs.readFileSync(process.argv[2],"utf8")); for (const key of ["id","name","short_name","start_url","scope","display","theme_color","background_color"]) if(expected[key]!==actual[key]) throw Error("PWA manifest mismatch: "+key); for (const icon of expected.icons||[]) if(!(actual.icons||[]).some(a=>a.src===icon.src&&a.sizes===icon.sizes&&a.type===icon.type)) throw Error("PWA manifest icon mismatch: "+icon.src);' "$tmp/source-manifest.json" "$tmp/manifest.json"
+          node - "$tmp/source-manifest.json" "$tmp/manifest.json" <<'NODE'
+          const fs = require("node:fs");
+          const expected = JSON.parse(fs.readFileSync(process.argv[2], "utf8"));
+          const actual = JSON.parse(fs.readFileSync(process.argv[3], "utf8"));
+          const canonical = (value) => Array.isArray(value)
+            ? value.map(canonical)
+            : value && typeof value === "object"
+              ? Object.fromEntries(Object.keys(value).sort().map((key) => [key, canonical(value[key])]))
+              : value;
+          if (JSON.stringify(canonical(expected)) !== JSON.stringify(canonical(actual))) {
+            throw new Error("Production PWA manifest does not exactly match repository source.");
+          }
+          NODE
 
           health_ok=false
           for attempt in 1 2 3 4 5 6; do
