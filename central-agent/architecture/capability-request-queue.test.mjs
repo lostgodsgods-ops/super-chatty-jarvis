@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { normalizeCapabilityRequest, createCapabilityRequest, listCapabilityRequests } from "./capability-request-queue.mjs";
+import { normalizeCapabilityRequest, createCapabilityRequest, listCapabilityRequests, proposeCapabilityRequest } from "./capability-request-queue.mjs";
 
 const catalog = [
   { id: "github", category: "developer-platform", capabilities: ["repositories", "pull-requests"] },
@@ -43,4 +43,22 @@ test("creating a capability request fails closed without D1", async () => {
 
 test("listing capability requests fails closed without D1", async () => {
   await assert.rejects(listCapabilityRequests({}, 10), error => error.code === "CAPABILITY_REQUEST_STORAGE_UNAVAILABLE");
+});
+
+test("AI capability assessment is constrained to catalog IDs and returns a review-only proposal", async () => {
+  const env = { AI: { run: async (_model, payload) => ({
+    response: JSON.stringify({ requestedTools: ["github", "tavily"], rationale: "The goal needs repository inspection and current public evidence." })
+  }) } };
+  const proposal = await proposeCapabilityRequest(env, "Verify current code and live public evidence", catalog);
+  assert.deepEqual(proposal.requestedTools, ["github", "tavily"]);
+  assert.equal(proposal.executionEnabled, false);
+  assert.equal(proposal.requiresOwnerApproval, true);
+});
+
+test("AI capability assessment rejects a model-proposed tool outside the allowlist", async () => {
+  const env = { AI: { run: async () => ({ response: JSON.stringify({
+    requestedTools: ["https://attacker.example"], rationale: "untrusted"
+  }) }) } };
+  await assert.rejects(proposeCapabilityRequest(env, "test goal", catalog),
+    error => error.code === "CAPABILITY_TOOL_NOT_ALLOWLISTED");
 });
