@@ -31,7 +31,10 @@ export function validateHybridTask(input) {
 
 export async function executeHybridTask(input, env, options = {}) {
   const payload = validateHybridTask(input);
-  const endpoint = typeof env?.PYTHON_CORE_URL === "string" ? env.PYTHON_CORE_URL.trim() : "";
+  const phpEndpoint = typeof env?.PHP_CORE_URL === "string" ? env.PHP_CORE_URL.trim() : "";
+  const pythonEndpoint = typeof env?.PYTHON_CORE_URL === "string" ? env.PYTHON_CORE_URL.trim() : "";
+  const usePhpCore = phpEndpoint.length > 0;
+  const endpoint = usePhpCore ? phpEndpoint : pythonEndpoint;
   const secret = typeof env?.OWNER_SECRET === "string" ? env.OWNER_SECRET.trim() : "";
   if (!endpoint || !secret) throw new HybridCoreError("HYBRID_CORE_NOT_CONFIGURED", 503);
 
@@ -109,5 +112,5 @@ export async function executeHybridTask(input, env, options = {}) {
           Number.isInteger(value.characters) && value.characters >= 0
         : false;
   if (!validResult) throw new HybridCoreError("HYBRID_CORE_INVALID_RESPONSE", 502);
-  return { ok: true, engine: "python-edge-hybrid", task: payload.task, result: value };
+  return { ok: true, engine: usePhpCore ? "php-edge-hybrid" : "python-edge-hybrid", task: payload.task, result: value };
 }
