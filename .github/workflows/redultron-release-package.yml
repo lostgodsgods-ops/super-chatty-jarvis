@@ -1,6 +1,13 @@
 name: REDULTRON CORE 3.0 Release Package
 
 on:
+  push:
+    branches: [main]
+    paths:
+      - "jarvis/**"
+      - "package.json"
+      - "release/**"
+      - ".github/workflows/redultron-release-package.yml"
   pull_request:
     paths:
       - "jarvis/**"
