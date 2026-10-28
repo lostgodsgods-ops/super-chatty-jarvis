@@ -60,7 +60,14 @@ class Handler(BaseHTTPRequestHandler):
         super().setup()
         self.connection.settimeout(REQUEST_TIMEOUT_SECONDS)
         self._request_id = secrets.token_hex(8)
+        self._event_code = None
         self._request_started_at = time.monotonic()
+
+    def _bind_request_id(self):
+        # Accept only a bounded opaque identifier; never reflect arbitrary header text.
+        candidate = self.headers.get("X-Request-ID", "")
+        if re.fullmatch(r"[A-Za-z0-9._:-]{8,64}", candidate):
+            self._request_id = candidate
 
     def _json(self, status, payload):
         body = json.dumps(payload, separators=(",", ":"), ensure_ascii=False).encode("utf-8")
@@ -83,6 +90,8 @@ class Handler(BaseHTTPRequestHandler):
                 "status": status,
                 "latency_ms": max(0, int((time.monotonic() - self._request_started_at) * 1000)),
             }
+            if self._event_code:
+                event["event_code"] = self._event_code
             logging.getLogger("redultron.python_core").info(
                 json.dumps(event, separators=(",", ":"), sort_keys=True)
             )
@@ -92,18 +101,21 @@ class Handler(BaseHTTPRequestHandler):
         return
 
     def do_GET(self):
+        self._bind_request_id()
         if urlparse(self.path).path == "/health":
             self._json(200, {"ok": True, "service": "redultron-python-core"})
         else:
             self._json(404, {"ok": False, "code": "NOT_FOUND"})
 
     def do_POST(self):
+        self._bind_request_id()
         if urlparse(self.path).path != "/v1/execute":
             self._json(404, {"ok": False, "code": "NOT_FOUND"})
             return
         expected = os.environ.get("OWNER_SECRET", "")
         supplied = self.headers.get("X-Owner-Secret", "")
         if len(expected) < 32 or not supplied or not secrets.compare_digest(supplied, expected):
+            self._event_code = "AUTH_REJECTED"
             self._json(401, {"ok": False, "code": "OWNER_AUTH_REQUIRED"})
             return
 
