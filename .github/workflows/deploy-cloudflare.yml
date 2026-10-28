@@ -66,7 +66,7 @@ jobs:
           apiToken: ${{ steps.deployment-credentials.outputs.api_token }}
           accountId: "6c0d1ab7b0d730f94359a89a77a0dcf2"
           wranglerVersion: "4.149.0"
-          command: deploy src/worker.mjs --config wrangler.jsonc
+          command: deploy --config central-agent/wrangler.jsonc --var "GITHUB_COMMIT_SHA:${{ github.sha }}"
 
       - name: Verify deployed PWA release markers
         shell: bash
