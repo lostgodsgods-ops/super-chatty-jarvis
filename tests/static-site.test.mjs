@@ -515,3 +515,30 @@ test("Core release metadata is current and voice output uses clear, full-volume 
   assert.ok(utterance.rate <= 0.93, "voice delivery should leave enough time for Hindi/Hinglish clarity");
   assert.ok(utterance.pitch <= 0.88, "voice delivery should retain the mature, grounded pitch profile");
 });
+
+
+test("Cloudflare deployment verifies the exact deployed PWA release after Worker publish", () => {
+  const deployIndex = deployWorkflow.indexOf("name: Deploy Worker");
+  const verifyIndex = deployWorkflow.indexOf("name: Verify deployed PWA release markers");
+  assert.ok(deployIndex >= 0 && verifyIndex > deployIndex, "production deployment must be followed by live PWA verification");
+  assert.match(deployWorkflow, /application-version/);
+  assert.match(deployWorkflow, /redultron-core-shell-v/);
+  assert.match(deployWorkflow, /Content-Type/);
+  assert.match(deployWorkflow, /\/health/);
+  const versionPatternLine = deployWorkflow.split("\\n").find((line) => line.includes('expected_version="$(grep -oE'));
+  assert.ok(versionPatternLine, "deployment workflow must derive the version pattern from source");
+  const versionPattern = versionPatternLine.match(/'([^']+)'/);
+  assert.ok(versionPattern, "deployment workflow must quote the version regex");
+  const sourceVersion = jarvisHtml.match(/name="application-version" content="([^"]+)"/)?.[1];
+  assert.ok(sourceVersion, "source PWA must declare an application version");
+  assert.ok(new RegExp(versionPattern[1]).test(sourceVersion), "workflow's actual version regex must match the source version");
+  assert.match(deployWorkflow, /REDULTRON_WORKER_BASE_URL/);
+  assert.match(deployWorkflow, /for attempt in 1 2 3 4 5 6/);
+  assert.match(deployWorkflow, /attrs\.get\("name"\) === "application-version"/);
+  assert.match(deployWorkflow, /attrs\.get\("content"\) === expected/);
+  assert.match(deployWorkflow, /source-manifest\.json/);
+  assert.match(deployWorkflow, /cache-control:\.\*no-cache/);
+  assert.match(deployWorkflow, /cache-control:\.\*must-revalidate/);
+  assert.match(deployWorkflow, /JSON\.stringify\(canonical\(expected\)\) !== JSON\.stringify\(canonical\(actual\)\)/);
+  assert.match(deployWorkflow, /health_ok=false/);
+});
