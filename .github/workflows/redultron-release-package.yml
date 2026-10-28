@@ -2,9 +2,12 @@ name: REDULTRON CORE 3.0 Release Package
 
 on:
   push:
-    branches: [main]
+    branches:
+      - main
     paths:
       - "jarvis/**"
+      - "tests/**"
+      - "central-agent/**"
       - "package.json"
       - "release/**"
       - ".github/workflows/redultron-release-package.yml"
@@ -17,16 +20,6 @@ on:
       - "release/**"
       - ".github/workflows/redultron-release-package.yml"
   workflow_dispatch:
-  push:
-    branches:
-      - main
-    paths:
-      - "jarvis/**"
-      - "tests/**"
-      - "central-agent/**"
-      - "package.json"
-      - "release/**"
-      - ".github/workflows/redultron-release-package.yml"
 
 permissions:
   contents: read
