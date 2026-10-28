@@ -58,7 +58,7 @@ self.addEventListener("fetch", (event) => {
         const response = await fetch(new Request(request, { cache: "no-store" }));
         if (response.ok) {
           const cache = await caches.open(CACHE_NAME);
-          cache.put("./index.html", response.clone()).catch(() => {});
+          event.waitUntil(cache.put("./index.html", response.clone()).catch(() => {}));
         }
         return response;
       } catch {
