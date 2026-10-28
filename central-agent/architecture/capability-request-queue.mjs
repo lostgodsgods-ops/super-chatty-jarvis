@@ -87,16 +87,20 @@ export async function proposeCapabilityRequest(env = {}, rawGoal, catalog = []) 
 
 async function ensureSchema(db) {
   if (!db || typeof db.prepare !== "function") throw new CapabilityRequestError("CAPABILITY_REQUEST_STORAGE_UNAVAILABLE", 503);
-  await db.prepare(`CREATE TABLE IF NOT EXISTS capability_requests (
-    id TEXT PRIMARY KEY,
-    goal TEXT NOT NULL,
-    rationale TEXT NOT NULL,
-    requested_tools_json TEXT NOT NULL,
-    status TEXT NOT NULL CHECK(status IN ('pending_owner_review','approved','rejected','implemented')),
-    execution_enabled INTEGER NOT NULL DEFAULT 0 CHECK(execution_enabled = 0),
-    requires_owner_approval INTEGER NOT NULL DEFAULT 1 CHECK(requires_owner_approval = 1),
-    created_at TEXT NOT NULL
-  )`).run();
+  try {
+    await db.prepare(`CREATE TABLE IF NOT EXISTS capability_requests (
+      id TEXT PRIMARY KEY,
+      goal TEXT NOT NULL,
+      rationale TEXT NOT NULL,
+      requested_tools_json TEXT NOT NULL,
+      status TEXT NOT NULL CHECK(status IN ('pending_owner_review','approved','rejected','implemented')),
+      execution_enabled INTEGER NOT NULL DEFAULT 0 CHECK(execution_enabled = 0),
+      requires_owner_approval INTEGER NOT NULL DEFAULT 1 CHECK(requires_owner_approval = 1),
+      created_at TEXT NOT NULL
+    )`).run();
+  } catch {
+    throw new CapabilityRequestError("CAPABILITY_REQUEST_STORAGE_UNAVAILABLE", 503);
+  }
 }
 
 export async function createCapabilityRequest(env = {}, input, catalog = []) {
@@ -120,9 +124,14 @@ export async function listCapabilityRequests(env = {}, limit = 20) {
   if (!env.DB || typeof env.DB.prepare !== "function") throw new CapabilityRequestError("CAPABILITY_REQUEST_STORAGE_UNAVAILABLE", 503);
   await ensureSchema(env.DB);
   const boundedLimit = Math.max(1, Math.min(50, Number.isFinite(Number(limit)) ? Math.floor(Number(limit)) : 20));
-  const result = await env.DB.prepare(`SELECT id,goal,rationale,requested_tools_json AS requestedToolsJson,status,
+  let result;
+  try {
+    result = await env.DB.prepare(`SELECT id,goal,rationale,requested_tools_json AS requestedToolsJson,status,
       execution_enabled AS executionEnabled,requires_owner_approval AS requiresOwnerApproval,created_at AS createdAt
     FROM capability_requests ORDER BY created_at DESC LIMIT ?`).bind(boundedLimit).all();
+  } catch {
+    throw new CapabilityRequestError("CAPABILITY_REQUEST_STORAGE_UNAVAILABLE", 503);
+  }
   return (result?.results || []).map(row => {
     let requestedTools = [];
     try { requestedTools = JSON.parse(row.requestedToolsJson); } catch {}
