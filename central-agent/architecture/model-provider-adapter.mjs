@@ -14,8 +14,8 @@ const PROVIDERS = Object.freeze({
   "together-ai": { env: "TOGETHER_API_KEY", endpoint: "https://api.together.xyz/v1/chat/completions", format: "openai", defaultModel: "meta-llama/Llama-3.3-70B-Instruct-Turbo" },
   "fireworks-ai": { env: "FIREWORKS_API_KEY", endpoint: "https://api.fireworks.ai/inference/v1/chat/completions", format: "openai", defaultModel: "accounts/fireworks/models/llama-v3p3-70b-instruct" },
   openrouter: { env: "OPENROUTER_API_KEY", endpoint: "https://openrouter.ai/api/v1/chat/completions", format: "openai", defaultModel: "openai/gpt-4o-mini" },
-  anthropic: { env: "ANTHROPIC_API_KEY", endpoint: "https://api.anthropic.com/v1/messages", format: "anthropic", defaultModel: "claude-3-5-haiku-latest" },
-  "google-gemini": { env: "GEMINI_API_KEY", endpoint: "https://generativelanguage.googleapis.com/v1beta/models", format: "gemini", defaultModel: "gemini-2.5-flash" }
+  claude: { env: "ANTHROPIC_API_KEY", endpoint: "https://api.anthropic.com/v1/messages", format: "anthropic", defaultModel: "claude-3-5-haiku-latest" },
+  gemini: { env: "GEMINI_API_KEY", endpoint: "https://generativelanguage.googleapis.com/v1beta/models", format: "gemini", defaultModel: "gemini-2.5-flash" }
 });
 export class ChatProviderError extends Error {
   constructor(code, status = 503) { super(code); this.name = "ChatProviderError"; this.code = code; this.status = status; }
