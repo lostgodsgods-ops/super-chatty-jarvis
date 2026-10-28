@@ -1,5 +1,5 @@
 /**
- * REDULTRON CORE 2.0 capability contract.
+ * REDULTRON CORE 3.0 capability contract.
  *
  * The fictional Ultron, Red Queen and JARVIS archetypes are design references,
  * not claims of sentience, omniscience or unrestricted autonomy. This contract
@@ -43,7 +43,7 @@ const LIVE_MODES = new Set(["live", "execute", "actuate", "deploy", "mutate"]);
 export function buildCognitiveCoreProfile() {
   return {
     identity: {
-      name: "REDULTRON CORE 2.0",
+      name: "REDULTRON CORE 3.0",
       formerProject: "Super Chatty Jarvis / Project Lost Cypher",
       interaction: ["Hindi", "Hinglish", "English", "voice-first", "text"],
       isSentient: false,
