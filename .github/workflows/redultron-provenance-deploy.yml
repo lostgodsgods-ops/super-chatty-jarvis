@@ -24,6 +24,8 @@ jobs:
       REDULTRON_OWNER_SECRET: ${{ secrets.REDULTRON_OWNER_SECRET }}
     steps:
       - uses: actions/checkout@v4
+      - name: Test bounded Python Core health probe
+        run: cd hybrid-core && python3 -m unittest -v test_health_probe.py
       - uses: actions/setup-node@v4
         with:
           node-version: 22
@@ -58,37 +60,7 @@ jobs:
           jq -e '.ok == true' "$body"
       - name: Verify Python Core health before execution probe
         shell: bash
-        run: |
-          set -euo pipefail
-          body="$(mktemp)"
-          headers="$(mktemp)"
-          trap 'rm -f "$body" "$headers"' EXIT
-          health_url="$(node -e 'const u=new URL(process.env.PYTHON_CORE_URL); u.pathname="/health"; u.search=""; u.hash=""; process.stdout.write(u.toString())')"
-          meta="$(curl --silent --show-error --max-time 15 -D "$headers" -o "$body" -w '%{http_code}\n%{content_type}' "$health_url")"
-          code="$(printf '%s\n' "$meta" | sed -n '1p')"
-          content_type="$(printf '%s\n' "$meta" | sed -n '2p' | tr -cd 'A-Za-z0-9/;=.+ _-')"
-          body_bytes="$(wc -c < "$body" | tr -d ' ')"
-          response_kind="NON_JSON_TEXT"
-          if [[ ! -s "$body" ]]; then
-            response_kind="EMPTY_BODY"
-          elif jq -e 'type == "object"' "$body" >/dev/null 2>&1; then
-            response_kind="JSON_OBJECT"
-          elif jq -e . "$body" >/dev/null 2>&1; then
-            response_kind="VALID_JSON_OTHER"
-          elif head -c 256 "$body" | grep -Eiq '^[[:space:]]*(<!doctype[[:space:]]+html|<html|<head|<body)'; then
-            response_kind="HTML_PAGE"
-          fi
-          if [[ "$code" != "200" ]]; then
-            safe_code="$(jq -r 'if type == "object" then (.code // .error // .service // "UNKNOWN") | if type == "string" then gsub("[^A-Za-z0-9_-]"; "")[0:64] else "UNKNOWN" end else "UNKNOWN" end' "$body" 2>/dev/null || printf 'UNREADABLE_RESPONSE')"
-            echo "::error::Python Core health returned HTTP $code; content_type=$content_type; body_bytes=$body_bytes; response_kind=$response_kind; sanitized_code=$safe_code."
-            exit 1
-          fi
-          if ! jq -e '.ok == true and .service == "redultron-python-core"' "$body" >/dev/null 2>&1; then
-            safe_code="$(jq -r 'if type == "object" then (.code // .error // .service // "UNKNOWN") | if type == "string" then gsub("[^A-Za-z0-9_-]"; "")[0:64] else "UNKNOWN" end else "UNKNOWN" end' "$body" 2>/dev/null || printf 'UNREADABLE_RESPONSE')"
-            echo "::error::Python Core health schema mismatch; content_type=$content_type; body_bytes=$body_bytes; response_kind=$response_kind; sanitized_code=$safe_code."
-            exit 1
-          fi
-          echo "PASS: Python Core health endpoint is reachable; authenticated execution is verified separately."
+        run: python3 hybrid-core/health_probe.py
 
       - name: Require actual authenticated Python hybrid execution
         shell: bash
