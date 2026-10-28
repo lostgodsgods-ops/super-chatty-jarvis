@@ -515,3 +515,14 @@ test("Core release metadata is current and voice output uses clear, full-volume 
   assert.ok(utterance.rate <= 0.93, "voice delivery should leave enough time for Hindi/Hinglish clarity");
   assert.ok(utterance.pitch <= 0.88, "voice delivery should retain the mature, grounded pitch profile");
 });
+
+
+test("Cloudflare deployment verifies the exact deployed PWA release after Worker publish", () => {
+  const deployIndex = deployWorkflow.indexOf("name: Deploy Worker");
+  const verifyIndex = deployWorkflow.indexOf("name: Verify deployed PWA release markers");
+  assert.ok(deployIndex >= 0 && verifyIndex > deployIndex, "production deployment must be followed by a live PWA verification step");
+  assert.match(deployWorkflow, /application-version/);
+  assert.match(deployWorkflow, /redultron-core-shell-v/);
+  assert.match(deployWorkflow, /Content-Type/);
+  assert.match(deployWorkflow, /\/health/);
+});
