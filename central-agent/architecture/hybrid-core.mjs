@@ -119,6 +119,7 @@ export async function executeHybridTask(input, env, options = {}) {
   try {
     response = await fetchImpl(url.toString(), {
       method: "POST",
+      redirect: "error",
       headers: {
         "content-type": "application/json",
         "accept": "application/json",
