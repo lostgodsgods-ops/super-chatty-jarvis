@@ -7,7 +7,7 @@
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="application-version" content="REDULTRON-2026.10.28-CORE-3.0-V17">
+  <meta name="application-version" content="REDULTRON-2026.10.28-CORE-3.0-V18">
   <meta name="description" content="REDULTRON CORE 3.0 — voice-first AI command interface.">
   <meta name="color-scheme" content="dark">
   <title>REDULTRON CORE 3.0 · Neural Console</title>
@@ -151,6 +151,127 @@ body.auth-locked #ownerSessionStatus{font-weight:700}
 #runtimeDiagnostics .diag-pass{color:var(--green)}#runtimeDiagnostics .diag-fail{color:var(--red)}#runtimeDiagnostics .diag-warn{color:var(--amber)}
 
 </style>
+
+<style id="redultron-unified-layout-v18">
+/* REDULTRON CORE 3.0 — unified three-panel command deck. Replaces the legacy two-column shell layout. */
+.shell {
+  display: grid !important;
+  grid-template-columns: minmax(225px,.88fr) minmax(340px,1.35fr) minmax(250px,.92fr);
+  grid-template-areas:
+    "topbar topbar topbar"
+    "owner core terminal"
+    "search core connection"
+    "media orchestration telemetry"
+    "agents agents agents",
+    "utilities utilities utilities";
+  align-items: stretch;
+  gap: 14px;
+}
+.shell > .topbar { grid-area: topbar; }
+.shell > .grid, .shell > .grid > .side, .shell > .dashboard-grid { display: contents !important; }
+.core-panel { grid-area: core; min-height: 590px; align-self: stretch; }
+.terminal-panel { grid-area: terminal; min-height: 260px; }
+.connection-panel { grid-area: connection; }
+.red-queen-panel { grid-area: orchestration; align-self: stretch; }
+.agent-army { grid-area: agents; }
+.dashboard-grid > section[aria-labelledby="telemetryTitle"] { grid-area: telemetry; }
+.dashboard-grid > section[aria-labelledby="ownerTitle"] { grid-area: owner; }
+.dashboard-grid > section[aria-labelledby="factSearchTitle"] { grid-area: search; grid-column: auto !important; grid-row: auto !important; }
+.dashboard-grid > section[aria-labelledby="mediaTitle"] { grid-area: media; }
+.shell > .grid > .side > .terminal-panel,
+.shell > .grid > .side > .connection-panel { min-width: 0; }
+.core-panel, .terminal-panel, .connection-panel, .red-queen-panel,
+.dashboard-panel, .agent-army { min-width: 0; }
+.topbar { position: relative; overflow: hidden; }
+.topbar::after {
+  content: "UNIFIED EDGE GATEWAY · CORE 3.0";
+  position: absolute; right: 16px; bottom: 4px;
+  color: #53e8ff70; font: 700 8px/1.2 ui-monospace,monospace; letter-spacing: .16em;
+  pointer-events: none;
+}
+.core-panel { border-color: #53e8ff55; box-shadow: 0 0 36px #00d9ff12,inset 0 1px #ffffff0c; }
+.core-panel::after {
+  content: "PERCEPTION / PLANNING / MEMORY / VERIFICATION";
+  position: absolute; bottom: 12px; left: 12px; right: 12px;
+  color: #7ddceb70; text-align: center; font: 700 8px/1.4 ui-monospace,monospace; letter-spacing: .12em;
+}
+.panel { transition: border-color .18s ease, box-shadow .18s ease, transform .18s ease; }
+.panel:focus-within { border-color: #53e8ff72; box-shadow: 0 0 28px #53e8ff0e,inset 0 1px #ffffff0c; }
+.dashboard-panel, .terminal-panel, .connection-panel, .red-queen-panel {
+  background: linear-gradient(145deg,rgba(8,25,39,.96),rgba(4,11,19,.96));
+}
+#ownerTitle::before { content: "01 / "; color: var(--amber); }
+#factSearchTitle::before { content: "02 / "; color: var(--amber); }
+#mediaTitle::before { content: "03 / "; color: var(--amber); }
+#terminalTitle::before { content: "04 / "; color: var(--amber); }
+#connectionTitle::before { content: "05 / "; color: var(--amber); }
+#redQueenTitle::before { content: "06 / "; color: var(--amber); }
+#telemetryTitle::before { content: "07 / "; color: var(--amber); }
+.status.bad, .logline.error, .diag-fail { text-shadow: 0 0 12px #ff788e20; }
+.commandbar { border-color: #53e8ff88; box-shadow: 0 12px 50px #0009,0 0 32px #53e8ff18; }
+@media (max-width: 900px) {
+  .shell {
+    display: flex !important;
+    flex-direction: column;
+    gap: 12px;
+    padding-bottom: calc(125px + var(--safe-bottom));
+  }
+  .shell > .grid { display: contents !important; }
+  .shell > .grid > .side { display: contents !important; }
+  .shell > .dashboard-grid { display: contents !important; }
+  .topbar { order: 0; }
+  .core-panel { order: 1; min-height: 440px; }
+  .terminal-panel { order: 2; min-height: 210px; }
+  .connection-panel { order: 3; }
+  .dashboard-grid > section[aria-labelledby="ownerTitle"] { order: 4; }
+  .dashboard-grid > section[aria-labelledby="factSearchTitle"] { order: 5; }
+  .dashboard-grid > section[aria-labelledby="mediaTitle"] { order: 6; }
+  .red-queen-panel { order: 7; }
+  .dashboard-grid > section[aria-labelledby="telemetryTitle"] { order: 8; }
+  .agent-army { order: 9; }
+  .topbar::after { display: none; }
+}
+@media (max-width: 600px) {
+  .shell { padding-inline: 9px; gap: 10px; }
+  .topbar { border-radius: 14px; padding: 11px; align-items: flex-start; }
+  .brandmark { width: 34px; height: 34px; flex: 0 0 34px; }
+  .telemetry { gap: 5px; }
+  .telemetry .status { font-size: 9px; padding: 6px 7px; }
+  .core-panel { min-height: 390px; padding: 18px 10px 28px; }
+  .core-wrap { width: min(78vw,300px); margin: 15px auto 12px; }
+  .panel { border-radius: 15px; }
+  .panel-head { padding: 12px; }
+  .panel-body { padding: 12px; }
+  .commandbar { width: calc(100% - 14px); bottom: calc(7px + var(--safe-bottom)); padding: 8px; gap: 7px; border-radius: 15px; }
+  .mic { width: 46px; height: 46px; flex-basis: 46px; }
+  .hands-free-toggle { min-width: 86px; padding-inline: 8px; font-size: 9px; }
+  .send { min-width: 54px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .ring, .ring.r2, .ring.r3, .mic.listening { animation: none !important; }
+  .panel { transition: none !important; }
+  html { scroll-behavior: auto; }
+}
+</style>
+
+
+<style id="redultron-utility-dock-style-v18">
+.utility-dock { grid-area: utilities; padding: 0; }
+.utility-grid { display: grid; grid-template-columns: repeat(5,minmax(0,1fr)); gap: 10px; padding: 12px; }
+.utility-card { min-width: 0; border: 1px solid #53e8ff24; border-radius: 13px; padding: 12px; background: linear-gradient(145deg,#0a1c2a,#050c14); }
+.utility-card h3 { margin: 0 0 8px; color: var(--cyan2); font-size: 10px; letter-spacing: .13em; text-transform: uppercase; }
+.utility-card p { color: var(--muted); font-size: 11px; margin: 7px 0; }
+.utility-card .action-row { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+.utility-card .action-btn { min-height: 34px; padding: 7px 9px; font-size: 10px; }
+.utility-card .text-input { min-height: 36px; padding: 8px; font-size: 11px; }
+.utility-preview { min-height: 95px; max-height: 220px; margin-top: 8px; border: 1px solid #53e8ff24; border-radius: 9px; background: #02070b; display: grid; place-items: center; overflow: hidden; color: var(--muted); font-size: 10px; text-align: center; }
+.utility-preview video, .utility-preview iframe { width: 100%; aspect-ratio: 16/9; max-height: 220px; border: 0; }
+.utility-local-list { margin-top: 8px; max-height: 100px; overflow: auto; overflow-wrap: anywhere; font-size: 10px; color: var(--muted); }
+.utility-security { border-left: 2px solid var(--amber); padding-left: 8px; font-size: 10px; color: var(--amber); overflow-wrap: anywhere; }
+@media (max-width: 900px) { .utility-grid { grid-template-columns: repeat(2,minmax(0,1fr)); } }
+@media (max-width: 600px) { .utility-grid { grid-template-columns: minmax(0,1fr); padding: 9px; } }
+</style>
+
 </head>
 <body class="auth-locked">
   <canvas id="particleMesh" aria-hidden="true"></canvas>
@@ -322,6 +443,49 @@ body.auth-locked #ownerSessionStatus{font-weight:700}
       </div>
     </section>
   </section>
+
+    <section class="panel dashboard-panel utility-dock" aria-labelledby="utilityDockTitle">
+      <div class="panel-head"><div class="panel-title" id="utilityDockTitle">Command Utilities · Media / News / Files / Safety</div><span class="status warn">LOCAL / READ-ONLY BY DEFAULT</span></div>
+      <div class="utility-grid">
+        <article class="utility-card" aria-labelledby="utilityNewsTitle">
+          <h3 id="utilityNewsTitle">Live News / Web</h3>
+          <label class="sr-only" for="utilitySearchQuery">Search the web</label>
+          <input class="text-input" id="utilitySearchQuery" type="search" maxlength="240" placeholder="Search topic…">
+          <div class="action-row"><button class="action-btn" id="newsOpenBtn" type="button">World news</button><button class="action-btn secondary" id="webSearchBtn" type="button">Search web</button></div>
+          <p>Opens a public search page; this button does not claim provider reachability.</p>
+        </article>
+        <article class="utility-card" aria-labelledby="utilityVideoTitle">
+          <h3 id="utilityVideoTitle">Video / TV</h3>
+          <label class="sr-only" for="utilityVideoUrl">YouTube or direct video URL</label>
+          <input class="text-input" id="utilityVideoUrl" type="url" inputmode="url" placeholder="HTTPS video URL">
+          <div class="action-row"><button class="action-btn" id="videoLoadBtn" type="button">Load video</button><button class="action-btn secondary" id="videoStopBtn" type="button">Stop</button></div>
+          <div class="utility-preview" id="utilityVideoPreview" aria-live="polite">YouTube or direct HTTPS media only.</div>
+          <p>Only YouTube embeds and direct MP4/WebM/OGG files are accepted.</p>
+        </article>
+        <article class="utility-card" aria-labelledby="utilityWalletTitle">
+          <h3 id="utilityWalletTitle">Wallet / Payments</h3>
+          <div class="utility-security" id="utilityWalletStatus">DISABLED · NO PROVIDER CONNECTED</div>
+          <p>No private keys, card data, or seed phrases are collected here.</p>
+          <div class="action-row"><button class="action-btn secondary" id="walletSafetyBtn" type="button">Safety details</button></div>
+          <p id="walletSafetyText" aria-live="polite">No transactions, transfers, or payments can be initiated from this panel.</p>
+        </article>
+        <article class="utility-card" aria-labelledby="utilityQrTitle">
+          <h3 id="utilityQrTitle">QR / Camera</h3>
+          <div class="utility-security">CAMERA REQUIRES A TAP</div>
+          <p>QR decoding and payment execution are not enabled.</p>
+          <div class="action-row"><button class="action-btn" id="qrCameraBtn" type="button">Open camera</button></div>
+          <p id="utilityQrStatus" aria-live="polite">No camera is active.</p>
+        </article>
+        <article class="utility-card" aria-labelledby="utilityFilesTitle">
+          <h3 id="utilityFilesTitle">Files / Security</h3>
+          <label class="field-label" for="localFilesInput">Select local files</label>
+          <input class="text-input" id="localFilesInput" type="file" multiple accept="image/*,video/*,audio/*,.pdf,.txt,.md,.json,.csv">
+          <div class="utility-local-list" id="utilityFileList" aria-live="polite">No files selected. Local preview only.</div>
+          <div class="utility-security" id="utilitySecurityStatus">OWNER SESSION REQUIRED · SECRET VALUES NEVER DISPLAYED</div>
+        </article>
+      </div>
+    </section>
+
   </main>
 
   <section class="commandbar" aria-label="REDULTRON voice console">
@@ -1786,6 +1950,91 @@ body.auth-locked #ownerSessionStatus{font-weight:700}
   
   // Load diagnostics as a deferred auxiliary module while preserving the single self-contained app script.
   const diagnosticsScript = document.createElement("script"); diagnosticsScript.src = "./diagnostics.js"; diagnosticsScript.async = true; document.head.append(diagnosticsScript);
+
+(() => {
+  "use strict";
+  const $ = (id) => document.getElementById(id);
+  const setText = (id, value) => { const el = $(id); if (el) el.textContent = value; };
+  $("newsOpenBtn")?.addEventListener("click", () => window.open("https://news.google.com/", "_blank", "noopener,noreferrer"));
+  $("webSearchBtn")?.addEventListener("click", () => {
+    const query = $("utilitySearchQuery")?.value.trim() || "latest world news technology";
+    window.open("https://www.google.com/search?q=" + encodeURIComponent(query), "_blank", "noopener,noreferrer");
+  });
+  $("videoLoadBtn")?.addEventListener("click", () => {
+    const preview = $("utilityVideoPreview");
+    if (!preview) return;
+    preview.replaceChildren();
+    const raw = $("utilityVideoUrl")?.value.trim() || "";
+    let url;
+    try { url = new URL(raw); } catch { preview.textContent = "Enter a valid HTTPS YouTube or direct video URL."; return; }
+    if (url.protocol !== "https:" || url.username || url.password) {
+      preview.textContent = "Blocked: only HTTPS video URLs without embedded credentials are accepted."; return;
+    }
+    const host = url.hostname.toLowerCase().replace(/^www\./, "");
+    let embed = "";
+    if (host === "youtube.com" || host === "m.youtube.com" || host === "youtube-nocookie.com") {
+      const id = url.searchParams.get("v");
+      if (id && /^[A-Za-z0-9_-]{6,20}$/.test(id)) embed = "https://www.youtube-nocookie.com/embed/" + id;
+      else if (url.pathname.startsWith("/embed/") && /^[A-Za-z0-9_-]{6,20}$/.test(url.pathname.split("/")[2] || "")) embed = "https://www.youtube-nocookie.com" + url.pathname;
+    } else if (host === "youtu.be") {
+      const id = url.pathname.slice(1);
+      if (/^[A-Za-z0-9_-]{6,20}$/.test(id)) embed = "https://www.youtube-nocookie.com/embed/" + id;
+    }
+    if (embed) {
+      const frame = document.createElement("iframe");
+      frame.src = embed; frame.title = "User-selected YouTube video"; frame.loading = "lazy";
+      frame.referrerPolicy = "strict-origin-when-cross-origin";
+      frame.allow = "accelerometer; encrypted-media; gyroscope; picture-in-picture; web-share";
+      frame.allowFullscreen = true; preview.append(frame); return;
+    }
+    if (/\.(mp4|webm|ogg)$/i.test(url.pathname)) {
+      const video = document.createElement("video");
+      video.src = url.href; video.controls = true; video.playsInline = true; video.preload = "metadata";
+      preview.append(video); return;
+    }
+    preview.textContent = "Blocked: use a YouTube link or a direct .mp4, .webm, or .ogg file.";
+  });
+  $("videoStopBtn")?.addEventListener("click", () => {
+    const preview = $("utilityVideoPreview");
+    if (preview) { preview.replaceChildren(); preview.textContent = "Video stopped."; }
+  });
+  $("walletSafetyBtn")?.addEventListener("click", () => setText("walletSafetyText",
+    "READ-ONLY: wallet connection and payment routes are not configured. Never paste a private key, recovery phrase, card number, or one-time code here."));
+  $("qrCameraBtn")?.addEventListener("click", () => {
+    const camera = $("cameraStart");
+    if (camera) { camera.click(); $("mediaTitle")?.scrollIntoView({behavior:"smooth",block:"start"}); setText("utilityQrStatus","Camera request passed to the existing user-activated camera control. QR decoding remains disabled."); }
+    else setText("utilityQrStatus","Camera module unavailable in this build.");
+  });
+  $("localFilesInput")?.addEventListener("change", (event) => {
+    const files = Array.from(event.target.files || []);
+    const target = $("utilityFileList");
+    if (!target) return;
+    target.replaceChildren();
+    if (!files.length) { target.textContent = "No files selected. Local preview only."; return; }
+    for (const file of files.slice(0, 20)) {
+      const row = document.createElement("div");
+      row.textContent = file.name + " · " + Math.max(1, Math.round(file.size / 1024)) + " KB";
+      target.append(row);
+    }
+    if (files.length > 20) {
+      const note = document.createElement("div"); note.textContent = (files.length - 20) + " additional files not listed."; target.append(note);
+    }
+    setText("utilitySecurityStatus","LOCAL FILE SELECTION ONLY · NOTHING UPLOADED");
+  });
+  const syncOwnerVisual = () => {
+    const badge = $("ownerBadge");
+    const authenticated = badge && /authenticated|unlocked|active/i.test(badge.textContent || "");
+    if (authenticated) setText("utilitySecurityStatus","OWNER SESSION ACTIVE · SECRETS NEVER DISPLAYED");
+    else if (!$("localFilesInput")?.files?.length) setText("utilitySecurityStatus","OWNER SESSION REQUIRED · SECRET VALUES NEVER DISPLAYED");
+  };
+  const ownerBadge = $("ownerBadge");
+  if (ownerBadge && "MutationObserver" in window) new MutationObserver(syncOwnerVisual).observe(ownerBadge,{childList:true,subtree:true,characterData:true});
+  syncOwnerVisual();
+})();
+
 </script>
+
+
+
 </body>
 </html>
