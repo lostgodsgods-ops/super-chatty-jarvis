@@ -32,3 +32,28 @@ test("live gateway probe checks DNS before HTTP and verifies invalid owner crede
   assert.match(probe, /401|403/,
     "probe must require unauthorized credentials to be rejected");
 });
+
+test("all production deployment and secret-sync workflows fail closed behind explicit approval", () => {
+  const central = readWorkflow("../.github/workflows/deploy-central-agent.yml");
+  const cloudflare = readWorkflow("../.github/workflows/deploy-cloudflare.yml");
+  const provenance = readWorkflow("../.github/workflows/redultron-provenance-deploy.yml");
+
+  for (const [name, workflow] of [
+    ["Central Agent", central],
+    ["Cloudflare Worker", cloudflare],
+    ["Provenance deployment", provenance],
+  ]) {
+    assert.doesNotMatch(workflow, /^  push:/m, name + " must not deploy automatically on push");
+    assert.match(workflow, /^  workflow_dispatch:\n    inputs:\n      authorize_production_changes:/m,
+      name + " must require an explicit manual authorization input");
+    assert.match(workflow, /default:\s*deny/, name + " must default to deny");
+    assert.match(workflow, /inputs\.authorize_production_changes\s*==\s*'approve'/,
+      name + " job must run only when approval is explicitly selected");
+    assert.match(workflow, /environment:\s*production/, name + " must use the production environment gate");
+  }
+
+  assert.match(central, /OWNER_SECRET.*-ge 32/,
+    "Central Agent must reject weak owner secrets before deployment");
+  assert.match(provenance, /REDULTRON_OWNER_SECRET.*-ge 32/,
+    "Provenance deployment must reject weak owner secrets before secret sync");
+});

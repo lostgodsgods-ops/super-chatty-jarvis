@@ -81,7 +81,10 @@ test("Worker config targets the unified production gateway and required bindings
 });
 
 test("Cloudflare deployment is main-only and uses a private token plus explicit account ID", () => {
-  assert.match(deployWorkflow, /branches:\s*\n\s+- main/);
+  assert.doesNotMatch(deployWorkflow, /^  push:/m, "production deployment must not run automatically on push");
+  assert.match(deployWorkflow, /workflow_dispatch:[\s\S]*authorize_production_changes/);
+  assert.match(deployWorkflow, /inputs\.authorize_production_changes\s*==\s*'approve'/);
+  assert.match(deployWorkflow, /environment:\s*production/);
   assert.match(deployWorkflow, /CLOUDFLARE_API_TOKEN/);
   assert.match(deployWorkflow, /accountId:\s*"6c0d1ab7b0d730f94359a89a77a0dcf2"/);
   assert.doesNotMatch(deployWorkflow, /secrets\.CLOUDFLARE_ACCOUNT_ID/);
