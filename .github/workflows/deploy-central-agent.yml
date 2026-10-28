@@ -2,15 +2,15 @@ name: Deploy Central Agent
 
 on:
   workflow_dispatch:
-  push:
-    branches:
-      - main
-    paths:
-      - "central-agent/**"
-      - "jarvis/**"
-      - "src/worker.mjs"
-      - "central-agent/wrangler.jsonc"
-      - ".github/workflows/deploy-central-agent.yml"
+    inputs:
+      authorize_production_changes:
+        description: "Authorize production Worker secret synchronization and deployment only after reviewing the exact run."
+        required: true
+        type: choice
+        options:
+          - deny
+          - approve
+        default: deny
 
 permissions:
   contents: read
@@ -21,6 +21,7 @@ concurrency:
 
 jobs:
   deploy:
+    if: ${{ github.ref == 'refs/heads/main' && inputs.authorize_production_changes == 'approve' }}
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
