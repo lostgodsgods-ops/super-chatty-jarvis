@@ -1599,21 +1599,25 @@ export default {
         // from the catalog. The proposal is allowlist-validated and never executed.
         const requestInput = Array.isArray(parsed.body.requestedTools)
           ? parsed.body
-          : await proposeCapabilityRequest(env, parsed.body.goal, catalog);
+          : {
+              ...(await proposeCapabilityRequest(env, parsed.body.goal, catalog)),
+              ...(parsed.body.idempotencyKey === undefined ? {} : { idempotencyKey: parsed.body.idempotencyKey })
+            };
         const requestRecord = await createCapabilityRequest(env, requestInput, catalog);
         const audit = await publishEvent(env, {
-          type: "capability.request.created",
+          type: requestRecord.idempotentReplay ? "capability.request.replayed" : "capability.request.created",
           source: "capability-request-queue",
           payload: {
             requestId: requestRecord.id,
             requestedTools: requestRecord.requestedTools,
             status: requestRecord.status,
             executionEnabled: false,
-            requiresOwnerApproval: true
+            requiresOwnerApproval: true,
+            idempotentReplay: requestRecord.idempotentReplay === true
           }
         });
         if (!audit?.ok) return json({ ok: false, error: "CAPABILITY_REQUEST_AUDIT_UNAVAILABLE", requestId: requestRecord.id }, 503, cors);
-        return json({ ok: true, request: requestRecord, auditRecorded: true }, 201, cors);
+        return json({ ok: true, request: requestRecord, auditRecorded: true }, requestRecord.idempotentReplay ? 200 : 201, cors);
       } catch (error) {
         const known = error instanceof CapabilityRequestError;
         return json({ ok: false, error: known ? error.code : "CAPABILITY_REQUEST_FAILED" }, known ? error.status : 503, cors);
