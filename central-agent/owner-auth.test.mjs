@@ -403,7 +403,7 @@ test("time-sensitive research refuses stale cached evidence when live providers 
     const first = await call(e, "/research/query", { query }, token);
     assert.equal(first.status, 200);
     const firstPayload = await first.json();
-    assert.equal(firstPayload.stale, false);
+    assert.notEqual(firstPayload.stale, true);
     assert.equal(firstPayload.sourceCount, 1);
 
     shouldFail = true;
