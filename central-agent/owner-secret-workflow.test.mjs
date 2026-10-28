@@ -46,8 +46,8 @@ test("production provenance deployment is manual-only and requires explicit appr
     "the workflow must name its production approval input");
   assert.match(triggers, /default:\s*deny/,
     "production approval must default to deny");
-  assert.match(workflow, /if:\s*\$\{\{\s*inputs\.authorize_production_changes\s*==\s*'approve'\s*\}\}/,
-    "the production-changing job must require explicit approval");
+  assert.match(workflow, /if:\s*\$\{\{\s*github\.ref\s*==\s*'refs\\/heads\\/main'\s*&&\s*inputs\.authorize_production_changes\s*==\s*'approve'\s*\}\}/,
+    "the production-changing job must require main-branch dispatch and explicit approval");
 });
 
 
@@ -65,4 +65,25 @@ test("provenance deploy rejects a short owner secret before production sync", ()
   const sync = provenance.indexOf("- name: Synchronize owner secret to the deployed Worker");
   assert.ok(validation >= 0 && sync > validation,
     "minimum-length validation must happen before Worker secret synchronization");
+});
+
+
+test("all production deploy workflows require main-branch approval and do not auto-run on pushes", () => {
+  for (const path of [
+    "../.github/workflows/deploy-central-agent.yml",
+    "../.github/workflows/deploy-cloudflare.yml"
+  ]) {
+    const workflow = readWorkflow(path);
+    const triggers = workflow.split(/^permissions:/m)[0] ?? workflow;
+    assert.doesNotMatch(triggers, /^\s{2}push:/m,
+      path + " must not auto-run production changes on pushes");
+    assert.match(triggers, /workflow_dispatch:[\s\S]*inputs:/,
+      path + " must expose a manual dispatch approval input");
+    assert.match(triggers, /authorize_production_changes/,
+      path + " must name its production approval input");
+    assert.match(triggers, /default:\s*deny/,
+      path + " must default production approval to deny");
+    assert.match(workflow, /if:\s*\$\{\{\s*github\.ref\s*==\s*'refs\\/heads\\/main'\s*&&\s*inputs\.authorize_production_changes\s*==\s*'approve'\s*\}\}/,
+      path + " must require main-branch dispatch and explicit approval");
+  }
 });
