@@ -57,6 +57,41 @@ async function matchesOwnerSecret(supplied, expected) {
 
 const SESSION_TTL_SECONDS = 3600;
 
+/** Read JSON request bodies with a hard streaming byte cap; never buffer an unbounded body. */
+export async function readBoundedJsonBody(request, maxBytes = 10 * 1024) {
+  const declaredLength = request.headers.get("content-length");
+  if (declaredLength !== null && (!/^\d+$/.test(declaredLength) || Number(declaredLength) > maxBytes)) {
+    return { tooLarge: true, body: null };
+  }
+  if (!request.body) return { tooLarge: false, body: null };
+  const reader = request.body.getReader();
+  const chunks = [];
+  let total = 0;
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      total += value.byteLength;
+      if (total > maxBytes) {
+        try { await reader.cancel("REQUEST_TOO_LARGE"); } catch {}
+        return { tooLarge: true, body: null };
+      }
+      chunks.push(value);
+    }
+    const bytes = new Uint8Array(total);
+    let offset = 0;
+    for (const chunk of chunks) {
+      bytes.set(chunk, offset);
+      offset += chunk.byteLength;
+    }
+    try { return { tooLarge: false, body: JSON.parse(new TextDecoder().decode(bytes)) }; }
+    catch { return { tooLarge: false, body: null }; }
+  } catch {
+    try { await reader.cancel("REQUEST_BODY_READ_FAILED"); } catch {}
+    return { tooLarge: false, body: null };
+  }
+}
+
 export function buildSystemDateContext(now = new Date(), timeZone = "Asia/Kolkata") {
   const parts = new Intl.DateTimeFormat("en-GB", {
     timeZone, year: "numeric", month: "2-digit", day: "2-digit"
@@ -2195,7 +2230,9 @@ export default {
 
     if (url.pathname === "/api/treasury/events" && request.method === "POST") {
       if (!(await authorized(request, env))) return json({ ok: false, code: "OWNER_SESSION_REQUIRED" }, 401, cors);
-      const body = await request.json().catch(() => null);
+      const parsedBody = await readBoundedJsonBody(request);
+      if (parsedBody.tooLarge) return json({ ok: false, code: "REQUEST_TOO_LARGE" }, 413, cors);
+      const body = parsedBody.body;
       try {
         const result = await appendTreasuryEvent(env.DB, body);
         await publishEvent(env, { type: "treasury.event.simulated", source: "treasury-ledger", payload: {
@@ -2211,7 +2248,9 @@ export default {
 
     if (url.pathname === "/api/treasury/scan" && request.method === "POST") {
       if (!(await authorized(request, env))) return json({ ok: false, code: "OWNER_SESSION_REQUIRED" }, 401, cors);
-      const body = await request.json().catch(() => null);
+      const parsedBody = await readBoundedJsonBody(request);
+      if (parsedBody.tooLarge) return json({ ok: false, code: "REQUEST_TOO_LARGE" }, 413, cors);
+      const body = parsedBody.body;
       if (!body || typeof body !== "object" || Array.isArray(body)) return json({ ok: false, code: "TREASURY_SCAN_REQUEST_INVALID" }, 400, cors);
       try {
         const result = await appendTreasuryEvent(env.DB, {
@@ -2233,7 +2272,9 @@ export default {
 
     if (url.pathname === "/api/treasury/pay" && request.method === "POST") {
       if (!(await authorized(request, env))) return json({ ok: false, code: "OWNER_SESSION_REQUIRED" }, 401, cors);
-      const body = await request.json().catch(() => null);
+      const parsedBody = await readBoundedJsonBody(request);
+      if (parsedBody.tooLarge) return json({ ok: false, code: "REQUEST_TOO_LARGE" }, 413, cors);
+      const body = parsedBody.body;
       if (!body || typeof body !== "object" || Array.isArray(body)) return json({ ok: false, code: "TREASURY_PAYMENT_REQUEST_INVALID" }, 400, cors);
       try {
         const result = await appendTreasuryEvent(env.DB, { ...body, eventType: "payment_intent", manualApproval: body.manualApproval === true });
@@ -2246,7 +2287,9 @@ export default {
 
     if (url.pathname === "/api/treasury/compute-funding" && request.method === "POST") {
       if (!(await authorized(request, env))) return json({ ok: false, code: "OWNER_SESSION_REQUIRED" }, 401, cors);
-      const body = await request.json().catch(() => null);
+      const parsedBody = await readBoundedJsonBody(request);
+      if (parsedBody.tooLarge) return json({ ok: false, code: "REQUEST_TOO_LARGE" }, 413, cors);
+      const body = parsedBody.body;
       if (!body || typeof body !== "object" || Array.isArray(body)) return json({ ok: false, code: "TREASURY_FUNDING_REQUEST_INVALID" }, 400, cors);
       try {
         const result = await appendTreasuryEvent(env.DB, {
