@@ -7,6 +7,14 @@ on:
       - "package.json"
       - "release/**"
       - ".github/workflows/redultron-release-package.yml"
+  push:
+    branches:
+      - main
+    paths:
+      - "jarvis/**"
+      - "package.json"
+      - "release/**"
+      - ".github/workflows/redultron-release-package.yml"
   workflow_dispatch:
 
 permissions:
