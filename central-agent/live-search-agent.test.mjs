@@ -183,3 +183,22 @@ test("Bing News RSS tracking links are normalized to the publisher article URL",
   assert.equal(result.provider, "bing-news-rss");
   assert.equal(result.sources[0].url, "https://publisher.example/story?id=42");
 });
+
+test("provider diagnostics never log raw upstream exception messages", async () => {
+  const privateMarker = "UPSTREAM_PRIVATE_DETAIL_9f2a";
+  const warnings = [];
+  const originalWarn = console.warn;
+  console.warn = (...args) => warnings.push(args);
+  try {
+    await assert.rejects(
+      searchLiveWeb("provider privacy regression", { SEARCH_PROVIDER_MODE: "public" }, {
+        fetchImpl: async () => { throw new TypeError(privateMarker); }
+      }),
+      error => error.code === "LIVE_SEARCH_ALL_PROVIDERS_FAILED"
+    );
+  } finally {
+    console.warn = originalWarn;
+  }
+  assert.equal(warnings.some(args => JSON.stringify(args).includes(privateMarker)), false);
+});
+
