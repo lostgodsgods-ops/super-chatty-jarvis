@@ -81,7 +81,22 @@ jobs:
           if [[ "$hybrid_status" != "200" ]]; then
             # Log only a constrained machine-readable code; never dump upstream body or headers.
             upstream_code="$(jq -r 'if type == "object" then (.code // .error // "UNKNOWN") else "UNKNOWN" end | if type == "string" and test("^[A-Z0-9_-]{1,64}$") then . else "UNRECOGNIZED" end' "$hybrid_file" 2>/dev/null || printf 'UNREADABLE_RESPONSE')"
-            echo "::error::Authenticated hybrid probe returned HTTP $hybrid_status (expected 200); sanitized upstream code=$upstream_code."
+            config_diag="$(jq -c '
+              if type == "object" and (.configDiagnostics | type) == "object" then
+                {
+                  provider: (if (.configDiagnostics.provider | type) == "string" and (.configDiagnostics.provider | test("^(python|php|none)$")) then .configDiagnostics.provider else "UNKNOWN" end),
+                  endpointConfigured: (if (.configDiagnostics.endpointConfigured | type) == "boolean" then .configDiagnostics.endpointConfigured else "UNKNOWN" end),
+                  endpointValid: (if (.configDiagnostics.endpointValid | type) == "boolean" then .configDiagnostics.endpointValid else "UNKNOWN" end),
+                  ownerSecretConfigured: (if (.configDiagnostics.ownerSecretConfigured | type) == "boolean" then .configDiagnostics.ownerSecretConfigured else "UNKNOWN" end),
+                  ownerSecretPolicyValid: (if (.configDiagnostics.ownerSecretPolicyValid | type) == "boolean" then .configDiagnostics.ownerSecretPolicyValid else "UNKNOWN" end),
+                  readyForRequest: (if (.configDiagnostics.readyForRequest | type) == "boolean" then .configDiagnostics.readyForRequest else "UNKNOWN" end),
+                  failureCode: (if (.configDiagnostics.failureCode | type) == "string" and (.configDiagnostics.failureCode | test("^[A-Z0-9_-]{1,64}$")) then .configDiagnostics.failureCode else null end),
+                  runtimeReachabilityVerified: (if (.configDiagnostics.runtimeReachabilityVerified | type) == "boolean" then .configDiagnostics.runtimeReachabilityVerified else "UNKNOWN" end),
+                  ownerSecretMatchVerified: (if (.configDiagnostics.ownerSecretMatchVerified | type) == "boolean" then .configDiagnostics.ownerSecretMatchVerified else "UNKNOWN" end)
+                }
+              else { available: false }
+              end' "$hybrid_file" 2>/dev/null || printf '{"available":false}')"
+            echo "::error::Authenticated hybrid probe returned HTTP $hybrid_status (expected 200); sanitized upstream code=$upstream_code; sanitized config=$config_diag."
             exit 1
           fi
           if ! jq -e '
@@ -103,7 +118,22 @@ jobs:
             python_verified="$(jq -r 'if type == "object" and (.hybridPythonCoreExecutionVerified | type) == "boolean" then (.hybridPythonCoreExecutionVerified|tostring) else "UNKNOWN" end' "$hybrid_file" 2>/dev/null || printf 'UNKNOWN')"
             php_verified="$(jq -r 'if type == "object" and (.hybridPhpCoreExecutionVerified | type) == "boolean" then (.hybridPhpCoreExecutionVerified|tostring) else "UNKNOWN" end' "$hybrid_file" 2>/dev/null || printf 'UNKNOWN')"
             fallback_reason="$(jq -r 'if type == "object" and (.fallbackReason | type) == "string" then (.fallbackReason | gsub("[^A-Za-z0-9_-]"; "")[0:64]) else "UNKNOWN" end' "$hybrid_file" 2>/dev/null || printf 'UNKNOWN')"
-            echo "::error::STRICT FAIL: configured upstream execution not certified; engine=$engine fallbackEngaged=$fallback hybridCoreExecutionVerified=$verified pythonVerified=$python_verified phpVerified=$php_verified fallbackReason=$fallback_reason."
+            config_diag="$(jq -c '
+              if type == "object" and (.configDiagnostics | type) == "object" then
+                {
+                  provider: (if (.configDiagnostics.provider | type) == "string" and (.configDiagnostics.provider | test("^(python|php|none)$")) then .configDiagnostics.provider else "UNKNOWN" end),
+                  endpointConfigured: (if (.configDiagnostics.endpointConfigured | type) == "boolean" then .configDiagnostics.endpointConfigured else "UNKNOWN" end),
+                  endpointValid: (if (.configDiagnostics.endpointValid | type) == "boolean" then .configDiagnostics.endpointValid else "UNKNOWN" end),
+                  ownerSecretConfigured: (if (.configDiagnostics.ownerSecretConfigured | type) == "boolean" then .configDiagnostics.ownerSecretConfigured else "UNKNOWN" end),
+                  ownerSecretPolicyValid: (if (.configDiagnostics.ownerSecretPolicyValid | type) == "boolean" then .configDiagnostics.ownerSecretPolicyValid else "UNKNOWN" end),
+                  readyForRequest: (if (.configDiagnostics.readyForRequest | type) == "boolean" then .configDiagnostics.readyForRequest else "UNKNOWN" end),
+                  failureCode: (if (.configDiagnostics.failureCode | type) == "string" and (.configDiagnostics.failureCode | test("^[A-Z0-9_-]{1,64}$")) then .configDiagnostics.failureCode else null end),
+                  runtimeReachabilityVerified: (if (.configDiagnostics.runtimeReachabilityVerified | type) == "boolean" then .configDiagnostics.runtimeReachabilityVerified else "UNKNOWN" end),
+                  ownerSecretMatchVerified: (if (.configDiagnostics.ownerSecretMatchVerified | type) == "boolean" then .configDiagnostics.ownerSecretMatchVerified else "UNKNOWN" end)
+                }
+              else { available: false }
+              end' "$hybrid_file" 2>/dev/null || printf '{"available":false}')"
+            echo "::error::STRICT FAIL: configured upstream execution not certified; engine=$engine fallbackEngaged=$fallback hybridCoreExecutionVerified=$verified pythonVerified=$python_verified phpVerified=$php_verified fallbackReason=$fallback_reason sanitizedConfig=$config_diag."
             exit 1
           fi
           echo "PASS: OWNER_SECRET-authenticated configured upstream round-trip returned HTTP 200; strict engine, fallback, provider-specific execution-verification, and result-schema flags matched."
