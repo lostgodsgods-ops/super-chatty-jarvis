@@ -515,5 +515,6 @@ test("Core release metadata is current and voice output uses clear, full-volume 
 
 
 test("PWA interface contains no stale CORE 2.0 branding", () => {
-  assert.doesNotMatch(jarvisHtml, /REDULTRON CORE 2[.]0|<span>CORE 2[.]0<\\/span>/);
+  assert.equal(jarvisHtml.includes("REDULTRON CORE 2.0"), false);
+  assert.equal(jarvisHtml.includes("<span>CORE 2.0</span>"), false);
 });
