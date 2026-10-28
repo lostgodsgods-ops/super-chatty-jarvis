@@ -68,6 +68,42 @@ jobs:
           fs.writeFileSync(path, JSON.stringify(payload), { mode: 0o600 });
           NODE
           npx --yes wrangler@4 deploy --config central-agent/wrangler.jsonc --var "GITHUB_COMMIT_SHA:$GITHUB_SHA" --secrets-file "$secrets_file"
+      - name: Synchronize OWNER_SECRET to Render sidecar
+        shell: bash
+        env:
+          RENDER_API_KEY: ${{ secrets.RENDER_API_KEY }}
+          RENDER_SERVICE_ID: ${{ secrets.RENDER_SERVICE_ID }}
+          REDULTRON_OWNER_SECRET: ${{ secrets.REDULTRON_OWNER_SECRET }}
+        run: |
+          set -euo pipefail
+          test -n "$RENDER_API_KEY" || { echo "::error::Missing RENDER_API_KEY; value suppressed."; exit 1; }
+          test -n "$RENDER_SERVICE_ID" || { echo "::error::Missing RENDER_SERVICE_ID; value suppressed."; exit 1; }
+          [[ "$RENDER_SERVICE_ID" =~ ^srv-[A-Za-z0-9]+$ ]] || { echo "::error::RENDER_SERVICE_ID format invalid; value suppressed."; exit 1; }
+          [[ "${#REDULTRON_OWNER_SECRET}" -ge 32 ]] || { echo "::error::Owner secret length validation failed; value suppressed."; exit 1; }
+          umask 077
+          payload="$(mktemp)"
+          response="$(mktemp)"
+          trap 'rm -f "$payload" "$response"' EXIT
+          node - "$payload" <<'NODE'
+          const fs = require("node:fs");
+          const path = process.argv[2];
+          const secret = process.env.REDULTRON_OWNER_SECRET;
+          if (typeof secret !== "string" || secret.length < 32) throw new Error("Owner secret validation failed; value suppressed.");
+          fs.writeFileSync(path, JSON.stringify([{ key: "OWNER_SECRET", value: secret }]), { mode: 0o600 });
+          NODE
+          status="$(curl --silent --show-error --max-time 20 -X PATCH \
+            -H "Authorization: Bearer $RENDER_API_KEY" \
+            -H 'Content-Type: application/json' \
+            -H 'Accept: application/json' \
+            --data-binary "@$payload" \
+            -o "$response" -w '%{http_code}' \
+            "https://api.render.com/v1/services/$RENDER_SERVICE_ID/env-vars")"
+          if [[ "$status" != "200" ]]; then
+            echo "::error::Render OWNER_SECRET synchronization failed with HTTP $status; response body and credentials suppressed."
+            exit 1
+          fi
+          echo "PASS: Render OWNER_SECRET synchronized from the same protected GitHub secret used by the Worker; secret value suppressed."
+
       - name: Verify production health endpoint
         shell: bash
         run: |
