@@ -172,17 +172,6 @@ class HybridCoreHTTPTests(unittest.TestCase):
         self.assertTrue(json.loads(body)["ok"])
 
 
-if __name__ == "__main__":
-    unittest.main()
-
-
-class HybridDeploymentConfigTests(unittest.TestCase):
-    def test_procfile_starts_the_actual_python_http_server(self):
-        from pathlib import Path
-        procfile = Path(__file__).with_name("Procfile").read_text(encoding="utf-8").strip()
-        self.assertEqual(procfile, "web: HOST=0.0.0.0 python python_core.py")
-
-
 
     def test_response_logs_request_id_status_and_latency_without_secrets_or_body(self):
         with self.assertLogs("redultron.python_core", level="INFO") as captured:
@@ -203,3 +192,15 @@ class HybridDeploymentConfigTests(unittest.TestCase):
         rendered = json.dumps(event)
         self.assertNotIn(TEST_SECRET, rendered)
         self.assertNotIn("diagnostic body must not be logged", rendered)
+
+
+if __name__ == "__main__":
+    unittest.main()
+
+
+class HybridDeploymentConfigTests(unittest.TestCase):
+    def test_procfile_starts_the_actual_python_http_server(self):
+        from pathlib import Path
+        procfile = Path(__file__).with_name("Procfile").read_text(encoding="utf-8").strip()
+        self.assertEqual(procfile, "web: HOST=0.0.0.0 python python_core.py")
+
