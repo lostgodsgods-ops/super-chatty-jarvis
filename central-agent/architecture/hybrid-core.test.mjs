@@ -114,3 +114,35 @@ test("accepts each task's documented result type and rejects cross-task schema m
     );
   }
 });
+
+
+test("uses an explicitly configured PHP Core endpoint and identifies the selected engine", async () => {
+  let requestedUrl = "";
+  const result = await executeHybridTask(
+    { task: "summarize", text: "PHP sidecar contract." },
+    { PHP_CORE_URL: "https://php.example/v1/execute", OWNER_SECRET: "secret-value-with-at-least-32-characters" },
+    { fetchImpl: async (url) => {
+      requestedUrl = url;
+      return new Response(JSON.stringify({ ok: true, task: "summarize", result: "PHP sidecar contract." }), { status: 200 });
+    } }
+  );
+  assert.equal(requestedUrl, "https://php.example/v1/execute");
+  assert.equal(result.engine, "php-edge-hybrid");
+});
+
+test("does not silently fall back to Python when an explicitly selected PHP endpoint is invalid", async () => {
+  let called = false;
+  await assert.rejects(
+    executeHybridTask(
+      { task: "summarize", text: "Do not bypass invalid PHP configuration." },
+      {
+        PHP_CORE_URL: "http://php.example/v1/execute",
+        PYTHON_CORE_URL: "https://python.example/v1/execute",
+        OWNER_SECRET: "secret-value-with-at-least-32-characters"
+      },
+      { fetchImpl: async () => { called = true; } }
+    ),
+    error => error.code === "HYBRID_CORE_URL_INVALID"
+  );
+  assert.equal(called, false);
+});
