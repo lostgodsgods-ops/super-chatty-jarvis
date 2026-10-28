@@ -76,8 +76,28 @@ jobs:
           echo "event_url=$GITHUB_SERVER_URL/$REPOSITORY/actions/runs/$RUN_ID" >> "$GITHUB_OUTPUT"
           echo "Source run=$RUN_ID attempt=$ATTEMPT/3 conclusion=$CONCLUSION branch=$HEAD_BRANCH"
 
-      - name: Retry failed jobs only while below attempt three
+      - name: Confirm source run attempt is still current
+        id: retry_guard
         if: steps.source.outputs.attempt < 3
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPOSITORY: ${{ github.repository }}
+          RUN_ID: ${{ steps.source.outputs.run_id }}
+          ATTEMPT: ${{ steps.source.outputs.attempt }}
+        run: |
+          set -euo pipefail
+          current_attempt="$(gh api "repos/$REPOSITORY/actions/runs/$RUN_ID" --jq '.run_attempt')"
+          [[ "$current_attempt" =~ ^[1-9][0-9]*$ ]] || { echo "::error::Could not verify source run attempt; retry suppressed."; exit 2; }
+          if [[ "$current_attempt" != "$ATTEMPT" ]]; then
+            echo "eligible=false" >> "$GITHUB_OUTPUT"
+            echo "Skip duplicate workflow_run delivery; source attempt advanced."
+            exit 0
+          fi
+          echo "eligible=true" >> "$GITHUB_OUTPUT"
+          echo "Source run attempt still matches event; one bounded retry is eligible."
+
+      - name: Retry failed jobs only while below attempt three
+        if: steps.source.outputs.attempt < 3 && steps.retry_guard.outputs.eligible == 'true'
         env:
           GH_TOKEN: ${{ github.token }}
           REPOSITORY: ${{ github.repository }}
