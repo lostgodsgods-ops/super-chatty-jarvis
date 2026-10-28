@@ -1,6 +1,6 @@
 # REDULTRON CORE 3.0 — Overnight Coverage Matrix
 
-**Snapshot:** 2026-10-29T03:31:44+05:30
+**Snapshot:** 2026-10-29T03:33:57+05:30
 **Repository:** `lostgodsgods-ops/super-chatty-jarvis`  
 **Branch:** `main`  
 **Commit SHA:** `0a35a8dda07b5217497ec1c45bdc64e3a7d0147c`  
@@ -947,7 +947,7 @@ External page content is treated as untrusted data, not instructions. These sour
 - No background monitoring, guaranteed stop/reset, or morning notification is claimed.
 
 
-## 5. Mission evidence refresh — 2026-10-29T03:31:44+05:30
+## 5. Mission evidence refresh — 2026-10-29T03:33:57+05:30
 
 This section supersedes older runtime claims wherever timestamps or statuses conflict. Inventory snapshot: main `0a35a8dda07b5217497ec1c45bdc64e3a7d0147c`.
 
@@ -1013,3 +1013,17 @@ No secrets were read or changed. No production D1 rows were written, no deployme
 | TDD green stage | PASS — PR branch only | Head `c92adcb464212ca7b1b1c16a0d9b6b1e748f9b62`; CI [40776577221](https://github.com/lostgodsgods-ops/super-chatty-jarvis/actions/runs/40776577221), Hybrid Core [40776577235](https://github.com/lostgodsgods-ops/super-chatty-jarvis/actions/runs/40776577235), Static [40776577228](https://github.com/lostgodsgods-ops/super-chatty-jarvis/actions/runs/40776577228), Central Agent [40776577301](https://github.com/lostgodsgods-ops/super-chatty-jarvis/actions/runs/40776577301), push CI [40776570998](https://github.com/lostgodsgods-ops/super-chatty-jarvis/actions/runs/40776570998), push Static [40776570954](https://github.com/lostgodsgods-ops/super-chatty-jarvis/actions/runs/40776570954), and Sentinel [40776570945](https://github.com/lostgodsgods-ops/super-chatty-jarvis/actions/runs/40776570945) passed. |
 | Production authentication | FAIL — prior evidence; not re-tested | Last observed HTTP 502 `HYBRID_CORE_AUTH_REJECTED_401`; no new authenticated probe and no secret values read/compared/changed. |
 | Release workflow dependency | BLOCKED | PR #803 still sees the old duplicate-push release workflow failure [40776567784](https://github.com/lostgodsgods-ops/super-chatty-jarvis/actions/runs/40776567784). Separate PR #833 has a passing release-package run [40775604577](https://github.com/lostgodsgods-ops/super-chatty-jarvis/actions/runs/40775604577), but is open/unmerged. |
+
+
+## 8. Sentinel retry guard static review — 2026-10-29T03:33:57+05:30
+
+| Control | Evidence | Status |
+|---|---|---|
+| Duplicate-delivery serialization | `.github/workflows/redultron-failure-sentinel.yml` uses concurrency group `redultron-sentinel-${{ github.event.workflow_run.id || github.sha }}` with `cancel-in-progress: false`. | PASS — source inspection |
+| Trusted source-run validation | Numeric run ID/attempt validation, same-repository check, and allowlist for `CI` / `Test Central Agent`. | PASS — source inspection |
+| Duplicate retry guard | Re-reads the current source run attempt from GitHub API; suppresses the retry when the event attempt is stale. | PASS — source inspection |
+| Retry budget and incident dedupe | Failed jobs are retried only while attempt < 3; attempt 3 searches for an existing open incident by source run ID before creating one. | PASS — source inspection |
+| Sentinel unit tests | `central-agent/sentinel-integrity.test.mjs` covers hash-chain tampering, ID mismatch, sequence gaps, broken links, head mismatch and zero-write verification; `central-agent/sentinel.test.mjs` covers D1/KV telemetry and pulse/backfill behavior. | PASS — test files exist; current-main run not established |
+| Duplicate workflow_run replay | No dedicated automated test of duplicate delivery was found in inspected test files. Current-main sampled workflow runs were skipped. | NOT TESTED — controlled replay required |
+
+This is a source-level review, not proof of live retry suppression. No duplicate event was injected and no production workflow was manually retried.
