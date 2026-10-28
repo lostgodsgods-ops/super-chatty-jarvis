@@ -4,6 +4,8 @@ on:
   pull_request:
     paths:
       - "jarvis/**"
+      - "tests/**"
+      - "central-agent/**"
       - "package.json"
       - "release/**"
       - ".github/workflows/redultron-release-package.yml"
@@ -13,6 +15,8 @@ on:
       - main
     paths:
       - "jarvis/**"
+      - "tests/**"
+      - "central-agent/**"
       - "package.json"
       - "release/**"
       - ".github/workflows/redultron-release-package.yml"
