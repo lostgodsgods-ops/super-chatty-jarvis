@@ -60,6 +60,14 @@ jobs:
           echo "::add-mask::$token"
           printf 'api_token=%s\n' "$token" >> "$GITHUB_OUTPUT"
 
+      - name: Apply approved D1 schema migrations
+        uses: cloudflare/wrangler-action@v4
+        with:
+          apiToken: ${{ steps.deployment-credentials.outputs.api_token }}
+          accountId: "6c0d1ab7b0d730f94359a89a77a0dcf2"
+          wranglerVersion: "4.149.0"
+          command: d1 migrations apply super-chatty-owner-auth --remote --config central-agent/wrangler.jsonc
+
       - name: Deploy Worker
         uses: cloudflare/wrangler-action@v4
         with:
