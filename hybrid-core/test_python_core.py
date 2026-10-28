@@ -288,6 +288,30 @@ class HybridCoreAuthRedactionRegressionTests(unittest.TestCase):
         self.assertEqual(json.loads(body), {"ok": False, "code": "OWNER_AUTH_REQUIRED"})
         self.assertNotIn(TEST_SECRET, body)
 
+
+    def test_auth_rejection_logs_safe_event_and_preserves_correlation_id(self):
+        request_id = "diag-test-12345678"
+        wrong_secret = "wrong-secret-must-not-appear-in-logs"
+        with self.assertLogs("redultron.python_core", level="INFO") as captured:
+            status, headers, body = self.request(
+                json.dumps({"task": "summarize", "text": "safe test"}),
+                {
+                    "Content-Type": "application/json",
+                    "X-Owner-Secret": wrong_secret,
+                    "X-Request-ID": request_id,
+                },
+            )
+
+        self.assertEqual(status, 401)
+        self.assertEqual(headers.get("X-Request-ID"), request_id)
+        self.assertEqual(json.loads(body), {"ok": False, "code": "OWNER_AUTH_REQUIRED"})
+        events = "\\n".join(captured.output)
+        self.assertIn(request_id, events)
+        self.assertIn("AUTH_REJECTED", events)
+        self.assertNotIn(TEST_SECRET, events)
+        self.assertNotIn(wrong_secret, events)
+
+
 class PythonCoreStartupSecretGuardTests(unittest.TestCase):
     def test_startup_rejects_short_owner_secret_without_echoing_it(self):
         short_secret = "short-test-secret"
