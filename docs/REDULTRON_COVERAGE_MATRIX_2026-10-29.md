@@ -16,7 +16,7 @@
 | Agent catalog/runtime | PARTIAL — catalog only | config/agent-registry.json: 90 entries; agentsProvisioned=0; automaticDispatchEnabled=false; financialExecution=simulation-only; productionDeploymentEnabled=false. Agent Relay reported the workspace is not connected to a relay; JackHamr credits are exhausted; CodeAgent Mobile had no sessions and no session-creation action. | Additional agent execution BLOCKED by actual service limits: EmpirioLabs balance $0; QA Wolf requires setup; aictrl.dev has no repository connected; Consensus research rejected the non-interactive run because user input was required; Firecrawl returned an incomplete partial result at its 10-credit cap. No external agent was started or claimed as running. |
 | Sentinel duplicate retries | PASS — merged and CI verified | PR #735 merged at 2026-10-28T20:03:00Z. Last observed Sentinel run 40759767540 succeeded on prior main SHA d9334c4; duplicate workflow_run event 40759830349 was skipped. | Keep retry limits and source-attempt identity checks; test a controlled recovery drill separately. |
 | Capability-request persistence | BLOCKED / NOT TESTED live | Read-only D1 query at 2026-10-29 02:22 IST returned HTTP 200 and 26 tables; capability_requests and d1_migrations remain absent. The implementation lazily ensures the table in both GET and POST handlers, but the route is owner-session gated; no write or owner-authenticated route call was made. PR #763 merged at 2026-10-28T20:36:20Z (merge commit 5705cab8611c50ce2b27adddd550adaff0af19d2); live D1 round-trip remains NOT TESTED. | Test create/list/readback with the owner-authorized path in a dedicated approved test environment. |
-| Live Search | NOT TESTED live | Source and unit tests exist; PR #746 merged at 2026-10-28T20:01:48Z. Previous health evidence said provider reachability was not checked. | Verify current provider status, source URLs, freshness, timeout and fallback behavior with live queries. |
+| Live Search | FAIL / DEGRADED — no live source verified | Worker health JSON reports `searchProviderReachabilityChecked=false`, `tavilySearchEnabled=false`, and `searchProviderMode=open-source-first`. Scheduled monitor run #40756826649 on `db586f84ef67d5278f0acb5da06c51be95bc528c` reported `/search` and `/internal/search` guarded fallback with `liveSearchVerified=false`; PWA `internal/search-smoke` returned HTTP 502 `SEARCH_GATEWAY_INCOMPLETE`, with no provider/upstream diagnostic. Production Worker SHA remains `a0d6087dedb7a29aaa07c9302167ddbda5b352da`. | Verify reachability from the actual deployed Worker after an approved deployment; preserve fail-closed fallback and never count guarded fallback as live-source success. |
 | PWA release | FAIL — provenance; device behavior NOT TESTED | Repository HTML marker is REDULTRON-2026.10.28-CORE-3.0-V18; service-worker cache is redultron-core-shell-v18-core-3. Direct public GETs from the connected API runtime were blocked by its outbound-network policy (403 saying requests to the host are not allowed); this is not the target site's HTTP status. | Guarded deployment, live HTTP/content-type/version check, then Android Chrome install/update/offline test. |
 | Branch protection | FAIL — branch API reports protected=false; detailed rules endpoint BLOCKED | GitHub GET /branches/main returned HTTP 200 with protected=false; the branch-protection endpoint returned 403, so detailed rules/rulesets could not be inspected. | Enable and verify required checks/reviewers through authorized GitHub settings before relying on branch protection. |
 
@@ -156,7 +156,7 @@ Latest observed main runs for prior SHA d9334c4ed578e81be9653a955f82443ad7942060
 - Central Agent test run 40759637752 and Hybrid Core test run 40759637929 passed on an earlier SHA 55de9ebdb7a753cb700e2411a7e8852dd9853866; they were not observed on current main SHA in the run listing.
 
 Related PR state observed:
-- PR #777 was closed as superseded by PR #800. PR #800 remains OPEN / DRAFT; its candidate CI passed on head 3028b2ee04e17abd50adb7e9f79a7e829fdba2c7 against base a71cc234, and main later advanced to 0a35a8dda07b5217497ec1c45bdc64e3a7d0147c via docs-only change. The live 401 cause remains unverified.
+- PR #777 was closed. PR #803 is the current open/draft whitespace-secret guard (head `1fedc8dca472b47b2b03350184f4899bd5eb84ad`; CI #40767091631, Central Agent #40767091652, Static #40767091667 PASS). PR #800 remains an older open/draft candidate with stale base. PR #801 is an independent open/draft release-workflow fix (head `a5746c0666f7c15728643e2164f4345895bfe885`; CI, Static, Release Package, and Failure Sentinel PASS). None was merged. Main branch reports `protected=false`; no merge/deployment was initiated.
 - PR #735 duplicate Sentinel retry guard: MERGED.
 - PR #746 time-sensitive stale-cache guard: MERGED.
 - PR #758 human-ethics control matrix: MERGED.
@@ -228,6 +228,11 @@ The global tool catalog contains many unrelated apps. Only project-relevant inte
 - MDN service-worker lifecycle: https://developer.mozilla.org/en-US/docs/Web/Progressive_web_apps/Tutorials/CycleTracker/Service_workers
 - W3C WCAG 2.2: https://www.w3.org/TR/WCAG22/
 - OWASP Workload Identity Federation: https://cheatsheetseries.owasp.org/cheatsheets/Workload_Identity_Federation_Cheat_Sheet.html
+- UNESCO Recommendation on the Ethics of Artificial Intelligence (official): https://www.unesco.org/ethics-ai/en/recommendation
+- NIST Privacy Framework: https://www.nist.gov/privacy-framework/privacy-framework
+- OWASP Application Security Verification Standard: https://owasp.org/www-project-application-security-verification-standard/
+- UNICEF Innocenti, Guidance on AI and Children (Version 3, 2025): https://www.unicef.org/innocenti/reports/policy-guidance-ai-children
+- India Code, official central-acts index listing the Digital Personal Data Protection Act, 2023 (Act No. 22 of 2023): https://www.indiacode.nic.in/handle/123456789/1362
 
 ## 9. Safety boundary and next execution order
 
@@ -273,3 +278,33 @@ The global tool catalog contains many unrelated apps. Only project-relevant inte
 | D1 schema lifecycle — Cloudflare D1 migrations | Prefer versioned, reviewed schema migrations over request-time schema mutation; use staging first and keep production migration execution approval-gated. | Add a migration and staging create/list/readback test before claiming live capability-request persistence. |
 | PWA lifecycle / accessibility — web.dev Service Workers and WCAG 2.2 | Verify cache-version transitions, update activation, offline/error recovery, keyboard/focus/accessible names and touch target behavior on the actual Android browser. | Live asset content-type/version check plus an Android Chrome install/update/offline checklist; automated checks alone do not prove device behavior. |
 
+
+
+## 10. Fresh evidence refresh — 2026-10-29 02:22 IST
+
+This section is the latest read-only snapshot and supersedes older runtime notes above where they conflict.
+
+### Current repository and branch protection
+- Current main SHA: `0a35a8dda07b5217497ec1c45bdc64e3a7d0147c`. Main tree has 195 tracked blobs, 14 GitHub workflow files, 45 non-test Central Agent `.mjs` modules, 46 Central Agent `.test.mjs` modules, and 26 top-level `tests/*.test.mjs` files. This PR branch adds the coverage-matrix test itself.
+- GitHub branch metadata returned HTTP 200 with `protected=false`; the detailed protection endpoint returned HTTP 403 to this integration. No repository security setting was changed. No merge or production deployment was initiated.
+
+### Cloudflare Worker provenance and health
+- Cloudflare deployment metadata/settings calls returned HTTP 200. Worker `shrill-silence-164f` is at deployment `1947abf4-39b2-4be0-880d-8bfbabb60294`, version `ddae66f9-dfcc-4a38-907d-6bfa5843a604`, version number 882, with 100% traffic.
+- Non-secret deployment metadata reports `GITHUB_COMMIT_SHA=a0d6087dedb7a29aaa07c9302167ddbda5b352da`, 115 commits behind current main. The health scrape returned JSON fields `ok=true`, `version=1.4.1`, `searchProviderReachabilityChecked=false`, and `hybridPythonCoreExecutionVerified=false`; the scraper did not surface the HTTP status code.
+
+### Render and authenticated Python Core
+- Render service `srv-dbdhr0mi0phs739rv98g` latest deployment is `dep-dbh59ga9lscs73e2d38g`, status `live`, commit `55de9ebdb7a753cb700e2411a7e8852dd9853866`, completed `2026-10-28T20:02:31Z`. Current main is 43 commits ahead. Render health first returned a cold-start interstitial and then JSON `ok=true, service=redultron-python-core`; HTTP status was not surfaced. This is health evidence only, not execution proof.
+- Last recorded authenticated hybrid probe #40722808598 reported HTTP 502 `HYBRID_CORE_AUTH_REJECTED_401`, with upstream HTTP 401. No fresh authenticated round-trip was run in this refresh. Exact root cause and secret parity remain unverified; no secret values were read or changed.
+
+### Live Search and capability persistence
+- Scheduled monitor run #40756826649 (commit `db586f84ef67d5278f0acb5da06c51be95bc528c`, 2026-10-28T19:43Z) reported `/search` and `/internal/search` using `provider=guarded-fallback`, `fallback=true`, `liveSearchVerified=false`; PWA `internal/search-smoke` failed HTTP 502 `SEARCH_GATEWAY_INCOMPLETE`, with `providerStatus=null` and `upstreamPath=null`. No scheduled live-probe run was returned for the 20:47Z window; this does not prove that the workflow is disabled.
+- Read-only D1 query returned HTTP 200, 26 tables, no `capability_requests` or `d1_migrations`, and `rows_written=0`. Capability-request POST → persistence → GET remains NOT TESTED; no production write was performed.
+
+### Reviewable fixes and connected-agent limits
+- PR #801 is open/draft at head `a5746c0666f7c15728643e2164f4345895bfe885`. Test-first red run #40765872502 had 515 passing tests and one expected failure for duplicate `push:` keys. Post-fix CI #40766031145, Static #40766031123, Release Package #40766031161, and Failure Sentinel #40765964004 all passed. Main's release-package workflow remains broken until this PR is reviewed and merged through authorized controls; it was not merged here.
+- PR #803 is open/draft at head `1fedc8dca472b47b2b03350184f4899bd5eb84ad`; CI #40767091631, Central Agent #40767091652, and Static #40767091667 passed. Release Package #40767086283 failed because main still contains duplicate `push:` keys. Secret parity remains unverified.
+- Agent Relay workspace is not connected to a relay; Replicas and Capy are not connected; JackHamr credits exhausted and agents are stopped; CodeAgent Mobile returns `link_id must identify an eligible linked account`; Browser Use reports insufficient credits. No agent was launched or externally recruited.
+- Human-ethics research includes UN UDHR, UNESCO AI ethics, OECD AI Principles, NIST AI RMF and Privacy Framework, W3C WCAG 2.2, OWASP ASVS, UNICEF Guidance on AI and Children v3, and the India Code DPDP Act index. These sources inform controls; they do not establish legal compliance.
+
+### Current gate
+**PASS:** repository inventory and documented source/test coverage; PR #801's post-fix checks. **FAIL:** deployed Worker SHA drift, Live Search live-source verification, latest recorded authenticated Python execution. **BLOCKED:** production deployment, branch-protection verification, secret parity, agent spawning. **NOT TESTED:** capability-request D1 round-trip and Android PWA install/update.
