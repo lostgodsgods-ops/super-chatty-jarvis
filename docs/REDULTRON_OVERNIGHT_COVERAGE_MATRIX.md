@@ -283,7 +283,7 @@ The machine-readable inventory contains one row per tracked file at snapshot SHA
 
 ## 6. Connected tool namespace inventory
 
-There are 15511 visible tool functions across 709 namespaces in the current ChatGPT tool catalog. A catalog entry does not imply that the tool is connected to REDULTRON, authorized for the repository, or suitable for a particular action. Per-tool scopes and account permissions apply. Agent availability is separately constrained by linked workspaces, device availability and service credits.
+There are 15511 visible tool functions across 714 namespaces in the current ChatGPT tool catalog. A catalog entry does not imply that the tool is connected to REDULTRON, authorized for the repository, or suitable for a particular action. Per-tool scopes and account permissions apply. Agent availability is separately constrained by linked workspaces, device availability and service credits.
 
 | Namespace | Functions | REDULTRON-specific relevance | Access status |
 |---|---:|---|---|
@@ -297,20 +297,20 @@ There are 15511 visible tool functions across 709 namespaces in the current Chat
 | 1to1_Mate | 8 | No / not project-specific | Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime. |
 | 2_2_Calculator | 1 | No / not project-specific | Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime. |
 | 2048 | 1 | No / not project-specific | Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime. |
-| 24 | 1 | No / not project-specific | Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime. |
+| 24__7_Calendar | 1 | No / not project-specific | Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime. |
 | 30_Minute_Timer | 7 | No / not project-specific | Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime. |
 | 3Min_API | 30 | No / not project-specific | Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime. |
 | 789_Sudoku | 1 | No / not project-specific | Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime. |
-| A_I | 15 | No / not project-specific | Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime. |
+| A_I__Slides_by_Brightdeck | 15 | No / not project-specific | Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime. |
 | A_Z_Links | 1 | No / not project-specific | Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime. |
 | Acceptance_Criteria_Extractor | 1 | No / not project-specific | Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime. |
 | AccessOwl | 3 | No / not project-specific | Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime. |
-| AccurateScribe_ai | 8 | No / not project-specific | Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime. |
+| AccurateScribe_ai___Transcribe | 8 | No / not project-specific | Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime. |
 | Ace_Flashcard_Maker | 7 | No / not project-specific | Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime. |
 | ACE_Money_Transfer | 4 | No / not project-specific | Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime. |
 | Acquisition_gov_by_1102tools | 5 | No / not project-specific | Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime. |
 | AdAgnt | 348 | No / not project-specific | Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime. |
-| Adobe_Marketing_Agent | 9 | No / not project-specific | Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime. |
+| Adobe_Marketing_Agent_ | 9 | No / not project-specific | Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime. |
 | Adzviser | 64 | No / not project-specific | Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime. |
 | Agent_Community | 4 | No / not project-specific | Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime. |
 | Agent_Native_Design | 10 | No / not project-specific | Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime. |
@@ -333,7 +333,7 @@ There are 15511 visible tool functions across 709 namespaces in the current Chat
 | AI_App_Readiness_Checker | 4 | No / not project-specific | Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime. |
 | AI_Delivery_Evidence_Checker | 4 | No / not project-specific | Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime. |
 | AI_Detector_by_AI_GPT_Zero | 1 | No / not project-specific | Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime. |
-| AI_Interpretation_Layer_Audit | 1 | No / not project-specific | Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime. |
+| AI_Interpretation_Layer_Audit_ | 1 | No / not project-specific | Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime. |
 | AI_Producer_by_OpusClip | 43 | No / not project-specific | Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime. |
 | AI_Roleplay_Chat_Simulator | 2 | No / not project-specific | Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime. |
 | AI_Task_Brief_Builder | 3 | No / not project-specific | Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime. |
@@ -354,10 +354,10 @@ There are 15511 visible tool functions across 709 namespaces in the current Chat
 | Amplitude | 27 | No / not project-specific | Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime. |
 | Anchor | 18 | No / not project-specific | Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime. |
 | Ansvar_Gateway | 35 | No / not project-specific | Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime. |
-| AnyConversion | 2 | No / not project-specific | Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime. |
-| AnyPDF | 7 | No / not project-specific | Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime. |
+| AnyConversion__Imperial__Metric | 2 | No / not project-specific | Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime. |
+| AnyPDF___Your_PDF_Converter | 7 | No / not project-specific | Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime. |
 | AnyQR | 1 | No / not project-specific | Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime. |
-| AnyWhereMap | 1 | No / not project-specific | Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime. |
+| AnyWhereMap___Navigate_Locate | 1 | No / not project-specific | Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime. |
 | API_Documentation_Checker | 3 | No / not project-specific | Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime. |
 | API_Impact_Mapper | 3 | No / not project-specific | Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime. |
 | API_Lessons | 1 | No / not project-specific | Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime. |
@@ -380,11 +380,12 @@ There are 15511 visible tool functions across 709 namespaces in the current Chat
 | Autodial | 5 | No / not project-specific | Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime. |
 | Automations | 7 | No / not project-specific | Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime. |
 | Autosheet | 5 | No / not project-specific | Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime. |
-| Awesome_Record | 1 | No / not project-specific | Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime. |
-| Awesome_Slides | 1 | No / not project-specific | Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime. |
-| AWS_Core | 8 | No / not project-specific | Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime. |
+| Awesome_Record__voice___sound_ | 1 | No / not project-specific | Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime. |
+| Awesome_Slides_ | 1 | No / not project-specific | Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime. |
+| AWS_Core__aws_ | 8 | No / not project-specific | Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime. |
 | Axis | 111 | No / not project-specific | Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime. |
-| B_A | 15 | No / not project-specific | Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime. |
+| B_A__Diagrams | 8 | No / not project-specific | Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime. |
+| B_A__Draw_Sketches | 7 | No / not project-specific | Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime. |
 | Background_Music | 2 | No / not project-specific | Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime. |
 | Base44 | 26 | No / not project-specific | Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime. |
 | Basic_Memory_Cloud | 39 | No / not project-specific | Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime. |
@@ -395,13 +396,17 @@ There are 15511 visible tool functions across 709 namespaces in the current Chat
 | BestRemit | 2 | No / not project-specific | Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime. |
 | Better_Design | 45 | No / not project-specific | Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime. |
 | BigGeo_AI | 8 | No / not project-specific | Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime. |
-| Binance | 84 | No / not project-specific | Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime. |
+| Binance | 83 | No / not project-specific | Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime. |
+| Binance__get_spot_historical_block_trades | 1 | No / not project-specific | Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime. |
 | Bitdefender | 6 | No / not project-specific | Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime. |
-| BitsWeave | 84 | No / not project-specific | Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime. |
+| BitsWeave | 21 | No / not project-specific | Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime. |
+| BitsWeave__api | 10 | No / not project-specific | Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime. |
+| BitsWeave__records | 53 | No / not project-specific | Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime. |
 | BizBlock | 12 | No / not project-specific | Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime. |
 | BlitzReels | 119 | No / not project-specific | Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime. |
 | BlockGPT | 8 | No / not project-specific | Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime. |
-| Blockscout_Blockchain_Data | 16 | No / not project-specific | Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime. |
+| Blockscout_Blockchain_Data | 15 | No / not project-specific | Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime. |
+| Blockscout_Blockchain_Data____unlock_blockchain_analysis | 1 | No / not project-specific | Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime. |
 | BlockSurvey | 33 | No / not project-specific | Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime. |
 | Blockworks | 12 | No / not project-specific | Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime. |
 | BluTranslate | 1 | No / not project-specific | Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime. |
@@ -409,7 +414,7 @@ There are 15511 visible tool functions across 709 namespaces in the current Chat
 | Browser_Use | 4 | Yes / potentially project-relevant | Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime. |
 | BrowserStack | 40 | No / not project-specific | Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime. |
 | Bull_AI | 11 | No / not project-specific | Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime. |
-| BurnFat | 1 | No / not project-specific | Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime. |
+| BurnFat___Calorie_Tracker | 1 | No / not project-specific | Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime. |
 | Business_Strategy_Builder | 1 | No / not project-specific | Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime. |
 | Calendly | 36 | No / not project-specific | Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime. |
 | CALL_E | 8 | No / not project-specific | Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime. |
@@ -432,7 +437,7 @@ There are 15511 visible tool functions across 709 namespaces in the current Chat
 | ChatbotGen | 24 | No / not project-specific | Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime. |
 | ChatGPT_Ads_Manager | 63 | No / not project-specific | Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime. |
 | Chessy | 5 | No / not project-specific | Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime. |
-| Cinem | 3 | No / not project-specific | Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime. |
+| Cinem_ | 3 | No / not project-specific | Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime. |
 | CipherOwl | 2 | No / not project-specific | Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime. |
 | Circleback | 27 | No / not project-specific | Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime. |
 | Clay | 14 | No / not project-specific | Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime. |
@@ -450,7 +455,7 @@ There are 15511 visible tool functions across 709 namespaces in the current Chat
 | CMS_Coverage | 17 | No / not project-specific | Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime. |
 | CMS_Open_Data | 11 | No / not project-specific | Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime. |
 | Coda | 39 | No / not project-specific | Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime. |
-| Code_Tytor | 11 | No / not project-specific | Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime. |
+| Code_Tytor__Python | 11 | No / not project-specific | Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime. |
 | CodeAgent_Mobile | 14 | No / not project-specific | Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime. |
 | Collecte_MTL | 5 | No / not project-specific | Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime. |
 | Company_Brain | 55 | No / not project-specific | Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime. |
@@ -467,7 +472,7 @@ There are 15511 visible tool functions across 709 namespaces in the current Chat
 | ConvertAPI | 5 | No / not project-specific | Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime. |
 | Convex | 4 | No / not project-specific | Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime. |
 | CorretorIA | 3 | No / not project-specific | Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime. |
-| Cortex | 6 | No / not project-specific | Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime. |
+| Cortex___Semantic_Memory | 6 | No / not project-specific | Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime. |
 | Craft | 3 | No / not project-specific | Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime. |
 | CraftNote | 7 | No / not project-specific | Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime. |
 | Create_State | 18 | No / not project-specific | Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime. |
@@ -476,7 +481,7 @@ There are 15511 visible tool functions across 709 namespaces in the current Chat
 | CrowdHum | 10 | No / not project-specific | Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime. |
 | Crustdata | 26 | No / not project-specific | Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime. |
 | Customer_Info_Validator | 1 | No / not project-specific | Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime. |
-| CVpop | 1 | No / not project-specific | Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime. |
+| CVpop___Resume___CV_Builder | 1 | No / not project-specific | Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime. |
 | DailyMed | 4 | No / not project-specific | Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime. |
 | DataBlue | 10 | No / not project-specific | Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime. |
 | Decionis | 11 | No / not project-specific | Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime. |
@@ -486,7 +491,7 @@ There are 15511 visible tool functions across 709 namespaces in the current Chat
 | Descope | 23 | No / not project-specific | Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime. |
 | Descript | 16 | No / not project-specific | Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime. |
 | Devpost_Hackathons | 24 | No / not project-specific | Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime. |
-| DNS_Doctor | 27 | No / not project-specific | Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime. |
+| DNS_Doctor___DNS___DMARC_Tools | 27 | No / not project-specific | Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime. |
 | DNS_Inspector | 1 | No / not project-specific | Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime. |
 | dochost_io | 7 | No / not project-specific | Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime. |
 | Docs_AI | 52 | No / not project-specific | Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime. |
@@ -565,10 +570,10 @@ There are 15511 visible tool functions across 709 namespaces in the current Chat
 | GovQuery | 4 | No / not project-specific | Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime. |
 | Granola | 7 | No / not project-specific | Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime. |
 | Grow_My_Website | 3 | No / not project-specific | Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime. |
-| GSA_CALC | 8 | No / not project-specific | Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime. |
+| GSA_CALC__by_1102tools | 8 | No / not project-specific | Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime. |
 | GSA_Per_Diem_by_1102tools | 7 | No / not project-specific | Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime. |
 | GSC_Wizard | 131 | No / not project-specific | Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime. |
-| GTD_Brain | 21 | No / not project-specific | Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime. |
+| GTD_Brain__Getting_Things_Done | 21 | No / not project-specific | Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime. |
 | GTFS_Validator | 3 | No / not project-specific | Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime. |
 | HaitiDocs | 8 | No / not project-specific | Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime. |
 | Halo_by_Diagno | 13 | No / not project-specific | Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime. |
@@ -584,9 +589,9 @@ There are 15511 visible tool functions across 709 namespaces in the current Chat
 | Hjarni_Notes | 39 | No / not project-specific | Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime. |
 | Hoaster | 2 | No / not project-specific | Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime. |
 | Home | 13 | No / not project-specific | Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime. |
-| Honeycomb | 38 | No / not project-specific | Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime. |
+| Honeycomb__EU_ | 38 | No / not project-specific | Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime. |
 | House_of_Prayer_by_Melorna | 16 | No / not project-specific | Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime. |
-| HTML | 24 | No / not project-specific | Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime. |
+| HTML__CSS_to_Image_API | 24 | No / not project-specific | Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime. |
 | HubSpot | 34 | No / not project-specific | Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime. |
 | Hyperhuman_Agent_Workspace | 45 | No / not project-specific | Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime. |
 | HZplan | 46 | No / not project-specific | Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime. |
@@ -600,17 +605,17 @@ There are 15511 visible tool functions across 709 namespaces in the current Chat
 | invideo | 50 | No / not project-specific | Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime. |
 | InvoiceCraft_AI | 3 | No / not project-specific | Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime. |
 | Is_It_Legit_by_M8ven | 3 | No / not project-specific | Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime. |
-| Is_This_AI_Agent_Safe | 12 | No / not project-specific | Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime. |
+| Is_This_AI_Agent_Safe_ | 12 | No / not project-specific | Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime. |
 | iScanner | 7 | No / not project-specific | Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime. |
 | Isoligne | 5 | No / not project-specific | Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime. |
 | IsThisSpam | 1 | No / not project-specific | Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime. |
 | JackHamr | 35 | No / not project-specific | Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime. |
 | Jade_Note | 41 | No / not project-specific | Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime. |
-| joblet_ai | 1 | No / not project-specific | Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime. |
+| joblet_ai___AI_Job_Search | 1 | No / not project-specific | Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime. |
 | Jotform | 9 | No / not project-specific | Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime. |
 | Jotform_Apps | 6 | No / not project-specific | Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime. |
 | Jotform_Sign | 11 | No / not project-specific | Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime. |
-| Julius | 8 | No / not project-specific | Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime. |
+| Julius__AI_Homework_Helper | 8 | No / not project-specific | Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime. |
 | Jurnool | 11 | No / not project-specific | Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime. |
 | KaiCalls | 138 | No / not project-specific | Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime. |
 | Keenable | 2 | No / not project-specific | Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime. |
@@ -696,11 +701,11 @@ There are 15511 visible tool functions across 709 namespaces in the current Chat
 | NewTwos | 25 | No / not project-specific | Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime. |
 | Nifty | 19 | No / not project-specific | Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime. |
 | Nimble | 27 | Yes / potentially project-relevant | Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime. |
-| Nitrosend | 59 | No / not project-specific | Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime. |
+| Nitrosend___AI_Native_Email | 59 | No / not project-specific | Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime. |
 | NivaDesk | 21 | No / not project-specific | Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime. |
 | Nobrainrot | 5 | No / not project-specific | Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime. |
 | Noodle_Seed | 1 | No / not project-specific | Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime. |
-| NORMS | 8 | No / not project-specific | Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime. |
+| NORMS__Evidence___Scope | 8 | No / not project-specific | Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime. |
 | Norton | 3 | No / not project-specific | Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime. |
 | Not_Just_You | 4 | No / not project-specific | Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime. |
 | Noteflix | 1 | No / not project-specific | Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime. |
@@ -727,13 +732,13 @@ There are 15511 visible tool functions across 709 namespaces in the current Chat
 | Otter_ai | 3 | No / not project-specific | Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime. |
 | Outfit_Lens | 5 | No / not project-specific | Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime. |
 | Pablooo_club_Benchmark_library | 4 | No / not project-specific | Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime. |
-| Pacing | 2 | No / not project-specific | Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime. |
+| Pacing__Run_Coach___Tracker | 2 | No / not project-specific | Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime. |
 | PageShare | 46 | No / not project-specific | Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime. |
 | PandaDoc | 48 | No / not project-specific | Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime. |
 | Pantry_Persona | 20 | No / not project-specific | Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime. |
 | PaperAgent | 8 | No / not project-specific | Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime. |
 | Parallel_Search | 2 | No / not project-specific | Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime. |
-| PartnerProf | 20 | No / not project-specific | Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime. |
+| PartnerProf___Quanntum_Core | 20 | No / not project-specific | Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime. |
 | Passim_AI | 26 | No / not project-specific | Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime. |
 | PDF_Editor_by_PDF_net | 21 | No / not project-specific | Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime. |
 | PDF_Editor_PRO_by_Playgram | 4 | No / not project-specific | Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime. |
@@ -758,7 +763,7 @@ There are 15511 visible tool functions across 709 namespaces in the current Chat
 | Portrait_Studio | 3 | No / not project-specific | Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime. |
 | post_bridge | 17 | No / not project-specific | Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime. |
 | Post_Metadata_Extractor | 1 | No / not project-specific | Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime. |
-| poste | 3 | No / not project-specific | Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime. |
+| poste___Slovenian_post_offices | 3 | No / not project-specific | Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime. |
 | PR_Readiness_Check | 3 | No / not project-specific | Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime. |
 | Presentations_Craft | 4 | No / not project-specific | Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime. |
 | Price_Drop_Back | 4 | No / not project-specific | Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime. |
@@ -782,7 +787,7 @@ There are 15511 visible tool functions across 709 namespaces in the current Chat
 | Quartr | 47 | No / not project-specific | Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime. |
 | Quo | 34 | No / not project-specific | Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime. |
 | Radar_Lite | 1 | No / not project-specific | Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime. |
-| Rail_Monsters | 4 | No / not project-specific | Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime. |
+| Rail_Monsters___Train_Tickets | 4 | No / not project-specific | Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime. |
 | Railway | 84 | No / not project-specific | Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime. |
 | Rainbrand | 46 | No / not project-specific | Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime. |
 | Ramp_Data | 9 | No / not project-specific | Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime. |
@@ -829,8 +834,8 @@ There are 15511 visible tool functions across 709 namespaces in the current Chat
 | sherlock_sh | 4 | No / not project-specific | Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime. |
 | ShipStatic | 15 | No / not project-specific | Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime. |
 | Shopify | 43 | No / not project-specific | Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime. |
-| Show | 7 | No / not project-specific | Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime. |
-| Sider_Recorder | 2 | No / not project-specific | Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime. |
+| Show___Tell | 7 | No / not project-specific | Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime. |
+| Sider_Recorder___Transcriber | 2 | No / not project-specific | Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime. |
 | Sider_Scholar | 18 | No / not project-specific | Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime. |
 | Simple_World_Clock | 2 | No / not project-specific | Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime. |
 | Simpliciter_AI | 3 | No / not project-specific | Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime. |
@@ -846,11 +851,11 @@ There are 15511 visible tool functions across 709 namespaces in the current Chat
 | Smart_Money_Tracker | 27 | No / not project-specific | Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime. |
 | Smart_Planner_AI | 42 | No / not project-specific | Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime. |
 | SmartphoneKey | 3 | No / not project-specific | Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime. |
-| smarts_bio | 19 | No / not project-specific | Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime. |
+| smarts_bio__AI_for_biology | 19 | No / not project-specific | Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime. |
 | Smartsheet_EU | 87 | No / not project-specific | Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime. |
 | Smartsheet_US | 97 | No / not project-specific | Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime. |
 | smry | 24 | No / not project-specific | Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime. |
-| Snake_Retro | 1 | No / not project-specific | Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime. |
+| Snake_Retro__Neon_Arcade | 1 | No / not project-specific | Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime. |
 | Social_Post_Previewer | 4 | No / not project-specific | Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime. |
 | Soluvery | 11 | No / not project-specific | Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime. |
 | SpaceCloud_Global | 2 | No / not project-specific | Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime. |
@@ -858,13 +863,13 @@ There are 15511 visible tool functions across 709 namespaces in the current Chat
 | SpeakApp | 5 | No / not project-specific | Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime. |
 | Speechify | 1 | No / not project-specific | Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime. |
 | Speko | 27 | No / not project-specific | Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime. |
-| Spkr | 3 | No / not project-specific | Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime. |
+| Spkr___Chat_to_Podcast_Episode | 3 | No / not project-specific | Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime. |
 | SplitEasy | 45 | No / not project-specific | Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime. |
 | SportsAPIs_dev | 3 | No / not project-specific | Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime. |
 | Spotify | 12 | No / not project-specific | Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime. |
 | Sprites | 26 | No / not project-specific | Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime. |
 | Squish | 1 | No / not project-specific | Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime. |
-| Stabile | 5 | No / not project-specific | Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime. |
+| Stabile__Loyalty_Rewards_Agent | 5 | No / not project-specific | Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime. |
 | Stanza | 17 | No / not project-specific | Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime. |
 | stark_AI_Developer_Tools | 2 | No / not project-specific | Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime. |
 | StatsHawk | 11 | No / not project-specific | Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime. |
@@ -912,7 +917,7 @@ There are 15511 visible tool functions across 709 namespaces in the current Chat
 | The_Astro_Scope_Horoscope | 2 | No / not project-specific | Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime. |
 | Themely_Design_Style_Generator | 2 | No / not project-specific | Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime. |
 | There_s_An_AI_For_That | 30 | No / not project-specific | Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime. |
-| TickTick_To_Do_List | 57 | No / not project-specific | Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime. |
+| TickTick_To_Do_List___Calendar | 57 | No / not project-specific | Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime. |
 | TimelinesAI | 35 | No / not project-specific | Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime. |
 | TimerTime | 1 | No / not project-specific | Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime. |
 | Timezone_Buddy | 3 | No / not project-specific | Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime. |
@@ -920,7 +925,7 @@ There are 15511 visible tool functions across 709 namespaces in the current Chat
 | TinyFish | 23 | No / not project-specific | Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime. |
 | tldraw | 10 | No / not project-specific | Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime. |
 | to3D | 7 | No / not project-specific | Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime. |
-| Todoist | 47 | No / not project-specific | Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime. |
+| Todoist__To_Do_List___Calendar | 47 | No / not project-specific | Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime. |
 | Toffu | 15 | No / not project-specific | Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime. |
 | toflow_ai | 131 | No / not project-specific | Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime. |
 | Token_Terminal | 1 | No / not project-specific | Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime. |
@@ -935,7 +940,7 @@ There are 15511 visible tool functions across 709 namespaces in the current Chat
 | Trip_com | 11 | No / not project-specific | Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime. |
 | Trocafone | 2 | No / not project-specific | Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime. |
 | Tropic | 16 | No / not project-specific | Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime. |
-| TTS_Studio | 1 | No / not project-specific | Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime. |
+| TTS_Studio__AI_Text_to_Speech | 1 | No / not project-specific | Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime. |
 | TubeAlfred | 34 | No / not project-specific | Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime. |
 | Turkish_Airlines | 21 | No / not project-specific | Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime. |
 | Tweek | 12 | No / not project-specific | Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime. |
@@ -963,8 +968,8 @@ There are 15511 visible tool functions across 709 namespaces in the current Chat
 | VoiceCursor_Dictionary | 10 | No / not project-specific | Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime. |
 | Voicenotes | 4 | No / not project-specific | Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime. |
 | Waldo | 121 | No / not project-specific | Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime. |
-| WalkMyPlan | 63 | No / not project-specific | Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime. |
-| Weavely_Forms | 17 | No / not project-specific | Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime. |
+| WalkMyPlan___Floor_Plans_in_3D | 63 | No / not project-specific | Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime. |
+| Weavely_Forms___Surveys | 17 | No / not project-specific | Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime. |
 | Website_Launch_Check | 1 | No / not project-specific | Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime. |
 | WebsitePublisher | 43 | No / not project-specific | Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime. |
 | Werify | 18 | No / not project-specific | Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime. |
@@ -977,7 +982,7 @@ There are 15511 visible tool functions across 709 namespaces in the current Chat
 | Wix | 31 | No / not project-specific | Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime. |
 | Wolfee | 7 | No / not project-specific | Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime. |
 | Wolfram | 3 | No / not project-specific | Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime. |
-| Wordy | 1 | No / not project-specific | Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime. |
+| Wordy__Highlight_Annotate_Text | 1 | No / not project-specific | Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime. |
 | Workjournal | 42 | No / not project-specific | Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime. |
 | worklore | 8 | No / not project-specific | Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime. |
 | WorkOS | 5 | No / not project-specific | Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime. |
@@ -990,7 +995,7 @@ There are 15511 visible tool functions across 709 namespaces in the current Chat
 | Xmind | 35 | No / not project-specific | Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime. |
 | xTiles | 39 | No / not project-specific | Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime. |
 | YepCode | 1 | No / not project-specific | Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime. |
-| YNAB | 1 | No / not project-specific | Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime. |
+| YNAB__Get_Good_At_Money | 1 | No / not project-specific | Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime. |
 | Zentrik | 38 | No / not project-specific | Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime. |
 | Zite | 42 | No / not project-specific | Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime. |
 | Zoom | 20 | No / not project-specific | Visible in this ChatGPT tool catalog; per-tool/account authorization still applies; not automatically connected to REDULTRON runtime. |
