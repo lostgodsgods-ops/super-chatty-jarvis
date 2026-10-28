@@ -90,6 +90,40 @@ test("hybrid execution rejects unsupported tasks before contacting Python", asyn
 });
 
 
+test("hybrid execution marks valid string summaries as schema-valid", async () => {
+  const token = "valid-owner-session-for-hybrid-schema";
+  const secret = "test-owner-secret-for-hybrid-schema-32chars";
+  const DB = new FakeDB({ token_hash: await tokenHash(token), status: "active", expires_at: Date.now() + 60_000 });
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async (url, options = {}) => {
+    assert.equal(String(url), "https://python.example/v1/execute");
+    assert.equal(options.headers["x-owner-secret"], secret);
+    return new Response(JSON.stringify({ ok: true, task: "summarize", result: "A valid summary." }), {
+      status: 200,
+      headers: { "content-type": "application/json" }
+    });
+  };
+  try {
+    const response = await worker.fetch(request("/api/hybrid/execute", {
+      token, body: { task: "summarize", text: "A valid summary." }
+    }), {
+      ...env(DB),
+      PYTHON_CORE_URL: "https://python.example/v1/execute",
+      OWNER_SECRET: secret
+    });
+    assert.equal(response.status, 200);
+    const payload = await response.json();
+    assert.equal(payload.ok, true);
+    assert.equal(payload.engine, "python-edge-hybrid");
+    assert.equal(payload.resultSchemaValid, true);
+    assert.equal(payload.resultsSchemaValid, true);
+    assert.equal(payload.fallbackEngaged, false);
+    assert.equal(payload.hybridPythonCoreExecutionVerified, true);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
 test("hybrid execution returns a schema-valid guarded fallback when the Python sidecar is unavailable", async () => {
   const token = "valid-owner-session-for-hybrid-fallback";
   const DB = new FakeDB({ token_hash: await tokenHash(token), status: "active", expires_at: Date.now() + 60_000 });
@@ -219,8 +253,55 @@ test("internal hybrid certification probe fails closed when the sidecar is uncon
   assert.equal(payload.fallbackEngaged, true);
   assert.equal(payload.hybridPythonCoreExecutionVerified, false);
   assert.equal(payload.result.mode, "guarded-local-fallback");
+  assert.deepEqual(payload.configDiagnostics, {
+    provider: "none",
+    endpointConfigured: false,
+    endpointValid: false,
+    ownerSecretConfigured: true,
+    ownerSecretPolicyValid: true,
+    readyForRequest: false,
+    failureCode: "HYBRID_CORE_NOT_CONFIGURED",
+    runtimeReachabilityVerified: false,
+    ownerSecretMatchVerified: false
+  });
+  assert.equal(JSON.stringify(payload).includes("correct-secret-with-at-least-32-characters"), false);
 });
 
+test("internal hybrid probe reports upstream auth rejection without exposing endpoint or secret", async () => {
+  const secret = "test-owner-secret-for-hybrid-probe-32chars";
+  const endpoint = "https://private-sidecar.example/v1/execute";
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async () => new Response("sensitive upstream body suppressed", { status: 401 });
+  try {
+    const response = await worker.fetch(new Request("https://example.test/api/internal/hybrid-probe", {
+      method: "POST",
+      headers: { "content-type": "application/json", "x-owner-secret": secret },
+      body: "{}"
+    }), {
+      ...env(new FakeDB()),
+      OWNER_SECRET: secret,
+      PYTHON_CORE_URL: endpoint
+    });
+    assert.equal(response.status, 502);
+    const payload = await response.json();
+    assert.equal(payload.code, "HYBRID_CORE_AUTH_REJECTED_401");
+    assert.equal(payload.fallbackEngaged, true);
+    assert.equal(payload.configDiagnostics.provider, "python");
+    assert.equal(payload.configDiagnostics.endpointValid, true);
+    assert.equal(payload.configDiagnostics.ownerSecretConfigured, true);
+    assert.equal(payload.configDiagnostics.ownerSecretPolicyValid, true);
+    assert.equal(payload.configDiagnostics.readyForRequest, true);
+    assert.equal(payload.configDiagnostics.runtimeReachabilityVerified, false);
+    assert.equal(payload.configDiagnostics.ownerSecretMatchVerified, false);
+    const serialized = JSON.stringify(payload);
+    assert.equal(serialized.includes(secret), false);
+    assert.equal(serialized.includes(endpoint), false);
+    assert.equal(serialized.includes("private-sidecar.example"), false);
+    assert.equal(serialized.includes("sensitive upstream body suppressed"), false);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
 
 test("authenticated /search returns explicitly labeled guarded fallback when every provider is unavailable", async () => {
   const token = "valid-owner-session-for-search-fallback";

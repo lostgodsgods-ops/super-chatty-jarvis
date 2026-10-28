@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { executeHybridTask, validateHybridTask, HybridCoreError } from "./hybrid-core.mjs";
+import { executeHybridTask, validateHybridTask, validateHybridResultSchema, inspectHybridCoreConfiguration, HybridCoreError } from "./hybrid-core.mjs";
 
 test("hybrid tasks are allowlisted and bounded before any network request", () => {
   assert.deepEqual(validateHybridTask({ task: "summarize", text: " facts " }), { task: "summarize", text: "facts" });
@@ -18,6 +18,73 @@ test("missing Python URL or OWNER_SECRET fails closed without fetching", async (
   assert.equal(called, false);
 });
 
+test("hybrid configuration diagnostics are sanitized and never prove runtime reachability", () => {
+  const secret = "owner-secret-test-value-at-least-32-characters";
+  const endpoint = "https://private-sidecar.example/v1/execute";
+  const diagnostics = inspectHybridCoreConfiguration({
+    PYTHON_CORE_URL: endpoint,
+    OWNER_SECRET: secret
+  });
+  assert.deepEqual(diagnostics, {
+    provider: "python",
+    endpointConfigured: true,
+    endpointValid: true,
+    ownerSecretConfigured: true,
+    ownerSecretPolicyValid: true,
+    readyForRequest: true,
+    failureCode: null,
+    runtimeReachabilityVerified: false,
+    ownerSecretMatchVerified: false
+  });
+  const serialized = JSON.stringify(diagnostics);
+  assert.equal(serialized.includes(secret), false);
+  assert.equal(serialized.includes(endpoint), false);
+  assert.equal(serialized.includes("private-sidecar.example"), false);
+});
+
+test("hybrid configuration diagnostics distinguish invalid URL and short secret without exposing either", () => {
+  const secret = "too-short";
+  const endpoint = "http://private-sidecar.example/v1/execute?token=hidden";
+  const diagnostics = inspectHybridCoreConfiguration({
+    PYTHON_CORE_URL: endpoint,
+    OWNER_SECRET: secret
+  });
+  assert.equal(diagnostics.provider, "python");
+  assert.equal(diagnostics.endpointConfigured, true);
+  assert.equal(diagnostics.endpointValid, false);
+  assert.equal(diagnostics.ownerSecretConfigured, true);
+  assert.equal(diagnostics.ownerSecretPolicyValid, false);
+  assert.equal(diagnostics.readyForRequest, false);
+  assert.equal(diagnostics.failureCode, "HYBRID_CORE_URL_INVALID");
+  assert.equal(diagnostics.runtimeReachabilityVerified, false);
+  assert.equal(diagnostics.ownerSecretMatchVerified, false);
+  assert.equal(JSON.stringify(diagnostics).includes(secret), false);
+  assert.equal(JSON.stringify(diagnostics).includes(endpoint), false);
+});
+
+test("short owner secrets fail before any upstream request", async () => {
+  let called = false;
+  await assert.rejects(
+    executeHybridTask(
+      { task: "summarize", text: "Hello." },
+      { PYTHON_CORE_URL: "https://python.example/v1/execute", OWNER_SECRET: "too-short" },
+      { fetchImpl: async () => { called = true; } }
+    ),
+    error => error.code === "HYBRID_CORE_SECRET_INVALID"
+  );
+  assert.equal(called, false);
+});
+
+test("shared task result schema accepts only the documented per-task shapes", () => {
+  assert.equal(validateHybridResultSchema("summarize", "summary"), true);
+  assert.equal(validateHybridResultSchema("extract_keywords", [{ term: "worker", count: 2 }]), true);
+  assert.equal(validateHybridResultSchema("classify_text", { labels: ["general"], characters: 8 }), true);
+  assert.equal(validateHybridResultSchema("summarize", { summary: "wrong shape" }), false);
+  assert.equal(validateHybridResultSchema("extract_keywords", "wrong shape"), false);
+  assert.equal(validateHybridResultSchema("classify_text", []), false);
+  assert.equal(validateHybridResultSchema("unknown", "anything"), false);
+});
+
 test("Python endpoint must be HTTPS and cannot embed credentials or query strings", async () => {
   for (const endpoint of ["http://python.example/v1/execute", "https://user:pass@python.example/execute", "https://python.example/execute?token=x"]) {
     await assert.rejects(
@@ -31,14 +98,14 @@ test("sends server-side owner secret and a browser-compatible user agent, and va
   let request;
   const result = await executeHybridTask(
     { task: "summarize", text: "A safe bounded task." },
-    { PYTHON_CORE_URL: "https://python.example/v1/execute", OWNER_SECRET: "secret-value-not-for-client" },
+    { PYTHON_CORE_URL: "https://python.example/v1/execute", OWNER_SECRET: "secret-value-not-for-client-at-least-32" },
     { fetchImpl: async (url, options) => {
       request = { url, options };
       return new Response(JSON.stringify({ ok: true, task: "summarize", result: "A safe bounded task." }), { status: 200 });
     } }
   );
   assert.equal(request.url, "https://python.example/v1/execute");
-  assert.equal(request.options.headers["x-owner-secret"], "secret-value-not-for-client");
+  assert.equal(request.options.headers["x-owner-secret"], "secret-value-not-for-client-at-least-32");
   assert.match(request.options.headers["user-agent"], /^REDULTRON-HybridCore\//);
   assert.equal(request.options.headers.authorization, undefined);
   assert.deepEqual(JSON.parse(request.options.body), { task: "summarize", text: "A safe bounded task." });
@@ -145,4 +212,29 @@ test("does not silently fall back to Python when an explicitly selected PHP endp
     error => error.code === "HYBRID_CORE_URL_INVALID"
   );
   assert.equal(called, false);
+});
+
+
+test("rejects redirects for sidecar calls so the owner secret cannot be forwarded to another origin", async () => {
+  let request;
+  const env = {
+    PYTHON_CORE_URL: "https://python.example/v1/execute",
+    OWNER_SECRET: "synthetic-owner-secret-for-redirect-test-32chars"
+  };
+  await assert.rejects(
+    executeHybridTask({ task: "summarize", text: "Bounded redirect test." }, env, {
+      fetchImpl: async (url, options) => {
+        request = { url, options };
+        return new Response(null, {
+          status: 302,
+          headers: { location: "https://redirect-target.example/collect" }
+        });
+      }
+    }),
+    error => error.code === "HYBRID_CORE_UPSTREAM_FAILED" && error.upstreamStatus === 302
+  );
+  assert.equal(request.options.redirect, "error",
+    "sidecar fetch must reject redirects instead of forwarding the owner-secret header");
+  assert.equal(request.options.headers["x-owner-secret"], env.OWNER_SECRET);
+  assert.equal(request.options.headers.authorization, undefined);
 });

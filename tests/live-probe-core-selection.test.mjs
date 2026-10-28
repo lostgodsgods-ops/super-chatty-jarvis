@@ -17,3 +17,19 @@ test("scheduled live probe emits provider-neutral sanitized failure diagnostics"
   assert.match(workflow, /hybridPhpCoreExecutionVerified/);
   assert.match(workflow, /hybridPythonCoreExecutionVerified/);
 });
+
+
+test("live probe failure diagnostics are explicitly allowlisted and secret-safe", async () => {
+  const workflow = await readFile(new URL("../.github/workflows/redultron-live-probe.yml", import.meta.url), "utf8");
+  for (const field of [
+    "provider", "endpointConfigured", "endpointValid", "ownerSecretConfigured",
+    "ownerSecretPolicyValid", "readyForRequest", "failureCode",
+    "runtimeReachabilityVerified", "ownerSecretMatchVerified"
+  ]) {
+    assert.match(workflow, new RegExp(field));
+  }
+  assert.match(workflow, /sanitized config=\$config_diag/);
+  assert.match(workflow, /sanitizedConfig=\$config_diag/);
+  assert.match(workflow, /configDiagnostics \| type/);
+  assert.doesNotMatch(workflow, /echo.*\$hybrid_file/);
+});
