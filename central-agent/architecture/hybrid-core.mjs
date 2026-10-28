@@ -60,7 +60,7 @@ export function inspectHybridCoreConfiguration(env = {}) {
   const endpointValid = endpointConfigured && parseHybridEndpoint(endpoint) !== null;
   const ownerSecretConfigured = secret.length > 0;
   const ownerSecretPolicyValid = secret.length >= MIN_OWNER_SECRET_LENGTH &&
-    rawSecret === secret && !/[\\r\\n]/.test(rawSecret);
+    rawSecret === secret && !/[\r\n]/.test(rawSecret);
 
   let failureCode = null;
   if (!endpointConfigured || !ownerSecretConfigured) failureCode = "HYBRID_CORE_NOT_CONFIGURED";
