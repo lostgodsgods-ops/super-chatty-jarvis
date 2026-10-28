@@ -8,9 +8,8 @@ RUN apt-get update \
 
 WORKDIR /var/www/html
 COPY index.php /var/www/html/index.php
-COPY .htaccess /var/www/html/.htaccess
+COPY apache-redultron.conf /etc/apache2/conf-enabled/redultron.conf
 
-ENV APACHE_DOCUMENT_ROOT=/var/www/html
 EXPOSE 80
 
 # HTTPS termination, request rate limiting, and secret injection belong to the hosting platform.
