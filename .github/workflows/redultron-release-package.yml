@@ -39,7 +39,7 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: "22"
-          package-manager-cache: false
+          cache: false
 
       - name: Run repository test suite
         run: npm test
