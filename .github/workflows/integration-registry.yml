@@ -4,6 +4,9 @@ on:
   pull_request:
     paths:
       - "docs/integration-registry.json"
+      - "docs/redultron-release-package.json"
+      - "scripts/redultron-package-check.mjs"
+      - "tests/redultron-package-check.test.mjs"
       - "docs/REDULTRON_INTEGRATION_REGISTRY.md"
       - "tests/integration-registry.test.mjs"
       - ".github/workflows/integration-registry.yml"
@@ -28,5 +31,8 @@ jobs:
       - name: Validate JSON syntax
         run: node -e 'JSON.parse(require("node:fs").readFileSync("docs/integration-registry.json", "utf8"))'
 
-      - name: Run registry contract tests
-        run: node --test tests/integration-registry.test.mjs
+      - name: Run registry and release package contract tests
+        run: node --test tests/integration-registry.test.mjs tests/redultron-package-check.test.mjs
+
+      - name: Validate release package and report blockers
+        run: node scripts/redultron-package-check.mjs
