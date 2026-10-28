@@ -52,6 +52,21 @@ self.addEventListener("fetch", (event) => {
   if (request.method !== "GET") return;
   const url = new URL(request.url);
   if (url.origin !== self.location.origin) return;
+  if (request.mode === "navigate") {
+    event.respondWith((async () => {
+      try {
+        const response = await fetch(new Request(request, { cache: "no-store" }));
+        if (response.ok) {
+          const cache = await caches.open(CACHE_NAME);
+          cache.put("./index.html", response.clone()).catch(() => {});
+        }
+        return response;
+      } catch {
+        return (await caches.match(request)) || (await caches.match("./index.html")) || Response.error();
+      }
+    })());
+    return;
+  }
   if (url.pathname.endsWith("/sw.js") || url.pathname.endsWith("/manifest.webmanifest") || url.pathname.endsWith("/index.html")) {
     event.respondWith((async () => {
       try {
