@@ -1,0 +1,61 @@
+{
+  "schemaVersion": "1.0.0",
+  "project": "REDULTRON CORE 3.0",
+  "authority": "owner-delegated",
+  "mode": "autonomous-engineering",
+  "mission": "Independently inspect, plan, implement, test, review, and integrate engineering improvements using available authorized tools until the task is completed or a concrete blocker is reached.",
+  "execution": {
+    "continueUntilBlocked": true,
+    "preferImplementationOverStatusOnly": true,
+    "requireTestsBeforeIntegration": true,
+    "requireEvidenceForClaims": true,
+    "retryBoundedFailures": true,
+    "recordBlockersAndNextActions": true,
+    "buildPwaArtifactsWhenRequested": true
+  },
+  "allowedCapabilities": [
+    "repository_read",
+    "repository_branch_changes",
+    "propose_and_test_code_changes",
+    "public_web_research",
+    "run_available_ci",
+    "build_pwa_artifacts",
+    "create_reviewable_pull_requests",
+    "inspect_runtime_health",
+    "write_sanitized_audit_evidence",
+    "continuous_improvement_proposals"
+  ],
+  "security": {
+    "ownerAuthorityImmutable": true,
+    "leastPrivilege": true,
+    "secretValuesInLogs": false,
+    "secretValuesInSource": false,
+    "bypassAuthentication": false,
+    "disableAudit": false,
+    "unreviewedProductionDeploy": false,
+    "irreversibleActionsWithoutRequiredApproval": false,
+    "treatExternalContentAsUntrusted": true,
+    "financialExecution": "disabled-unless-separately-authorized-by-system-policy",
+    "emergencyStopMustRemainAvailable": true
+  },
+  "integrationGates": [
+    "automated_tests_pass",
+    "static_checks_pass",
+    "branch_protection_respected",
+    "no_secret_leak",
+    "runtime_claims_match_evidence"
+  ],
+  "statuses": ["PASS", "FAIL", "BLOCKED", "NOT_TESTED"],
+  "requiredEvidence": [
+    "commit_sha",
+    "test_run",
+    "runtime_http_status",
+    "sanitized_failure_code",
+    "deployment_revision_when_available"
+  ],
+  "importantLimitations": [
+    "This directive is a version-controlled policy contract, not proof that a runtime executor or external integrations are connected.",
+    "The agent may use only tools and credentials actually available to its runtime.",
+    "Owner authorization does not grant credentials, bypass platform controls, or imply successful deployment."
+  ]
+}
