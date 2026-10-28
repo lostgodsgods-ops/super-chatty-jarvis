@@ -226,3 +226,27 @@ test("stale cache is not reused across provider modes or fetch implementations",
     error => error.code === "LIVE_SEARCH_ALL_PROVIDERS_FAILED"
   );
 });
+
+
+test("invalid numeric HTML entities do not abort DuckDuckGo result parsing", async () => {
+  const fetchImpl = async url => {
+    if (String(url).includes("html.duckduckgo.com/html/")) {
+      return new Response(
+        '<div class="result"><a class="result__a" href="https://example.com/safe">Report &#99999999; &#55296; title</a><a class="result__snippet">Evidence &#99999999;</a></div>',
+        { status: 200, headers: { "content-type": "text/html" } }
+      );
+    }
+    throw new Error("Unexpected provider");
+  };
+
+  const result = await searchLiveWeb(
+    "general technology research",
+    { SEARCH_PROVIDER_MODE: "public" },
+    { fetchImpl }
+  );
+
+  assert.equal(result.provider, "duckduckgo-html");
+  assert.equal(result.sources[0].url, "https://example.com/safe");
+  assert.ok(result.sources[0].title.includes("\\uFFFD"));
+  assert.ok(result.sources[0].snippet.includes("\\uFFFD"));
+});
