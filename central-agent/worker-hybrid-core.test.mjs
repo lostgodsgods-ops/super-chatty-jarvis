@@ -269,3 +269,43 @@ test("authenticated /internal/search returns schema-valid guarded fallback when 
     globalThis.fetch = originalFetch;
   }
 });
+
+
+test("authenticated hybrid probe reports provider-neutral PHP execution evidence", async () => {
+  const secret = "php-probe-test-secret-with-at-least-32-chars";
+  const previousFetch = globalThis.fetch;
+  globalThis.fetch = async (url, options) => {
+    assert.equal(url, "https://php.example/v1/execute");
+    assert.equal(options.headers["x-owner-secret"], secret);
+    return new Response(JSON.stringify({ ok: true, task: "summarize", result: "PHP probe passed." }), { status: 200 });
+  };
+  try {
+    const response = await worker.fetch(new Request("https://example.test/api/internal/hybrid-probe", {
+      method: "POST",
+      headers: { "content-type": "application/json", "x-owner-secret": secret },
+      body: "{}"
+    }), { ...env(new FakeDB()), OWNER_SECRET: secret, PHP_CORE_URL: "https://php.example/v1/execute" });
+    assert.equal(response.status, 200);
+    const payload = await response.json();
+    assert.equal(payload.engine, "php-edge-hybrid");
+    assert.equal(payload.hybridCoreExecutionVerified, true);
+    assert.equal(payload.hybridPhpCoreExecutionVerified, true);
+    assert.equal(payload.hybridPythonCoreExecutionVerified, false);
+  } finally {
+    globalThis.fetch = previousFetch;
+  }
+});
+
+test("authenticated hybrid probe never marks guarded fallback as provider execution", async () => {
+  const secret = "fallback-probe-test-secret-with-at-least-32-chars";
+  const response = await worker.fetch(new Request("https://example.test/api/internal/hybrid-probe", {
+    method: "POST",
+    headers: { "content-type": "application/json", "x-owner-secret": secret },
+    body: "{}"
+  }), { ...env(new FakeDB()), OWNER_SECRET: secret, PHP_CORE_URL: "https://php.example/v1/execute" });
+  const payload = await response.json();
+  assert.equal(payload.fallbackEngaged, true);
+  assert.equal(payload.hybridCoreExecutionVerified, false);
+  assert.equal(payload.hybridPhpCoreExecutionVerified, false);
+  assert.equal(payload.hybridPythonCoreExecutionVerified, false);
+});
