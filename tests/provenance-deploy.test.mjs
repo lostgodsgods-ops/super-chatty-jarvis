@@ -5,6 +5,7 @@ import { readFile } from "node:fs/promises";
 test("provenance workflow batches Worker secret updates into one version operation", async () => {
   const workflow = await readFile(new URL("../.github/workflows/redultron-provenance-deploy.yml", import.meta.url), "utf8");
   assert.match(workflow, /wrangler@4 versions secret bulk/);
+  assert.match(workflow, /\.length\s*<\s*32/, "short owner secrets must fail closed before any production mutation");
   assert.doesNotMatch(workflow, /wrangler@4 secret put/);
   assert.match(workflow, /umask 077/);
   assert.match(workflow, /mode: 0o600/);
