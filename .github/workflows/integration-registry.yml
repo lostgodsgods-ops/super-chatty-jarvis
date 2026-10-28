@@ -37,3 +37,19 @@ jobs:
 
       - name: Validate release package and report blockers
         run: node scripts/redultron-package-check.mjs
+
+      - name: Package exact repository source snapshot
+        run: |
+          mkdir -p dist
+          git archive --format=zip --output="dist/REDULTRON_CORE_3.0-${GITHUB_SHA:0:12}.zip" HEAD
+          sha256sum dist/*.zip > dist/SHA256SUMS.txt
+
+      - name: Upload package artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: redultron-core-3-readiness-${{ github.sha }}
+          path: |
+            dist/*.zip
+            dist/SHA256SUMS.txt
+          if-no-files-found: error
+          retention-days: 14
