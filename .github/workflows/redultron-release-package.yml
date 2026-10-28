@@ -1,0 +1,91 @@
+name: REDULTRON CORE 3.0 Release Package
+
+on:
+  pull_request:
+    paths:
+      - "jarvis/**"
+      - "package.json"
+      - "release/**"
+      - ".github/workflows/redultron-release-package.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: redultron-release-package-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  package-pwa:
+    name: Test and package installable PWA (no deployment)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout exact source commit
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          package-manager-cache: false
+
+      - name: Run repository test suite
+        run: npm test
+
+      - name: Validate PWA contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -s jarvis/index.html
+          test -s jarvis/manifest.webmanifest
+          test -s jarvis/sw.js
+          test -s jarvis/diagnostics.js
+          test -s jarvis/icon.svg
+          test -s jarvis/icon-192.png
+          test -s jarvis/icon-512.png
+          node --input-type=module <<'NODE'
+          import fs from 'node:fs';
+          const m = JSON.parse(fs.readFileSync('jarvis/manifest.webmanifest', 'utf8'));
+          if (m.display !== 'standalone') throw new Error('PWA display must be standalone');
+          if (!m.start_url || !m.scope) throw new Error('PWA start_url and scope are required');
+          for (const name of ['icon-192.png', 'icon-512.png']) {
+            if (!m.icons?.some(i => i.src === './' + name && i.type === 'image/png')) {
+              throw new Error('Manifest missing declared PNG icon: ' + name);
+            }
+          }
+          const html = fs.readFileSync('jarvis/index.html', 'utf8');
+          if (!html.includes('rel="manifest"')) throw new Error('HTML does not link the web manifest');
+          if (!html.includes('serviceWorker')) throw new Error('HTML does not register a service worker');
+          const sw = fs.readFileSync('jarvis/sw.js', 'utf8');
+          if (!/CACHE_NAME\s*=\s*["'][^"']+["']/.test(sw)) throw new Error('Service-worker cache version marker missing');
+          console.log('PASS: PWA manifest, app shell, icons, and service-worker markers validated');
+          NODE
+
+      - name: Build reproducible PWA ZIP and checksum
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p dist/redultron-core-3
+          cp -R jarvis/. dist/redultron-core-3/
+          cp release/REDULTRON_CORE_3_RELEASE_PACKAGE.md dist/redultron-core-3/RELEASE-NOTES.md
+          printf 'source_commit=%s\n' "$GITHUB_SHA" > dist/redultron-core-3/BUILD-METADATA.txt
+          printf 'built_at_utc=%s\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)" >> dist/redultron-core-3/BUILD-METADATA.txt
+          test -z "$(find dist/redultron-core-3 -type f \( -name '.env' -o -name '.dev.vars' -o -name '*secret*' -o -name '*token*' \) -print -quit)"
+          cd dist
+          zip -qr "REDULTRON-CORE-3-PWA-${GITHUB_SHA::12}.zip" redultron-core-3
+          sha256sum "REDULTRON-CORE-3-PWA-${GITHUB_SHA::12}.zip" > "REDULTRON-CORE-3-PWA-${GITHUB_SHA::12}.zip.sha256"
+          ls -lh REDULTRON-CORE-3-PWA-*
+
+      - name: Upload package artifact (no production deploy)
+        uses: actions/upload-artifact@v4
+        with:
+          name: REDULTRON-CORE-3-PWA-${{ github.sha }}
+          path: |
+            dist/REDULTRON-CORE-3-PWA-*.zip
+            dist/REDULTRON-CORE-3-PWA-*.zip.sha256
+          if-no-files-found: error
+          retention-days: 14
