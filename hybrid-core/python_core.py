@@ -2,10 +2,12 @@
 from __future__ import annotations
 
 import json
+import logging
 import os
 import re
 import secrets
 import socket
+import time
 from collections import Counter
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import urlparse
@@ -57,6 +59,8 @@ class Handler(BaseHTTPRequestHandler):
     def setup(self):
         super().setup()
         self.connection.settimeout(REQUEST_TIMEOUT_SECONDS)
+        self._request_id = secrets.token_hex(8)
+        self._request_started_at = time.monotonic()
 
     def _json(self, status, payload):
         body = json.dumps(payload, separators=(",", ":"), ensure_ascii=False).encode("utf-8")
@@ -64,6 +68,7 @@ class Handler(BaseHTTPRequestHandler):
         self.send_header("Content-Type", "application/json; charset=utf-8")
         self.send_header("Content-Length", str(len(body)))
         self.send_header("Cache-Control", "no-store")
+        self.send_header("X-Request-ID", self._request_id)
         self.send_header("X-Content-Type-Options", "nosniff")
         self.send_header("Referrer-Policy", "no-referrer")
         self.end_headers()
@@ -71,8 +76,19 @@ class Handler(BaseHTTPRequestHandler):
             self.wfile.write(body)
         except (BrokenPipeError, ConnectionResetError, socket.timeout):
             pass
+        finally:
+            # Structured diagnostics deliberately omit paths, headers, secrets, and bodies.
+            event = {
+                "request_id": self._request_id,
+                "status": status,
+                "latency_ms": max(0, int((time.monotonic() - self._request_started_at) * 1000)),
+            }
+            logging.getLogger("redultron.python_core").info(
+                json.dumps(event, separators=(",", ":"), sort_keys=True)
+            )
 
     def log_message(self, fmt, *args):
+        # Disable BaseHTTPRequestHandler's request-line logging, which may include query data.
         return
 
     def do_GET(self):

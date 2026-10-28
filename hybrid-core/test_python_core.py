@@ -172,6 +172,28 @@ class HybridCoreHTTPTests(unittest.TestCase):
         self.assertTrue(json.loads(body)["ok"])
 
 
+
+    def test_response_logs_request_id_status_and_latency_without_secrets_or_body(self):
+        with self.assertLogs("redultron.python_core", level="INFO") as captured:
+            status, headers, body = self.request(
+                json.dumps({"task": "classify_text", "text": "diagnostic body must not be logged"}),
+                {"X-Owner-Secret": TEST_SECRET, "Content-Type": "application/json"},
+            )
+        self.assertEqual(status, 200)
+        response_headers = dict(headers)
+        self.assertRegex(response_headers.get("X-Request-ID", ""), r"^[a-f0-9]{16}$")
+        entries = [json.loads(record.getMessage()) for record in captured.records]
+        self.assertEqual(len(entries), 1)
+        event = entries[0]
+        self.assertEqual(event["request_id"], response_headers["X-Request-ID"])
+        self.assertEqual(event["status"], 200)
+        self.assertIsInstance(event["latency_ms"], int)
+        self.assertGreaterEqual(event["latency_ms"], 0)
+        rendered = json.dumps(event)
+        self.assertNotIn(TEST_SECRET, rendered)
+        self.assertNotIn("diagnostic body must not be logged", rendered)
+
+
 if __name__ == "__main__":
     unittest.main()
 
