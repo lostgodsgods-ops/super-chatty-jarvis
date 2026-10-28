@@ -380,6 +380,45 @@ test("authenticated research query retries upstream rate limits before returning
 });
 
 
+test("time-sensitive research refuses stale cached evidence when live providers fail", async () => {
+  const e = env();
+  e.SEARCH_PROVIDER_MODE = "tavily";
+  e.SEARCH_API_KEY = "test-search-key";
+  await call(e, "/auth/setup", { setupToken: "test-bootstrap-code", password: "a-long-memorable-password" });
+  const login = await call(e, "/auth/login", { password: "a-long-memorable-password" });
+  const { token } = await login.json();
+
+  const originalFetch = globalThis.fetch;
+  let shouldFail = false;
+  globalThis.fetch = async (url) => {
+    if (shouldFail) throw new TypeError("simulated provider outage");
+    assert.equal(String(url), "https://api.tavily.com/search");
+    return new Response(JSON.stringify({ results: [
+      { title: "Test live report", url: "https://example.com/live-report", content: "Test evidence", published_date: "2026-10-28" }
+    ] }), { status: 200, headers: { "content-type": "application/json" } });
+  };
+
+  try {
+    const query = "latest breaking news today";
+    const first = await call(e, "/research/query", { query }, token);
+    assert.equal(first.status, 200);
+    const firstPayload = await first.json();
+    assert.notEqual(firstPayload.stale, true);
+    assert.equal(firstPayload.sourceCount, 1);
+
+    shouldFail = true;
+    const second = await call(e, "/research/query", { query }, token);
+    assert.equal(second.status, 502);
+    const secondPayload = await second.json();
+    assert.equal(typeof secondPayload.error, "string");
+    assert.equal(secondPayload.code, "LIVE_SEARCH_ALL_PROVIDERS_FAILED");
+    assert.notEqual(secondPayload.stale, true);
+    assert.equal(JSON.stringify(secondPayload).includes("Test evidence"), false);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
 test("password, passkey, and device-biometric option routes remain independently reachable", async () => {
   const e = env();
   e.DB.passkeys = [{ credential_id: "Y3JlZGVudGlhbA" }];
