@@ -86,3 +86,15 @@ test("production provenance sync is manual-only and requires explicit authorizat
   assert.match(provenance, /if:\s*\$\{\{\s*inputs\.authorize_production_changes\s*==\s*'approve'\s*\}\}/,
     "production-changing job must run only after explicit approval");
 });
+
+test("read-only comparison still checks equality when the GitHub secret is too short", () => {
+  const diagnostic = readWorkflow("../.github/workflows/redultron-owner-secret-readonly-check.yml");
+  assert.match(diagnostic, /short_secret=1/,
+    "an invalid-length secret must be recorded as invalid without suppressing the read-only comparison");
+  const lengthGuard = diagnostic.match(/elif \[\[ "\$\{#REDULTRON_OWNER_SECRET\}" -lt 32 \]\]; then([\s\S]*?)\n\s{10}fi/);
+  assert.ok(lengthGuard, "the minimum-length branch must remain explicit");
+  assert.doesNotMatch(lengthGuard[1], /blocked=1/,
+    "a short but present GitHub secret must not prevent the read-only Render comparison");
+  assert.match(diagnostic, /"\$api\/env-vars\/OWNER_SECRET"\)/,
+    "the read-only Render lookup must still occur when both credentials are present");
+});
