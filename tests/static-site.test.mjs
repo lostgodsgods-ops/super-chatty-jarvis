@@ -545,3 +545,23 @@ test("Cloudflare deployment verifies the exact deployed PWA release after Worker
   assert.match(deployWorkflow, /JSON\.stringify\(canonical\(expected\)\) !== JSON\.stringify\(canonical\(actual\)\)/);
   assert.match(deployWorkflow, /health_ok=false/);
 });
+
+test("D1 migration provisions capability requests and verified knowledge with fail-closed constraints", async () => {
+  const migration = await readFile(new URL("../migrations/0003_capability_requests_and_verified_knowledge.sql", import.meta.url), "utf8");
+  assert.match(migration, /CREATE TABLE IF NOT EXISTS capability_requests/);
+  assert.match(migration, /execution_enabled INTEGER NOT NULL DEFAULT 0 CHECK\s*\(execution_enabled\s*=\s*0\)/);
+  assert.match(migration, /requires_owner_approval INTEGER NOT NULL DEFAULT 1 CHECK\s*\(requires_owner_approval\s*=\s*1\)/);
+  assert.match(migration, /CREATE TABLE IF NOT EXISTS verified_knowledge/);
+  assert.match(migration, /owner_scope TEXT NOT NULL CHECK\s*\(\s*owner_scope = 'owner'\s*\)/);
+  assert.match(migration, /status TEXT NOT NULL CHECK\s*\(status = 'verified'\)/);
+  assert.match(migration, /CREATE INDEX IF NOT EXISTS idx_verified_knowledge_owner_updated/);
+  assert.doesNotMatch(migration, /\bDROP\s+TABLE\b|\bDELETE\s+FROM\b|\bUPDATE\s+/i);
+});
+
+test("D1 migrations are applied before Worker deployment only behind the production approval gate", async () => {
+  const workflow = await readFile(new URL("../.github/workflows/deploy-cloudflare.yml", import.meta.url), "utf8");
+  assert.match(workflow, /authorize_production_changes == 'approve'/);
+  const apply = workflow.indexOf("d1 migrations apply super-chatty-owner-auth --remote --config central-agent\/wrangler.jsonc");
+  const deploy = workflow.indexOf("command: deploy --config central-agent\/wrangler.jsonc");
+  assert.ok(apply >= 0 && deploy > apply, "approved D1 migrations must run before Worker deployment");
+});
