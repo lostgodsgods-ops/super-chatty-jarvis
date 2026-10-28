@@ -38,3 +38,15 @@ test("owner gate and honest lock scope are documented", async () => {
   assert.match(d, /not a GitHub branch-protection change/i);
   assert.match(d, /three-attempt/i);
 });
+
+test("duplicate workflow_run deliveries cannot retry a source attempt that has already advanced", async () => {
+  const w = await readFile(new URL("../.github/workflows/redultron-failure-sentinel.yml", import.meta.url), "utf8");
+  const guard = w.indexOf("- name: Confirm source run attempt is still current");
+  const retry = w.indexOf("- name: Retry failed jobs only while below attempt three");
+  assert.ok(guard >= 0 && retry > guard, "the live-attempt guard must run before any retry request");
+  const guardBlock = w.slice(guard, retry);
+  assert.match(guardBlock, /gh api .*actions\/runs\/\$RUN_ID/);
+  assert.match(guardBlock, /\.run_attempt/);
+  assert.match(guardBlock, /current_attempt.*ATTEMPT|ATTEMPT.*current_attempt/);
+  assert.match(w, /steps\.source\.outputs\.attempt < 3 && steps\.retry_guard\.outputs\.eligible == 'true'/);
+});
