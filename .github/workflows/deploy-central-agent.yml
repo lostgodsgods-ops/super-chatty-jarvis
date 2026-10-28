@@ -22,6 +22,7 @@ concurrency:
 jobs:
   deploy:
     if: ${{ github.ref == 'refs/heads/main' && inputs.authorize_production_changes == 'approve' }}
+    environment: production
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
