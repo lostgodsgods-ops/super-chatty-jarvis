@@ -9,6 +9,7 @@ import { describePolicy } from "./policy.mjs";
 import { buildRedQueenStatus } from "./architecture/red-queen-registry.mjs";
 import { randomChallenge, verifyRegistration, verifyAssertion } from "./webauthn.mjs";
 import { enqueueKnowledgeTask, listKnowledgeTasks, getKnowledgeResults, processApprovedKnowledgeTasks, recoverStaleKnowledgeTasks } from "./task-queue.mjs";
+import { saveVerifiedKnowledge, searchVerifiedKnowledge } from "./knowledge-learning.mjs";
 import { listProviderCapabilities } from "./architecture/provider-router.mjs";
 import { listMcpCapabilities, listVectorCapabilities, connectMcpAndListTools, vectorUpsertQueryReadback, IntegrationError } from "./architecture/integration-registry.mjs";
 import { createGoal, listGoals, transitionGoal, GoalError } from "./architecture/goal-lifecycle.mjs";
@@ -2782,6 +2783,34 @@ export default {
       } catch {
         return json({ error: "Durable task results are unavailable." }, 503, cors);
       }
+    }
+
+    // Persistent learning store: only owner-authenticated requests can read or write records.
+    // A record is searchable only after source references and test evidence are supplied.
+    if (url.pathname === "/api/learning/knowledge") {
+      if (request.method === "GET") {
+        const result = await searchVerifiedKnowledge(env.DB, url.searchParams.get("q"), Number(url.searchParams.get("limit")) || 10);
+        if (!result.ok) return json({ ok: false, error: result.error }, result.error === "QUERY_REQUIRED" ? 400 : 503, cors);
+        return json(result, 200, cors);
+      }
+      if (request.method !== "POST") return json({ ok: false, error: "METHOD_NOT_ALLOWED" }, 405, { allow: "GET, POST", ...cors });
+      if (!(request.headers.get("content-type") || "").toLowerCase().includes("application/json")) {
+        return json({ ok: false, error: "CONTENT_TYPE_JSON_REQUIRED" }, 415, cors);
+      }
+      const parsed = await readBoundedJsonBody(request, 12 * 1024);
+      if (parsed.tooLarge) return json({ ok: false, error: "REQUEST_TOO_LARGE" }, 413, cors);
+      if (!parsed.body || typeof parsed.body !== "object" || Array.isArray(parsed.body)) {
+        return json({ ok: false, error: "INVALID_JSON" }, 400, cors);
+      }
+      const result = await saveVerifiedKnowledge(env.DB, parsed.body);
+      if (!result.ok) return json({ ok: false, error: result.error }, result.error === "LEARNING_STORAGE_UNAVAILABLE" ? 503 : 400, cors);
+      const audit = await publishEvent(env, {
+        type: "learning.knowledge.saved",
+        source: "persistent-learning-engine",
+        payload: { recordId: result.record.id, status: result.record.status, sourceCount: result.record.sources.length, testEvidenceCount: result.record.testEvidence.length }
+      });
+      if (!audit?.ok) return json({ ok: false, error: "LEARNING_AUDIT_UNAVAILABLE", recordId: result.record.id }, 503, cors);
+      return json({ ok: true, record: result.record }, 201, cors);
     }
 
     // Durable D1 memory bridge is owner-authenticated and covered by live deployment read/write verification. Workflow verification reuses the already authenticated owner session.
