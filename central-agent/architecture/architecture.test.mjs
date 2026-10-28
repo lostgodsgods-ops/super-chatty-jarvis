@@ -10,13 +10,13 @@ test("model families are catalogued without claiming AGI readiness", () => {
 });
 test("only implemented providers can resolve", () => {
   assert.equal(resolveProvider("workers-ai", { AI: {} }).ok, true);
-  assert.equal(resolveProvider("openai", { OPENAI_API_KEY: "configured" }).code, "PROVIDER_ADAPTER_NOT_IMPLEMENTED");
-  assert.equal(resolveProvider("gemini", {}).status, 501);
+  assert.equal(resolveProvider("openai", { OPENAI_API_KEY: "configured" }).ok, true);
+  assert.equal(resolveProvider("gemini", {}).status, 503);
   assert.equal(resolveProvider("workers-ai", {}).status, 503);
   assert.equal(resolveProvider("unknown", {}).status, 400);
 });
 test("registry distinguishes configured from implemented", () => {
-  assert.equal(listProviderCapabilities({ OPENAI_API_KEY: "present" }).find(x => x.id === "openai").status, "not_implemented");
+  assert.equal(listProviderCapabilities({ OPENAI_API_KEY: "present" }).find(x => x.id === "openai").status, "configured_not_verified");
 });
 test("middleware denies side effects without matching owner approval", async () => {
   const run = createMiddlewarePipeline([requireOwnerApproval]);
@@ -46,7 +46,7 @@ import { executeChatCompletion, listChatProviders } from "./model-provider-adapt
 test("chat provider catalog distinguishes supported adapters from missing credentials", () => {
   const catalog = listChatProviders({});
   assert.ok(catalog.some(provider => provider.id === "openai" && provider.status === "not_configured"));
-  assert.ok(catalog.some(provider => provider.id === "anthropic" && provider.status === "not_configured"));
+  assert.ok(catalog.some(provider => provider.id === "claude" && provider.status === "not_configured"));
   assert.ok(catalog.every(provider => provider.liveVerified === false));
 });
 
