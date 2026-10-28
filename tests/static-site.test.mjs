@@ -525,7 +525,11 @@ test("Cloudflare deployment verifies the exact deployed PWA release after Worker
   assert.match(deployWorkflow, /redultron-core-shell-v/);
   assert.match(deployWorkflow, /Content-Type/);
   assert.match(deployWorkflow, /\/health/);
-  assert.ok(deployWorkflow.includes("REDULTRON-[0-9]{4}\\.[0-9]{2}\\.[0-9]{2}-CORE-3\\.0-V[0-9]+"), "version extraction must escape literal dots correctly");
+  const versionPattern = deployWorkflow.match(/expected_version="\\$\\(grep -oE '([^']+)' jarvis\\/index\\.html/);
+  assert.ok(versionPattern, "deployment workflow must derive the version pattern from source");
+  const sourceVersion = jarvisHtml.match(/name="application-version" content="([^"]+)"/)?.[1];
+  assert.ok(sourceVersion, "source PWA must declare an application version");
+  assert.ok(new RegExp(versionPattern[1]).test(sourceVersion), "workflow's actual version regex must match the source version");
   assert.match(deployWorkflow, /REDULTRON_WORKER_BASE_URL/);
   assert.match(deployWorkflow, /for attempt in 1 2 3 4 5 6/);
   assert.match(deployWorkflow, /attrs\.get\("name"\) === "application-version"/);
