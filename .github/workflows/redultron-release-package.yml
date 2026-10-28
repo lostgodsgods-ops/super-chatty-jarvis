@@ -80,6 +80,7 @@ jobs:
           mkdir -p dist/redultron-core-3
           cp -R jarvis/. dist/redultron-core-3/
           cp release/REDULTRON_CORE_3_RELEASE_PACKAGE.md dist/redultron-core-3/RELEASE-NOTES.md
+          cp release/ANDROID_PWA_INSTALL.md dist/redultron-core-3/INSTALL-ANDROID.md
           printf 'source_commit=%s\n' "$GITHUB_SHA" > dist/redultron-core-3/BUILD-METADATA.txt
           printf 'built_at_utc=%s\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)" >> dist/redultron-core-3/BUILD-METADATA.txt
           test -z "$(find dist/redultron-core-3 -type f \( -name '.env' -o -name '.dev.vars' -o -name '*secret*' -o -name '*token*' \) -print -quit)"
