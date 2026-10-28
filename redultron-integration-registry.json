@@ -1,0 +1,194 @@
+{
+  "schemaVersion": 1,
+  "updatedAt": "2026-10-28",
+  "statusDefinitions": {
+    "implemented": "Code adapter or capability exists; this does not imply runtime configuration or connectivity.",
+    "configured": "Required runtime configuration is believed present; end-to-end success is not proven.",
+    "live_verified": "A dated live probe proved the specified capability and response contract.",
+    "blocked": "A concrete failure prevents the capability from being accepted.",
+    "not_implemented": "No implementation has been verified in this repository.",
+    "not_tested": "No sufficient evidence is available; do not infer success."
+  },
+  "integrations": [
+    {
+      "id": "cloudflare-worker",
+      "name": "REDULTRON Central Agent / Cloudflare Worker",
+      "status": "configured",
+      "codePaths": [
+        "central-agent/worker.mjs",
+        "central-agent/wrangler.jsonc"
+      ],
+      "credentialNames": [
+        "OWNER_SECRET",
+        "CLOUDFLARE_API_TOKEN",
+        "CLOUDFLARE_ACCOUNT_ID"
+      ],
+      "auth": "Owner-secret authenticated internal routes; never expose credentials to the PWA.",
+      "access": "read_write",
+      "safetyGate": "Production writes/deployments must require explicit workflow dispatch approval and protected production environment.",
+      "timeoutRetry": "Bounded per-route timeouts; inspect route-specific implementation before changing.",
+      "dataClass": "confidential operational data",
+      "lastEvidence": {
+        "date": "2026-10-28",
+        "result": "Worker health gate passed in strict certification; authenticated Python hybrid execution failed via HTTP 502 HYBRID_CORE_AUTH_REJECTED.",
+        "workflowRunId": "40695040267",
+        "evidenceUrl": "https://github.com/lostgodsgods-ops/super-chatty-jarvis/actions/runs/40695040267"
+      },
+      "failureMode": "Fail closed for authenticated execution; do not report Python execution verified when upstream auth fails.",
+      "disablePath": "Use protected deployment controls; do not change production secrets from this registry.",
+      "tests": [
+        "central-agent/owner-secret-workflow.test.mjs",
+        "central-agent/worker.mjs"
+      ],
+      "owner": "REDULTRON maintainers"
+    },
+    {
+      "id": "python-hybrid-core",
+      "name": "Render Python Hybrid Core",
+      "status": "blocked",
+      "codePaths": [
+        "hybrid-core/python_core.py",
+        "central-agent/architecture/hybrid-core.mjs"
+      ],
+      "credentialNames": [
+        "OWNER_SECRET",
+        "REDULTRON_OWNER_SECRET",
+        "PYTHON_CORE_URL"
+      ],
+      "auth": "Worker sends x-owner-secret; Python Core validates X-Owner-Secret and requires at least 32 characters.",
+      "access": "internal_execution",
+      "safetyGate": "No auth bypass. Compare credential parity through an authorized read-only method; never print values.",
+      "timeoutRetry": "Strict authenticated probe is bounded by the certification workflow; do not retry indefinitely.",
+      "dataClass": "confidential task input and output",
+      "lastEvidence": {
+        "date": "2026-10-28",
+        "result": "Python health passed; authenticated round-trip failed with HTTP 502 and sanitized code HYBRID_CORE_AUTH_REJECTED. Exact cause is not established.",
+        "workflowRunId": "40695040267",
+        "evidenceUrl": "https://github.com/lostgodsgods-ops/super-chatty-jarvis/actions/runs/40695040267"
+      },
+      "failureMode": "Return non-success; fallback must be explicit and hybridPythonCoreExecutionVerified must remain false.",
+      "disablePath": "Disable hybrid execution via reviewed configuration/code; preserve health endpoint for diagnosis.",
+      "tests": [
+        "hybrid-core/test_health_probe.py",
+        "central-agent/architecture/hybrid-core.mjs"
+      ],
+      "owner": "REDULTRON maintainers"
+    },
+    {
+      "id": "github-actions",
+      "name": "GitHub repository and CI",
+      "status": "live_verified",
+      "codePaths": [
+        ".github/workflows/ci.yml",
+        ".github/workflows/redultron-provenance-deploy.yml"
+      ],
+      "credentialNames": [
+        "REDULTRON_OWNER_SECRET",
+        "CLOUDFLARE_API_TOKEN",
+        "CLOUDFLARE_ACCOUNT_ID"
+      ],
+      "auth": "GitHub Actions secrets; values must never appear in logs or artifacts.",
+      "access": "ci_and_deployment",
+      "safetyGate": "PR #431 proposes manual-only production mutations with explicit approval and the production Environment; it remains open/draft and is not active on main.",
+      "timeoutRetry": "Workflow-specific timeouts; bounded probes and retries only.",
+      "dataClass": "source code and deployment metadata",
+      "lastEvidence": {
+        "date": "2026-10-28",
+        "result": "PR #431 implementation checks passed; current main workflow still has a push-to-main production mutation trigger.",
+        "workflowRunIds": [
+          "40700644540",
+          "40700644605",
+          "40700644656"
+        ],
+        "evidenceUrl": "https://github.com/lostgodsgods-ops/super-chatty-jarvis/pull/431"
+      },
+      "failureMode": "Fail closed when approval input or minimum secret-length policy is not satisfied.",
+      "disablePath": "Keep production mutation workflows undispatched until reviewed and explicitly approved.",
+      "tests": [
+        "central-agent/owner-secret-workflow.test.mjs",
+        "tests/static-site.test.mjs"
+      ],
+      "owner": "Repository maintainers"
+    },
+    {
+      "id": "live-search",
+      "name": "Live Search providers and fallback",
+      "status": "not_tested",
+      "codePaths": [
+        "central-agent/worker.mjs"
+      ],
+      "credentialNames": [
+        "TAVILY_API_KEY"
+      ],
+      "auth": "Provider-specific API key where required; no provider secret in client-side code.",
+      "access": "read_only_external_search",
+      "safetyGate": "Return source URLs and provider attribution; distinguish fresh results from stale-cache results.",
+      "timeoutRetry": "Bound provider timeout; bounded stale cache; no unbounded retry loops.",
+      "dataClass": "public query text and fetched public results",
+      "lastEvidence": {
+        "date": "2026-10-28",
+        "result": "Latest reported health metadata showed Tavily disabled and provider reachability not checked; fresh provider round-trip is not verified.",
+        "evidenceUrl": "https://github.com/lostgodsgods-ops/super-chatty-jarvis/issues/443"
+      },
+      "failureMode": "Expose provider failure or stale status explicitly; never label cached output as live.",
+      "disablePath": "Disable provider adapter through reviewed server-side configuration.",
+      "tests": [
+        "central-agent/worker.mjs"
+      ],
+      "owner": "REDULTRON maintainers"
+    },
+    {
+      "id": "pwa-android",
+      "name": "REDULTRON PWA and Android installation",
+      "status": "not_tested",
+      "codePaths": [
+        "jarvis/index.html",
+        "jarvis/manifest.webmanifest",
+        "jarvis/sw.js"
+      ],
+      "credentialNames": [],
+      "auth": "Owner login and session checks must remain server-enforced.",
+      "access": "client_ui",
+      "safetyGate": "No secrets in frontend assets or service-worker cache; protected dashboard appears only after authentication.",
+      "timeoutRetry": "Service-worker update and network fallback must be bounded and recoverable.",
+      "dataClass": "client UI and owner-session metadata",
+      "lastEvidence": {
+        "date": "2026-10-28",
+        "result": "Repository history records PWA cache v15; production asset version, install/update behavior, offline navigation and Android device smoke test are not verified."
+      },
+      "failureMode": "Show update/network failure clearly; preserve a safe recovery path.",
+      "disablePath": "Revert the PWA asset/service-worker change through a reviewed PR.",
+      "tests": [
+        "tests/static-site.test.mjs"
+      ],
+      "owner": "REDULTRON maintainers"
+    },
+    {
+      "id": "render-control-plane",
+      "name": "Render deployment and runtime configuration",
+      "status": "not_tested",
+      "codePaths": [
+        "hybrid-core/python_core.py"
+      ],
+      "credentialNames": [
+        "RENDER_API_KEY",
+        "OWNER_SECRET"
+      ],
+      "auth": "Render control-plane access is separate from Python Core request authentication.",
+      "access": "deployment_admin",
+      "safetyGate": "Read-only inspection first; no environment variable mutation or deployment without explicit approval.",
+      "timeoutRetry": "Bounded health and request-log queries.",
+      "dataClass": "confidential deployment metadata",
+      "lastEvidence": {
+        "date": "2026-10-28",
+        "result": "Current secret parity and runtime configuration remain unverified; Render workspace selection is required before account-scoped inspection."
+      },
+      "failureMode": "Keep secret equality and current runtime configuration marked NOT TESTED if unavailable.",
+      "disablePath": "No production changes from this registry.",
+      "tests": [
+        "hybrid-core/test_health_probe.py"
+      ],
+      "owner": "REDULTRON maintainers"
+    }
+  ]
+}
