@@ -109,12 +109,12 @@ test("NEXUS agent HUD is live-wired to the production SSE event bus", () => {
 
 
 test("installed PWA force-updates stale shells and revalidates HTML assets", () => {
-  assert.match(serviceWorker, /CACHE_NAME\s*=\s*"redultron-core-shell-v16-core-3"/, "shell cache must be version-bumped for the install UX release");
+  assert.match(serviceWorker, /CACHE_NAME\s*=\s*"redultron-core-shell-v17-core-3"/, "shell cache must be version-bumped for the install UX release");
   assert.match(serviceWorker, /self\.skipWaiting\(\)/, "new worker must activate without waiting for an old tab to close");
   assert.match(serviceWorker, /self\.clients\.claim\(\)/, "new worker must claim open PWA clients");
   assert.match(serviceWorker, /key !== CACHE_NAME.*caches\.delete\(key\)/s, "activation must delete older project shell caches");
   assert.match(serviceWorker, /new Request\(request,\s*\{\s*cache:\s*"no-store"\s*\}\)/, "navigation must bypass stale browser HTTP cache");
-  assert.match(jarvisHtml, /application-version" content="REDULTRON-2026\.10\.28-CORE-3.0-V16"/, "frontend version must be bumped");
+  assert.match(jarvisHtml, /application-version" content="REDULTRON-2026\.10\.28-CORE-3.0-V17"/, "frontend version must be bumped");
   assert.match(jarvisHtml, /registration\.update\(\)/, "PWA must check for worker updates");
   assert.match(jarvisHtml, /controllerchange/, "active sessions must detect the new worker controller");
   assert.match(jarvisHtml, /location\.reload\(\)/, "active sessions must reload after a worker update");
@@ -222,7 +222,7 @@ test("PWA provides a direct native install prompt and a safe fallback", () => {
   assert.match(jarvisHtml, /display-mode:\s*standalone/, "installed standalone mode must be detected");
   assert.ok(centralWorker.includes('url.pathname === "/icon-192.png"'), "Worker must allow the public 192px install icon");
   assert.ok(centralWorker.includes('url.pathname === "/icon-512.png"'), "Worker must allow the public 512px install icon");
-  assert.match(serviceWorker, /CACHE_NAME\s*=\s*"redultron-core-shell-v16-core-3"/, "install UX release must invalidate old shell cache");
+  assert.match(serviceWorker, /CACHE_NAME\s*=\s*"redultron-core-shell-v17-core-3"/, "install UX release must invalidate old shell cache");
 });
 
 test("owner gate prevents health checks and SSE from starting before session verification", () => {
@@ -245,8 +245,8 @@ test("first-screen one-click install uses the browser-native prompt when eligibl
   assert.match(jarvisHtml, /installEvent\.prompt\(\)/, "tap must invoke the captured native prompt");
   assert.match(jarvisHtml, /addEventListener\("appinstalled"/, "successful install must be handled");
   assert.match(jarvisHtml, /Chrome has not offered the native install prompt yet/i, "unavailable prompt state must be honest");
-  assert.match(jarvisHtml, /application-version" content="REDULTRON-2026\.10\.28-CORE-3.0-V16"/, "app version must identify this shell release");
-  assert.match(serviceWorker, /CACHE_NAME\s*=\s*"redultron-core-shell-v16-core-3"/, "shell cache must be invalidated");
+  assert.match(jarvisHtml, /application-version" content="REDULTRON-2026\.10\.28-CORE-3.0-V17"/, "app version must identify this shell release");
+  assert.match(serviceWorker, /CACHE_NAME\s*=\s*"redultron-core-shell-v17-core-3"/, "shell cache must be invalidated");
 });
 
 test("PWA notifications require explicit opt-in and only notify for live foreground SSE events", () => {
@@ -502,7 +502,7 @@ test("voice catalog refreshes immediately and supports both voice-change event A
 
 
 test("Core release metadata is current and voice output uses clear, full-volume prosody", () => {
-  assert.match(jarvisHtml, /application-version" content="REDULTRON-2026\.10\.28-CORE-3.0-V16/, "PWA release date and cache version must be refreshed together");
+  assert.match(jarvisHtml, /application-version" content="REDULTRON-2026\.10\.28-CORE-3.0-V17/, "PWA release date and cache version must be refreshed together");
   const declaration = jarvisHtml.match(/    function adaptSpeechTone\(utterance, text, language\) \{[\s\S]*?\n    \}/);
   assert.ok(declaration, "speech output must have a prosody policy");
   const adaptSpeechTone = vm.runInNewContext("(" + declaration[0].trim() + ")");
