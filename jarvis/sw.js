@@ -1,5 +1,5 @@
 "use strict";
-const CACHE_NAME = "redultron-core-shell-v17-core-3";
+const CACHE_NAME = "redultron-core-shell-v18-unified-deck";
 const SHELL = ["./", "./index.html", "./manifest.webmanifest", "./icon.svg", "./icon-192.png", "./icon-512.png", "./diagnostics.js"];
 const LEGACY_CACHE_PREFIXES = ["redultron-core-shell-", "super-chatty-jarvis-shell-", "super-chatty-jarvis-", "chatty-jarvis-"];
 self.addEventListener("install", (event) => {
