@@ -29,7 +29,7 @@ test("the new visual system preserves the real owner, research, media and agent 
   }
 });
 
-test("the unified layout has explicit phone-first breakpoints and reduced-motion support", () => {
+test("the unified layout has explicit phone-first breakpoints and reduced-motion support", async () => {
   const css = html.slice(html.indexOf('id="redultron-unified-layout-v18"'));
   assert.match(css, /@media\s*\(max-width:\s*900px\)/);
   assert.match(css, /@media\s*\(max-width:\s*600px\)/);
