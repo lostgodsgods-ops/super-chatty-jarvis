@@ -458,7 +458,7 @@ test("Central Agent runtime and PWA shell release markers stay synchronized", ()
 
   const appVersion = jarvisHtml.match(/application-version" content="REDULTRON-[0-9]{4}\.[0-9]{2}\.[0-9]{2}-COGNITIVE-CORE-V([0-9]+)/)?.[1];
   const cacheVersion = serviceWorker.match(/CACHE_NAME\s*=\s*"redultron-core-shell-v([0-9]+)-cognitive-core"/)?.[1];
-  assert.ok(appVersion, "PWA HTML must declare its release version");
+  assert.ok(appVersion, "PWA HTML must declare its Core 3.0 release version");
   assert.ok(cacheVersion, "service worker must declare its shell cache version");
   assert.equal(appVersion, cacheVersion, "PWA app and service-worker cache versions must match");
   assert.equal(manifest.name, "REDULTRON CORE 3.0", "install manifest identity must remain canonical");
