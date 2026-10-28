@@ -147,3 +147,44 @@ test("D1 list query failures return a sanitized storage error", async () => {
     !error.message.includes(internalDetail)
   );
 });
+
+test("an idempotency key makes repeated capability requests return one durable record", async () => {
+  const { env, state } = createD1Mock();
+  const input = {
+    idempotencyKey: "overnight-capability-request-001",
+    goal: "Verify repository state",
+    requestedTools: ["github"],
+    rationale: "Need bounded repository inspection."
+  };
+
+  const first = await createCapabilityRequest(env, input, catalog);
+  const replay = await createCapabilityRequest(env, input, catalog);
+
+  assert.equal(first.idempotentReplay, false);
+  assert.equal(replay.idempotentReplay, true);
+  assert.equal(replay.id, first.id);
+  assert.equal(state.rows.length, 1, "a replay must not insert a second row");
+  assert.equal(replay.status, "pending_owner_review");
+  assert.equal(replay.executionEnabled, false);
+  assert.equal(replay.requiresOwnerApproval, true);
+});
+
+test("reusing an idempotency key for a different payload returns a conflict", async () => {
+  const { env, state } = createD1Mock();
+  const firstInput = {
+    idempotencyKey: "overnight-capability-request-002",
+    goal: "Verify repository state",
+    requestedTools: ["github"],
+    rationale: "Need bounded repository inspection."
+  };
+  await createCapabilityRequest(env, firstInput, catalog);
+
+  await assert.rejects(
+    createCapabilityRequest(env, {
+      ...firstInput,
+      goal: "Install an unreviewed tool"
+    }, catalog),
+    error => error.code === "CAPABILITY_REQUEST_IDEMPOTENCY_CONFLICT" && error.status === 409
+  );
+  assert.equal(state.rows.length, 1, "conflicting replay must not mutate the original row");
+});
