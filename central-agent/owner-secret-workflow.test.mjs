@@ -23,6 +23,28 @@ test("hybrid probe and Worker deployment use the same canonical owner secret", (
 });
 
 
+test("provenance deploy synchronizes the canonical secret to Render before changing Worker bindings", () => {
+  const provenance = readWorkflow("../.github/workflows/redultron-provenance-deploy.yml");
+  assert.match(provenance, /\$\{#REDULTRON_OWNER_SECRET\}.*-ge 32/,
+    "deployment must reject a canonical owner secret shorter than 32 characters before any production changes");
+  assert.match(provenance, /RENDER_API_KEY:\s*\$\{\{\s*secrets\.RENDER_API_KEY\s*\}\}/,
+    "Render API credential must come from GitHub Actions secrets");
+  assert.ok(provenance.includes("RENDER_SERVICE_ID: srv-dbdhr0mi0phs739rv98g"),
+    "the canonical Python Core Render service ID must be pinned");
+  assert.ok(provenance.includes('"$api/env-vars/OWNER_SECRET"'),
+    "the canonical owner secret must be read and updated through the Render service env-var API");
+  assert.ok(provenance.includes('"$api/deploys"'),
+    "Render must be redeployed when its owner secret changes");
+  const renderSync = provenance.indexOf("Synchronize canonical owner secret to Render Python Core");
+  const workerSync = provenance.indexOf("Synchronize owner secret to the deployed Worker");
+  const workerDeploy = provenance.indexOf("Deploy exact GitHub commit provenance");
+  assert.ok(renderSync >= 0 && workerSync > renderSync && workerDeploy > workerSync,
+    "Render secret sync must succeed before Worker secret update and deployment");
+  assert.match(provenance, /RENDER_OWNER_SECRET_SYNC|RENDER_OWNER_SECRET_MISMATCH|Render owner secret sync/,
+    "Render secret synchronization must fail closed with a sanitized diagnostic");
+});
+
+
 test("live gateway probe checks DNS before HTTP and verifies invalid owner credentials are rejected", () => {
   const probe = readWorkflow("../.github/workflows/redultron-live-probe.yml");
   assert.match(probe, /getent\s+ahosts|dns\.promises\.lookup|dns\.lookup/,
@@ -31,4 +53,50 @@ test("live gateway probe checks DNS before HTTP and verifies invalid owner crede
     "probe must include a negative authentication control");
   assert.match(probe, /401|403/,
     "probe must require unauthorized credentials to be rejected");
+});
+
+
+test("owner-secret match diagnostic is read-only and never prints secret values", () => {
+  const diagnostic = readWorkflow("../.github/workflows/redultron-owner-secret-readonly-check.yml");
+  assert.match(diagnostic.split(/^permissions:/m)[0], /workflow_dispatch:/,
+    "read-only comparison must be manually rerunnable after the missing API credential is configured");
+
+  assert.match(diagnostic, /fix\/python-owner-secret-sync/);
+  assert.match(diagnostic, /secrets\.RENDER_API_KEY/);
+  assert.match(diagnostic, /secrets\.REDULTRON_OWNER_SECRET/);
+  assert.match(diagnostic, /env-vars\/OWNER_SECRET/);
+  assert.match(diagnostic, /curl[\s\S]*-o "\$current_file"/);
+  assert.match(diagnostic, /PASS: GitHub REDULTRON_OWNER_SECRET matches Render OWNER_SECRET/);
+  assert.match(diagnostic, /FAIL: GitHub REDULTRON_OWNER_SECRET does not match Render OWNER_SECRET/);
+  assert.doesNotMatch(diagnostic, /-X\s+(?:PUT|POST|PATCH|DELETE)/i,
+    "diagnostic must not mutate Render settings");
+  assert.doesNotMatch(diagnostic, /wrangler[^\n]*deploy|api\/deploys/i,
+    "diagnostic must not trigger a deployment");
+  assert.doesNotMatch(diagnostic, /echo\s+["']?\$current_value|echo\s+["']?\$REDULTRON_OWNER_SECRET|printf[^\n]*(?:current_value|REDULTRON_OWNER_SECRET)/i,
+    "diagnostic must not print secret values");
+});
+
+test("production provenance sync is manual-only and requires explicit authorization", () => {
+  const provenance = readWorkflow("../.github/workflows/redultron-provenance-deploy.yml");
+  const triggers = provenance.split(/^permissions:/m)[0] ?? provenance;
+  assert.doesNotMatch(triggers, /^\s{2}push:/m,
+    "production secret synchronization and deployment must never auto-run on main pushes");
+  assert.match(triggers, /authorize_production_changes/,
+    "manual production workflow must expose an explicit authorization input");
+  assert.match(triggers, /default:\s*deny/,
+    "production authorization must default to deny");
+  assert.match(provenance, /if:\s*\$\{\{\s*inputs\.authorize_production_changes\s*==\s*'approve'\s*\}\}/,
+    "production-changing job must run only after explicit approval");
+});
+
+test("read-only comparison still checks equality when the GitHub secret is too short", () => {
+  const diagnostic = readWorkflow("../.github/workflows/redultron-owner-secret-readonly-check.yml");
+  assert.match(diagnostic, /short_secret=1/,
+    "an invalid-length secret must be recorded as invalid without suppressing the read-only comparison");
+  const lengthGuard = diagnostic.match(/elif \[\[ "\$\{#REDULTRON_OWNER_SECRET\}" -lt 32 \]\]; then([\s\S]*?)\n\s{10}fi/);
+  assert.ok(lengthGuard, "the minimum-length branch must remain explicit");
+  assert.doesNotMatch(lengthGuard[1], /blocked=1/,
+    "a short but present GitHub secret must not prevent the read-only Render comparison");
+  assert.match(diagnostic, /"\$api\/env-vars\/OWNER_SECRET"\)/,
+    "the read-only Render lookup must still occur when both credentials are present");
 });
