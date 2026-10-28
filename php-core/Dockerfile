@@ -11,9 +11,5 @@ RUN printf '%s\n' \
 
 WORKDIR /var/www/html
 COPY index.php /var/www/html/index.php
-COPY start-apache.sh /usr/local/bin/redultron-start-apache
-RUN chmod 0755 /usr/local/bin/redultron-start-apache
 
-ENV PORT=10000
-EXPOSE 10000
-CMD ["/usr/local/bin/redultron-start-apache"]
+EXPOSE 80
