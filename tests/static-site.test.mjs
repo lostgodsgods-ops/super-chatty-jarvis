@@ -499,3 +499,16 @@ test("voice catalog refreshes immediately and supports both voice-change event A
   assert.match(catalog, /speechSynthesis\.onvoiceschanged\s*=\s*refreshVoiceCatalog/);
   assert.match(catalog, /refreshVoiceCatalog\(\);/, "voice selection should run once after setup");
 });
+
+
+test("Core release metadata is current and voice output uses clear, full-volume prosody", () => {
+  assert.match(jarvisHtml, /application-version" content="REDULTRON-2026\\.10\\.28-COGNITIVE-CORE-V16/, "PWA release date and cache version must be refreshed together");
+  const declaration = jarvisHtml.match(/    function adaptSpeechTone\\(utterance, text, language\\) \\{[\\s\\S]*?\\n    \\}/);
+  assert.ok(declaration, "speech output must have a prosody policy");
+  const adaptSpeechTone = vm.runInNewContext("(" + declaration[0].trim() + ")");
+  const utterance = {};
+  adaptSpeechTone(utterance, "System ready.", "hi-IN");
+  assert.equal(utterance.volume, 1, "voice output should use full configured volume");
+  assert.ok(utterance.rate <= 0.93, "voice delivery should leave enough time for Hindi/Hinglish clarity");
+  assert.ok(utterance.pitch <= 0.88, "voice delivery should retain the mature, grounded pitch profile");
+});
