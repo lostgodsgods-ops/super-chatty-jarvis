@@ -44,7 +44,7 @@ test("Python Core health probe retries only transient failures with a hard attem
     "only transient gateway/service HTTP failures should trigger retries");
   assert.match(healthStep, /sleep 2/);
   assert.match(healthStep, /sleep 4/);
-  assert.match(healthStep, /\.ok == true and \.service ==/,
+  assert.ok(healthStep.includes(".ok == true and .service =="),
     "strict JSON schema must remain required after retries");
   assert.match(healthStep, /redultron-python-core/);
   assert.match(healthStep, /response_kind.*HTML_PAGE|HTML_PAGE/,
