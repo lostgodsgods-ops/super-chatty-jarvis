@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "project": "REDULTRON CORE 3.0",
-  "snapshotTime": "2026-10-29T02:49:40+05:30",
+  "snapshotTime": "2026-10-29T02:53:01+05:30",
   "repository": "lostgodsgods-ops/super-chatty-jarvis",
   "branch": "main",
   "commitSha": "0a35a8dda07b5217497ec1c45bdc64e3a7d0147c",
@@ -13,7 +13,9 @@
     "hybridCoreFiles": 7,
     "phpCoreFiles": 4,
     "pwaFiles": 9,
-    "docFiles": 19
+    "docFiles": 19,
+    "jackHamrAgents": 81,
+    "agentSurfaces": 6
   },
   "fileInventory": [
     {
@@ -8829,7 +8831,18 @@
       "jackHamr": "BLOCKED — credit balance -11.737204 USD, status exhausted; agents are stopped and no task was started.",
       "superBrowserAgent": "BLOCKED — account reports 0 connected devices and $2 remaining credits; no browser task was launched.",
       "agentsStarted": 0,
-      "externalRecruitment": "NOT PERFORMED"
+      "externalRecruitment": "NOT PERFORMED",
+      "jackHamrAgentCount": 81,
+      "jackHamrStoppedCount": 81,
+      "jackHamrRunningCount": 0,
+      "jackHamrCreditBalanceUSD": -11.737204,
+      "jackHamrCreditStatus": "exhausted",
+      "jackHamrAllowanceRemaining": 0,
+      "agentSwarmLinkedCount": 0,
+      "superCreditsRemainingUSD": 2,
+      "superConnectedDevices": 0,
+      "superBrowserSessions": 0,
+      "superChatUsage": "NOT USED — credit-billed persistent assistant; no bounded per-task cost exposed."
     },
     "notes": [
       "No secrets were read, printed, changed, rotated, or requested.",
@@ -8840,7 +8853,9 @@
       "Cloudflare Observability dry query returned one sanitized wikipedia-api HTTP 403 event on Worker version 882; no raw message, query text, request body or response body was read.",
       "PR #816 and PR #820 are open and ready for review with CI, Static checks and Test Central Agent passing; neither is merged.",
       "Browser Use public-read run was blocked by insufficient credits; no live screenshot or install/update verification was obtained.",
-      "Main workflow evidence refreshed at 2026-10-29T02:49:40+05:30; main SHA remains 0a35a8dda07b5217497ec1c45bdc64e3a7d0147c."
+      "Main workflow evidence refreshed at 2026-10-29T02:49:40+05:30; main SHA remains 0a35a8dda07b5217497ec1c45bdc64e3a7d0147c.",
+      "Agent inventory refreshed at 2026-10-29T02:53:01+05:30: 81 JackHamr agents listed, 81 stopped, 0 running; credit balance -11.737204 USD, allowance remaining 0.",
+      "Agent Swarm linked count=0; Super connected devices=0, browser sessions=0, credits remaining=$2. No agent task was started and no credit was consumed."
     ],
     "persistentLearning": {
       "status": "PASS — repository checks; NOT TESTED live",
@@ -8872,5 +8887,877 @@
     "externalContentIsUntrustedData": true,
     "learningDoesNotGrantPermission": true,
     "productionWritesAllowed": false
-  }
+  },
+  "agentInventory": [
+    {
+      "id": "327847be-58fe-49fe-961a-c48d48c3d8c9",
+      "name": "Pilot",
+      "purpose": "Your first JackHamr agent, set up when you connected an AI app.",
+      "status": "stopped",
+      "accessStatus": "Listed in the connected JackHamr account; no machine started in this audit.",
+      "evidence": "JackHamr list_agents snapshot 2026-10-29T02:53:01+05:30",
+      "tests": "NOT TESTED — inventory only; no agent task was dispatched.",
+      "blocker": "Agent status is stopped; organization credits are exhausted (balance -11.737204 USD, allowance remaining 0)."
+    },
+    {
+      "id": "057f57ce-85cb-4415-897a-ea215798f11d",
+      "name": "REDULTRON-Bridge-Security",
+      "purpose": "Build and test secure allowlisted agent-to-agent bridge, protocol, threat model, audit and revocation. No public deployment or external writes without approval.",
+      "status": "stopped",
+      "accessStatus": "Listed in the connected JackHamr account; no machine started in this audit.",
+      "evidence": "JackHamr list_agents snapshot 2026-10-29T02:53:01+05:30",
+      "tests": "NOT TESTED — inventory only; no agent task was dispatched.",
+      "blocker": "Agent status is stopped; organization credits are exhausted (balance -11.737204 USD, allowance remaining 0)."
+    },
+    {
+      "id": "33830a80-ef0e-475c-8fdf-97d186f821d5",
+      "name": "REDULTRON-PWA-Builder",
+      "purpose": "Inspect Super Chatty Jarvis repository and prepare installable PWA improvements for mobile: manifest, service worker, install flow, offline behavior, icons, responsive UI. Do not push/merge/deploy without authorization.",
+      "status": "stopped",
+      "accessStatus": "Listed in the connected JackHamr account; no machine started in this audit.",
+      "evidence": "JackHamr list_agents snapshot 2026-10-29T02:53:01+05:30",
+      "tests": "NOT TESTED — inventory only; no agent task was dispatched.",
+      "blocker": "Agent status is stopped; organization credits are exhausted (balance -11.737204 USD, allowance remaining 0)."
+    },
+    {
+      "id": "058c8420-68c2-44f4-9d96-2796f06959a7",
+      "name": "REDULTRON-CI-Investigator",
+      "purpose": "Investigate CI failures, PR #218 undeclared upstreamStatus report, test coverage and recovery incident mapping. Evidence-based status only; no push/merge/deploy without authorization.",
+      "status": "stopped",
+      "accessStatus": "Listed in the connected JackHamr account; no machine started in this audit.",
+      "evidence": "JackHamr list_agents snapshot 2026-10-29T02:53:01+05:30",
+      "tests": "NOT TESTED — inventory only; no agent task was dispatched.",
+      "blocker": "Agent status is stopped; organization credits are exhausted (balance -11.737204 USD, allowance remaining 0)."
+    },
+    {
+      "id": "e998309d-86f3-4fe3-bdf7-eccc009a52b5",
+      "name": "REDULTRON-PWA-UX",
+      "purpose": "Audit mobile-first dashboard layout, navigation and accessibility. Work only with authorized public/repository data, report evidence, no secret exposure, no push/merge/deploy or external writes without explicit approval.",
+      "status": "stopped",
+      "accessStatus": "Listed in the connected JackHamr account; no machine started in this audit.",
+      "evidence": "JackHamr list_agents snapshot 2026-10-29T02:53:01+05:30",
+      "tests": "NOT TESTED — inventory only; no agent task was dispatched.",
+      "blocker": "Agent status is stopped; organization credits are exhausted (balance -11.737204 USD, allowance remaining 0)."
+    },
+    {
+      "id": "cd3b267a-c14b-4964-b241-36c069447301",
+      "name": "REDULTRON-PWA-Manifest",
+      "purpose": "Audit web app manifest, icons, scope and display mode. Work only with authorized public/repository data, report evidence, no secret exposure, no push/merge/deploy or external writes without explicit approval.",
+      "status": "stopped",
+      "accessStatus": "Listed in the connected JackHamr account; no machine started in this audit.",
+      "evidence": "JackHamr list_agents snapshot 2026-10-29T02:53:01+05:30",
+      "tests": "NOT TESTED — inventory only; no agent task was dispatched.",
+      "blocker": "Agent status is stopped; organization credits are exhausted (balance -11.737204 USD, allowance remaining 0)."
+    },
+    {
+      "id": "99106736-f737-4f70-98b6-2a9d4563548e",
+      "name": "REDULTRON-PWA-ServiceWorker",
+      "purpose": "Audit service worker lifecycle, cache versioning and updates. Work only with authorized public/repository data, report evidence, no secret exposure, no push/merge/deploy or external writes without explicit approval.",
+      "status": "stopped",
+      "accessStatus": "Listed in the connected JackHamr account; no machine started in this audit.",
+      "evidence": "JackHamr list_agents snapshot 2026-10-29T02:53:01+05:30",
+      "tests": "NOT TESTED — inventory only; no agent task was dispatched.",
+      "blocker": "Agent status is stopped; organization credits are exhausted (balance -11.737204 USD, allowance remaining 0)."
+    },
+    {
+      "id": "e372224a-b5ab-4ef9-979f-fcdba3551660",
+      "name": "REDULTRON-PWA-Offline",
+      "purpose": "Design safe offline mode and clear offline limitations. Work only with authorized public/repository data, report evidence, no secret exposure, no push/merge/deploy or external writes without explicit approval.",
+      "status": "stopped",
+      "accessStatus": "Listed in the connected JackHamr account; no machine started in this audit.",
+      "evidence": "JackHamr list_agents snapshot 2026-10-29T02:53:01+05:30",
+      "tests": "NOT TESTED — inventory only; no agent task was dispatched.",
+      "blocker": "Agent status is stopped; organization credits are exhausted (balance -11.737204 USD, allowance remaining 0)."
+    },
+    {
+      "id": "d63225b5-c2fc-4fd9-859b-1c6536f9d658",
+      "name": "REDULTRON-PWA-Installability",
+      "purpose": "Verify Android Chrome install criteria and install UX. Work only with authorized public/repository data, report evidence, no secret exposure, no push/merge/deploy or external writes without explicit approval.",
+      "status": "stopped",
+      "accessStatus": "Listed in the connected JackHamr account; no machine started in this audit.",
+      "evidence": "JackHamr list_agents snapshot 2026-10-29T02:53:01+05:30",
+      "tests": "NOT TESTED — inventory only; no agent task was dispatched.",
+      "blocker": "Agent status is stopped; organization credits are exhausted (balance -11.737204 USD, allowance remaining 0)."
+    },
+    {
+      "id": "fc6067ea-86b4-441d-8c63-ee88f5e40468",
+      "name": "REDULTRON-PWA-Visual-Assets",
+      "purpose": "Plan original dashboard icon and visual asset set. Work only with authorized public/repository data, report evidence, no secret exposure, no push/merge/deploy or external writes without explicit approval.",
+      "status": "stopped",
+      "accessStatus": "Listed in the connected JackHamr account; no machine started in this audit.",
+      "evidence": "JackHamr list_agents snapshot 2026-10-29T02:53:01+05:30",
+      "tests": "NOT TESTED — inventory only; no agent task was dispatched.",
+      "blocker": "Agent status is stopped; organization credits are exhausted (balance -11.737204 USD, allowance remaining 0)."
+    },
+    {
+      "id": "197fb84e-f59f-488a-b73c-d182a725dca5",
+      "name": "REDULTRON-PWA-Responsive",
+      "purpose": "Audit responsive layout for narrow Android screens. Work only with authorized public/repository data, report evidence, no secret exposure, no push/merge/deploy or external writes without explicit approval.",
+      "status": "stopped",
+      "accessStatus": "Listed in the connected JackHamr account; no machine started in this audit.",
+      "evidence": "JackHamr list_agents snapshot 2026-10-29T02:53:01+05:30",
+      "tests": "NOT TESTED — inventory only; no agent task was dispatched.",
+      "blocker": "Agent status is stopped; organization credits are exhausted (balance -11.737204 USD, allowance remaining 0)."
+    },
+    {
+      "id": "2449def4-a71e-4768-b969-d53e4dc9c66e",
+      "name": "REDULTRON-PWA-Voice",
+      "purpose": "Audit mic permissions, voice input and speech cancellation UX. Work only with authorized public/repository data, report evidence, no secret exposure, no push/merge/deploy or external writes without explicit approval.",
+      "status": "stopped",
+      "accessStatus": "Listed in the connected JackHamr account; no machine started in this audit.",
+      "evidence": "JackHamr list_agents snapshot 2026-10-29T02:53:01+05:30",
+      "tests": "NOT TESTED — inventory only; no agent task was dispatched.",
+      "blocker": "Agent status is stopped; organization credits are exhausted (balance -11.737204 USD, allowance remaining 0)."
+    },
+    {
+      "id": "a3c3e107-1033-4ab2-aa38-e9635fbff8e8",
+      "name": "REDULTRON-PWA-Video",
+      "purpose": "Audit live video UI integration boundaries and playback errors. Use authorized repo/public data only. Report evidence, protect secrets, no push/merge/deploy or external writes without approval.",
+      "status": "stopped",
+      "accessStatus": "Listed in the connected JackHamr account; no machine started in this audit.",
+      "evidence": "JackHamr list_agents snapshot 2026-10-29T02:53:01+05:30",
+      "tests": "NOT TESTED — inventory only; no agent task was dispatched.",
+      "blocker": "Agent status is stopped; organization credits are exhausted (balance -11.737204 USD, allowance remaining 0)."
+    },
+    {
+      "id": "43157612-b3ab-4803-974f-6cca83f871bb",
+      "name": "REDULTRON-PWA-Chat",
+      "purpose": "Audit chat and command center interface. Use authorized repo/public data only. Report evidence, protect secrets, no push/merge/deploy or external writes without approval.",
+      "status": "stopped",
+      "accessStatus": "Listed in the connected JackHamr account; no machine started in this audit.",
+      "evidence": "JackHamr list_agents snapshot 2026-10-29T02:53:01+05:30",
+      "tests": "NOT TESTED — inventory only; no agent task was dispatched.",
+      "blocker": "Agent status is stopped; organization credits are exhausted (balance -11.737204 USD, allowance remaining 0)."
+    },
+    {
+      "id": "2f087eff-2534-420d-9860-3b3ec2824edb",
+      "name": "REDULTRON-PWA-Tool-Panels",
+      "purpose": "Audit tools panel and capability disclosure. Use authorized repo/public data only. Report evidence, protect secrets, no push/merge/deploy or external writes without approval.",
+      "status": "stopped",
+      "accessStatus": "Listed in the connected JackHamr account; no machine started in this audit.",
+      "evidence": "JackHamr list_agents snapshot 2026-10-29T02:53:01+05:30",
+      "tests": "NOT TESTED — inventory only; no agent task was dispatched.",
+      "blocker": "Agent status is stopped; organization credits are exhausted (balance -11.737204 USD, allowance remaining 0)."
+    },
+    {
+      "id": "20d7a38f-38a7-4aaf-8673-47d031e7b6a4",
+      "name": "REDULTRON-PWA-Quick-Actions",
+      "purpose": "Audit quick actions and confirmation requirements. Use authorized repo/public data only. Report evidence, protect secrets, no push/merge/deploy or external writes without approval.",
+      "status": "stopped",
+      "accessStatus": "Listed in the connected JackHamr account; no machine started in this audit.",
+      "evidence": "JackHamr list_agents snapshot 2026-10-29T02:53:01+05:30",
+      "tests": "NOT TESTED — inventory only; no agent task was dispatched.",
+      "blocker": "Agent status is stopped; organization credits are exhausted (balance -11.737204 USD, allowance remaining 0)."
+    },
+    {
+      "id": "3a9af861-a003-49bb-baef-6664eba350de",
+      "name": "REDULTRON-PWA-Performance",
+      "purpose": "Review bundle size, startup and rendering performance. Use authorized repo/public data only. Report evidence, protect secrets, no push/merge/deploy or external writes without approval.",
+      "status": "stopped",
+      "accessStatus": "Listed in the connected JackHamr account; no machine started in this audit.",
+      "evidence": "JackHamr list_agents snapshot 2026-10-29T02:53:01+05:30",
+      "tests": "NOT TESTED — inventory only; no agent task was dispatched.",
+      "blocker": "Agent status is stopped; organization credits are exhausted (balance -11.737204 USD, allowance remaining 0)."
+    },
+    {
+      "id": "eead9f32-bf1b-41c6-8f3b-4cdfcffaea76",
+      "name": "REDULTRON-PWA-CSP",
+      "purpose": "Review CSP, DOM injection and frontend security. Use authorized repo/public data only. Report evidence, protect secrets, no push/merge/deploy or external writes without approval.",
+      "status": "stopped",
+      "accessStatus": "Listed in the connected JackHamr account; no machine started in this audit.",
+      "evidence": "JackHamr list_agents snapshot 2026-10-29T02:53:01+05:30",
+      "tests": "NOT TESTED — inventory only; no agent task was dispatched.",
+      "blocker": "Agent status is stopped; organization credits are exhausted (balance -11.737204 USD, allowance remaining 0)."
+    },
+    {
+      "id": "8027821c-5310-4359-b20f-58ca7f42f501",
+      "name": "REDULTRON-PWA-A11y",
+      "purpose": "Audit contrast, keyboard and screen reader support. Use authorized repo/public data only. Report evidence, protect secrets, no push/merge/deploy or external writes without approval.",
+      "status": "stopped",
+      "accessStatus": "Listed in the connected JackHamr account; no machine started in this audit.",
+      "evidence": "JackHamr list_agents snapshot 2026-10-29T02:53:01+05:30",
+      "tests": "NOT TESTED — inventory only; no agent task was dispatched.",
+      "blocker": "Agent status is stopped; organization credits are exhausted (balance -11.737204 USD, allowance remaining 0)."
+    },
+    {
+      "id": "434fa842-a296-4676-9180-4414fbe9f370",
+      "name": "REDULTRON-API-Gateway",
+      "purpose": "Design secure single API gateway and route inventory. Use authorized repo/public data only. Report evidence, protect secrets, no push/merge/deploy or external writes without approval.",
+      "status": "stopped",
+      "accessStatus": "Listed in the connected JackHamr account; no machine started in this audit.",
+      "evidence": "JackHamr list_agents snapshot 2026-10-29T02:53:01+05:30",
+      "tests": "NOT TESTED — inventory only; no agent task was dispatched.",
+      "blocker": "Agent status is stopped; organization credits are exhausted (balance -11.737204 USD, allowance remaining 0)."
+    },
+    {
+      "id": "e3e6ae58-16cd-443b-84f6-92754464a3cd",
+      "name": "REDULTRON-API-Contracts",
+      "purpose": "Define schemas, validation and versioning for API calls. Use authorized repo/public data only. Report evidence, protect secrets, no push/merge/deploy or external writes without approval.",
+      "status": "stopped",
+      "accessStatus": "Listed in the connected JackHamr account; no machine started in this audit.",
+      "evidence": "JackHamr list_agents snapshot 2026-10-29T02:53:01+05:30",
+      "tests": "NOT TESTED — inventory only; no agent task was dispatched.",
+      "blocker": "Agent status is stopped; organization credits are exhausted (balance -11.737204 USD, allowance remaining 0)."
+    },
+    {
+      "id": "8c71c3e6-5668-40cc-a59a-132d63cbca23",
+      "name": "REDULTRON-API-Retry",
+      "purpose": "Design bounded retry/backoff and timeout handling. Use authorized repo/public data only. Report evidence, protect secrets, no push/merge/deploy or external writes without approval.",
+      "status": "stopped",
+      "accessStatus": "Listed in the connected JackHamr account; no machine started in this audit.",
+      "evidence": "JackHamr list_agents snapshot 2026-10-29T02:53:01+05:30",
+      "tests": "NOT TESTED — inventory only; no agent task was dispatched.",
+      "blocker": "Agent status is stopped; organization credits are exhausted (balance -11.737204 USD, allowance remaining 0)."
+    },
+    {
+      "id": "086726d1-45f6-40bf-8828-1c56d0dcdb99",
+      "name": "REDULTRON-API-Observability",
+      "purpose": "Define request IDs, redacted logs and trace correlation. Use authorized repo/public data only. Report evidence, protect secrets, no push/merge/deploy or external writes without approval.",
+      "status": "stopped",
+      "accessStatus": "Listed in the connected JackHamr account; no machine started in this audit.",
+      "evidence": "JackHamr list_agents snapshot 2026-10-29T02:53:01+05:30",
+      "tests": "NOT TESTED — inventory only; no agent task was dispatched.",
+      "blocker": "Agent status is stopped; organization credits are exhausted (balance -11.737204 USD, allowance remaining 0)."
+    },
+    {
+      "id": "08136066-0b10-490a-b978-6dbbcadd2e54",
+      "name": "REDULTRON-API-Rate-Limits",
+      "purpose": "Review per-route rate limits and abuse controls. Use authorized repo/public data only. Report evidence, protect secrets, no push/merge/deploy or external writes without approval.",
+      "status": "stopped",
+      "accessStatus": "Listed in the connected JackHamr account; no machine started in this audit.",
+      "evidence": "JackHamr list_agents snapshot 2026-10-29T02:53:01+05:30",
+      "tests": "NOT TESTED — inventory only; no agent task was dispatched.",
+      "blocker": "Agent status is stopped; organization credits are exhausted (balance -11.737204 USD, allowance remaining 0)."
+    },
+    {
+      "id": "7e96e6e8-5643-474f-a786-c1e72a720162",
+      "name": "REDULTRON-API-Errors",
+      "purpose": "Standardize safe API errors and client fallback states. Use authorized repo/public data only. Report evidence, protect secrets, no push/merge/deploy or external writes without approval.",
+      "status": "stopped",
+      "accessStatus": "Listed in the connected JackHamr account; no machine started in this audit.",
+      "evidence": "JackHamr list_agents snapshot 2026-10-29T02:53:01+05:30",
+      "tests": "NOT TESTED — inventory only; no agent task was dispatched.",
+      "blocker": "Agent status is stopped; organization credits are exhausted (balance -11.737204 USD, allowance remaining 0)."
+    },
+    {
+      "id": "52e3b3c0-a7c5-4d09-be49-5baa28159447",
+      "name": "REDULTRON-API-Auth",
+      "purpose": "Audit authentication middleware and session boundaries. Use authorized repo/public data only. Report evidence, protect secrets, no push/merge/deploy or external writes without approval.",
+      "status": "stopped",
+      "accessStatus": "Listed in the connected JackHamr account; no machine started in this audit.",
+      "evidence": "JackHamr list_agents snapshot 2026-10-29T02:53:01+05:30",
+      "tests": "NOT TESTED — inventory only; no agent task was dispatched.",
+      "blocker": "Agent status is stopped; organization credits are exhausted (balance -11.737204 USD, allowance remaining 0)."
+    },
+    {
+      "id": "09f226bf-9055-4a53-abc1-815e541bffb0",
+      "name": "REDULTRON-API-Token-Binding",
+      "purpose": "Design server-side token binding and rotation without frontend secrets. Use authorized repo/public data only. Report evidence, protect secrets, no push/merge/deploy or external writes without approval.",
+      "status": "stopped",
+      "accessStatus": "Listed in the connected JackHamr account; no machine started in this audit.",
+      "evidence": "JackHamr list_agents snapshot 2026-10-29T02:53:01+05:30",
+      "tests": "NOT TESTED — inventory only; no agent task was dispatched.",
+      "blocker": "Agent status is stopped; organization credits are exhausted (balance -11.737204 USD, allowance remaining 0)."
+    },
+    {
+      "id": "654db4ae-9590-491e-a7e2-d3aed2e7bbd1",
+      "name": "REDULTRON-API-Scopes",
+      "purpose": "Map least-privilege scopes per tool and route. Use authorized repo/public data only. Report evidence, protect secrets, no push/merge/deploy or external writes without approval.",
+      "status": "stopped",
+      "accessStatus": "Listed in the connected JackHamr account; no machine started in this audit.",
+      "evidence": "JackHamr list_agents snapshot 2026-10-29T02:53:01+05:30",
+      "tests": "NOT TESTED — inventory only; no agent task was dispatched.",
+      "blocker": "Agent status is stopped; organization credits are exhausted (balance -11.737204 USD, allowance remaining 0)."
+    },
+    {
+      "id": "693db8a1-4ac9-489e-b224-10d1cd9d129b",
+      "name": "REDULTRON-API-Idempotency",
+      "purpose": "Design idempotency keys and replay prevention. Use authorized repo/public data only. Report evidence, protect secrets, no push/merge/deploy or external writes without approval.",
+      "status": "stopped",
+      "accessStatus": "Listed in the connected JackHamr account; no machine started in this audit.",
+      "evidence": "JackHamr list_agents snapshot 2026-10-29T02:53:01+05:30",
+      "tests": "NOT TESTED — inventory only; no agent task was dispatched.",
+      "blocker": "Agent status is stopped; organization credits are exhausted (balance -11.737204 USD, allowance remaining 0)."
+    },
+    {
+      "id": "41a83325-d7e7-4dfa-9c87-4e190f4118f2",
+      "name": "REDULTRON-API-Circuit-Breaker",
+      "purpose": "Design upstream circuit breaker and health probes. Use authorized repo/public data only. Report evidence, protect secrets, no push/merge/deploy or external writes without approval.",
+      "status": "stopped",
+      "accessStatus": "Listed in the connected JackHamr account; no machine started in this audit.",
+      "evidence": "JackHamr list_agents snapshot 2026-10-29T02:53:01+05:30",
+      "tests": "NOT TESTED — inventory only; no agent task was dispatched.",
+      "blocker": "Agent status is stopped; organization credits are exhausted (balance -11.737204 USD, allowance remaining 0)."
+    },
+    {
+      "id": "eb37644e-fb56-42ed-a9e3-810db02f3b4c",
+      "name": "REDULTRON-Search-Router",
+      "purpose": "Review Tavily and alternate search provider routing. Use authorized repo/public data only. Report evidence, protect secrets, no push/merge/deploy or external writes without approval.",
+      "status": "stopped",
+      "accessStatus": "Listed in the connected JackHamr account; no machine started in this audit.",
+      "evidence": "JackHamr list_agents snapshot 2026-10-29T02:53:01+05:30",
+      "tests": "NOT TESTED — inventory only; no agent task was dispatched.",
+      "blocker": "Agent status is stopped; organization credits are exhausted (balance -11.737204 USD, allowance remaining 0)."
+    },
+    {
+      "id": "a87eba1a-3dd9-4d6e-af8b-cfc17ab29fa2",
+      "name": "REDULTRON-Search-Fallback",
+      "purpose": "Design bounded search fallback and stale-data labeling. Use authorized repo/public data only. Report evidence, protect secrets, no push/merge/deploy or external writes without approval.",
+      "status": "stopped",
+      "accessStatus": "Listed in the connected JackHamr account; no machine started in this audit.",
+      "evidence": "JackHamr list_agents snapshot 2026-10-29T02:53:01+05:30",
+      "tests": "NOT TESTED — inventory only; no agent task was dispatched.",
+      "blocker": "Agent status is stopped; organization credits are exhausted (balance -11.737204 USD, allowance remaining 0)."
+    },
+    {
+      "id": "fc4ea84b-8e1c-4d75-baff-d3e7b7a337e2",
+      "name": "REDULTRON-Search-Quality",
+      "purpose": "Define source quality, recency and evidence checks. Use authorized repo/public data only. Report evidence, protect secrets, no push/merge/deploy or external writes without approval.",
+      "status": "stopped",
+      "accessStatus": "Listed in the connected JackHamr account; no machine started in this audit.",
+      "evidence": "JackHamr list_agents snapshot 2026-10-29T02:53:01+05:30",
+      "tests": "NOT TESTED — inventory only; no agent task was dispatched.",
+      "blocker": "Agent status is stopped; organization credits are exhausted (balance -11.737204 USD, allowance remaining 0)."
+    },
+    {
+      "id": "acb25e4b-e152-4f4f-b698-0899c305c2f2",
+      "name": "REDULTRON-Search-Safety",
+      "purpose": "Audit search result prompt injection and untrusted content handling. Use authorized repo/public data only. Report evidence, protect secrets, no push/merge/deploy or external writes without approval.",
+      "status": "stopped",
+      "accessStatus": "Listed in the connected JackHamr account; no machine started in this audit.",
+      "evidence": "JackHamr list_agents snapshot 2026-10-29T02:53:01+05:30",
+      "tests": "NOT TESTED — inventory only; no agent task was dispatched.",
+      "blocker": "Agent status is stopped; organization credits are exhausted (balance -11.737204 USD, allowance remaining 0)."
+    },
+    {
+      "id": "6de0f479-b3db-482e-8631-e844e079d5d2",
+      "name": "REDULTRON-Internet-Health",
+      "purpose": "Design resilient internet connectivity and DNS/TLS diagnostics. Use authorized repo/public data only. Report evidence, protect secrets, no push/merge/deploy or external writes without approval.",
+      "status": "stopped",
+      "accessStatus": "Listed in the connected JackHamr account; no machine started in this audit.",
+      "evidence": "JackHamr list_agents snapshot 2026-10-29T02:53:01+05:30",
+      "tests": "NOT TESTED — inventory only; no agent task was dispatched.",
+      "blocker": "Agent status is stopped; organization credits are exhausted (balance -11.737204 USD, allowance remaining 0)."
+    },
+    {
+      "id": "8649aa05-ed94-4b20-9cb8-b66e5460cb1d",
+      "name": "REDULTRON-Internet-Proxy",
+      "purpose": "Review safe outbound networking and egress allowlists. Use authorized repo/public data only. Report evidence, protect secrets, no push/merge/deploy or external writes without approval.",
+      "status": "stopped",
+      "accessStatus": "Listed in the connected JackHamr account; no machine started in this audit.",
+      "evidence": "JackHamr list_agents snapshot 2026-10-29T02:53:01+05:30",
+      "tests": "NOT TESTED — inventory only; no agent task was dispatched.",
+      "blocker": "Agent status is stopped; organization credits are exhausted (balance -11.737204 USD, allowance remaining 0)."
+    },
+    {
+      "id": "3ebc5f26-d091-4a2d-8201-cba96fc13256",
+      "name": "REDULTRON-Internet-Timeouts",
+      "purpose": "Design connection timeouts, cancellation and bounded retries. Use authorized repo/public data only. Report evidence, protect secrets, no push/merge/deploy or external writes without approval.",
+      "status": "stopped",
+      "accessStatus": "Listed in the connected JackHamr account; no machine started in this audit.",
+      "evidence": "JackHamr list_agents snapshot 2026-10-29T02:53:01+05:30",
+      "tests": "NOT TESTED — inventory only; no agent task was dispatched.",
+      "blocker": "Agent status is stopped; organization credits are exhausted (balance -11.737204 USD, allowance remaining 0)."
+    },
+    {
+      "id": "09732e36-fb85-4f38-9b0b-b83cec9cb73c",
+      "name": "REDULTRON-Internet-Privacy",
+      "purpose": "Review outbound request minimization and privacy. Use authorized repo/public data only. Report evidence, protect secrets, no push/merge/deploy or external writes without approval.",
+      "status": "stopped",
+      "accessStatus": "Listed in the connected JackHamr account; no machine started in this audit.",
+      "evidence": "JackHamr list_agents snapshot 2026-10-29T02:53:01+05:30",
+      "tests": "NOT TESTED — inventory only; no agent task was dispatched.",
+      "blocker": "Agent status is stopped; organization credits are exhausted (balance -11.737204 USD, allowance remaining 0)."
+    },
+    {
+      "id": "4e270a35-2e25-4bd0-854b-c4eebad5036e",
+      "name": "REDULTRON-Cloudflare-Worker",
+      "purpose": "Audit Worker route architecture and deployment constraints. Use authorized repo/public data only. Report evidence, protect secrets, no push/merge/deploy or external writes without approval.",
+      "status": "stopped",
+      "accessStatus": "Listed in the connected JackHamr account; no machine started in this audit.",
+      "evidence": "JackHamr list_agents snapshot 2026-10-29T02:53:01+05:30",
+      "tests": "NOT TESTED — inventory only; no agent task was dispatched.",
+      "blocker": "Agent status is stopped; organization credits are exhausted (balance -11.737204 USD, allowance remaining 0)."
+    },
+    {
+      "id": "95a08e38-fcfc-41c4-b555-63e1c9267634",
+      "name": "REDULTRON-Cloudflare-D1",
+      "purpose": "Audit D1 schema, migrations and transactional behavior. Use authorized repo/public data only. Report evidence, protect secrets, no push/merge/deploy or external writes without approval.",
+      "status": "stopped",
+      "accessStatus": "Listed in the connected JackHamr account; no machine started in this audit.",
+      "evidence": "JackHamr list_agents snapshot 2026-10-29T02:53:01+05:30",
+      "tests": "NOT TESTED — inventory only; no agent task was dispatched.",
+      "blocker": "Agent status is stopped; organization credits are exhausted (balance -11.737204 USD, allowance remaining 0)."
+    },
+    {
+      "id": "136d268f-e38c-4f12-a61a-5ba08b65c3c2",
+      "name": "REDULTRON-Cloudflare-KV",
+      "purpose": "Audit KV usage, quotas and cache semantics. Use authorized repo/public data only. Report evidence, protect secrets, no push/merge/deploy or external writes without approval.",
+      "status": "stopped",
+      "accessStatus": "Listed in the connected JackHamr account; no machine started in this audit.",
+      "evidence": "JackHamr list_agents snapshot 2026-10-29T02:53:01+05:30",
+      "tests": "NOT TESTED — inventory only; no agent task was dispatched.",
+      "blocker": "Agent status is stopped; organization credits are exhausted (balance -11.737204 USD, allowance remaining 0)."
+    },
+    {
+      "id": "d5bee069-5e67-4f02-9eff-6e567d3bbe8b",
+      "name": "REDULTRON-Cloudflare-Queues",
+      "purpose": "Design durable queue retries and dead-letter handling. Use authorized repo/public data only. Report evidence, protect secrets, no push/merge/deploy or external writes without approval.",
+      "status": "stopped",
+      "accessStatus": "Listed in the connected JackHamr account; no machine started in this audit.",
+      "evidence": "JackHamr list_agents snapshot 2026-10-29T02:53:01+05:30",
+      "tests": "NOT TESTED — inventory only; no agent task was dispatched.",
+      "blocker": "Agent status is stopped; organization credits are exhausted (balance -11.737204 USD, allowance remaining 0)."
+    },
+    {
+      "id": "722abf53-536e-4ec0-a55e-e05e2dbb0994",
+      "name": "REDULTRON-Cloudflare-Cron",
+      "purpose": "Audit scheduled jobs, locks and idempotency. Use authorized repo/public data only. Report evidence, protect secrets, no push/merge/deploy or external writes without approval.",
+      "status": "stopped",
+      "accessStatus": "Listed in the connected JackHamr account; no machine started in this audit.",
+      "evidence": "JackHamr list_agents snapshot 2026-10-29T02:53:01+05:30",
+      "tests": "NOT TESTED — inventory only; no agent task was dispatched.",
+      "blocker": "Agent status is stopped; organization credits are exhausted (balance -11.737204 USD, allowance remaining 0)."
+    },
+    {
+      "id": "48362d0d-1367-4be2-b330-b8e6ac992217",
+      "name": "REDULTRON-Cloudflare-Secrets",
+      "purpose": "Review server-side secret bindings and rotation. Use authorized repo/public data only. Report evidence, protect secrets, no push/merge/deploy or external writes without approval.",
+      "status": "stopped",
+      "accessStatus": "Listed in the connected JackHamr account; no machine started in this audit.",
+      "evidence": "JackHamr list_agents snapshot 2026-10-29T02:53:01+05:30",
+      "tests": "NOT TESTED — inventory only; no agent task was dispatched.",
+      "blocker": "Agent status is stopped; organization credits are exhausted (balance -11.737204 USD, allowance remaining 0)."
+    },
+    {
+      "id": "daa66eea-51b9-4103-aaa7-0b28371f1e6e",
+      "name": "REDULTRON-Security-Threat-Model",
+      "purpose": "Create threat model and trust boundaries. Use authorized repo/public data only. Report evidence, protect secrets, no push/merge/deploy or external writes without approval.",
+      "status": "stopped",
+      "accessStatus": "Listed in the connected JackHamr account; no machine started in this audit.",
+      "evidence": "JackHamr list_agents snapshot 2026-10-29T02:53:01+05:30",
+      "tests": "NOT TESTED — inventory only; no agent task was dispatched.",
+      "blocker": "Agent status is stopped; organization credits are exhausted (balance -11.737204 USD, allowance remaining 0)."
+    },
+    {
+      "id": "73472485-8ea8-45ef-92f0-f3832a8e7f4e",
+      "name": "REDULTRON-Security-Bridge-Protocol",
+      "purpose": "Review signed/authenticated bridge message protocol. Use authorized repo/public data only. Report evidence, protect secrets, no push/merge/deploy or external writes without approval.",
+      "status": "stopped",
+      "accessStatus": "Listed in the connected JackHamr account; no machine started in this audit.",
+      "evidence": "JackHamr list_agents snapshot 2026-10-29T02:53:01+05:30",
+      "tests": "NOT TESTED — inventory only; no agent task was dispatched.",
+      "blocker": "Agent status is stopped; organization credits are exhausted (balance -11.737204 USD, allowance remaining 0)."
+    },
+    {
+      "id": "dcb1947f-60a3-4640-9202-2559121e20af",
+      "name": "REDULTRON-Security-Identity",
+      "purpose": "Design agent identity registration and revocation. Use authorized repo/public data only. Report evidence, protect secrets, no push/merge/deploy or external writes without approval.",
+      "status": "stopped",
+      "accessStatus": "Listed in the connected JackHamr account; no machine started in this audit.",
+      "evidence": "JackHamr list_agents snapshot 2026-10-29T02:53:01+05:30",
+      "tests": "NOT TESTED — inventory only; no agent task was dispatched.",
+      "blocker": "Agent status is stopped; organization credits are exhausted (balance -11.737204 USD, allowance remaining 0)."
+    },
+    {
+      "id": "0d78c580-a164-4865-9b6f-d625c16cd308",
+      "name": "REDULTRON-Security-Audit",
+      "purpose": "Review immutable security audit event structure. Use authorized repo/public data only. Report evidence, protect secrets, no push/merge/deploy or external writes without approval.",
+      "status": "stopped",
+      "accessStatus": "Listed in the connected JackHamr account; no machine started in this audit.",
+      "evidence": "JackHamr list_agents snapshot 2026-10-29T02:53:01+05:30",
+      "tests": "NOT TESTED — inventory only; no agent task was dispatched.",
+      "blocker": "Agent status is stopped; organization credits are exhausted (balance -11.737204 USD, allowance remaining 0)."
+    },
+    {
+      "id": "9407ce8c-9f97-4b2c-b7a1-f950e0bf67ef",
+      "name": "REDULTRON-Security-Sandbox",
+      "purpose": "Define tool execution sandbox and capability checks. Use authorized repo/public data only. Report evidence, protect secrets, no push/merge/deploy or external writes without approval.",
+      "status": "stopped",
+      "accessStatus": "Listed in the connected JackHamr account; no machine started in this audit.",
+      "evidence": "JackHamr list_agents snapshot 2026-10-29T02:53:01+05:30",
+      "tests": "NOT TESTED — inventory only; no agent task was dispatched.",
+      "blocker": "Agent status is stopped; organization credits are exhausted (balance -11.737204 USD, allowance remaining 0)."
+    },
+    {
+      "id": "0fa4a831-6e3f-482f-a6a2-f332f50c038f",
+      "name": "REDULTRON-Alpha-Load-Test",
+      "purpose": "Create safe bounded load tests for staging only; no uncontrolled stress or production load. Use authorized data only. No secrets in chat; no uncontrolled load; no push/merge/deploy or external writes without explicit approval. Report PASS/FAIL/BLOCKED/NOT TESTED with evidence.",
+      "status": "stopped",
+      "accessStatus": "Listed in the connected JackHamr account; no machine started in this audit.",
+      "evidence": "JackHamr list_agents snapshot 2026-10-29T02:53:01+05:30",
+      "tests": "NOT TESTED — inventory only; no agent task was dispatched.",
+      "blocker": "Agent status is stopped; organization credits are exhausted (balance -11.737204 USD, allowance remaining 0)."
+    },
+    {
+      "id": "20769b1d-cc33-49da-9783-e54dfdf0e9d6",
+      "name": "REDULTRON-Alpha-Performance",
+      "purpose": "Profile PWA and Worker latency with resource caps. Use authorized data only. No secrets in chat; no uncontrolled load; no push/merge/deploy or external writes without explicit approval. Report PASS/FAIL/BLOCKED/NOT TESTED with evidence.",
+      "status": "stopped",
+      "accessStatus": "Listed in the connected JackHamr account; no machine started in this audit.",
+      "evidence": "JackHamr list_agents snapshot 2026-10-29T02:53:01+05:30",
+      "tests": "NOT TESTED — inventory only; no agent task was dispatched.",
+      "blocker": "Agent status is stopped; organization credits are exhausted (balance -11.737204 USD, allowance remaining 0)."
+    },
+    {
+      "id": "434d0c4b-998c-44fd-912b-fbc97e17686c",
+      "name": "REDULTRON-Alpha-Memory-Pressure",
+      "purpose": "Test memory and payload ceilings in isolated environment. Use authorized data only. No secrets in chat; no uncontrolled load; no push/merge/deploy or external writes without explicit approval. Report PASS/FAIL/BLOCKED/NOT TESTED with evidence.",
+      "status": "stopped",
+      "accessStatus": "Listed in the connected JackHamr account; no machine started in this audit.",
+      "evidence": "JackHamr list_agents snapshot 2026-10-29T02:53:01+05:30",
+      "tests": "NOT TESTED — inventory only; no agent task was dispatched.",
+      "blocker": "Agent status is stopped; organization credits are exhausted (balance -11.737204 USD, allowance remaining 0)."
+    },
+    {
+      "id": "c1709f82-c5fa-4849-a828-632ee055e2a1",
+      "name": "REDULTRON-Alpha-Concurrency",
+      "purpose": "Test race conditions and idempotency under bounded concurrency. Use authorized data only. No secrets in chat; no uncontrolled load; no push/merge/deploy or external writes without explicit approval. Report PASS/FAIL/BLOCKED/NOT TESTED with evidence.",
+      "status": "stopped",
+      "accessStatus": "Listed in the connected JackHamr account; no machine started in this audit.",
+      "evidence": "JackHamr list_agents snapshot 2026-10-29T02:53:01+05:30",
+      "tests": "NOT TESTED — inventory only; no agent task was dispatched.",
+      "blocker": "Agent status is stopped; organization credits are exhausted (balance -11.737204 USD, allowance remaining 0)."
+    },
+    {
+      "id": "5b57314a-f29c-4ea7-abf9-9df4dea939d6",
+      "name": "REDULTRON-Alpha-Soak",
+      "purpose": "Design low-rate soak tests with stop conditions and explicit staging target. Use authorized data only. No secrets in chat; no uncontrolled load; no push/merge/deploy or external writes without explicit approval. Report PASS/FAIL/BLOCKED/NOT TESTED with evidence.",
+      "status": "stopped",
+      "accessStatus": "Listed in the connected JackHamr account; no machine started in this audit.",
+      "evidence": "JackHamr list_agents snapshot 2026-10-29T02:53:01+05:30",
+      "tests": "NOT TESTED — inventory only; no agent task was dispatched.",
+      "blocker": "Agent status is stopped; organization credits are exhausted (balance -11.737204 USD, allowance remaining 0)."
+    },
+    {
+      "id": "db330498-5cc2-4f7c-bd61-c24699c0108a",
+      "name": "REDULTRON-Beta-CI-Logs",
+      "purpose": "Analyze CI logs and categorize failing steps. Use authorized data only. No secrets in chat; no uncontrolled load; no push/merge/deploy or external writes without explicit approval. Report PASS/FAIL/BLOCKED/NOT TESTED with evidence.",
+      "status": "stopped",
+      "accessStatus": "Listed in the connected JackHamr account; no machine started in this audit.",
+      "evidence": "JackHamr list_agents snapshot 2026-10-29T02:53:01+05:30",
+      "tests": "NOT TESTED — inventory only; no agent task was dispatched.",
+      "blocker": "Agent status is stopped; organization credits are exhausted (balance -11.737204 USD, allowance remaining 0)."
+    },
+    {
+      "id": "b2ebf4be-bacf-426f-a52c-230cf1b59122",
+      "name": "REDULTRON-Beta-Test-Harness",
+      "purpose": "Reproduce 505-test harness issues and report exact failures. Use authorized data only. No secrets in chat; no uncontrolled load; no push/merge/deploy or external writes without explicit approval. Report PASS/FAIL/BLOCKED/NOT TESTED with evidence.",
+      "status": "stopped",
+      "accessStatus": "Listed in the connected JackHamr account; no machine started in this audit.",
+      "evidence": "JackHamr list_agents snapshot 2026-10-29T02:53:01+05:30",
+      "tests": "NOT TESTED — inventory only; no agent task was dispatched.",
+      "blocker": "Agent status is stopped; organization credits are exhausted (balance -11.737204 USD, allowance remaining 0)."
+    },
+    {
+      "id": "e1091d37-eb10-4afd-93b0-d162ffbf41df",
+      "name": "REDULTRON-Beta-Patch-Review",
+      "purpose": "Review minimal patch proposals and regression risk. Use authorized data only. No secrets in chat; no uncontrolled load; no push/merge/deploy or external writes without explicit approval. Report PASS/FAIL/BLOCKED/NOT TESTED with evidence.",
+      "status": "stopped",
+      "accessStatus": "Listed in the connected JackHamr account; no machine started in this audit.",
+      "evidence": "JackHamr list_agents snapshot 2026-10-29T02:53:01+05:30",
+      "tests": "NOT TESTED — inventory only; no agent task was dispatched.",
+      "blocker": "Agent status is stopped; organization credits are exhausted (balance -11.737204 USD, allowance remaining 0)."
+    },
+    {
+      "id": "19d809fb-70fb-4865-8f11-d401d40c1faf",
+      "name": "REDULTRON-Beta-Workflow",
+      "purpose": "Audit GitHub Actions workflows and permissions. Authorized data only. No secrets in chat, no push/merge/deploy without approval. Evidence-based PASS/FAIL/BLOCKED/NOT TESTED.",
+      "status": "stopped",
+      "accessStatus": "Listed in the connected JackHamr account; no machine started in this audit.",
+      "evidence": "JackHamr list_agents snapshot 2026-10-29T02:53:01+05:30",
+      "tests": "NOT TESTED — inventory only; no agent task was dispatched.",
+      "blocker": "Agent status is stopped; organization credits are exhausted (balance -11.737204 USD, allowance remaining 0)."
+    },
+    {
+      "id": "ba8522d1-09ae-43e4-9281-e4b0af9675b8",
+      "name": "REDULTRON-Beta-Regression",
+      "purpose": "Design regression test matrix for auth, PWA, API. Authorized data only. No secrets in chat, no push/merge/deploy without approval. Evidence-based PASS/FAIL/BLOCKED/NOT TESTED.",
+      "status": "stopped",
+      "accessStatus": "Listed in the connected JackHamr account; no machine started in this audit.",
+      "evidence": "JackHamr list_agents snapshot 2026-10-29T02:53:01+05:30",
+      "tests": "NOT TESTED — inventory only; no agent task was dispatched.",
+      "blocker": "Agent status is stopped; organization credits are exhausted (balance -11.737204 USD, allowance remaining 0)."
+    },
+    {
+      "id": "ac4ea24a-28b2-4a4c-b5ac-0952a84335ca",
+      "name": "REDULTRON-Gamma-Egress",
+      "purpose": "Audit outbound network allowlists and egress controls. Authorized data only. No secrets in chat, no push/merge/deploy without approval. Evidence-based PASS/FAIL/BLOCKED/NOT TESTED.",
+      "status": "stopped",
+      "accessStatus": "Listed in the connected JackHamr account; no machine started in this audit.",
+      "evidence": "JackHamr list_agents snapshot 2026-10-29T02:53:01+05:30",
+      "tests": "NOT TESTED — inventory only; no agent task was dispatched.",
+      "blocker": "Agent status is stopped; organization credits are exhausted (balance -11.737204 USD, allowance remaining 0)."
+    },
+    {
+      "id": "4ef3ba89-d88f-4267-bfdc-242f1f4ed8aa",
+      "name": "REDULTRON-Gamma-Secrets",
+      "purpose": "Audit secret exposure in code/logs/config without revealing values. Authorized data only. No secrets in chat, no push/merge/deploy without approval. Evidence-based PASS/FAIL/BLOCKED/NOT TESTED.",
+      "status": "stopped",
+      "accessStatus": "Listed in the connected JackHamr account; no machine started in this audit.",
+      "evidence": "JackHamr list_agents snapshot 2026-10-29T02:53:01+05:30",
+      "tests": "NOT TESTED — inventory only; no agent task was dispatched.",
+      "blocker": "Agent status is stopped; organization credits are exhausted (balance -11.737204 USD, allowance remaining 0)."
+    },
+    {
+      "id": "07ee37b9-a17a-4f86-8643-d4f2238d508a",
+      "name": "REDULTRON-Gamma-Edge-Auth",
+      "purpose": "Review Worker authentication and origin boundaries. Authorized data only. No secrets in chat, no push/merge/deploy without approval. Evidence-based PASS/FAIL/BLOCKED/NOT TESTED.",
+      "status": "stopped",
+      "accessStatus": "Listed in the connected JackHamr account; no machine started in this audit.",
+      "evidence": "JackHamr list_agents snapshot 2026-10-29T02:53:01+05:30",
+      "tests": "NOT TESTED — inventory only; no agent task was dispatched.",
+      "blocker": "Agent status is stopped; organization credits are exhausted (balance -11.737204 USD, allowance remaining 0)."
+    },
+    {
+      "id": "eb3884c4-3b47-41e1-9864-9b15b19e9573",
+      "name": "REDULTRON-Gamma-Privacy",
+      "purpose": "Review data minimization and retention. Authorized data only. No secrets in chat, no push/merge/deploy without approval. Evidence-based PASS/FAIL/BLOCKED/NOT TESTED.",
+      "status": "stopped",
+      "accessStatus": "Listed in the connected JackHamr account; no machine started in this audit.",
+      "evidence": "JackHamr list_agents snapshot 2026-10-29T02:53:01+05:30",
+      "tests": "NOT TESTED — inventory only; no agent task was dispatched.",
+      "blocker": "Agent status is stopped; organization credits are exhausted (balance -11.737204 USD, allowance remaining 0)."
+    },
+    {
+      "id": "7d7483da-7a5b-490c-b505-fe339772c46c",
+      "name": "REDULTRON-Gamma-Dependency",
+      "purpose": "Audit dependency integrity and supply-chain risks. Authorized data only. No secrets in chat, no push/merge/deploy without approval. Evidence-based PASS/FAIL/BLOCKED/NOT TESTED.",
+      "status": "stopped",
+      "accessStatus": "Listed in the connected JackHamr account; no machine started in this audit.",
+      "evidence": "JackHamr list_agents snapshot 2026-10-29T02:53:01+05:30",
+      "tests": "NOT TESTED — inventory only; no agent task was dispatched.",
+      "blocker": "Agent status is stopped; organization credits are exhausted (balance -11.737204 USD, allowance remaining 0)."
+    },
+    {
+      "id": "6d2b28cc-e249-442f-b4ff-477e496bac24",
+      "name": "REDULTRON-Delta-Bridge-Protocol",
+      "purpose": "Design inter-agent message protocol and schema validation. Authorized data only. No secrets in chat, no push/merge/deploy without approval. Evidence-based PASS/FAIL/BLOCKED/NOT TESTED.",
+      "status": "stopped",
+      "accessStatus": "Listed in the connected JackHamr account; no machine started in this audit.",
+      "evidence": "JackHamr list_agents snapshot 2026-10-29T02:53:01+05:30",
+      "tests": "NOT TESTED — inventory only; no agent task was dispatched.",
+      "blocker": "Agent status is stopped; organization credits are exhausted (balance -11.737204 USD, allowance remaining 0)."
+    },
+    {
+      "id": "b4ada6eb-e192-46d7-ab73-f48a6627c7e0",
+      "name": "REDULTRON-Delta-Bridge-Identity",
+      "purpose": "Design authenticated agent registry and revocation. Authorized data only. No secrets in chat, no push/merge/deploy without approval. Evidence-based PASS/FAIL/BLOCKED/NOT TESTED.",
+      "status": "stopped",
+      "accessStatus": "Listed in the connected JackHamr account; no machine started in this audit.",
+      "evidence": "JackHamr list_agents snapshot 2026-10-29T02:53:01+05:30",
+      "tests": "NOT TESTED — inventory only; no agent task was dispatched.",
+      "blocker": "Agent status is stopped; organization credits are exhausted (balance -11.737204 USD, allowance remaining 0)."
+    },
+    {
+      "id": "c66bc24f-9944-4954-a4e6-f72f55e677f8",
+      "name": "REDULTRON-Delta-Bridge-Queue",
+      "purpose": "Design bounded queue delivery, dedupe and dead-letter handling. Authorized data only. No secrets in chat, no push/merge/deploy without approval. Evidence-based PASS/FAIL/BLOCKED/NOT TESTED.",
+      "status": "stopped",
+      "accessStatus": "Listed in the connected JackHamr account; no machine started in this audit.",
+      "evidence": "JackHamr list_agents snapshot 2026-10-29T02:53:01+05:30",
+      "tests": "NOT TESTED — inventory only; no agent task was dispatched.",
+      "blocker": "Agent status is stopped; organization credits are exhausted (balance -11.737204 USD, allowance remaining 0)."
+    },
+    {
+      "id": "192ed237-5198-45eb-8ae1-dc15a6600576",
+      "name": "REDULTRON-Delta-Bridge-Tests",
+      "purpose": "Build adversarial tests for unauthorized bridge access. Authorized data only. No secrets in chat, no push/merge/deploy without approval. Evidence-based PASS/FAIL/BLOCKED/NOT TESTED.",
+      "status": "stopped",
+      "accessStatus": "Listed in the connected JackHamr account; no machine started in this audit.",
+      "evidence": "JackHamr list_agents snapshot 2026-10-29T02:53:01+05:30",
+      "tests": "NOT TESTED — inventory only; no agent task was dispatched.",
+      "blocker": "Agent status is stopped; organization credits are exhausted (balance -11.737204 USD, allowance remaining 0)."
+    },
+    {
+      "id": "04217271-e340-4478-beaa-a27742dc5819",
+      "name": "REDULTRON-Delta-Bridge-Observability",
+      "purpose": "Design redacted bridge metrics and audit trace correlation. Authorized data only. No secrets in chat, no push/merge/deploy without approval. Evidence-based PASS/FAIL/BLOCKED/NOT TESTED.",
+      "status": "stopped",
+      "accessStatus": "Listed in the connected JackHamr account; no machine started in this audit.",
+      "evidence": "JackHamr list_agents snapshot 2026-10-29T02:53:01+05:30",
+      "tests": "NOT TESTED — inventory only; no agent task was dispatched.",
+      "blocker": "Agent status is stopped; organization credits are exhausted (balance -11.737204 USD, allowance remaining 0)."
+    },
+    {
+      "id": "983d772d-d02e-4798-93f9-aa2990ceaae5",
+      "name": "REDULTRON-BlockBuster-01-Repo-Triage",
+      "purpose": "Inspect authorized repository/PR state; identify concrete blockers and cite paths, run IDs, commit SHAs. No bypasses or fabricated claims.",
+      "status": "stopped",
+      "accessStatus": "Listed in the connected JackHamr account; no machine started in this audit.",
+      "evidence": "JackHamr list_agents snapshot 2026-10-29T02:53:01+05:30",
+      "tests": "NOT TESTED — inventory only; no agent task was dispatched.",
+      "blocker": "Agent status is stopped; organization credits are exhausted (balance -11.737204 USD, allowance remaining 0)."
+    },
+    {
+      "id": "66779e0d-6447-4bd1-82fe-0c1664193020",
+      "name": "REDULTRON-BlockBuster-02-CI-Failure-Forensics",
+      "purpose": "Diagnose failing CI workflows and reproduce failures where authorized; propose minimal evidence-backed fixes.",
+      "status": "stopped",
+      "accessStatus": "Listed in the connected JackHamr account; no machine started in this audit.",
+      "evidence": "JackHamr list_agents snapshot 2026-10-29T02:53:01+05:30",
+      "tests": "NOT TESTED — inventory only; no agent task was dispatched.",
+      "blocker": "Agent status is stopped; organization credits are exhausted (balance -11.737204 USD, allowance remaining 0)."
+    },
+    {
+      "id": "4c986f29-d275-4097-8144-2f55211a1773",
+      "name": "REDULTRON-BlockBuster-03-Dependency-Resolver",
+      "purpose": "Audit dependency/version conflicts and lockfiles; recommend safe, reproducible fixes without disabling checks.",
+      "status": "stopped",
+      "accessStatus": "Listed in the connected JackHamr account; no machine started in this audit.",
+      "evidence": "JackHamr list_agents snapshot 2026-10-29T02:53:01+05:30",
+      "tests": "NOT TESTED — inventory only; no agent task was dispatched.",
+      "blocker": "Agent status is stopped; organization credits are exhausted (balance -11.737204 USD, allowance remaining 0)."
+    },
+    {
+      "id": "8a542c08-26ab-4c89-addf-4c5850aeb598",
+      "name": "REDULTRON-BlockBuster-04-Cloudflare-Config",
+      "purpose": "Review Worker/D1/KV/Queues configuration and binding failures; never expose or request secret values.",
+      "status": "stopped",
+      "accessStatus": "Listed in the connected JackHamr account; no machine started in this audit.",
+      "evidence": "JackHamr list_agents snapshot 2026-10-29T02:53:01+05:30",
+      "tests": "NOT TESTED — inventory only; no agent task was dispatched.",
+      "blocker": "Agent status is stopped; organization credits are exhausted (balance -11.737204 USD, allowance remaining 0)."
+    },
+    {
+      "id": "c68d9750-cfc3-46f5-b789-424ad552a87d",
+      "name": "REDULTRON-BlockBuster-05-Auth-Recovery",
+      "purpose": "Investigate auth/passkey/session blockers, origin/RP checks and owner recovery; do not bypass authentication.",
+      "status": "stopped",
+      "accessStatus": "Listed in the connected JackHamr account; no machine started in this audit.",
+      "evidence": "JackHamr list_agents snapshot 2026-10-29T02:53:01+05:30",
+      "tests": "NOT TESTED — inventory only; no agent task was dispatched.",
+      "blocker": "Agent status is stopped; organization credits are exhausted (balance -11.737204 USD, allowance remaining 0)."
+    },
+    {
+      "id": "9c51a09b-4995-4b27-a787-da9c6970b728",
+      "name": "REDULTRON-BlockBuster-06-PWA-Install",
+      "purpose": "Verify manifest, service worker, offline behavior, installability and Android responsive UI with actual evidence.",
+      "status": "stopped",
+      "accessStatus": "Listed in the connected JackHamr account; no machine started in this audit.",
+      "evidence": "JackHamr list_agents snapshot 2026-10-29T02:53:01+05:30",
+      "tests": "NOT TESTED — inventory only; no agent task was dispatched.",
+      "blocker": "Agent status is stopped; organization credits are exhausted (balance -11.737204 USD, allowance remaining 0)."
+    },
+    {
+      "id": "8db972a6-62ec-414c-9bb7-81f1b8782f9d",
+      "name": "REDULTRON-BlockBuster-07-API-Contract",
+      "purpose": "Review API routes, payload limits, schemas, timeout/retry behavior and fallback paths; preserve fail-closed controls.",
+      "status": "stopped",
+      "accessStatus": "Listed in the connected JackHamr account; no machine started in this audit.",
+      "evidence": "JackHamr list_agents snapshot 2026-10-29T02:53:01+05:30",
+      "tests": "NOT TESTED — inventory only; no agent task was dispatched.",
+      "blocker": "Agent status is stopped; organization credits are exhausted (balance -11.737204 USD, allowance remaining 0)."
+    },
+    {
+      "id": "6884788d-2267-4746-9bd7-3eac7b877b98",
+      "name": "REDULTRON-BlockBuster-08-Bridge-Security",
+      "purpose": "Audit agent bridge identity, scoped authorization, replay protection, queue integrity and audit logging.",
+      "status": "stopped",
+      "accessStatus": "Listed in the connected JackHamr account; no machine started in this audit.",
+      "evidence": "JackHamr list_agents snapshot 2026-10-29T02:53:01+05:30",
+      "tests": "NOT TESTED — inventory only; no agent task was dispatched.",
+      "blocker": "Agent status is stopped; organization credits are exhausted (balance -11.737204 USD, allowance remaining 0)."
+    },
+    {
+      "id": "e50ad7ac-8bd9-4807-ad0c-e24185041c1a",
+      "name": "REDULTRON-BlockBuster-09-Test-Reproducer",
+      "purpose": "Turn reported issues into minimal reproducible tests and regression checks; report exact commands/results. Authorized repository only; no bypasses, secrets, or unapproved deploys.",
+      "status": "stopped",
+      "accessStatus": "Listed in the connected JackHamr account; no machine started in this audit.",
+      "evidence": "JackHamr list_agents snapshot 2026-10-29T02:53:01+05:30",
+      "tests": "NOT TESTED — inventory only; no agent task was dispatched.",
+      "blocker": "Agent status is stopped; organization credits are exhausted (balance -11.737204 USD, allowance remaining 0)."
+    },
+    {
+      "id": "7d87c7cf-39e2-415d-a0d0-08b2792de1b3",
+      "name": "REDULTRON-BlockBuster-10-Release-Gate",
+      "purpose": "Independently review release evidence and classify PASS/FAIL/BLOCKED/NOT TESTED; no merge/deploy without authorized approval. Use authorized repository only; no bypasses or secret disclosure.",
+      "status": "stopped",
+      "accessStatus": "Listed in the connected JackHamr account; no machine started in this audit.",
+      "evidence": "JackHamr list_agents snapshot 2026-10-29T02:53:01+05:30",
+      "tests": "NOT TESTED — inventory only; no agent task was dispatched.",
+      "blocker": "Agent status is stopped; organization credits are exhausted (balance -11.737204 USD, allowance remaining 0)."
+    },
+    {
+      "id": "183d92c6-c4e2-4209-8748-62cc23e1a42e",
+      "name": "Forge",
+      "purpose": "Building the future, one line at a time",
+      "status": "stopped",
+      "accessStatus": "Listed in the connected JackHamr account; no machine started in this audit.",
+      "evidence": "JackHamr list_agents snapshot 2026-10-29T02:53:01+05:30",
+      "tests": "NOT TESTED — inventory only; no agent task was dispatched.",
+      "blocker": "Agent status is stopped; organization credits are exhausted (balance -11.737204 USD, allowance remaining 0)."
+    },
+    {
+      "id": "cbb9d058-6b04-4c18-ab21-4537788dc819",
+      "name": "Nexus",
+      "purpose": "Building the future, one line at a time",
+      "status": "stopped",
+      "accessStatus": "Listed in the connected JackHamr account; no machine started in this audit.",
+      "evidence": "JackHamr list_agents snapshot 2026-10-29T02:53:01+05:30",
+      "tests": "NOT TESTED — inventory only; no agent task was dispatched.",
+      "blocker": "Agent status is stopped; organization credits are exhausted (balance -11.737204 USD, allowance remaining 0)."
+    },
+    {
+      "id": null,
+      "name": "Agent Swarm (self-hosted)",
+      "purpose": "Dispatch bounded tasks to a linked self-hosted swarm.",
+      "status": "BLOCKED — no linked swarm",
+      "accessStatus": "Connector is available; no linked swarm found.",
+      "evidence": "Agent Swarm list_swarms snapshot 2026-10-29T02:53:01+05:30",
+      "tests": "NOT TESTED — no swarm task submitted.",
+      "blocker": "No linked swarm; no tasks dispatched."
+    },
+    {
+      "id": null,
+      "name": "Super Browser Agent",
+      "purpose": "Automate public browser tasks through an owned Chrome session.",
+      "status": "BLOCKED — no connected browser session/device",
+      "accessStatus": "Super account premium=true; connected devices=0; remaining credits=$2.",
+      "evidence": "Super account/session read-only checks 2026-10-29T02:53:01+05:30",
+      "tests": "NOT TESTED — no browser task launched.",
+      "blocker": "Zero connected devices and zero browser sessions; no task started."
+    },
+    {
+      "id": null,
+      "name": "Agent Relay",
+      "purpose": "Relay bounded tasks across a connected agent workspace.",
+      "status": "BLOCKED — no workspace connected",
+      "accessStatus": "Connector present; workspace connection unavailable in this run.",
+      "evidence": "Prior connector status snapshot 2026-10-29T02:53:01+05:30",
+      "tests": "NOT TESTED — no relay task sent.",
+      "blocker": "No connected workspace."
+    },
+    {
+      "id": null,
+      "name": "Consensus Research",
+      "purpose": "Run academic literature research and synthesis.",
+      "status": "BLOCKED — non-interactive thread creation rejected",
+      "accessStatus": "Connector present; task creation unavailable in this run.",
+      "evidence": "Prior connector status snapshot 2026-10-29T02:53:01+05:30",
+      "tests": "NOT TESTED — no research thread started.",
+      "blocker": "Thread creation rejected in non-interactive mode."
+    },
+    {
+      "id": null,
+      "name": "Browser Use",
+      "purpose": "Read-only public browser inspection and screenshot evidence.",
+      "status": "BLOCKED — insufficient credits",
+      "accessStatus": "Connector present; public read-only run could not start.",
+      "evidence": "Browser Use read-only attempt 2026-10-29T02:53:01+05:30",
+      "tests": "NOT TESTED — no screenshot/page evidence returned.",
+      "blocker": "Insufficient credits."
+    },
+    {
+      "id": null,
+      "name": "Super persistent assistant",
+      "purpose": "Persistent assistant chat/project, not a dedicated spawned agent.",
+      "status": "NOT USED — credit-billed assistant",
+      "accessStatus": "$2 credits remain; no per-task cost cap was exposed by the chat tool.",
+      "evidence": "Super account status 2026-10-29T02:53:01+05:30",
+      "tests": "NOT TESTED — no chat task sent.",
+      "blocker": "Not an agent-spawn endpoint; no credit usage initiated because per-task cost was not bounded."
+    }
+  ]
 }
