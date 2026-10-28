@@ -160,7 +160,7 @@ function redultron_handle_request(string $method, string $path, array $headers, 
     return redultron_response(200, ['ok' => true, 'task' => $decoded->task, 'result' => $result], $requestId);
 }
 
-function redultron_serve(): never {
+function redultron_serve(): void {
     $startedAt = microtime(true);
     $expectedSecret = getenv('OWNER_SECRET') ?: '';
     if (strlen($expectedSecret) < 32) {
