@@ -269,3 +269,28 @@ test("authenticated /internal/search returns schema-valid guarded fallback when 
     globalThis.fetch = originalFetch;
   }
 });
+
+test("internal hybrid probe reports sanitized upstream auth status without claiming Python execution", async () => {
+  const ownerSecret = "correct-secret-with-at-least-32-characters";
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async () => new Response(JSON.stringify({ ok: false, code: "OWNER_AUTH_REQUIRED" }), { status: 401 });
+  try {
+    const response = await worker.fetch(new Request("https://example.test/api/internal/hybrid-probe", {
+      method: "POST",
+      headers: { "content-type": "application/json", "x-owner-secret": ownerSecret },
+      body: "{}"
+    }), {
+      ...env(new FakeDB()),
+      OWNER_SECRET: ownerSecret,
+      PYTHON_CORE_URL: "https://python.example/v1/execute"
+    });
+    assert.equal(response.status, 502);
+    const payload = await response.json();
+    assert.equal(payload.code, "HYBRID_CORE_AUTH_REJECTED");
+    assert.equal(payload.upstreamStatus, 401);
+    assert.equal(payload.fallbackEngaged, true);
+    assert.equal(payload.hybridPythonCoreExecutionVerified, false);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
