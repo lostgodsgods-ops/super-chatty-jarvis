@@ -54,11 +54,13 @@ export function inspectHybridCoreConfiguration(env = {}) {
   const pythonEndpoint = typeof env?.PYTHON_CORE_URL === "string" ? env.PYTHON_CORE_URL.trim() : "";
   const provider = phpEndpoint ? "php" : pythonEndpoint ? "python" : "none";
   const endpoint = provider === "php" ? phpEndpoint : pythonEndpoint;
-  const secret = typeof env?.OWNER_SECRET === "string" ? env.OWNER_SECRET.trim() : "";
+  const secret = typeof env?.OWNER_SECRET === "string" ? env.OWNER_SECRET : "";
   const endpointConfigured = endpoint.length > 0;
   const endpointValid = endpointConfigured && parseHybridEndpoint(endpoint) !== null;
   const ownerSecretConfigured = secret.length > 0;
-  const ownerSecretPolicyValid = secret.length >= MIN_OWNER_SECRET_LENGTH;
+  // Do not silently normalize a shared authentication secret: the sidecar compares
+  // the configured value exactly, so surrounding whitespace can cause auth drift.
+  const ownerSecretPolicyValid = secret.length >= MIN_OWNER_SECRET_LENGTH && secret === secret.trim();
 
   let failureCode = null;
   if (!endpointConfigured || !ownerSecretConfigured) failureCode = "HYBRID_CORE_NOT_CONFIGURED";
