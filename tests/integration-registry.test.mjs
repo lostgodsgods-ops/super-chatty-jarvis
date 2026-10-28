@@ -46,3 +46,17 @@ test("financial and unknown external integrations are not falsely marked product
   assert.notEqual(banking.layers.production, "live_verified");
   assert.notEqual(bunker.layers.production, "live_verified");
 });
+
+const agentRegistry = JSON.parse(
+  await readFile(new URL("../config/agent-registry.json", import.meta.url), "utf8")
+);
+
+test("registered agent catalog is not misrepresented as a running agent fleet", () => {
+  const agents = registry.integrations.find(item => item.id === "AGENTS");
+  assert.ok(agents, "integration registry must explicitly track the agent runtime");
+  assert.equal(agentRegistry.counts.total, 90);
+  assert.equal(agentRegistry.runtime.agentsProvisioned, 0);
+  assert.equal(agentRegistry.runtime.automaticDispatchEnabled, false);
+  assert.equal(agents.layers.production, "blocked");
+  assert.match(agents.nextAction, /provision|dispatch|runtime/i);
+});
