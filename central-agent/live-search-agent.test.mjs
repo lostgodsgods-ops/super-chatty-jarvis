@@ -247,6 +247,6 @@ test("invalid numeric HTML entities do not abort DuckDuckGo result parsing", asy
 
   assert.equal(result.provider, "duckduckgo-html");
   assert.equal(result.sources[0].url, "https://example.com/safe");
-  assert.ok(result.sources[0].title.includes("\\uFFFD"));
-  assert.ok(result.sources[0].snippet.includes("\\uFFFD"));
+  assert.ok(result.sources[0].title.includes("\uFFFD"));
+  assert.ok(result.sources[0].snippet.includes("\uFFFD"));
 });
