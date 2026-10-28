@@ -263,3 +263,23 @@ test("whitespace-padded owner secrets fail closed instead of being silently norm
   );
   assert.equal(called, false);
 });
+
+
+test("owner secrets containing line breaks fail closed before any upstream request", async () => {
+  const secret = "x".repeat(16) + "\n" + "x".repeat(16);
+  const env = { PYTHON_CORE_URL: "https://python.example/v1/execute", OWNER_SECRET: secret };
+  const diagnostics = inspectHybridCoreConfiguration(env);
+  assert.equal(diagnostics.ownerSecretConfigured, true);
+  assert.equal(diagnostics.ownerSecretPolicyValid, false);
+  assert.equal(diagnostics.readyForRequest, false);
+  assert.equal(diagnostics.failureCode, "HYBRID_CORE_SECRET_INVALID");
+  assert.equal(JSON.stringify(diagnostics).includes(secret), false);
+  let called = false;
+  await assert.rejects(
+    executeHybridTask({ task: "summarize", text: "Hello." }, env, {
+      fetchImpl: async () => { called = true; return new Response("{}", { status: 200 }); }
+    }),
+    error => error.code === "HYBRID_CORE_SECRET_INVALID"
+  );
+  assert.equal(called, false);
+});
