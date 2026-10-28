@@ -537,6 +537,8 @@ test("Cloudflare deployment verifies the exact deployed PWA release after Worker
   assert.match(deployWorkflow, /attrs\.get\("name"\) === "application-version"/);
   assert.match(deployWorkflow, /attrs\.get\("content"\) === expected/);
   assert.match(deployWorkflow, /source-manifest\.json/);
-  assert.match(deployWorkflow, /cache-control: no-cache, must-revalidate/);
+  assert.match(deployWorkflow, /cache-control:\.\*no-cache/);
+  assert.match(deployWorkflow, /cache-control:\.\*must-revalidate/);
+  assert.match(deployWorkflow, /JSON\.stringify\(canonical\(expected\)\) !== JSON\.stringify\(canonical\(actual\)\)/);
   assert.match(deployWorkflow, /health_ok=false/);
 });
