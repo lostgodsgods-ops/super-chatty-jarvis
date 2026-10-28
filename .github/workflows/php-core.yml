@@ -1,0 +1,29 @@
+name: PHP Core Contract
+
+on:
+  pull_request:
+    paths:
+      - "php-core/**"
+      - ".github/workflows/php-core.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  php-core-contract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: "8.3"
+          extensions: mbstring
+          coverage: none
+      - name: Syntax check
+        run: php -l php-core/index.php
+      - name: Run contract tests
+        run: php php-core/tests.php
