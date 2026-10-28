@@ -186,7 +186,8 @@ async function performLiveSearch(rawQuery, env = {}, options = {}) {
         console.warn("live_search_provider_network_failure", {
           provider: name, endpoint: endpointFor(name), status,
           errorName: String(error?.name || "Error").slice(0, 80),
-          // Never log raw upstream exception messages; they may contain query or transport details.
+          // Preserve the diagnostic field contract without exposing raw upstream exception text.
+          errorMessage: status
         });
       }
     }
