@@ -7,7 +7,7 @@
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="application-version" content="REDULTRON-2026.10.21-COGNITIVE-CORE-V15">
+  <meta name="application-version" content="REDULTRON-2026.10.28-COGNITIVE-CORE-V16">
   <meta name="description" content="REDULTRON CORE 2.0 — voice-first AI command interface.">
   <meta name="color-scheme" content="dark">
   <title>REDULTRON CORE 2.0 · Neural Console</title>
@@ -1225,9 +1225,10 @@ body.auth-locked #ownerSessionStatus{font-weight:700}
       const sentenceCount = (value.match(/[.!?।]+/g) || []).length;
       utterance.lang = ["hi-IN", "en-IN", "en-US"].includes(language) ? language : "en-IN";
       // Lightweight prosody adaptation only; this does not clone or imitate a real person's voice.
-      utterance.rate = value.length > 900 ? 0.92 : sentenceCount > 4 ? 0.94 : /[!?।]$/.test(value) ? 0.96 : 0.94;
+      utterance.rate = value.length > 900 ? 0.90 : sentenceCount > 4 ? 0.91 : /[!?।]$/.test(value) ? 0.92 : 0.92;
       // Lower pitch gives a more mature, grounded delivery; the actual timbre remains device-dependent.
-      utterance.pitch = /[?？]$/.test(value) ? 0.90 : /[!！]{1,}$/.test(value) ? 0.92 : 0.86;
+      utterance.pitch = /[?？]$/.test(value) ? 0.88 : /[!！]{1,}$/.test(value) ? 0.86 : 0.84;
+      utterance.volume = 1;
     }
     function prepareSpeechText(text) {
       let value = String(text == null ? "" : text);
