@@ -31,7 +31,7 @@ test("provenance deploy synchronizes the canonical secret to Render before chang
     "the canonical Python Core Render service ID must be pinned");
   assert.ok(provenance.includes('"$api/env-vars/OWNER_SECRET"'),
     "the canonical owner secret must be read and updated through the Render service env-var API");
-  assert.ok(provenance.includes("services/$RENDER_SERVICE_ID/deploys"),
+  assert.ok(provenance.includes('"$api/deploys"'),
     "Render must be redeployed when its owner secret changes");
   const renderSync = provenance.indexOf("Synchronize canonical owner secret to Render Python Core");
   const workerSync = provenance.indexOf("Synchronize owner secret to the deployed Worker");
