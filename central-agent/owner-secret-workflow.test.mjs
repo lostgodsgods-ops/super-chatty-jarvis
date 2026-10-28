@@ -105,9 +105,9 @@ test("central-agent deployment rejects a short owner secret before any productio
   const deploy = readWorkflow("../.github/workflows/deploy-central-agent.yml");
   const credentials = deploy
     .split("- name: Validate required secrets")[1]
-    ?.split("\\n      - name: ")[0] ?? "";
+    ?.split("\n      - name: ")[0] ?? "";
   assert.notEqual(credentials, "", "central-agent credential preflight must exist");
-  assert.match(credentials, /\\$\\{#OWNER_SECRET\\}.*-ge 32/,
+  assert.match(credentials, /\$\{#OWNER_SECRET\}.*-ge 32/,
     "central-agent deployment must reject owner secrets shorter than 32 characters");
   assert.match(credentials, /value suppressed/i,
     "short-secret failure must not print the secret value");
