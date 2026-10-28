@@ -32,6 +32,7 @@ import { appendTreasuryEvent, listTreasuryEvents, TreasuryError } from "./archit
 import { executeQuantumOrFallback, QuantumAdapterError } from "./architecture/quantum-adapter.mjs";
 import { executeHybridTask, HybridCoreError } from "./architecture/hybrid-core.mjs";
 import { listUniversalTools } from "./architecture/universal-tool-registry.mjs";
+import { executeChatCompletion, listChatProviders, ChatProviderError } from "./architecture/model-provider-adapter.mjs";
 import { executeToolForge, listToolForgeTools, ToolForgeError } from "./architecture/tool-forge.mjs";
 import { assessRobotSimulatorCommand } from "./architecture/robotics-simulator.mjs";
 
@@ -2365,6 +2366,49 @@ export default {
         const code = known ? error.code : "TOOL_EXECUTION_FAILED";
         await publishEvent(env, { type: "tool_forge.rejected", source: "tool-forge", payload: { toolId: body.toolId || null, code, status } });
         return json({ ok: false, error: code, code, executionEnabled: false }, status, cors);
+      }
+    }
+
+    if (url.pathname === "/api/models/providers" && request.method === "GET") {
+      if (!(await authorized(request, env))) return json({ ok: false, error: "Owner session required.", code: "OWNER_SESSION_REQUIRED" }, 401, cors);
+      return json({
+        ok: true,
+        providers: listChatProviders(env),
+        liveVerificationPerformed: false,
+        note: "Provider binding presence is not proof of authentication or availability."
+      }, 200, cors);
+    }
+
+    if (url.pathname === "/api/models/chat" && request.method === "POST") {
+      if (!(await authorized(request, env))) return json({ ok: false, error: "Owner session required.", code: "OWNER_SESSION_REQUIRED" }, 401, cors);
+      const body = await request.json().catch(() => null);
+      if (!body || typeof body !== "object" || Array.isArray(body)) return json({ ok: false, error: "Expected JSON body.", code: "INVALID_INPUT" }, 400, cors);
+      const provider = typeof body.provider === "string" ? body.provider : "";
+      const auditStart = await publishEvent(env, {
+        type: "model.chat.requested",
+        source: "model-provider-adapter",
+        payload: { provider: /^[a-z0-9-]{1,64}$/.test(provider) ? provider : "invalid", authenticated: true, promptLogged: false }
+      });
+      if (!auditStart?.ok) return json({ ok: false, error: "AUDIT_STORAGE_UNAVAILABLE", code: "AUDIT_STORAGE_UNAVAILABLE" }, 503, cors);
+      try {
+        const result = await executeChatCompletion(body, env);
+        const auditDone = await publishEvent(env, {
+          type: "model.chat.completed",
+          source: "model-provider-adapter",
+          payload: { provider: result.provider, model: result.model, maxTokens: result.maxTokens, promptLogged: false }
+        });
+        if (!auditDone?.ok) return json({ ok: false, error: "AUDIT_STORAGE_UNAVAILABLE", code: "AUDIT_STORAGE_UNAVAILABLE" }, 503, cors);
+        return json(result, 200, cors);
+      } catch (error) {
+        const known = error instanceof ChatProviderError;
+        const status = known ? error.status : 502;
+        const code = known ? error.code : "MODEL_PROVIDER_FAILED";
+        await publishEvent(env, {
+          type: "model.chat.failed",
+          source: "model-provider-adapter",
+          payload: { provider: /^[a-z0-9-]{1,64}$/.test(provider) ? provider : "invalid", code, status, promptLogged: false }
+        });
+        return json({ ok: false, error: code, code }, status, cors);
       }
     }
 
