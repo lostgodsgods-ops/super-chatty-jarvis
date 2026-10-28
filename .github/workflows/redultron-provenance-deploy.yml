@@ -52,6 +52,7 @@ jobs:
           test -n "$RENDER_SERVICE_ID" || { echo "::error::Missing RENDER_SERVICE_ID; no production changes were made."; exit 1; }
           [[ "$RENDER_SERVICE_ID" =~ ^srv-[A-Za-z0-9]+$ ]] || { echo "::error::RENDER_SERVICE_ID format invalid; no production changes were made."; exit 1; }
           [[ "${#REDULTRON_OWNER_SECRET}" -ge 32 ]] || { echo "::error::REDULTRON_OWNER_SECRET must be at least 32 characters; value suppressed; no runtime secrets were changed."; exit 1; }
+          node -e 'const secret=process.env.REDULTRON_OWNER_SECRET; if(secret !== secret.trim() || /[\\r\\n]/.test(secret)) { console.error("FAIL: REDULTRON_OWNER_SECRET must not contain surrounding whitespace or line breaks; value suppressed; no production changes were made."); process.exit(4); } console.log("PASS: owner secret formatting has no surrounding whitespace or line breaks; value suppressed.")'
           node -e 'const u=new URL(process.env.PYTHON_CORE_URL); if(u.protocol!=="https:"||u.username||u.password||u.search||u.hash||(u.pathname!=="/"&&u.pathname!=="/v1/execute")) process.exit(2); if(u.hostname!=="super-chatty-jarvis.onrender.com") { console.error("FAIL: PYTHON_CORE_URL hostname does not match the configured Render service; value suppressed."); process.exit(3); } console.log("PASS: Python endpoint hostname matches the configured Render service; hostname and value suppressed.")'
           [[ "$GITHUB_SHA" =~ ^[0-9a-f]{40}$ ]]
 
