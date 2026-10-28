@@ -218,3 +218,69 @@ class HybridDeploymentConfigTests(unittest.TestCase):
         procfile = Path(__file__).with_name("Procfile").read_text(encoding="utf-8").strip()
         self.assertEqual(procfile, "web: HOST=0.0.0.0 python python_core.py")
 
+
+
+class HybridCoreAuthRedactionRegressionTests(unittest.TestCase):
+    """Authentication failures must be precise without disclosing either secret."""
+
+    def setUp(self):
+        self.previous_secret = os.environ.get("OWNER_SECRET")
+        os.environ["OWNER_SECRET"] = TEST_SECRET
+        self.server = QuietThreadingHTTPServer(("127.0.0.1", 0), Handler)
+        self.thread = threading.Thread(target=self.server.serve_forever, daemon=True)
+        self.thread.start()
+        self.port = self.server.server_address[1]
+
+    def tearDown(self):
+        self.server.shutdown()
+        self.server.server_close()
+        self.thread.join(timeout=2)
+        if self.previous_secret is None:
+            os.environ.pop("OWNER_SECRET", None)
+        else:
+            os.environ["OWNER_SECRET"] = self.previous_secret
+
+    def test_wrong_owner_secret_returns_sanitized_auth_code_without_echo(self):
+        wrong_secret = "wrong-test-secret-that-must-not-appear"
+        conn = http.client.HTTPConnection("127.0.0.1", self.port, timeout=8)
+        conn.request(
+            "POST",
+            "/v1/execute",
+            body=json.dumps({"task": "summarize", "text": "safe test"}),
+            headers={
+                "Content-Type": "application/json",
+                "X-Owner-Secret": wrong_secret,
+            },
+        )
+        response = conn.getresponse()
+        status = response.status
+        headers = dict(response.getheaders())
+        body = response.read().decode("utf-8")
+        conn.close()
+
+        self.assertEqual(status, 401)
+        self.assertEqual(json.loads(body), {"ok": False, "code": "OWNER_AUTH_REQUIRED"})
+        self.assertEqual(headers.get("Cache-Control"), "no-store")
+        self.assertNotIn(TEST_SECRET, body)
+        self.assertNotIn(wrong_secret, body)
+
+    def test_missing_owner_secret_fails_closed_with_sanitized_code(self):
+        os.environ.pop("OWNER_SECRET", None)
+        conn = http.client.HTTPConnection("127.0.0.1", self.port, timeout=8)
+        conn.request(
+            "POST",
+            "/v1/execute",
+            body=json.dumps({"task": "summarize", "text": "safe test"}),
+            headers={
+                "Content-Type": "application/json",
+                "X-Owner-Secret": TEST_SECRET,
+            },
+        )
+        response = conn.getresponse()
+        status = response.status
+        body = response.read().decode("utf-8")
+        conn.close()
+
+        self.assertEqual(status, 401)
+        self.assertEqual(json.loads(body), {"ok": False, "code": "OWNER_AUTH_REQUIRED"})
+        self.assertNotIn(TEST_SECRET, body)
