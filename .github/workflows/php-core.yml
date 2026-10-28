@@ -23,7 +23,9 @@ jobs:
           php-version: "8.3"
           coverage: none
       - name: Syntax check
-        run: php -l php-core/index.php
+        run: |
+          php -l php-core/index.php
+          sh -n php-core/start-apache.sh
       - name: Run contract tests
         run: php php-core/tests.php
       - name: HTTP smoke test
