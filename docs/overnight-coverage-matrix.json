@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "project": "REDULTRON CORE 3.0",
-  "snapshotTime": "2026-10-29T02:37:02+05:30",
+  "snapshotTime": "2026-10-29T02:48:18+05:30",
   "repository": "lostgodsgods-ops/super-chatty-jarvis",
   "branch": "main",
   "commitSha": "0a35a8dda07b5217497ec1c45bdc64e3a7d0147c",
@@ -1321,7 +1321,7 @@
         "central-agent/live-search-agent.test.mjs"
       ],
       "accessStatus": "Readable via authorized GitHub connector; production writes not performed.",
-      "blocker": "Live provider reachability not tested.",
+      "blocker": "Production telemetry observed wikipedia-api HTTP 403 on Worker version 882; current source sends Accept only and lacks User-Agent. PR #820 proposes the policy-aligned fix; no production verification yet.",
       "status": "NOT TESTED"
     },
     {
@@ -1335,7 +1335,7 @@
         "central-agent/live-search-agent.test.mjs"
       ],
       "accessStatus": "Readable via authorized GitHub connector; production writes not performed.",
-      "blocker": "Suite-level test evidence only; live runtime behavior is not inferred.",
+      "blocker": "Main's existing suite passed; PR #816 and #820 add branch-only regressions and are not merged.",
       "status": "PASS — suite-level CI on exact main SHA",
       "latestRun": {
         "id": 40766128960,
@@ -8639,6 +8639,24 @@
       "title": "Digital Personal Data Protection Rules, 2025 — MeitY official Gazette PDF",
       "url": "https://www.meity.gov.in/static/uploads/2025/11/53450e6e5dc0bfa85ebd78686cadad39.pdf",
       "purpose": "Official rules and phased commencement schedule; verify applicable provisions for the relevant date."
+    },
+    {
+      "id": "WIKIMEDIA_USER_AGENT_POLICY",
+      "title": "Wikimedia Foundation User-Agent Policy",
+      "url": "https://foundation.wikimedia.org/wiki/Policy%3AWikimedia_Foundation_User-Agent_Policy",
+      "purpose": "A meaningful User-Agent is required; missing/generic values may be rejected with HTTP 403."
+    },
+    {
+      "id": "WIKIMEDIA_API_ACCESS_POLICY",
+      "title": "Wikimedia APIs Access Policy",
+      "url": "https://www.mediawiki.org/wiki/Wikimedia_APIs/Access_policy",
+      "purpose": "Client identification, rate limits and API access expectations."
+    },
+    {
+      "id": "CLOUDFLARE_WORKERS_FETCH",
+      "title": "Cloudflare Workers Fetch API",
+      "url": "https://developers.cloudflare.com/workers/runtime-apis/fetch/",
+      "purpose": "Official documentation for outbound fetch and custom request headers in Workers."
     }
   ],
   "liveEvidence": {
@@ -8747,20 +8765,61 @@
       "lastCheckedAt": "2026-10-29T02:37:02+05:30"
     },
     "liveSearch": {
-      "status": "NOT TESTED — live provider reachability",
+      "status": "FAIL — one live provider HTTP 403 observed; other providers NOT TESTED",
       "configuredMode": "open-source-first",
       "sourcePR": 746,
       "sourcePRState": "merged",
       "staleCacheGuardInMain": true,
-      "liveProviderReachability": "NOT TESTED",
-      "timeoutFallbackFreshness": "Repository tests only; live behavior not certified."
+      "liveProviderReachability": "NOT TESTED broadly; one Wikipedia API failure observed in production telemetry.",
+      "timeoutFallbackFreshness": "Repository tests cover bounded timeout/fallback/stale behavior; live provider reachability is not certified.",
+      "telemetryQuery": {
+        "status": "PASS — read-only dry query",
+        "httpStatus": 200,
+        "queryStatus": "COMPLETED",
+        "dry": true,
+        "windowStart": "2026-10-28T14:44:28Z",
+        "windowEnd": "2026-10-28T21:15:16Z",
+        "eventCount": 1,
+        "provider": "wikipedia-api",
+        "providerHTTPStatus": 403,
+        "endpoint": "https://en.wikipedia.org/w/api.php",
+        "eventClass": "provider_http_failure",
+        "workerScript": "shrill-silence-164f",
+        "workerVersionId": "ddae66f9-dfcc-4a38-907d-6bfa5843a604",
+        "eventTimestamp": "2026-10-28T19:43:33.772Z",
+        "rawMessageOrResponseBodyRead": false,
+        "checkedAt": "2026-10-29T02:45:16+05:30"
+      },
+      "likelyCause": "The current Wikipedia request sends Accept but no identifying User-Agent. Wikimedia policy says missing or generic User-Agent can cause HTTP 403; this is a plausible cause, not confirmed as the only cause.",
+      "fixPRs": [
+        {
+          "number": 816,
+          "head": "94b193c453f6a830f3c08086af2b52ac28c3ce3c",
+          "state": "open",
+          "draft": false,
+          "ci": "PASS",
+          "static": "PASS",
+          "testCentralAgent": "PASS",
+          "purpose": "Handle malformed numeric HTML entities safely."
+        },
+        {
+          "number": 820,
+          "head": "841de8b5ade58c2838bef6bce208339f1cc6882f",
+          "state": "open",
+          "draft": false,
+          "ci": "PASS",
+          "static": "PASS",
+          "testCentralAgent": "PASS",
+          "purpose": "Send a descriptive User-Agent to Wikimedia API."
+        }
+      ]
     },
     "pwa": {
       "status": "BLOCKED — live install/update not tested",
       "repositoryCache": "redultron-core-shell-v18-core-3",
       "deployedCache": "redultron-core-shell-v17-core-3",
       "deployedWorkerSha": "a0d6087dedb7a29aaa07c9302167ddbda5b352da",
-      "browserAccess": "No connected Android/browser session produced a screenshot or install/update evidence in this audit.",
+      "browserAccess": "Browser Use public-read run was blocked by insufficient credits; no actual screenshot, page title or Android install/update evidence was returned.",
       "liveInstallUpdate": "NOT TESTED"
     },
     "agents": {
@@ -8777,7 +8836,10 @@
       "No production writes, deployments, merges, or financial actions were performed in this audit.",
       "PR #801 and PR #803 were marked ready for review; neither was merged.",
       "Capability requests remain pending_owner_review with executionEnabled=false and requiresOwnerApproval=true.",
-      "Agent spawning was not performed because Agent Swarm has no linked swarm, JackHamr credits are exhausted, and the browser agent account has no connected devices."
+      "Agent spawning was not performed because Agent Swarm has no linked swarm, JackHamr credits are exhausted, and the browser agent account has no connected devices.",
+      "Cloudflare Observability dry query returned one sanitized wikipedia-api HTTP 403 event on Worker version 882; no raw message, query text, request body or response body was read.",
+      "PR #816 and PR #820 are open and ready for review with CI, Static checks and Test Central Agent passing; neither is merged.",
+      "Browser Use public-read run was blocked by insufficient credits; no live screenshot or install/update verification was obtained."
     ],
     "persistentLearning": {
       "status": "PASS — repository checks; NOT TESTED live",
