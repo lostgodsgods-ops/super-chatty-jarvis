@@ -38,7 +38,7 @@ test("coverage matrix inventories every checked-in GitHub Actions workflow", asy
   const workflows = files.filter(path => path.startsWith(".github/workflows/") && path.endsWith(".yml"));
   assert.ok(workflows.length > 0, "workflow inventory must not be empty");
   for (const path of workflows) {
-    assert.ok(matrix.includes(`\`${path}\``), `coverage matrix missing workflow path: ${path}`);
+    assert.ok(matrix.includes(path), `coverage matrix missing workflow path: ${path}`);
   }
 });
 
@@ -47,7 +47,7 @@ test("coverage matrix inventories all Central Agent source and test modules", as
   const modules = files.filter(path => path.startsWith("central-agent/") && path.endsWith(".mjs"));
   assert.ok(modules.length > 0, "Central Agent module inventory must not be empty");
   for (const path of modules) {
-    assert.ok(matrix.includes(`\`${path}\``), `coverage matrix missing Central Agent file: ${path}`);
+    assert.ok(matrix.includes(path), `coverage matrix missing Central Agent file: ${path}`);
   }
 });
 
@@ -56,6 +56,6 @@ test("coverage matrix inventories top-level regression test files", async () => 
   const tests = files.filter(path => path.startsWith("tests/") && path.endsWith(".test.mjs"));
   assert.ok(tests.length > 0, "top-level test inventory must not be empty");
   for (const path of tests) {
-    assert.ok(matrix.includes(`\`${path}\``), `coverage matrix missing top-level test: ${path}`);
+    assert.ok(matrix.includes(path), `coverage matrix missing top-level test: ${path}`);
   }
 });
