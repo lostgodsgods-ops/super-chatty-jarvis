@@ -78,6 +78,27 @@ class HybridCoreHTTPTests(unittest.TestCase):
         self.assertEqual(json.loads(response.read()), {"ok": True, "service": "redultron-python-core"})
         conn.close()
 
+    def test_health_allows_cors_only_for_monitor_origin(self):
+        allowed_origin = "https://shrill-silence-164f.lostgodsgods.workers.dev"
+        conn = http.client.HTTPConnection("127.0.0.1", self.port, timeout=3)
+        conn.request("GET", "/health", headers={"Origin": allowed_origin})
+        response = conn.getresponse()
+        headers = {name.lower(): value for name, value in response.getheaders()}
+        self.assertEqual(response.status, 200)
+        self.assertEqual(headers.get("access-control-allow-origin"), allowed_origin)
+        self.assertEqual(headers.get("vary"), "Origin")
+        self.assertEqual(json.loads(response.read()), {"ok": True, "service": "redultron-python-core"})
+        conn.close()
+
+    def test_health_does_not_reflect_untrusted_origin(self):
+        conn = http.client.HTTPConnection("127.0.0.1", self.port, timeout=3)
+        conn.request("GET", "/health", headers={"Origin": "https://attacker.example"})
+        response = conn.getresponse()
+        headers = {name.lower(): value for name, value in response.getheaders()}
+        self.assertEqual(response.status, 200)
+        self.assertNotIn("access-control-allow-origin", headers)
+        conn.close()
+
     def test_unknown_route_is_404(self):
         status, _, body = self.request("{}", {"X-Owner-Secret": TEST_SECRET}, "/not-a-route")
         self.assertEqual(status, 404)
