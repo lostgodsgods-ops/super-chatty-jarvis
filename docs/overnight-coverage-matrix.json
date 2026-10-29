@@ -8690,7 +8690,7 @@
       "status": "BLOCKED — live install/update not tested",
       "repositoryCache": "redultron-core-shell-v18-core-3",
       "browserAccess": "Web endpoint opens failed; Browser Use returned insufficient_credits; KERNEL connection-context request required user input in non-interactive mode.",
-      "releasePackageStatus": "PASS on main SHA d404341a9c0e175406bdb7d12b7aff7be842b121 (run 40813080057); no production deployment",
+      "releasePackageStatus": "PASS on main run 40813080057; artifact 12870694164 uploaded (54,704 bytes); no production deployment",
       "liveHTTPStatus": "NOT TESTED — public Worker/Render URL opens were inaccessible through available web fetch",
       "androidChromeInstallUpdate": "NOT TESTED",
       "latestPackageRunId": 40775604577
@@ -8811,11 +8811,19 @@
         40813080057
       ],
       "latestRunId": 40813080057,
-      "artifactsAvailable": "NOT VERIFIED in this refresh",
+      "artifactsAvailable": true,
       "jobListReturnedZeroJobs": true,
       "rootCause": "The duplicate top-level push-trigger defect was fixed by PR #833; main's post-merge release-package workflow passed.",
       "likelyCause": "Historical failures were consistent with duplicate top-level push keys; post-merge run 40813080057 passed.",
-      "pr803BranchRunId": 40776567784
+      "pr803BranchRunId": 40776567784,
+      "artifact": {
+        "id": 12870694164,
+        "name": "REDULTRON-CORE-3-PWA-d404341a9c0e175406bdb7d12b7aff7be842b121",
+        "sizeBytes": 54704,
+        "expired": false,
+        "expiresAt": "2026-11-12T03:36:31Z",
+        "workflowRunId": 40813080057
+      }
     },
     "sentinel": {
       "status": "PASS — main push run succeeded; duplicate-event replay NOT TESTED",
@@ -8855,6 +8863,30 @@
           "central-agent/sentinel.test.mjs: D1/KV telemetry, durable pulse scheduling, and legacy audit-chain backfill."
         ],
         "caveat": "No dedicated automated test of duplicate workflow_run delivery was found in the inspected test files. Recent main runs were skipped; a controlled duplicate-event replay remains NOT TESTED."
+      },
+      "contractPR": {
+        "pr": 859,
+        "url": "https://github.com/lostgodsgods-ops/super-chatty-jarvis/pull/859",
+        "status": "OPEN — DRAFT",
+        "headSha": "acbf93c32394c16302d96574c7ba0786a014514a",
+        "tests": {
+          "ci": {
+            "runId": 40813862057,
+            "status": "PASS",
+            "url": "https://github.com/lostgodsgods-ops/super-chatty-jarvis/actions/runs/40813862057"
+          },
+          "static": {
+            "runId": 40813862103,
+            "status": "PASS",
+            "url": "https://github.com/lostgodsgods-ops/super-chatty-jarvis/actions/runs/40813862103"
+          },
+          "sentinel": {
+            "runId": 40813862065,
+            "status": "PASS",
+            "url": "https://github.com/lostgodsgods-ops/super-chatty-jarvis/actions/runs/40813862065"
+          }
+        },
+        "limitation": "Source-level contract only; controlled duplicate workflow_run replay remains NOT TESTED."
       }
     },
     "releasePackageFixPR": {
@@ -8915,11 +8947,11 @@
         }
       ],
       "artifact": {
-        "id": 12854561877,
-        "name": "REDULTRON-CORE-3-PWA-a85a52081f2483ea5461de8261da9238e54a1828",
-        "sizeBytes": 54703,
+        "id": 12870694164,
+        "name": "REDULTRON-CORE-3-PWA-d404341a9c0e175406bdb7d12b7aff7be842b121",
+        "sizeBytes": 54704,
         "expired": false,
-        "expiresAt": "2026-11-11T21:53:25Z"
+        "workflowRunId": 40813080057
       },
       "scope": "Repository test, PWA contract, ZIP/checksum build and artifact upload passed on PR branch. No production deployment or merge.",
       "mergeSha": "d404341a9c0e175406bdb7d12b7aff7be842b121",
@@ -8944,7 +8976,9 @@
       "previousCompletedRunId": "38137688-d70c-8329-9712-5c7cc1ceffd0",
       "previousResultIsFailureMessage": false,
       "nextRunTime": null,
-      "limitation": "Automation metadata reports in_progress but does not prove a live worker; no duplicate run was started."
+      "limitation": "Automation metadata reports in_progress but does not prove a live worker; no duplicate run was started.",
+      "cutoffFinalizerScheduled": false,
+      "cutoffFinalizerBlocker": "Automation creation was rejected while this task automation was running; no cutoff finalizer was created."
     }
   },
   "coveragePolicy": {
@@ -8999,6 +9033,8 @@
     "Current snapshot 2026-10-29T09:09:02+05:30: main advanced to d404341a9c0e175406bdb7d12b7aff7be842b121. PR #833 is merged and main CI, static checks and release-package runs 40813079981, 40813080034 and 40813080057 passed.",
     "Worker deployment metadata returned HTTP 200; last-observed Worker source SHA is 118 commits behind current main. Render latest deployment remains live on 55de9ebdb7a753cb700e2411a7e8852dd9853866, 46 commits behind main.",
     "This refresh did not deploy production, run D1 migrations, write D1 rows, read/change secrets, or merge PRs. PR #833's merge is observed in the current main commit, not performed by this refresh.",
-    "Current Rapid Learning automation run 13bd1987-aab8-8332-acf9-6326ce9f3aa6 is recorded in_progress with no completion timestamp. No agent was started; Agent Relay target listing and Replicas connection were unavailable."
+    "Current Rapid Learning automation run 13bd1987-aab8-8332-acf9-6326ce9f3aa6 is recorded in_progress with no completion timestamp. No agent was started; Agent Relay target listing and Replicas connection were unavailable.",
+    "Sentinel retry contract test PR #859 opened on branch test/sentinel-retry-workflow-contract-20261029; final head acbf93c32394c16302c309ee2f732cf0f24adf2f passed CI 40813862057, Static 40813862103, and Sentinel 40813862065. Controlled duplicate-event replay remains NOT TESTED.",
+    "Main release-package run 40813080057 uploaded artifact 12870694164 (54,704 bytes); artifact presence proves package creation only, not deployment or Android installation."
   ]
 }
