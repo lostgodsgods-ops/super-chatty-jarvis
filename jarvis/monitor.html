@@ -12,7 +12,7 @@
 main{max-width:1180px;margin:auto;padding:18px 14px 36px}.head{display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;padding:16px;border:1px solid var(--line);border-radius:16px;background:#091722e8}
 .brand{font-size:clamp(16px,3vw,24px);font-weight:900;letter-spacing:.08em}.brand span{color:var(--cyan)}.sub{color:var(--muted);font-size:11px}.actions{display:flex;gap:8px;flex-wrap:wrap}button,.linkbtn{border:1px solid #397084;background:#0c2635;color:var(--cyan);padding:10px 13px;border-radius:10px;font-weight:800;text-decoration:none;min-height:40px;cursor:pointer}
 .overview{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin:14px 0}.tile,.panel{border:1px solid var(--line);border-radius:15px;background:linear-gradient(145deg,#0c1d2b,#07111b);min-width:0}.tile{padding:14px}.tile strong{display:block;font-size:clamp(20px,3vw,29px);line-height:1.2}.tile label{display:block;color:var(--muted);font-size:10px;letter-spacing:.12em;text-transform:uppercase;margin-top:7px}
-.layout{display:grid;grid-template-columns:1.1fr .9fr;gap:14px}.panel h2{margin:0;padding:14px 16px;border-bottom:1px solid var(--line);font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--cyan)}.body{padding:14px 16px}.check{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:12px;align-items:center;padding:12px 0;border-bottom:1px solid #23475a66}.check:last-child{border-bottom:0}.name{font-weight:800;overflow-wrap:anywhere}.detail{font-size:11px;color:var(--muted);margin-top:3px;overflow-wrap:anywhere}.badge{font-size:10px;letter-spacing:.06em;font-weight:900;border:1px solid currentColor;border-radius:999px;padding:5px 8px;white-space:nowrap;color:var(--muted)}.PASS{color:var(--green)}.FAIL{color:var(--red)}.BLOCKED{color:var(--amber)}.NOT\ TESTED{color:var(--muted)}
+.layout{display:grid;grid-template-columns:1.1fr .9fr;gap:14px}.panel h2{margin:0;padding:14px 16px;border-bottom:1px solid var(--line);font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--cyan)}.body{padding:14px 16px}.check{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:12px;align-items:center;padding:12px 0;border-bottom:1px solid #23475a66}.check:last-child{border-bottom:0}.name{font-weight:800;overflow-wrap:anywhere}.detail{font-size:11px;color:var(--muted);margin-top:3px;overflow-wrap:anywhere}.badge{font-size:10px;letter-spacing:.06em;font-weight:900;border:1px solid currentColor;border-radius:999px;padding:5px 8px;white-space:nowrap;color:var(--muted)}.PASS{color:var(--green)}.FAIL{color:var(--red)}.BLOCKED{color:var(--amber)}.NOT_TESTED{color:var(--muted)}
 .mono{font:11px/1.6 ui-monospace,SFMono-Regular,Menlo,monospace;overflow-wrap:anywhere}.feed{display:flex;flex-direction:column;gap:9px}.event{padding:10px 11px;border:1px solid #23475a;border-radius:10px;background:#06111b}.event strong{display:block;font-size:11px}.event p{margin:4px 0 0;color:var(--muted);font-size:10px;overflow-wrap:anywhere}.foot{margin-top:14px;padding:12px 14px;border:1px solid var(--line);border-radius:12px;color:var(--muted);font-size:11px}.small{font-size:10px;color:var(--muted)}a{color:var(--cyan)}@media(max-width:760px){.overview{grid-template-columns:repeat(2,minmax(0,1fr))}.layout{grid-template-columns:1fr}.head{align-items:flex-start}.check{gap:8px}.badge{font-size:9px}}
 </style>
 </head>
@@ -34,7 +34,7 @@ main{max-width:1180px;margin:auto;padding:18px 14px 36px}.head{display:flex;alig
  <section class="panel"><h2>Recent evidence feed</h2><div class="body"><div class="feed" id="feed"><div class="event"><strong>Monitor initialized</strong><p>Live checks will appear after network requests complete.</p></div></div></div></section>
  <section class="panel"><h2>Repository snapshot</h2><div class="body" id="repoSnapshot"><div class="detail">Checking public GitHub metadata…</div></div></section>
  <section class="panel"><h2>Safety boundaries</h2><div class="body">
-  <div class="check"><div><div class="name">Owner authentication / Python execution</div><div class="detail">No authenticated or mutating probe is run from this public monitor.</div></div><span class="badge NOT TESTED">NOT TESTED</span></div>
+  <div class="check"><div><div class="name">Owner authentication / Python execution</div><div class="detail">No authenticated or mutating probe is run from this public monitor.</div></div><span class="badge NOT_TESTED">NOT TESTED</span></div>
   <div class="check"><div><div class="name">Secrets and owner data</div><div class="detail">No secrets are requested, stored, or displayed.</div></div><span class="badge PASS">PASS</span></div>
   <div class="check"><div><div class="name">Polling interval</div><div class="detail">Read-only status checks repeat every 30 seconds while this page is open.</div></div><span class="badge PASS">PASS</span></div>
   <p class="small">A successful health endpoint does not prove authenticated execution, database read/write, or end-to-end agent autonomy.</p>
@@ -51,6 +51,7 @@ main{max-width:1180px;margin:auto;padding:18px 14px 36px}.head{display:flex;alig
  const $ = id => document.getElementById(id);
  const esc = value => String(value ?? "").replace(/[&<>"']/g, ch => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[ch]));
  const records = new Map();
+ const stateClass = state => String(state).replace(/\s+/g, "_");
  function setRecord(key, name, state, detail, href) { records.set(key,{key,name,state,detail,href}); render(); }
  function render() {
    const values=[...records.values()];
@@ -59,7 +60,7 @@ main{max-width:1180px;margin:auto;padding:18px 14px 36px}.head{display:flex;alig
    $("passCount").textContent=String(passes);
    $("issueCount").textContent=String(issues);
    $("overall").textContent=values.some(x=>x.state==="FAIL")?"DEGRADED":values.some(x=>x.state==="BLOCKED")?"PARTIAL":values.length&&values.every(x=>x.state==="PASS")?"HEALTHY":"CHECKING";
-   $("checks").innerHTML=values.map(x=>'<div class="check"><div><div class="name">'+esc(x.name)+'</div><div class="detail">'+esc(x.detail)+'</div></div><span class="badge '+esc(x.state)+'">'+esc(x.state)+'</span></div>').join("");
+   $("checks").innerHTML=values.map(x=>'<div class="check"><div><div class="name">'+esc(x.name)+'</div><div class="detail">'+esc(x.detail)+'</div></div><span class="badge '+esc(stateClass(x.state))+'">'+esc(x.state)+'</span></div>').join("");
  }
  function event(title, detail) {
    const feed=$("feed"), row=document.createElement("div"); row.className="event";
