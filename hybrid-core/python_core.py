@@ -114,7 +114,7 @@ class Handler(BaseHTTPRequestHandler):
             return
         expected = os.environ.get("OWNER_SECRET", "")
         supplied = self.headers.get("X-Owner-Secret", "")
-        if len(expected) < 32 or not supplied or not secrets.compare_digest(supplied, expected):
+        if len(expected) < 32 or expected != expected.strip() or not supplied or not secrets.compare_digest(supplied, expected):
             self._event_code = "AUTH_REJECTED"
             self._json(401, {"ok": False, "code": "OWNER_AUTH_REQUIRED"})
             return
@@ -177,8 +177,11 @@ class SecureThreadingHTTPServer(ThreadingHTTPServer):
 
 
 def main():
-    if len(os.environ.get("OWNER_SECRET", "")) < 32:
+    owner_secret = os.environ.get("OWNER_SECRET", "")
+    if len(owner_secret) < 32:
         raise SystemExit("OWNER_SECRET must be configured with at least 32 characters.")
+    if owner_secret != owner_secret.strip():
+        raise SystemExit("OWNER_SECRET must not contain surrounding whitespace.")
     host = os.environ.get("HOST", "127.0.0.1")
     if host not in {"127.0.0.1", "0.0.0.0"}:
         raise SystemExit("HOST must be 127.0.0.1 or 0.0.0.0.")

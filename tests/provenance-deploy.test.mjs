@@ -10,6 +10,9 @@ test("provenance deploy validates the owner secret before production mutation", 
   const preDeploy = workflow.slice(validation, deploy);
   assert.match(preDeploy, /REDULTRON_OWNER_SECRET/);
   assert.match(preDeploy, /-ge 32/);
+  assert.ok(preDeploy.includes("secret !== secret.trim()"));
+  assert.match(preDeploy, /surrounding whitespace or line breaks/);
+  assert.ok(preDeploy.includes("/[\\r\\n]/.test(secret)"));
   assert.match(preDeploy, /value suppressed/);
 });
 

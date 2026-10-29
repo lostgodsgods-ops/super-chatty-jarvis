@@ -54,11 +54,14 @@ export function inspectHybridCoreConfiguration(env = {}) {
   const pythonEndpoint = typeof env?.PYTHON_CORE_URL === "string" ? env.PYTHON_CORE_URL.trim() : "";
   const provider = phpEndpoint ? "php" : pythonEndpoint ? "python" : "none";
   const endpoint = provider === "php" ? phpEndpoint : pythonEndpoint;
-  const secret = typeof env?.OWNER_SECRET === "string" ? env.OWNER_SECRET.trim() : "";
+  const secret = typeof env?.OWNER_SECRET === "string" ? env.OWNER_SECRET : "";
   const endpointConfigured = endpoint.length > 0;
   const endpointValid = endpointConfigured && parseHybridEndpoint(endpoint) !== null;
   const ownerSecretConfigured = secret.length > 0;
-  const ownerSecretPolicyValid = secret.length >= MIN_OWNER_SECRET_LENGTH;
+  // Do not silently normalize a shared authentication secret: the sidecar compares
+  // the configured value exactly, so surrounding whitespace can cause auth drift.
+  const ownerSecretPolicyValid = secret.length >= MIN_OWNER_SECRET_LENGTH &&
+    secret === secret.trim() && !/[\r\n]/.test(secret);
 
   let failureCode = null;
   if (!endpointConfigured || !ownerSecretConfigured) failureCode = "HYBRID_CORE_NOT_CONFIGURED";
@@ -108,7 +111,9 @@ export async function executeHybridTask(input, env, options = {}) {
   const pythonEndpoint = typeof env?.PYTHON_CORE_URL === "string" ? env.PYTHON_CORE_URL.trim() : "";
   const usePhpCore = diagnostics.provider === "php";
   const endpoint = usePhpCore ? phpEndpoint : pythonEndpoint;
-  const secret = typeof env?.OWNER_SECRET === "string" ? env.OWNER_SECRET.trim() : "";
+  // Owner secrets are opaque credentials: never normalize them. Reject padding so the
+  // Worker cannot silently send a value different from the sidecar's exact comparison.
+  const secret = typeof env?.OWNER_SECRET === "string" ? env.OWNER_SECRET : "";
   const url = parseHybridEndpoint(endpoint);
   if (!url) throw new HybridCoreError("HYBRID_CORE_URL_INVALID", 503);
 
