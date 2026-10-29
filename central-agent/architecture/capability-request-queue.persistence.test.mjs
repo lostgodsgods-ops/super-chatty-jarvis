@@ -31,6 +31,11 @@ function createD1Mock() {
           if (normalizedSql.startsWith("INSERT INTO capability_requests")) {
             if (!state.schemaCreated) throw new Error("schema was not created before insert");
             const [id, goal, rationale, requestedToolsJson, createdAt] = boundValues;
+            const existing = state.rows.find(row => row.id === id);
+            if (existing && normalizedSql.includes("ON CONFLICT(id) DO NOTHING")) {
+              return { success: true, meta: { changes: 0 } };
+            }
+            if (existing) throw new Error("UNIQUE constraint failed: capability_requests.id");
             state.rows.push({
               id, goal, rationale, requestedToolsJson,
               status: "pending_owner_review",
@@ -41,6 +46,22 @@ function createD1Mock() {
             return { success: true, meta: { changes: 1 } };
           }
           throw new Error("Unexpected D1 run statement");
+        },
+        async first() {
+          if (!normalizedSql.includes("FROM capability_requests WHERE id = ?")) {
+            throw new Error("Unexpected D1 single-row query statement");
+          }
+          const row = state.rows.find(item => item.id === boundValues[0]);
+          return row ? {
+            id: row.id,
+            goal: row.goal,
+            rationale: row.rationale,
+            requestedToolsJson: row.requestedToolsJson,
+            status: row.status,
+            executionEnabled: row.executionEnabled,
+            requiresOwnerApproval: row.requiresOwnerApproval,
+            createdAt: row.createdAt
+          } : null;
         },
         async all() {
           if (!normalizedSql.startsWith("SELECT id,goal,rationale,requested_tools_json AS requestedToolsJson")) {
@@ -146,4 +167,45 @@ test("D1 list query failures return a sanitized storage error", async () => {
     error.message === "CAPABILITY_REQUEST_STORAGE_UNAVAILABLE" &&
     !error.message.includes(internalDetail)
   );
+});
+
+test("an idempotency key makes repeated capability requests return one durable record", async () => {
+  const { env, state } = createD1Mock();
+  const input = {
+    idempotencyKey: "overnight-capability-request-001",
+    goal: "Verify repository state",
+    requestedTools: ["github"],
+    rationale: "Need bounded repository inspection."
+  };
+
+  const first = await createCapabilityRequest(env, input, catalog);
+  const replay = await createCapabilityRequest(env, input, catalog);
+
+  assert.equal(first.idempotentReplay, false);
+  assert.equal(replay.idempotentReplay, true);
+  assert.equal(replay.id, first.id);
+  assert.equal(state.rows.length, 1, "a replay must not insert a second row");
+  assert.equal(replay.status, "pending_owner_review");
+  assert.equal(replay.executionEnabled, false);
+  assert.equal(replay.requiresOwnerApproval, true);
+});
+
+test("reusing an idempotency key for a different payload returns a conflict", async () => {
+  const { env, state } = createD1Mock();
+  const firstInput = {
+    idempotencyKey: "overnight-capability-request-002",
+    goal: "Verify repository state",
+    requestedTools: ["github"],
+    rationale: "Need bounded repository inspection."
+  };
+  await createCapabilityRequest(env, firstInput, catalog);
+
+  await assert.rejects(
+    createCapabilityRequest(env, {
+      ...firstInput,
+      goal: "Install an unreviewed tool"
+    }, catalog),
+    error => error.code === "CAPABILITY_REQUEST_IDEMPOTENCY_CONFLICT" && error.status === 409
+  );
+  assert.equal(state.rows.length, 1, "conflicting replay must not mutate the original row");
 });

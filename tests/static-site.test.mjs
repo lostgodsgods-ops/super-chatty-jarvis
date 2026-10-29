@@ -545,3 +545,21 @@ test("Cloudflare deployment verifies the exact deployed PWA release after Worker
   assert.match(deployWorkflow, /JSON\.stringify\(canonical\(expected\)\) !== JSON\.stringify\(canonical\(actual\)\)/);
   assert.match(deployWorkflow, /health_ok=false/);
 });
+
+test("capability request replays are audited as replays and return a non-creation status", () => {
+  const start = centralWorker.indexOf('if (url.pathname === "/api/capability-requests" && request.method === "POST")');
+  const end = centralWorker.indexOf('if (url.pathname === "/api/capability-requests" && request.method === "GET")', start);
+  assert.ok(start >= 0 && end > start, "capability request POST route must remain discoverable");
+  const route = centralWorker.slice(start, end);
+  assert.match(route, /idempotencyKey/);
+  assert.match(route, /capability\.request\.replayed/);
+  assert.match(route, /requestRecord\.idempotentReplay \? 200 : 201/);
+});
+
+test("D1 migrations run before Worker deployment only behind the production approval gate", async () => {
+  const workflow = await readFile(new URL("../.github/workflows/deploy-cloudflare.yml", import.meta.url), "utf8");
+  assert.match(workflow, /authorize_production_changes == 'approve'/);
+  const apply = workflow.indexOf("d1 migrations apply super-chatty-owner-auth --remote --config central-agent\/wrangler.jsonc");
+  const deploy = workflow.indexOf("command: deploy --config central-agent\/wrangler.jsonc");
+  assert.ok(apply >= 0 && deploy > apply, "approved D1 migrations must run before Worker deployment");
+});

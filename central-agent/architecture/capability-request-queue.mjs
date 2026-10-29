@@ -103,23 +103,96 @@ async function ensureSchema(db) {
   }
 }
 
+function normalizeCapabilityRequestIdempotencyKey(input) {
+  if (input?.idempotencyKey === undefined) return null;
+  const key = input.idempotencyKey;
+  if (typeof key !== "string" || !/^[A-Za-z0-9._:-]{1,128}$/.test(key)) {
+    throw new CapabilityRequestError("CAPABILITY_REQUEST_IDEMPOTENCY_KEY_INVALID", 400);
+  }
+  return key;
+}
+
+async function capabilityRequestIdFromIdempotencyKey(key) {
+  const bytes = new TextEncoder().encode("redultron-capability-request:v1:" + key);
+  const digest = await crypto.subtle.digest("SHA-256", bytes);
+  const hex = Array.from(new Uint8Array(digest), byte => byte.toString(16).padStart(2, "0")).join("");
+  return "capreq_" + hex;
+}
+
 export async function createCapabilityRequest(env = {}, input, catalog = []) {
   if (!env.DB || typeof env.DB.prepare !== "function") throw new CapabilityRequestError("CAPABILITY_REQUEST_STORAGE_UNAVAILABLE", 503);
+  const idempotencyKey = normalizeCapabilityRequestIdempotencyKey(input);
   const normalized = normalizeCapabilityRequest(input, catalog);
+  let id = crypto.randomUUID();
+  if (idempotencyKey !== null) {
+    try {
+      id = await capabilityRequestIdFromIdempotencyKey(idempotencyKey);
+    } catch {
+      throw new CapabilityRequestError("CAPABILITY_REQUEST_IDEMPOTENCY_UNAVAILABLE", 503);
+    }
+  }
   await ensureSchema(env.DB);
-  const id = crypto.randomUUID();
   const createdAt = new Date().toISOString();
+  const requestedToolsJson = JSON.stringify(normalized.requestedTools);
+  const insertSql = idempotencyKey === null
+    ? "INSERT INTO capability_requests (id,goal,rationale,requested_tools_json,status,execution_enabled,requires_owner_approval,created_at) VALUES (?,?,?,?, 'pending_owner_review',0,1,?)"
+    : "INSERT INTO capability_requests (id,goal,rationale,requested_tools_json,status,execution_enabled,requires_owner_approval,created_at) VALUES (?,?,?,?, 'pending_owner_review',0,1,?) ON CONFLICT(id) DO NOTHING";
+  let insertResult;
   try {
-    await env.DB.prepare(`INSERT INTO capability_requests
-      (id,goal,rationale,requested_tools_json,status,execution_enabled,requires_owner_approval,created_at)
-      VALUES (?,?,?,?, 'pending_owner_review',0,1,?)`)
-      .bind(id, normalized.goal, normalized.rationale, JSON.stringify(normalized.requestedTools), createdAt).run();
+    insertResult = await env.DB.prepare(insertSql)
+      .bind(id, normalized.goal, normalized.rationale, requestedToolsJson, createdAt).run();
   } catch {
     throw new CapabilityRequestError("CAPABILITY_REQUEST_PERSIST_FAILED", 503);
   }
-  return { id, ...normalized, createdAt, message: "Capability request recorded. No tool was installed, authorized, or executed." };
-}
 
+  if (idempotencyKey === null) {
+    return {
+      id, ...normalized, createdAt, idempotentReplay: false,
+      message: "Capability request recorded. No tool was installed, authorized, or executed."
+    };
+  }
+
+  const changes = Number(insertResult?.meta?.changes);
+  if (!Number.isInteger(changes) || changes < 0) {
+    throw new CapabilityRequestError("CAPABILITY_REQUEST_PERSIST_FAILED", 503);
+  }
+  if (changes > 0) {
+    return {
+      id, ...normalized, createdAt, idempotentReplay: false,
+      message: "Capability request recorded. No tool was installed, authorized, or executed."
+    };
+  }
+
+  let existing;
+  try {
+    existing = await env.DB.prepare(
+      "SELECT id,goal,rationale,requested_tools_json AS requestedToolsJson,status,execution_enabled AS executionEnabled,requires_owner_approval AS requiresOwnerApproval,created_at AS createdAt FROM capability_requests WHERE id = ?"
+    ).bind(id).first();
+  } catch {
+    throw new CapabilityRequestError("CAPABILITY_REQUEST_STORAGE_UNAVAILABLE", 503);
+  }
+  if (!existing) throw new CapabilityRequestError("CAPABILITY_REQUEST_PERSIST_FAILED", 503);
+  if (existing.goal !== normalized.goal ||
+      existing.rationale !== normalized.rationale ||
+      existing.requestedToolsJson !== requestedToolsJson) {
+    throw new CapabilityRequestError("CAPABILITY_REQUEST_IDEMPOTENCY_CONFLICT", 409);
+  }
+
+  let requestedTools = [];
+  try { requestedTools = JSON.parse(existing.requestedToolsJson); } catch {}
+  return {
+    id: existing.id,
+    goal: existing.goal,
+    rationale: existing.rationale,
+    requestedTools,
+    status: existing.status,
+    executionEnabled: Number(existing.executionEnabled) === 1,
+    requiresOwnerApproval: Number(existing.requiresOwnerApproval) === 1,
+    createdAt: existing.createdAt,
+    idempotentReplay: true,
+    message: "Existing capability request returned. No tool was installed, authorized, or executed."
+  };
+}
 export async function listCapabilityRequests(env = {}, limit = 20) {
   if (!env.DB || typeof env.DB.prepare !== "function") throw new CapabilityRequestError("CAPABILITY_REQUEST_STORAGE_UNAVAILABLE", 503);
   await ensureSchema(env.DB);
