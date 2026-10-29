@@ -151,7 +151,13 @@ async function wikipedia(query, fetchImpl) {
   const url = new URL("https://en.wikipedia.org/w/api.php");
   url.searchParams.set("action", "query"); url.searchParams.set("list", "search"); url.searchParams.set("srsearch", query);
   url.searchParams.set("srlimit", String(MAX_RESULTS)); url.searchParams.set("format", "json"); url.searchParams.set("utf8", "1");
-  const response = await request(fetchImpl, "WIKIPEDIA", url.toString(), { headers: { accept: "application/json" } });
+  // Wikimedia requires an identifying User-Agent; omitting it can yield HTTP 403.
+  const response = await request(fetchImpl, "WIKIPEDIA", url.toString(), {
+    headers: {
+      accept: "application/json",
+      "user-agent": "REDULTRON-Core/3.0 (https://github.com/lostgodsgods-ops/super-chatty-jarvis)"
+    }
+  });
   const payload = await response.json();
   const sources = normalizeItems((payload?.query?.search || []).map(item => ({ title: item?.title, url: Number.isSafeInteger(item?.pageid) ? "https://en.wikipedia.org/?curid=" + item.pageid : "", content: String(item?.snippet || "").replace(/<[^>]+>/g, " ") })));
   return sources.length ? { provider: "wikipedia-api", sources } : null;
