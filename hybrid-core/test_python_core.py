@@ -379,3 +379,42 @@ class PythonCoreStartupSecretGuardTests(unittest.TestCase):
                 os.environ.pop("PORT", None)
             else:
                 os.environ["PORT"] = previous_port
+
+
+    def test_startup_rejects_internal_linebreak_in_owner_secret_without_starting_server(self):
+        linebreak_secret = TEST_SECRET[:16] + "\n" + TEST_SECRET[16:]
+        previous_secret = os.environ.get("OWNER_SECRET")
+        previous_host = os.environ.get("HOST")
+        previous_port = os.environ.get("PORT")
+        os.environ["OWNER_SECRET"] = linebreak_secret
+        os.environ["HOST"] = "127.0.0.1"
+        os.environ["PORT"] = "8788"
+        original_server = python_core.SecureThreadingHTTPServer
+
+        class UnexpectedServer:
+            def __init__(self, *args, **kwargs):
+                raise AssertionError("server must not start with linebreak owner secret")
+
+        python_core.SecureThreadingHTTPServer = UnexpectedServer
+        try:
+            with self.assertRaises(SystemExit) as raised:
+                python_core.main()
+            self.assertEqual(
+                str(raised.exception),
+                "OWNER_SECRET must not contain line breaks.",
+            )
+            self.assertNotIn(TEST_SECRET, str(raised.exception))
+        finally:
+            python_core.SecureThreadingHTTPServer = original_server
+            if previous_secret is None:
+                os.environ.pop("OWNER_SECRET", None)
+            else:
+                os.environ["OWNER_SECRET"] = previous_secret
+            if previous_host is None:
+                os.environ.pop("HOST", None)
+            else:
+                os.environ["HOST"] = previous_host
+            if previous_port is None:
+                os.environ.pop("PORT", None)
+            else:
+                os.environ["PORT"] = previous_port
