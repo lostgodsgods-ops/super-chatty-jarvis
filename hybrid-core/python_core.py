@@ -114,7 +114,7 @@ class Handler(BaseHTTPRequestHandler):
             return
         expected = os.environ.get("OWNER_SECRET", "")
         supplied = self.headers.get("X-Owner-Secret", "")
-        if len(expected) < 32 or expected != expected.strip() or not supplied or not secrets.compare_digest(supplied, expected):
+        if len(expected) < 32 or expected != expected.strip() or "\r" in expected or "\n" in expected or not supplied or not secrets.compare_digest(supplied, expected):
             self._event_code = "AUTH_REJECTED"
             self._json(401, {"ok": False, "code": "OWNER_AUTH_REQUIRED"})
             return
@@ -182,6 +182,8 @@ def main():
         raise SystemExit("OWNER_SECRET must be configured with at least 32 characters.")
     if owner_secret != owner_secret.strip():
         raise SystemExit("OWNER_SECRET must not contain surrounding whitespace.")
+    if "\r" in owner_secret or "\n" in owner_secret:
+        raise SystemExit("OWNER_SECRET must not contain line breaks.")
     host = os.environ.get("HOST", "127.0.0.1")
     if host not in {"127.0.0.1", "0.0.0.0"}:
         raise SystemExit("HOST must be 127.0.0.1 or 0.0.0.0.")
