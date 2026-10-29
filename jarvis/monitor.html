@@ -51,7 +51,7 @@ main{max-width:1180px;margin:auto;padding:18px 14px 36px}.head{display:flex;alig
  const $ = id => document.getElementById(id);
  const esc = value => String(value ?? "").replace(/[&<>"']/g, ch => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[ch]));
  const records = new Map();
- const stateClass = state => String(state).replace(/\s+/g, "_");
+ function stateClass(state) { return state.replace(/\s+/g, "_"); }
  function setRecord(key, name, state, detail, href) { records.set(key,{key,name,state,detail,href}); render(); }
  function render() {
    const values=[...records.values()];
