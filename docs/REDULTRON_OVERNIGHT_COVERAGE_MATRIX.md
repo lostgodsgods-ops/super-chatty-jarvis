@@ -1,6 +1,6 @@
 # REDULTRON CORE 3.0 — Overnight Coverage Matrix
 
-**Snapshot:** 2026-10-29T09:09:02+05:30
+**Snapshot:** 2026-10-29T09:23:21+05:30
 **Repository:** `lostgodsgods-ops/super-chatty-jarvis`  
 **Branch:** `main`  
 **Commit SHA:** `d404341a9c0e175406bdb7d12b7aff7be842b121`  
@@ -8,7 +8,7 @@
 
 
 
-## Latest main refresh — 2026-10-29T09:09:02+05:30
+## Latest main refresh — 2026-10-29T09:23:21+05:30
 
 **Current main SHA:** `d404341a9c0e175406bdb7d12b7aff7be842b121` (commit time `2026-10-29T03:36:15Z`). This refresh supersedes older sections below wherever they describe PR #833 as open or the current main release workflow as failing. Other dated entries remain historical evidence.
 
@@ -19,14 +19,15 @@
 | Release workflow | **PASS** | PR [#833](https://github.com/lostgodsgods-ops/super-chatty-jarvis/pull/833) is merged in main commit `d404341a9c0e175406bdb7d12b7aff7be842b121`; post-merge package run [40813080057](https://github.com/lostgodsgods-ops/super-chatty-jarvis/actions/runs/40813080057) passed. The run built a package, but this does not mean it was deployed. |
 | Main branch protection | **FAIL** | GitHub branch metadata reports `protected=false` and required status checks `off`. No repository settings were changed. |
 | Cloudflare Worker provenance | **FAIL** | Deployment list HTTP 200; active deployment `1947abf4-39b2-4be0-880d-8bfbabb60294`, version `ddae66f9-dfcc-4a38-907d-6bfa5843a604`, 100% traffic. Last-observed source SHA `a0d6087dedb7a29aaa07c9302167ddbda5b352da` is 118 commits behind main; current version metadata contains no source-commit annotation. |
-| Render Python Core provenance | **FAIL** | Latest deployment `dep-dbh59ga9lscs73e2d38g` is `live` on `55de9ebdb7a753cb700e2411a7e8852dd9853866`, 46 commits behind main. |
-| Authenticated Python Core | **FAIL — previous evidence** | Last recorded result remains HTTP 502 / `HYBRID_CORE_AUTH_REJECTED_401`, upstream HTTP 401. No fresh authenticated probe or secret-parity proof was obtained. No secret values were read or changed. |
-| D1 migration/persistence | **BLOCKED** | Latest recorded targeted read-only query: HTTP 200, zero rows written, no `d1_migrations`, `capability_requests` or `verified_knowledge` tables found. Query is historical, not re-run in this refresh. PR [#821](https://github.com/lostgodsgods-ops/super-chatty-jarvis/pull/821) remains draft; no migration was applied. |
+| PWA site Worker provenance | **FAIL — source provenance incomplete** | Cloudflare API HTTP 200; active deployment `413a16a6-d3ac-4e10-892c-c5fb389ee1db`, version `d5a5d625-6991-4855-ad71-00ab28badd4f` (version 125), 100% traffic, created `2026-10-21T17:08:58Z`. No `GITHUB_COMMIT_SHA` binding is present in site Worker settings; actual served V18 asset marker is NOT TESTED. |
+| Render Python Core provenance | **FAIL — last recorded evidence** | Last recorded deployment `dep-dbh59ga9lscs73e2d38g` is `live` on `55de9ebdb7a753cb700e2411a7e8852dd9853866`, 46 commits behind current main `d404341a9c0e175406bdb7d12b7aff7be842b121`. This run could not re-read Render deployment metadata because the connector requires workspace selection. |
+| Authenticated Python Core | **FAIL — last recorded live result; root cause unconfirmed** | Last recorded result remains HTTP 502 / `HYBRID_CORE_AUTH_REJECTED_401`, upstream HTTP 401. Source review found main's Worker adapter trims `OWNER_SECRET` while Python compares the raw configured value; whitespace padding could cause a 401. PR [#803](https://github.com/lostgodsgods-ops/super-chatty-jarvis/pull/803) adds fail-closed whitespace guards with passing branch tests, but is not merged/deployed. Secret parity and a fresh authenticated probe remain NOT TESTED. No secret values were read or changed. |
+| D1 migration/persistence | **BLOCKED — current read-only query** | Cloudflare D1 query returned HTTP 200; 26 table/view names; `rows_written=0`, `changes=0`, `changed_db=false`. `d1_migrations`, `capability_requests` and `verified_knowledge` were absent. PR [#821](https://github.com/lostgodsgods-ops/super-chatty-jarvis/pull/821) remains draft; no migration was applied. |
 | Live Search | **NOT TESTED live** | PR [#820](https://github.com/lostgodsgods-ops/super-chatty-jarvis/pull/820) runs 40770705886/40770705925/40770705777 passed; PR [#816](https://github.com/lostgodsgods-ops/super-chatty-jarvis/pull/816) runs 40770138313/40770138287/40770138282 passed. Live provider reachability and freshness remain unverified. |
 | Monitor / CORS | **PASS on branch; not deployed** | PR [#840](https://github.com/lostgodsgods-ops/super-chatty-jarvis/pull/840) runs 40808233350/40808233367 passed. PR [#841](https://github.com/lostgodsgods-ops/super-chatty-jarvis/pull/841) runs 40808172525/40808172528/40808172541 passed. Browser-level CORS and production monitor behavior remain NOT TESTED. |
-| PWA | **BLOCKED / NOT TESTED live** | Main release package now passes, but public endpoint access was unavailable through the current web fetch. Served asset version, MIME, offline behavior and Android Chrome install/update remain NOT TESTED. |
+| PWA | **NOT TESTED live** | Main source declares V18 and the release package passed, but served asset version, MIME, offline behavior and Android Chrome install/update remain NOT TESTED. The site Worker `super-chatty-jarvis-site` has version 125 at 100% traffic, deployed `2026-10-21T17:08:58Z`; its settings expose no `GITHUB_COMMIT_SHA` binding, so source provenance is incomplete. Public health/asset URLs were inaccessible through this run's web fetch. |
 | Agents | **BLOCKED** | No CodeAgent Mobile sessions; Agent Relay target listing says workspace not connected; Replicas is not connected; JackHamr credits exhausted. No agent started and no credits spent. |
-| Rapid Learning automation | **IN_PROGRESS — unconfirmed liveness** | Run `13bd1987-aab8-8332-acf9-6326ce9f3aa6` started `2026-10-29T03:35:18Z`, no completion timestamp at snapshot. Previous completed result `38137688-d70c-8329-9712-5c7cc1ceffd0` was not marked as a failure. No duplicate run was started. |
+| Rapid Learning automation | **COMPLETED — report snapshot stale at finish** | Run `13bd1987-aab8-8332-acf9-6326ce9f3aa6` started `2026-10-29T03:35:18Z` and completed `2026-10-29T03:48:25Z`. Its embedded 09:17 IST report still said `in_progress`, but the automation record now confirms completion. The report did not establish a fresh authenticated probe or production fix. |
 
 
 | Sentinel retry contract | **PASS on branch; NOT TESTED live** | New draft PR [#859](https://github.com/lostgodsgods-ops/super-chatty-jarvis/pull/859), head `acbf93c32394c16302c309ee2f732cf0f24adf2f`; CI [40813862057](https://github.com/lostgodsgods-ops/super-chatty-jarvis/actions/runs/40813862057), Static [40813862103](https://github.com/lostgodsgods-ops/super-chatty-jarvis/actions/runs/40813862103), and Sentinel [40813862065](https://github.com/lostgodsgods-ops/super-chatty-jarvis/actions/runs/40813862065) passed. The test covers source-level guards only; duplicate-event replay is still NOT TESTED. |
