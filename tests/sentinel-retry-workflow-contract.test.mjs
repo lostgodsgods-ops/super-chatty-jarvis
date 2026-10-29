@@ -31,7 +31,7 @@ test("Sentinel re-reads current attempt before requesting a bounded retry", () =
 
 test("Sentinel stops after attempt three and suppresses duplicate open incidents", () => {
   assert.match(workflow, /steps\.source\.outputs\.attempt >= 3/);
-  assert.match(workflow, /select\(\.title == "\$title" and \.state == "open"\)/);
+  assert.match(workflow, /select\(\.title == \$title and \.state == "open"\)/);
   assert.match(workflow, /Existing incident found for run \$RUN_ID; duplicate suppressed/);
   assert.match(workflow, /gh issue create --repo "\$REPOSITORY"/);
 });
