@@ -1,19 +1,43 @@
 # REDULTRON CORE 3.0 — Overnight Coverage Matrix
 
-**Snapshot:** 2026-10-29T03:33:57+05:30
+**Snapshot:** 2026-10-29T09:09:02+05:30
 **Repository:** `lostgodsgods-ops/super-chatty-jarvis`  
 **Branch:** `main`  
-**Commit SHA:** `0a35a8dda07b5217497ec1c45bdc64e3a7d0147c`  
+**Commit SHA:** `d404341a9c0e175406bdb7d12b7aff7be842b121`  
 **Purpose:** Evidence-indexed inventory. This is a point-in-time snapshot, not proof that every module is operational.
+
+
+
+## Latest main refresh — 2026-10-29T09:09:02+05:30
+
+**Current main SHA:** `d404341a9c0e175406bdb7d12b7aff7be842b121` (commit time `2026-10-29T03:36:15Z`). This refresh supersedes older sections below wherever they describe PR #833 as open or the current main release workflow as failing. Other dated entries remain historical evidence.
+
+| Area | Status | Current evidence / limitation |
+|---|---|---|
+| Main CI | **PASS** | Run [40813079981](https://github.com/lostgodsgods-ops/super-chatty-jarvis/actions/runs/40813079981). |
+| Static site checks | **PASS** | Run [40813080034](https://github.com/lostgodsgods-ops/super-chatty-jarvis/actions/runs/40813080034). |
+| Release workflow | **PASS** | PR [#833](https://github.com/lostgodsgods-ops/super-chatty-jarvis/pull/833) is merged in main commit `d404341a9c0e175406bdb7d12b7aff7be842b121`; post-merge package run [40813080057](https://github.com/lostgodsgods-ops/super-chatty-jarvis/actions/runs/40813080057) passed. The run built a package, but this does not mean it was deployed. |
+| Main branch protection | **FAIL** | GitHub branch metadata reports `protected=false` and required status checks `off`. No repository settings were changed. |
+| Cloudflare Worker provenance | **FAIL** | Deployment list HTTP 200; active deployment `1947abf4-39b2-4be0-880d-8bfbabb60294`, version `ddae66f9-dfcc-4a38-907d-6bfa5843a604`, 100% traffic. Last-observed source SHA `a0d6087dedb7a29aaa07c9302167ddbda5b352da` is 118 commits behind main; current version metadata contains no source-commit annotation. |
+| Render Python Core provenance | **FAIL** | Latest deployment `dep-dbh59ga9lscs73e2d38g` is `live` on `55de9ebdb7a753cb700e2411a7e8852dd9853866`, 46 commits behind main. |
+| Authenticated Python Core | **FAIL — previous evidence** | Last recorded result remains HTTP 502 / `HYBRID_CORE_AUTH_REJECTED_401`, upstream HTTP 401. No fresh authenticated probe or secret-parity proof was obtained. No secret values were read or changed. |
+| D1 migration/persistence | **BLOCKED** | Latest recorded targeted read-only query: HTTP 200, zero rows written, no `d1_migrations`, `capability_requests` or `verified_knowledge` tables found. Query is historical, not re-run in this refresh. PR [#821](https://github.com/lostgodsgods-ops/super-chatty-jarvis/pull/821) remains draft; no migration was applied. |
+| Live Search | **NOT TESTED live** | PR [#820](https://github.com/lostgodsgods-ops/super-chatty-jarvis/pull/820) runs 40770705886/40770705925/40770705777 passed; PR [#816](https://github.com/lostgodsgods-ops/super-chatty-jarvis/pull/816) runs 40770138313/40770138287/40770138282 passed. Live provider reachability and freshness remain unverified. |
+| Monitor / CORS | **PASS on branch; not deployed** | PR [#840](https://github.com/lostgodsgods-ops/super-chatty-jarvis/pull/840) runs 40808233350/40808233367 passed. PR [#841](https://github.com/lostgodsgods-ops/super-chatty-jarvis/pull/841) runs 40808172525/40808172528/40808172541 passed. Browser-level CORS and production monitor behavior remain NOT TESTED. |
+| PWA | **BLOCKED / NOT TESTED live** | Main release package now passes, but public endpoint access was unavailable through the current web fetch. Served asset version, MIME, offline behavior and Android Chrome install/update remain NOT TESTED. |
+| Agents | **BLOCKED** | No CodeAgent Mobile sessions; Agent Relay target listing says workspace not connected; Replicas is not connected; JackHamr credits exhausted. No agent started and no credits spent. |
+| Rapid Learning automation | **IN_PROGRESS — unconfirmed liveness** | Run `13bd1987-aab8-8332-acf9-6326ce9f3aa6` started `2026-10-29T03:35:18Z`, no completion timestamp at snapshot. Previous completed result `38137688-d70c-8329-9712-5c7cc1ceffd0` was not marked as a failure. No duplicate run was started. |
+
+**No production deployment, D1 write/migration, secret-value access/change, or PR merge was performed by this refresh.** PR #833's merge is observed in main history; it was not performed by this refresh.
 
 ## 1. Coverage totals
 
 | Inventory | Count |
 |---|---:|
-| Tracked repository files in Git tree | 195 |
+| Tracked repository files in Git tree | 196 |
 | Central Agent files | 95 |
 | GitHub Actions workflows | 14 |
-| Test/spec files or files under `tests/` | 73 |
+| Test/spec files or files under `tests/` | 74 |
 | Python Core files | 7 |
 | PHP Core files | 4 |
 | PWA assets | 9 |
