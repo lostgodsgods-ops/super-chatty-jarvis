@@ -8513,19 +8513,22 @@
       "title": "Cloudflare Workers versions and deployments",
       "url": "https://developers.cloudflare.com/workers/versions-and-deployments/",
       "confidence": "High — official upstream documentation",
-      "limitation": "General platform guidance; not proof of REDULTRON runtime behavior."
+      "limitation": "General platform guidance; not proof of REDULTRON runtime behavior.",
+      "purpose": "Official upstream guidance for deployment provenance, database migrations, compliant API usage, workflow security, or accessibility; general guidance only, not proof of REDULTRON runtime behavior."
     },
     {
       "title": "Wikimedia Foundation User-Agent policy",
       "url": "https://foundation.wikimedia.org/wiki/Policy:Wikimedia_Foundation_User-Agent_Policy",
       "confidence": "High — official upstream documentation",
-      "limitation": "General platform guidance; not proof of REDULTRON runtime behavior."
+      "limitation": "General platform guidance; not proof of REDULTRON runtime behavior.",
+      "purpose": "Official upstream guidance for deployment provenance, database migrations, compliant API usage, workflow security, or accessibility; general guidance only, not proof of REDULTRON runtime behavior."
     },
     {
       "title": "GitHub Actions security",
       "url": "https://docs.github.com/en/actions/how-tos/secure-your-work",
       "confidence": "High — official upstream documentation",
-      "limitation": "General platform guidance; not proof of REDULTRON runtime behavior."
+      "limitation": "General platform guidance; not proof of REDULTRON runtime behavior.",
+      "purpose": "Official upstream guidance for deployment provenance, database migrations, compliant API usage, workflow security, or accessibility; general guidance only, not proof of REDULTRON runtime behavior."
     }
   ],
   "liveEvidence": {
@@ -8571,7 +8574,7 @@
       }
     ],
     "cloudflareWorker": {
-      "status": "FAIL — deployment/source SHA drift",
+      "status": "FAIL — SHA drift",
       "script": "shrill-silence-164f",
       "deploymentId": "1947abf4-39b2-4be0-880d-8bfbabb60294",
       "versionId": "ddae66f9-dfcc-4a38-907d-6bfa5843a604",
@@ -8600,7 +8603,7 @@
       "sourceShaConfidence": "LOW — last-observed GITHUB_COMMIT_SHA binding is a configuration claim, not a current version annotation."
     },
     "renderPythonCore": {
-      "status": "FAIL — deployment SHA behind main",
+      "status": "FAIL — behind main",
       "serviceId": "srv-dbdhr0mi0phs739rv98g",
       "latestObservedDeploymentId": "dep-dbh59ga9lscs73e2d38g",
       "deployedSha": "55de9ebdb7a753cb700e2411a7e8852dd9853866",
