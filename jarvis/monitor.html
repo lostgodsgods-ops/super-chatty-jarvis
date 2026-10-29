@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#06111b">
+<meta name="description" content="Evidence-based live health and delivery monitor for REDULTRON CORE 3.0.">
+<title>REDULTRON · Live Monitor</title>
+<style>
+:root{color-scheme:dark;--bg:#050b12;--panel:#0a1724;--line:#23475a;--cyan:#63eaff;--green:#65f2bd;--amber:#ffc56d;--red:#ff7f91;--muted:#9ab2c1;--text:#edfaff}
+*{box-sizing:border-box}body{margin:0;background:radial-gradient(ellipse at 50% 0,#10364a 0,transparent 44%),var(--bg);color:var(--text);font:14px/1.5 system-ui,-apple-system,Segoe UI,sans-serif}
+main{max-width:1180px;margin:auto;padding:18px 14px 36px}.head{display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;padding:16px;border:1px solid var(--line);border-radius:16px;background:#091722e8}
+.brand{font-size:clamp(16px,3vw,24px);font-weight:900;letter-spacing:.08em}.brand span{color:var(--cyan)}.sub{color:var(--muted);font-size:11px}.actions{display:flex;gap:8px;flex-wrap:wrap}button,.linkbtn{border:1px solid #397084;background:#0c2635;color:var(--cyan);padding:10px 13px;border-radius:10px;font-weight:800;text-decoration:none;min-height:40px;cursor:pointer}
+.overview{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin:14px 0}.tile,.panel{border:1px solid var(--line);border-radius:15px;background:linear-gradient(145deg,#0c1d2b,#07111b);min-width:0}.tile{padding:14px}.tile strong{display:block;font-size:clamp(20px,3vw,29px);line-height:1.2}.tile label{display:block;color:var(--muted);font-size:10px;letter-spacing:.12em;text-transform:uppercase;margin-top:7px}
+.layout{display:grid;grid-template-columns:1.1fr .9fr;gap:14px}.panel h2{margin:0;padding:14px 16px;border-bottom:1px solid var(--line);font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--cyan)}.body{padding:14px 16px}.check{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:12px;align-items:center;padding:12px 0;border-bottom:1px solid #23475a66}.check:last-child{border-bottom:0}.name{font-weight:800;overflow-wrap:anywhere}.detail{font-size:11px;color:var(--muted);margin-top:3px;overflow-wrap:anywhere}.badge{font-size:10px;letter-spacing:.06em;font-weight:900;border:1px solid currentColor;border-radius:999px;padding:5px 8px;white-space:nowrap;color:var(--muted)}.PASS{color:var(--green)}.FAIL{color:var(--red)}.BLOCKED{color:var(--amber)}.NOT_TESTED{color:var(--muted)}
+.mono{font:11px/1.6 ui-monospace,SFMono-Regular,Menlo,monospace;overflow-wrap:anywhere}.feed{display:flex;flex-direction:column;gap:9px}.event{padding:10px 11px;border:1px solid #23475a;border-radius:10px;background:#06111b}.event strong{display:block;font-size:11px}.event p{margin:4px 0 0;color:var(--muted);font-size:10px;overflow-wrap:anywhere}.foot{margin-top:14px;padding:12px 14px;border:1px solid var(--line);border-radius:12px;color:var(--muted);font-size:11px}.small{font-size:10px;color:var(--muted)}a{color:var(--cyan)}@media(max-width:760px){.overview{grid-template-columns:repeat(2,minmax(0,1fr))}.layout{grid-template-columns:1fr}.head{align-items:flex-start}.check{gap:8px}.badge{font-size:9px}}
+</style>
+</head>
+<body><main>
+<header class="head">
+ <div><div class="brand">REDULTRON <span>CORE 3.0</span></div><div class="sub">LIVE OPERATIONS MONITOR · EVIDENCE ONLY</div><div class="small" id="updatedAt">Waiting for first probe…</div></div>
+ <div class="actions"><button id="refresh" type="button">REFRESH NOW</button><a class="linkbtn" href="./index.html">OPEN CORE</a></div>
+</header>
+<section class="overview" aria-label="Live overview">
+ <div class="tile"><strong id="overall">CHECKING</strong><label>System health</label></div>
+ <div class="tile"><strong id="passCount">0</strong><label>Verified PASS</label></div>
+ <div class="tile"><strong id="issueCount">0</strong><label>Fail / blocked</label></div>
+ <div class="tile"><strong id="shaShort">—</strong><label>Latest main SHA</label></div>
+</section>
+<div class="layout">
+ <section class="panel"><h2>Service and delivery probes</h2><div class="body" id="checks" aria-live="polite">
+  <div class="check"><div><div class="name">Worker health</div><div class="detail">Waiting for HTTP response</div></div><span class="badge BLOCKED">CHECKING</span></div>
+ </div></section>
+ <section class="panel"><h2>Recent evidence feed</h2><div class="body"><div class="feed" id="feed"><div class="event"><strong>Monitor initialized</strong><p>Live checks will appear after network requests complete.</p></div></div></div></section>
+ <section class="panel"><h2>Repository snapshot</h2><div class="body" id="repoSnapshot"><div class="detail">Checking public GitHub metadata…</div></div></section>
+ <section class="panel"><h2>Safety boundaries</h2><div class="body">
+  <div class="check"><div><div class="name">Owner authentication / Python execution</div><div class="detail">No authenticated or mutating probe is run from this public monitor.</div></div><span class="badge NOT_TESTED">NOT TESTED</span></div>
+  <div class="check"><div><div class="name">Secrets and owner data</div><div class="detail">No secrets are requested, stored, or displayed.</div></div><span class="badge PASS">PASS</span></div>
+  <div class="check"><div><div class="name">Polling interval</div><div class="detail">Read-only status checks repeat every 30 seconds while this page is open.</div></div><span class="badge PASS">PASS</span></div>
+  <p class="small">A successful health endpoint does not prove authenticated execution, database read/write, or end-to-end agent autonomy.</p>
+ </div></section>
+</div>
+<footer class="foot">Status meanings: <b>PASS</b> = direct probe succeeded; <b>FAIL</b> = direct probe returned an error; <b>BLOCKED</b> = browser/network policy prevented verification; <b>NOT TESTED</b> = deliberately not exercised. No synthetic CPU, memory, agent-count, or progress metrics are shown.</footer>
+</main>
+<script>
+(() => {
+ "use strict";
+ const WORKER = "https://shrill-silence-164f.lostgodsgods.workers.dev";
+ const PYTHON = "https://super-chatty-jarvis.onrender.com";
+ const REPO = "lostgodsgods-ops/super-chatty-jarvis";
+ const $ = id => document.getElementById(id);
+ const esc = value => String(value ?? "").replace(/[&<>"']/g, ch => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[ch]));
+ const records = new Map();
+ function stateClass(state) { return state.replace(/\s+/g, "_"); }
+ function setRecord(key, name, state, detail, href) { records.set(key,{key,name,state,detail,href}); render(); }
+ function render() {
+   const values=[...records.values()];
+   const passes=values.filter(x=>x.state==="PASS").length;
+   const issues=values.filter(x=>x.state==="FAIL"||x.state==="BLOCKED").length;
+   $("passCount").textContent=String(passes);
+   $("issueCount").textContent=String(issues);
+   $("overall").textContent=values.some(x=>x.state==="FAIL")?"DEGRADED":values.some(x=>x.state==="BLOCKED")?"PARTIAL":values.length&&values.every(x=>x.state==="PASS")?"HEALTHY":"CHECKING";
+   $("checks").innerHTML=values.map(x=>'<div class="check"><div><div class="name">'+esc(x.name)+'</div><div class="detail">'+esc(x.detail)+'</div></div><span class="badge '+esc(stateClass(x.state))+'">'+esc(x.state)+'</span></div>').join("");
+ }
+ function event(title, detail) {
+   const feed=$("feed"), row=document.createElement("div"); row.className="event";
+   const strong=document.createElement("strong"), p=document.createElement("p");
+   strong.textContent=title; p.textContent=detail; row.append(strong,p); feed.prepend(row);
+   while(feed.children.length>8) feed.lastElementChild.remove();
+ }
+ async function probeJson(url, label) {
+   const start=Date.now();
+   try {
+     const response=await fetch(url,{cache:"no-store",headers:{accept:"application/json"},signal:AbortSignal.timeout(8000)});
+     const raw=await response.text();
+     let body={}; try {body=JSON.parse(raw)} catch {}
+     if(!response.ok) {setRecord(label,label,"FAIL","HTTP "+response.status+" · "+(body.error||body.message||"non-2xx response")+" · "+(Date.now()-start)+" ms");event(label+" FAIL","HTTP "+response.status);return null;}
+     setRecord(label,label,"PASS","HTTP "+response.status+" · "+(Date.now()-start)+" ms · "+JSON.stringify(body).slice(0,180));
+     event(label+" PASS","HTTP "+response.status+" in "+(Date.now()-start)+" ms");return {body,response};
+   } catch(error) {
+     const state=error?.name==="AbortError"||error?.name==="TimeoutError"?"FAIL":"BLOCKED";
+     const reason=error?.name==="TimeoutError"||error?.name==="AbortError"?"Request timed out":error?.message||"Network or CORS blocked";
+     setRecord(label,label,state,reason+" · direct browser probe");event(label+" "+state,reason);return null;
+   }
+ }
+ async function refresh() {
+   $("refresh").disabled=true; $("updatedAt").textContent="Probing…";
+   const worker=await probeJson(WORKER+"/health","Worker health");
+   await probeJson(PYTHON+"/health","Python Core health");
+   try {
+     const response=await fetch("https://api.github.com/repos/"+REPO+"/commits/main",{cache:"no-store",headers:{accept:"application/vnd.github+json"},signal:AbortSignal.timeout(8000)});
+     if(!response.ok) throw new Error("GitHub API HTTP "+response.status);
+     const commit=await response.json(), sha=commit.sha||"";
+     $("shaShort").textContent=sha?sha.slice(0,7):"—";
+     $("repoSnapshot").innerHTML='<div class="check"><div><div class="name">Latest main commit</div><div class="detail mono">'+esc(sha||"Not returned")+'</div></div><span class="badge PASS">READ</span></div><div class="detail">'+esc(commit.commit?.message||"No commit message")+'</div><p class="small">Author date: '+esc(commit.commit?.author?.date||"unknown")+'</p><p><a href="'+esc(commit.html_url||"https://github.com/"+REPO) +'" target="_blank" rel="noopener noreferrer">Open commit on GitHub</a></p>';
+     setRecord("GitHub main","GitHub main commit","PASS","Public API returned commit "+sha.slice(0,12));
+     event("GitHub main SHA verified",sha.slice(0,12));
+   } catch(error) {
+     setRecord("GitHub main","GitHub main commit","BLOCKED",error?.message||"Public GitHub API unavailable");
+     $("repoSnapshot").textContent="GitHub metadata could not be verified: "+(error?.message||"request blocked");
+   }
+   setRecord("Auth execution","Authenticated Python execution","NOT TESTED","No credentials or state-changing requests sent");
+   $("updatedAt").textContent="Last probe: "+new Date().toLocaleString()+" · next refresh in 30s";
+   $("refresh").disabled=false;
+ }
+ $("refresh").addEventListener("click",refresh);
+ refresh(); setInterval(refresh,30000);
+})();
+</script>
+</body></html>
