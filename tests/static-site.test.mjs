@@ -551,9 +551,8 @@ test("Central Agent production deploy binds the exact checked-out commit SHA", (
   const deployStart = centralDeployWorkflow.indexOf("- name: Deploy isolated Central Agent");
   assert.ok(deployStart >= 0, "Central Agent deploy step must exist");
   const deployStep = centralDeployWorkflow.slice(deployStart);
-  assert.match(
-    deployStep,
-    /npx --yes wrangler@4 deploy --config central-agent\\/wrangler\\.jsonc --var "GITHUB_COMMIT_SHA:\\$GITHUB_SHA"/,
+  assert.ok(
+    deployStep.includes('npx --yes wrangler@4 deploy --config central-agent/wrangler.jsonc --var "GITHUB_COMMIT_SHA:$GITHUB_SHA"'),
     "every production deployment path must bind the exact checked-out commit SHA",
   );
 });
