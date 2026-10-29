@@ -67,7 +67,7 @@ jobs:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         run: |
           set -euo pipefail
-          npx --yes wrangler@4 deploy --config central-agent/wrangler.jsonc
+          npx --yes wrangler@4 deploy --config central-agent/wrangler.jsonc --var "GITHUB_COMMIT_SHA:$GITHUB_SHA"
 
       - name: Verify public PWA asset routing and service-worker script
         shell: bash
