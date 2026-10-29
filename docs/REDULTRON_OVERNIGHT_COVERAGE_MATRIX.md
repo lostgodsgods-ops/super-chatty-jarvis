@@ -28,6 +28,11 @@
 | Agents | **BLOCKED** | No CodeAgent Mobile sessions; Agent Relay target listing says workspace not connected; Replicas is not connected; JackHamr credits exhausted. No agent started and no credits spent. |
 | Rapid Learning automation | **IN_PROGRESS — unconfirmed liveness** | Run `13bd1987-aab8-8332-acf9-6326ce9f3aa6` started `2026-10-29T03:35:18Z`, no completion timestamp at snapshot. Previous completed result `38137688-d70c-8329-9712-5c7cc1ceffd0` was not marked as a failure. No duplicate run was started. |
 
+
+| Sentinel retry contract | **PASS on branch; NOT TESTED live** | New draft PR [#859](https://github.com/lostgodsgods-ops/super-chatty-jarvis/pull/859), head `acbf93c32394c16302c309ee2f732cf0f24adf2f`; CI [40813862057](https://github.com/lostgodsgods-ops/super-chatty-jarvis/actions/runs/40813862057), Static [40813862103](https://github.com/lostgodsgods-ops/super-chatty-jarvis/actions/runs/40813862103), and Sentinel [40813862065](https://github.com/lostgodsgods-ops/super-chatty-jarvis/actions/runs/40813862065) passed. The test covers source-level guards only; duplicate-event replay is still NOT TESTED. |
+| Main release artifact | **PASS — package only** | Run [40813080057](https://github.com/lostgodsgods-ops/super-chatty-jarvis/actions/runs/40813080057) uploaded artifact `12870694164`, 54,704 bytes. This does not prove production deployment or Android installation. |
+| Cutoff finalizer | **BLOCKED** | Automation service rejected creation while this automation run was executing. No separate one-time cutoff task was created; delivery at the cutoff is not guaranteed. |
+
 **No production deployment, D1 write/migration, secret-value access/change, or PR merge was performed by this refresh.** PR #833's merge is observed in main history; it was not performed by this refresh.
 
 ## 1. Coverage totals
