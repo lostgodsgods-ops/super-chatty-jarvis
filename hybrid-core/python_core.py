@@ -16,6 +16,7 @@ MAX_BODY_BYTES = 10 * 1024
 MAX_TEXT_CHARS = 16_000
 REQUEST_TIMEOUT_SECONDS = 5
 ALLOWED_TASKS = {"summarize", "extract_keywords", "classify_text"}
+HEALTH_CORS_ALLOWED_ORIGIN = "https://shrill-silence-164f.lostgodsgods.workers.dev"
 
 
 def _reject_duplicate_json_keys(pairs):
@@ -69,7 +70,7 @@ class Handler(BaseHTTPRequestHandler):
         if re.fullmatch(r"[A-Za-z0-9._:-]{8,64}", candidate):
             self._request_id = candidate
 
-    def _json(self, status, payload):
+    def _json(self, status, payload, *, cors_origin=None):
         body = json.dumps(payload, separators=(",", ":"), ensure_ascii=False).encode("utf-8")
         self.send_response(status)
         self.send_header("Content-Type", "application/json; charset=utf-8")
@@ -78,6 +79,9 @@ class Handler(BaseHTTPRequestHandler):
         self.send_header("X-Request-ID", self._request_id)
         self.send_header("X-Content-Type-Options", "nosniff")
         self.send_header("Referrer-Policy", "no-referrer")
+        if cors_origin == HEALTH_CORS_ALLOWED_ORIGIN:
+            self.send_header("Access-Control-Allow-Origin", cors_origin)
+            self.send_header("Vary", "Origin")
         self.end_headers()
         try:
             self.wfile.write(body)
@@ -103,7 +107,9 @@ class Handler(BaseHTTPRequestHandler):
     def do_GET(self):
         self._bind_request_id()
         if urlparse(self.path).path == "/health":
-            self._json(200, {"ok": True, "service": "redultron-python-core"})
+            origin = self.headers.get("Origin", "")
+            cors_origin = origin if origin == HEALTH_CORS_ALLOWED_ORIGIN else None
+            self._json(200, {"ok": True, "service": "redultron-python-core"}, cors_origin=cors_origin)
         else:
             self._json(404, {"ok": False, "code": "NOT_FOUND"})
 
