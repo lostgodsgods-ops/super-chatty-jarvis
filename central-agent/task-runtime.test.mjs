@@ -71,8 +71,18 @@ test("side-effecting tools require explicit approval and exact capability scope"
     capability: "write:repo",
     requiresApproval: true,
     approval: { approved: true, capability: "write:repo", taskId: "task-1" }
-  }), registry, { writer: async () => ({ proposed: true }) });
+  }), registry, { writer: async () => ({ proposed: true }) }, {
+    verifyApproval: async evidence => evidence.taskId === "task-1" && evidence.capability === "write:repo"
+  });
   assert.equal(approved.status, "SUCCEEDED");
+
+  const forged = await runTask(contract({
+    capability: "write:repo",
+    requiresApproval: true,
+    approval: { approved: true, capability: "write:repo", taskId: "task-1" }
+  }), registry, { writer: async () => ({ changed: true }) });
+  assert.equal(forged.status, "BLOCKED");
+  assert.equal(forged.errorCode, "OWNER_APPROVAL_REQUIRED");
 });
 
 test("executor errors retry only to the declared ceiling then fail", async () => {
@@ -92,6 +102,20 @@ test("timeouts stop execution and return TIMED_OUT without exposing raw errors",
   });
   assert.equal(result.status, "TIMED_OUT");
   assert.equal(result.errorCode, "TASK_TIMEOUT");
+});
+
+test("mid-flight cancellation interrupts the dispatcher and prevents a late success", async () => {
+  const controller = new AbortController();
+  const resultPromise = runTask(contract({ timeoutMs: 1000 }), registry, {
+    "safe-reader": async ({ signal }) => new Promise((resolve, reject) => {
+      signal.addEventListener("abort", () => reject(new Error("aborted")), { once: true });
+      setTimeout(() => resolve({ late: true }), 100);
+    })
+  }, { signal: controller.signal });
+  setTimeout(() => controller.abort(), 5);
+  const result = await resultPromise;
+  assert.equal(result.status, "CANCELLED");
+  assert.equal(result.errorCode, "TASK_CANCELLED");
 });
 
 test("cancellation and emergency stop prevent dispatch", async () => {
