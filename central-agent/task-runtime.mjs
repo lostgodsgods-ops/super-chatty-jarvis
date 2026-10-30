@@ -115,8 +115,20 @@ export async function runTask(contract, registry, executors, options = {}) {
   const selected = selectExecutor(task, registry, executors);
   if (selected.error) return finish(task, "BLOCKED", selected.error);
   const { tool, executor } = selected;
-  if ((tool.sideEffects === true || task.requiresApproval) && !approvedFor(task, task.capability)) {
-    return finish(task, "BLOCKED", "OWNER_APPROVAL_REQUIRED");
+  if (tool.sideEffects === true || task.requiresApproval) {
+    let verified = false;
+    if (approvedFor(task, task.capability) && typeof options.verifyApproval === "function") {
+      try {
+        verified = await options.verifyApproval({
+          taskId: task.taskId,
+          capability: task.capability,
+          approval: copy(task.approval)
+        }) === true;
+      } catch {
+        verified = false;
+      }
+    }
+    if (!verified) return finish(task, "BLOCKED", "OWNER_APPROVAL_REQUIRED");
   }
 
   task = transitionTask(task, "READY", { reason: "executor-authorized" });
@@ -132,7 +144,15 @@ export async function runTask(contract, registry, executors, options = {}) {
       if (options.signal?.aborted || controller.signal.aborted) return finish(task, "CANCELLED", "TASK_CANCELLED");
       let timer;
       try {
+        const cancellation = new Promise((_, reject) => {
+          controller.signal.addEventListener("abort", () => {
+            const error = new Error("TASK_CANCELLED");
+            error.code = "TASK_CANCELLED";
+            reject(error);
+          }, { once: true });
+        });
         const result = await Promise.race([
+          cancellation,
           Promise.resolve().then(() => executor({
             taskId: task.taskId,
             capability: task.capability,
@@ -157,7 +177,7 @@ export async function runTask(contract, registry, executors, options = {}) {
       } catch (error) {
         clearTimeout(timer);
         if (error?.code === "TASK_TIMEOUT") return finish(task, "TIMED_OUT", "TASK_TIMEOUT");
-        if (options.signal?.aborted) return finish(task, "CANCELLED", "TASK_CANCELLED");
+        if (error?.code === "TASK_CANCELLED" || options.signal?.aborted) return finish(task, "CANCELLED", "TASK_CANCELLED");
         if (attempt < task.maxRetries) {
           task = addEvent(task, "RUNNING", "RUNNING", "retry");
           continue;
