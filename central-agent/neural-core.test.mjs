@@ -20,7 +20,7 @@ test("neural core runs bounded reasoning and attaches verified memory context", 
     env: {},
     searchMemory: async (_db, query) => ({ ok: true, records: [{
       title: "Known fix", problem: "A test failed", solution: "Validate the input",
-      testSummary: "12 tests passed", testEvidence: ["run 12 PASS"], sources: [{url:"https://example.test"}]
+      testSummary: "12 tests passed", testEvidence: ["run 12 PASS"], sources: [{url:"https://example.test"}], status: "verified"
     }] }),
     complete: async input => { completionInput = input; return { ok: true, provider: "mock", model: "mock-v1", text: "Plan ready" }; }
   });
@@ -32,6 +32,7 @@ test("neural core runs bounded reasoning and attaches verified memory context", 
   assert.equal(result.ok, true);
   assert.equal(result.text, "Plan ready");
   assert.equal(result.memory.recordsUsed, 1);
+  assert.equal(result.memory.status, "available");
   assert.match(completionInput.prompt, /Verified memory context/);
   assert.match(completionInput.prompt, /Validate the input/);
 });
