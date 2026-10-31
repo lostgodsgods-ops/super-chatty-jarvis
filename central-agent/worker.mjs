@@ -38,6 +38,7 @@ import { executeChatCompletion, listChatProviders, ChatProviderError } from "./a
 import { executeToolForge, listToolForgeTools, ToolForgeError } from "./architecture/tool-forge.mjs";
 import { assessRobotSimulatorCommand } from "./architecture/robotics-simulator.mjs";
 import { handleTaskApiRequest } from "./task-api.mjs";
+import { handleNeuralCoreRequest } from "./neural-core-api.mjs";
 
 const VERSION = "1.4.1";
 const OWNER_IDENTITY = Object.freeze({ key: "loss-gods", displayName: "Loss Gods" });
@@ -1512,6 +1513,13 @@ export default {
     // /api/tasks is covered by the shared owner-session gate immediately above.
     if (url.pathname === "/api/tasks") {
       return handleTaskApiRequest(request, env, {
+        publishEvent: event => publishEvent(env, event)
+      });
+    }
+
+    // Neural Core is protected by the shared owner-session gate above.
+    if (url.pathname === "/api/neural-core") {
+      return handleNeuralCoreRequest(request, env, {
         publishEvent: event => publishEvent(env, event)
       });
     }

@@ -94,3 +94,20 @@ test("model provider registry and chat execution reject unauthenticated requests
   }), mockEnv());
   assert.equal(chat.status, 401);
 });
+
+
+test("Neural Core status is owner-session gated and reports provider presence without secrets", async () => {
+  const denied = await request("/api/neural-core", false);
+  assert.equal(denied.status, 401);
+  const allowed = await request("/api/neural-core", true, {
+    ...mockEnv(),
+    OPENAI_API_KEY: "test-only-never-return"
+  });
+  assert.equal(allowed.status, 200);
+  const body = await allowed.json();
+  assert.equal(body.ok, true);
+  assert.equal(body.core.name, "REDULTRON NEURAL CORE");
+  assert.equal(body.core.version, "1.0.0");
+  assert.equal(body.core.providers.find(provider => provider.id === "openai").configured, true);
+  assert.equal(JSON.stringify(body).includes("test-only-never-return"), false);
+});
