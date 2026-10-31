@@ -48,7 +48,7 @@ test("unknown capabilities are blocked and audited", async () => {
     method: "POST",
     headers: { "content-type": "application/json" },
     body: JSON.stringify({
-      taskId: "unknown-1", capability: "shell.execute", input: {},
+      taskId: "unknown-1", capability: "shell:execute", input: {},
       timeoutMs: 1000, maxRetries: 0
     })
   }), {}, { publishEvent: async event => { events.push(event); return { ok: true }; } });
