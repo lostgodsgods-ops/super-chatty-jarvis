@@ -52,7 +52,7 @@ test("unknown capabilities are blocked and audited", async () => {
       timeoutMs: 1000, maxRetries: 0
     })
   }), {}, { publishEvent: async event => { events.push(event); return { ok: true }; } });
-  assert.equal(response.status, 200);
+  assert.equal(response.status, 409);
   const body = await response.json();
   assert.equal(body.task.status, "BLOCKED");
   assert.equal(body.task.errorCode, "TOOL_NOT_REGISTERED");
