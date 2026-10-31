@@ -2,7 +2,7 @@ import { createTaskContract, runTask } from "./task-runtime.mjs";
 
 const TASK_CAPABILITIES = Object.freeze([
   Object.freeze({
-    id: "system.health.read",
+    id: "system-health-read",
     description: "Read non-sensitive Worker configuration presence and runtime metadata",
     enabled: true,
     sideEffects: false
@@ -11,7 +11,7 @@ const TASK_CAPABILITIES = Object.freeze([
 const TASK_REGISTRY = Object.freeze([
   Object.freeze({
     id: "worker-health-reader",
-    capabilities: Object.freeze(["system.health.read"]),
+    capabilities: Object.freeze(["system-health-read"]),
     enabled: true,
     sideEffects: false
   })
