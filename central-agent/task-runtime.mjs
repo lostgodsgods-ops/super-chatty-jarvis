@@ -145,7 +145,7 @@ export async function runTask(contract, registry, executors, options = {}) {
       let timer;
       try {
         const cancellation = new Promise((_, reject) => {
-          controller.signal.addEventListener("abort", () => {
+          options.signal?.addEventListener("abort", () => {
             const error = new Error("TASK_CANCELLED");
             error.code = "TASK_CANCELLED";
             reject(error);
