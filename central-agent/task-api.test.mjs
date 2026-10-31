@@ -12,7 +12,7 @@ test("GET task registry exposes only the bounded read-only capability", async ()
   const body = await response.json();
   assert.equal(body.ok, true);
   assert.equal(body.capabilities.length, 1);
-  assert.equal(body.capabilities[0].id, "system.health.read");
+  assert.equal(body.capabilities[0].id, "system-health-read");
   assert.equal(body.capabilities[0].sideEffects, false);
 });
 
@@ -23,7 +23,7 @@ test("POST dispatches a registered health task and records audit evidence", asyn
     headers: { "content-type": "application/json" },
     body: JSON.stringify({
       taskId: "health-1",
-      capability: "system.health.read",
+      capability: "system-health-read",
       input: { includeBindings: true },
       timeoutMs: 1000,
       maxRetries: 0
@@ -79,7 +79,7 @@ test("audit storage failure prevents a success response", async () => {
     method: "POST",
     headers: { "content-type": "application/json" },
     body: JSON.stringify({
-      taskId: "health-audit-fail", capability: "system.health.read",
+      taskId: "health-audit-fail", capability: "system-health-read",
       input: {}, timeoutMs: 1000, maxRetries: 0
     })
   }), {}, { publishEvent: async () => ({ ok: false }) });
