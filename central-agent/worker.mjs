@@ -37,6 +37,7 @@ import { createCapabilityRequest, listCapabilityRequests, proposeCapabilityReque
 import { executeChatCompletion, listChatProviders, ChatProviderError } from "./architecture/model-provider-adapter.mjs";
 import { executeToolForge, listToolForgeTools, ToolForgeError } from "./architecture/tool-forge.mjs";
 import { assessRobotSimulatorCommand } from "./architecture/robotics-simulator.mjs";
+import { handleTaskApiRequest } from "./task-api.mjs";
 
 const VERSION = "1.4.1";
 const OWNER_IDENTITY = Object.freeze({ key: "loss-gods", displayName: "Loss Gods" });
@@ -1506,6 +1507,13 @@ export default {
     if (!gatewayChatRoute && !memoryBridgeRoute && !learningKnowledgeRoute && !logoutRoute && !recoveryLoginRoute && !internalHybridProbeRoute && !(await authorized(request, env))) {
       await publishEvent(env, { type: "security.auth.denied", source: "owner-auth", payload: { path: url.pathname, method: request.method } });
       return json({ error: "Unauthorized. Sign in with your Owner password." }, 401, cors);
+    }
+
+    // /api/tasks is covered by the shared owner-session gate immediately above.
+    if (url.pathname === "/api/tasks") {
+      return handleTaskApiRequest(request, env, {
+        publishEvent: event => publishEvent(env, event)
+      });
     }
 
     if (url.pathname === "/api/mission-grid/assess") {
