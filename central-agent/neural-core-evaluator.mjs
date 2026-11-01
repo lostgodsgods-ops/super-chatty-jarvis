@@ -11,9 +11,9 @@ function safeReference(value) {
 }
 
 /**
- * Independent, deterministic gate for externally evidenced outcomes.
- * Model self-assessment is deliberately ignored. This evaluator does not
- * execute checks; it only assesses supplied, bounded evidence references.
+ * Independent, deterministic gate for supplied evidence references.
+ * It checks reference consistency only; it does not fetch or authenticate
+ * external workflow, audit, or deployment records and cannot authorize actions.
  */
 export function evaluateNeuralResult(input = {}) {
   const checks = Array.isArray(input.checks) ? input.checks.slice(0, MAX_CHECKS) : [];
@@ -64,14 +64,16 @@ export function evaluateNeuralResult(input = {}) {
            evidence.length > 0 && reasons.length === 0) verdict = "PASS";
 
   const summary = verdict === "PASS"
-    ? "All supplied independent checks passed with matching evidence references."
+    ? "All supplied checks have matching evidence references; external records were not verified."
     : verdict === "FAIL"
-      ? "At least one independently reported check failed."
-      : "Evidence is incomplete or invalid; human review is required.";
+      ? "At least one supplied check is marked failed."
+      : "Evidence references are incomplete or invalid; human review is required.";
 
   return Object.freeze({
     verdict,
     independent: true,
+    verificationScope: "reference-consistency-only",
+    externalEvidenceVerified: false,
     checksPassed,
     checksFailed,
     checksPending,
