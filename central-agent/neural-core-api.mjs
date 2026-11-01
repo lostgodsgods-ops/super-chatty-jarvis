@@ -1,4 +1,5 @@
 import { createNeuralCore, NeuralCoreError } from "./neural-core.mjs";
+import { evaluateNeuralResult } from "./neural-core-evaluator.mjs";
 
 const MAX_BODY_BYTES = 16 * 1024;
 const DEFAULT_CORE = createNeuralCore();
@@ -74,16 +75,28 @@ export async function handleNeuralCoreRequest(request, env = {}, options = {}) {
 
   try {
     const result = await core.reason(parsed.body, env);
+    const evaluation = evaluateNeuralResult(parsed.body.evaluation || {});
     let auditDone;
     try {
       auditDone = await options.publishEvent({
         type: "neural_core.reasoning.completed",
         source: "redultron-neural-core",
-        payload: { provider: result.provider.id, model: result.provider.model, memoryStatus: result.memory.status, recordsUsed: result.memory.recordsUsed, promptLogged: false }
+        payload: {
+          provider: result.provider.id,
+          model: result.provider.model,
+          memoryStatus: result.memory.status,
+          recordsUsed: result.memory.recordsUsed,
+          evaluationVerdict: evaluation.verdict,
+          evaluationChecksPassed: evaluation.checksPassed,
+          evaluationChecksFailed: evaluation.checksFailed,
+          evaluationChecksPending: evaluation.checksPending,
+          promptLogged: false,
+          evidenceReferencesLogged: false
+        }
       });
     } catch { auditDone = null; }
     if (auditDone?.ok !== true) return json({ ok: false, error: "AUDIT_STORAGE_UNAVAILABLE" }, 503);
-    return json({ ok: true, result });
+    return json({ ok: true, result: { ...result, evaluation } });
   } catch (error) {
     const known = error instanceof NeuralCoreError;
     const code = known ? error.code : (typeof error?.code === "string" && /^[A-Z0-9_]{1,80}$/.test(error.code) ? error.code : "NEURAL_CORE_EXECUTION_FAILED");
