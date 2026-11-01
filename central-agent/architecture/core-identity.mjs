@@ -3,7 +3,8 @@
  *
  * Identity is provenance metadata, never an authentication or authorization
  * credential. Verification is granted only from the designated evidence
- * evaluator's structured attestation; callers must not pass model self-reports.
+ * evaluator evidence must be independently resolved before verification; callers
+ * cannot promote a result by supplying an attestation-shaped object.
  */
 const CORE_ID = "redultron.core.primary";
 const CORE_NAME = "REDULTRON";
@@ -71,14 +72,9 @@ export function buildResultEnvelope(input = {}) {
     status = "NOT_TESTED";
     code = "MISSING_EVIDENCE";
   } else if (status === "PASS") {
-    const attestation = input.evaluatorAttestation;
-    const trustedAttestation = attestation &&
-      attestation.evaluatorId === "redultron.evidence-evaluator" &&
-      attestation.status === "PASS" &&
-      Number.isInteger(attestation.evidenceCount) &&
-      attestation.evidenceCount > 0 &&
-      attestation.evidenceCount <= evidence.length;
-    if (trustedAttestation) verification = "VERIFIED";
+    // Evidence references are currently recorded, not independently resolved.
+    // Never trust caller-supplied attestation-shaped data as a trust boundary.
+    verification = "UNVERIFIED";
   } else if (status === "FAIL") {
     verification = "FAILED";
   }
