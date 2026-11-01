@@ -54,3 +54,23 @@ test("caller-supplied evaluator claims cannot forge VERIFIED", async () => {
   });
   assert.equal(output.resultEnvelope.result.verification, "UNVERIFIED");
 });
+
+test("task result is persisted when an owner-scoped D1 binding is supplied", async () => {
+  let stored = null;
+  const db = {
+    prepare(sql) {
+      return {
+        values: [],
+        bind(...values) { this.values = values; return this; },
+        async run() { stored = this.values; return { meta: { changes: 1 } }; }
+      };
+    }
+  };
+  const output = await runTaskWithIdentity(contract(), registry, {
+    reader: async () => ({ answer: "ok" })
+  }, { db, ownerScope: "owner-1" });
+  assert.equal(output.ledger.persisted, true);
+  assert.equal(output.ledger.required, true);
+  assert.equal(stored[0], output.resultEnvelope.result.result_id);
+  assert.equal(stored[1], "owner-1");
+});
