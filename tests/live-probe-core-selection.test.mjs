@@ -33,3 +33,10 @@ test("live probe failure diagnostics are explicitly allowlisted and secret-safe"
   assert.match(workflow, /configDiagnostics \| type/);
   assert.doesNotMatch(workflow, /echo.*\$hybrid_file/);
 });
+
+test("scheduled live probe rejects a stale Worker deployment before hybrid certification", async () => {
+  const workflow = await readFile(new URL("../.github/workflows/redultron-live-probe.yml", import.meta.url), "utf8");
+  assert.match(workflow, /\.deployment\.commitSha/);
+  assert.match(workflow, /\$GITHUB_SHA/);
+  assert.match(workflow, /WORKER_DEPLOYMENT_STALE/);
+});

@@ -390,3 +390,18 @@ test("authenticated hybrid probe never marks guarded fallback as provider execut
   assert.equal(payload.hybridPhpCoreExecutionVerified, false);
   assert.equal(payload.hybridPythonCoreExecutionVerified, false);
 });
+
+test("health exposes only a validated deployment commit marker for drift detection", async () => {
+  const response = await worker.fetch(new Request("https://example.test/health"), {
+    GITHUB_COMMIT_SHA: "a".repeat(40)
+  });
+  assert.equal(response.status, 200);
+  const payload = await response.json();
+  assert.deepEqual(payload.deployment, { commitSha: "a".repeat(40) });
+
+  const invalid = await worker.fetch(new Request("https://example.test/health"), {
+    GITHUB_COMMIT_SHA: "not-a-commit-or-secret"
+  });
+  const invalidPayload = await invalid.json();
+  assert.deepEqual(invalidPayload.deployment, { commitSha: null });
+});

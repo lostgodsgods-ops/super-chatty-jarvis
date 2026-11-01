@@ -60,7 +60,12 @@ jobs:
             echo "::error::Health response schema check failed."
             exit 1
           fi
-          echo "PASS: /health returned HTTP 200 and ok=true."
+          if ! jq -e --arg expected "$GITHUB_SHA" '.deployment.commitSha == $expected' "$health_file" >/dev/null; then
+            deployed_commit="$(jq -r 'if (.deployment.commitSha | type) == "string" and (.deployment.commitSha | test("^[a-f0-9]{40}$")) then .deployment.commitSha else "UNKNOWN" end' "$health_file" 2>/dev/null || printf 'UNKNOWN')"
+            echo "::error::WORKER_DEPLOYMENT_STALE: expected commit=$GITHUB_SHA; deployed commit=$deployed_commit."
+            exit 1
+          fi
+          echo "PASS: /health returned HTTP 200 and deployment commit matches this workflow's source SHA."
 
           invalid_auth_status="$(curl --silent --show-error --max-time 10 --output "$invalid_auth_file" --write-out '%{http_code}' \
             -X POST "$BASE_URL/api/internal/hybrid-probe" \
