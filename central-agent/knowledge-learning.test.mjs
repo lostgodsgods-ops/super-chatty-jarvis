@@ -35,7 +35,7 @@ test("normalization redacts credential-like text and rejects missing core fields
 });
 
 function mockDb() {
-  const state = { pendingInserted: null, verifiedInserted: false, promoted: false, deletedPending: false, schemaCalls: 0, query: null };
+  const state = { pendingInserted: null, verifiedInserted: false, promoted: false, deletedPending: false, noPending: false, schemaCalls: 0, query: null };
   return {
     state,
     prepare(sql) {
@@ -48,6 +48,14 @@ function mockDb() {
           if (sql.includes("DELETE FROM pending_knowledge")) { state.deletedPending = true; return { meta: { changes: 1 } }; }
           if (sql.includes("INSERT INTO verified_knowledge")) { state.verifiedInserted = true; return { meta: { changes: 1 } }; }
           throw new Error("Unexpected SQL");
+        },
+        async first() {
+          if (state.noPending) return null;
+          return { id: this.args?.[0] || "pending-1", title: valid.title, problem: valid.problem, solution: valid.solution,
+            sourcesJson: JSON.stringify(valid.sources), testSummary: valid.testSummary,
+            testEvidenceJson: JSON.stringify(valid.testEvidence), confidence: 0.9,
+            limitations: valid.limitations, reuseInstructions: valid.reuseInstructions,
+            createdAt: "2026-11-01T00:00:00.000Z" };
         },
         async all() {
           state.query = { sql, args: this.args };
