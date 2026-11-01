@@ -37,6 +37,7 @@ test("POST invokes the core and records request plus completion audit without lo
   assert.equal(body.result.execution.toolsExecuted, false);
   assert.deepEqual(events.map(event => event.type), ["neural_core.reasoning.requested", "neural_core.reasoning.completed"]);
   assert.equal(JSON.stringify(events).includes("Explain the architecture"), false);
+  assert.equal(JSON.stringify(events).includes("workflow:"), false);
 });
 
 test("POST attaches a default review-required independent evaluation", async () => {
@@ -47,6 +48,8 @@ test("POST attaches a default review-required independent evaluation", async () 
   assert.equal(response.status, 200);
   assert.equal(body.result.evaluation.verdict, "REVIEW_REQUIRED");
   assert.equal(body.result.evaluation.independent, true);
+  assert.equal(body.result.evaluation.verificationScope, "reference-consistency-only");
+  assert.equal(body.result.evaluation.externalEvidenceVerified, false);
 });
 
 test("POST evaluates supplied bounded evidence without treating model self-assessment as proof", async () => {
