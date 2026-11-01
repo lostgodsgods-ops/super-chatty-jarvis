@@ -2840,12 +2840,12 @@ export default {
       const result = await saveVerifiedKnowledge(env.DB, parsed.body);
       if (!result.ok) return json({ ok: false, error: result.error }, result.error === "LEARNING_STORAGE_UNAVAILABLE" ? 503 : 400, cors);
       const audit = await publishEvent(env, {
-        type: "learning.knowledge.saved",
+        type: "learning.knowledge.pending_verification",
         source: "persistent-learning-engine",
         payload: { recordId: result.record.id, status: result.record.status, sourceCount: result.record.sources.length, testEvidenceCount: result.record.testEvidence.length }
       });
       if (!audit?.ok) return json({ ok: false, error: "LEARNING_AUDIT_UNAVAILABLE", recordId: result.record.id }, 503, cors);
-      return json({ ok: true, record: result.record }, 201, cors);
+      return json({ ok: true, record: result.record, requiresOwnerVerification: true }, 202, cors);
     }
 
     // Durable D1 memory bridge is owner-authenticated and covered by live deployment read/write verification. Workflow verification reuses the already authenticated owner session.
