@@ -2267,7 +2267,9 @@ export default {
         const code = error instanceof HybridCoreError
           ? (Number.isInteger(error.upstreamStatus) ? `${error.code}_${error.upstreamStatus}` : error.code)
           : "HYBRID_CORE_FAILED";
-        console.warn("hybrid_probe_failed", { code, status });
+        const requestId = typeof error?.requestId === "string" &&
+          /^[A-Za-z0-9._:-]{8,64}$/.test(error.requestId) ? error.requestId : null;
+        console.warn("hybrid_probe_failed", { code, status, ...(requestId ? { requestId } : {}) });
 
         // A local deterministic fallback keeps the authenticated health probe
         // available when the external sidecar is down. It is explicitly labeled
@@ -2282,6 +2284,7 @@ export default {
           return json({
             ok: false,
             code,
+            ...(requestId ? { requestId } : {}),
             probe: "authenticated-hybrid-roundtrip",
             engine: "guarded-local-fallback",
             task: "summarize",
