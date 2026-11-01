@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
-import { normalizeVerifiedKnowledge, saveVerifiedKnowledge, searchVerifiedKnowledge } from "./knowledge-learning.mjs";
+import { normalizeVerifiedKnowledge, saveVerifiedKnowledge, searchVerifiedKnowledge, approvePendingKnowledge } from "./knowledge-learning.mjs";
 
 const valid = {
   title: "Cloudflare Worker authentication fix",
@@ -35,7 +35,7 @@ test("normalization redacts credential-like text and rejects missing core fields
 });
 
 function mockDb() {
-  const state = { pendingInserted: null, verifiedInserted: false, schemaCalls: 0, query: null };
+  const state = { pendingInserted: null, verifiedInserted: false, promoted: false, deletedPending: false, schemaCalls: 0, query: null };
   return {
     state,
     prepare(sql) {
@@ -44,7 +44,8 @@ function mockDb() {
         async run() {
           if (sql.startsWith("CREATE TABLE") || sql.startsWith("CREATE INDEX")) { state.schemaCalls++; return { meta: { changes: 0 } }; }
           if (sql.includes("INSERT INTO pending_knowledge")) { state.pendingInserted = this.args; return { meta: { changes: 1 } }; }
-          if (sql.includes("INSERT INTO pending_knowledge")) { state.pendingInserted = this.args; return { meta: { changes: 1 } }; }
+          if (sql.includes("INSERT OR IGNORE INTO verified_knowledge")) { state.verifiedInserted = true; state.promoted = true; return { meta: { changes: 1 } }; }
+          if (sql.includes("DELETE FROM pending_knowledge")) { state.deletedPending = true; return { meta: { changes: 1 } }; }
           if (sql.includes("INSERT INTO verified_knowledge")) { state.verifiedInserted = true; return { meta: { changes: 1 } }; }
           throw new Error("Unexpected SQL");
         },
@@ -94,4 +95,32 @@ test("private GPT Action OpenAPI contract exposes only the protected knowledge e
   assert.equal(spec.components.securitySchemes.BearerAuth.name, "Authorization");
   assert.equal(spec.components.schemas.KnowledgeInput.properties.testsPassed.const, true);
   assert.equal(spec.components.schemas.KnowledgeInput.properties.sources.minItems, 1);
+});
+
+
+test("knowledge promotion requires an explicit owner approval signal", async () => {
+  const db = mockDb();
+  const result = await approvePendingKnowledge(db, "pending-1", { ownerAuthenticated: false, approvalPhrase: "APPROVE_KNOWLEDGE" });
+  assert.equal(result.ok, false);
+  assert.equal(result.error, "OWNER_APPROVAL_REQUIRED");
+  assert.equal(db.state.promoted, false);
+});
+
+test("owner approval promotes one pending record and removes it from pending queue", async () => {
+  const db = mockDb();
+  const result = await approvePendingKnowledge(db, "pending-1", { ownerAuthenticated: true, approvalPhrase: "APPROVE_KNOWLEDGE" });
+  assert.equal(result.ok, true);
+  assert.equal(result.record.status, "verified");
+  assert.equal(result.record.verified, true);
+  assert.equal(db.state.promoted, true);
+  assert.equal(db.state.deletedPending, true);
+});
+
+test("approval refuses missing or repeated pending records", async () => {
+  const db = mockDb();
+  db.state.noPending = true;
+  const result = await approvePendingKnowledge(db, "missing", { ownerAuthenticated: true, approvalPhrase: "APPROVE_KNOWLEDGE" });
+  assert.equal(result.ok, false);
+  assert.equal(result.error, "PENDING_KNOWLEDGE_NOT_FOUND");
+  assert.equal(db.state.promoted, false);
 });
