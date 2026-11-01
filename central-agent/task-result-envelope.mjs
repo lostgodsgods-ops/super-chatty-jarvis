@@ -1,5 +1,6 @@
 import { runTask } from "./task-runtime.mjs";
 import { buildResultEnvelope } from "./architecture/core-identity.mjs";
+import { persistResultEnvelope } from "./result-ledger.mjs";
 
 function resultStatus(taskStatus) {
   if (taskStatus === "SUCCEEDED") return "PASS";
@@ -40,5 +41,20 @@ export async function runTaskWithIdentity(contract, registry, executors, options
     }
   });
 
-  return { ...task, resultEnvelope };
+  let ledger = { persisted: false, required: false, code: "D1_NOT_CONFIGURED" };
+  if (options.db) {
+    ledger = { persisted: false, required: true, code: "PERSISTENCE_FAILED" };
+    try {
+      const saved = await persistResultEnvelope(options.db, options.ownerScope, resultEnvelope);
+      ledger = { ...saved, required: true, code: null };
+    } catch (error) {
+      ledger = {
+        persisted: false,
+        required: true,
+        code: typeof error?.message === "string" && /^[A-Z0-9_]{1,80}$/.test(error.message)
+          ? error.message : "PERSISTENCE_FAILED"
+      };
+    }
+  }
+  return { ...task, resultEnvelope, ledger };
 }
