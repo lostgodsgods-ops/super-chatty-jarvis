@@ -3,10 +3,10 @@ import assert from "node:assert/strict";
 import { buildCoreIdentity, buildResultEnvelope } from "./core-identity.mjs";
 
 test("core identity is stable and never acts as an authorization credential", () => {
-  const identity = buildCoreIdentity({ version: "3.0.0", buildSha: "abc123" });
+  const identity = buildCoreIdentity({ version: "3.0.0", buildSha: "abc1234" });
   assert.equal(identity.core_id, "redultron.core.primary");
   assert.equal(identity.name, "REDULTRON");
-  assert.equal(identity.build_sha, "abc123");
+  assert.equal(identity.build_sha, "abc1234");
   assert.equal(identity.authorization, undefined);
 });
 
@@ -16,7 +16,7 @@ test("each emitted result carries independent result, execution and trace identi
     clock: () => "2026-11-01T10:00:00.000Z",
     status: "PASS",
     evidence: ["workflow:123/job:456"],
-    provenance: { source: "task-runtime", buildSha: "abc123" }
+    provenance: { source: "task-runtime", buildSha: "abc1234" }
   });
   assert.equal(envelope.result.result_id, "r-1");
   assert.equal(envelope.result.execution_id, "e-1");
@@ -60,7 +60,7 @@ test("sensitive-looking evidence and summaries are redacted before publication",
 });
 
 test("malformed IDs and statuses fail closed", () => {
-  assert.throws(() => buildResultEnvelope({ ids: {}, status: "PASS" }), /RESULT_IDENTITY_INVALID/);
+  assert.throws(() => buildResultEnvelope({ ids: { resultId: "", executionId: "e", traceId: "t" }, status: "PASS" }), /RESULT_IDENTITY_INVALID/);
   assert.throws(() => buildResultEnvelope({
     ids: { resultId: "r", executionId: "e", traceId: "t" }, status: "MAGIC"
   }), /RESULT_STATUS_INVALID/);
