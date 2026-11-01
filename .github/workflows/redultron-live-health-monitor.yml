@@ -1,0 +1,61 @@
+name: REDULTRON Live Service Monitor
+
+on:
+  schedule:
+    - cron: "*/15 * * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: redultron-live-health-monitor
+  cancel-in-progress: true
+
+jobs:
+  health-monitor:
+    name: Check live Worker, Python Core, and PWA
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      WORKER_URL: https://shrill-silence-164f.lostgodsgods.workers.dev
+      PYTHON_CORE_URL: https://super-chatty-jarvis.onrender.com
+    steps:
+      - name: Check Worker health
+        shell: bash
+        run: |
+          set -euo pipefail
+          body="$(mktemp)"
+          trap 'rm -f "$body"' EXIT
+          code="$(curl --silent --show-error --location --max-time 20 --retry 2 --retry-all-errors -o "$body" -w '%{http_code}' "$WORKER_URL/health")"
+          test "$code" = "200"
+          node -e 'const fs=require("node:fs"); const x=JSON.parse(fs.readFileSync(process.argv[1],"utf8")); if(x.ok!==true) process.exit(1); console.log("PASS: Worker health JSON reports ok=true.")' "$body"
+
+      - name: Check Python Core health
+        shell: bash
+        run: |
+          set -euo pipefail
+          body="$(mktemp)"
+          trap 'rm -f "$body"' EXIT
+          code="$(curl --silent --show-error --location --max-time 25 --retry 2 --retry-all-errors -o "$body" -w '%{http_code}' "$PYTHON_CORE_URL/health")"
+          test "$code" = "200"
+          node -e 'const fs=require("node:fs"); const x=JSON.parse(fs.readFileSync(process.argv[1],"utf8")); if(x.ok!==true) process.exit(1); console.log("PASS: Python Core health JSON reports ok=true.")' "$body"
+
+      - name: Check installable PWA manifest
+        shell: bash
+        run: |
+          set -euo pipefail
+          code="$(curl --silent --show-error --location --max-time 20 --retry 2 --retry-all-errors -o /dev/null -w '%{http_code}' "$WORKER_URL/jarvis/manifest.webmanifest")"
+          test "$code" = "200"
+          echo "PASS: PWA manifest endpoint returned HTTP 200."
+
+      - name: Check PWA service worker
+        shell: bash
+        run: |
+          set -euo pipefail
+          headers="$(mktemp)"
+          trap 'rm -f "$headers"' EXIT
+          code="$(curl --silent --show-error --location --max-time 20 --retry 2 --retry-all-errors -D "$headers" -o /dev/null -w '%{http_code}' "$WORKER_URL/jarvis/sw.js")"
+          test "$code" = "200"
+          grep -Eiq '^content-type:.*(javascript|ecmascript)' "$headers"
+          echo "PASS: PWA service worker returned HTTP 200 with JavaScript content type."
