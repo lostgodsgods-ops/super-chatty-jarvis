@@ -53,7 +53,7 @@ export function evaluateNeuralResult(input = {}) {
     else checksPending++;
   }
 
-  if (checks.length > MAX_CHECKS || (Array.isArray(input.evidence) && input.evidence.length > MAX_EVIDENCE)) {
+  if ((Array.isArray(input.checks) && input.checks.length > MAX_CHECKS) || (Array.isArray(input.evidence) && input.evidence.length > MAX_EVIDENCE)) {
     reasons.push("EVIDENCE_LIMIT_EXCEEDED");
   }
   if (evidence.length === 0) reasons.push("NO_VERIFIABLE_EVIDENCE");
