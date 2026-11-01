@@ -1,6 +1,6 @@
 const MAX_CHECKS = 20;
 const MAX_EVIDENCE = 40;
-const SECRET_PATTERN = /(?:bearer\\s+\\S+|(?:secret|token|password|api[_-]?key)\\s*[:=]\\s*\\S+)/i;
+const SECRET_PATTERN = /(?:bearer +[^ ]+|(?:secret|token|password|api[_-]?key) *[:=] *[^ ]+)/i;
 const SAFE_REFERENCE = /^[A-Za-z0-9][A-Za-z0-9._:/#-]{0,119}$/;
 
 function safeReference(value) {
@@ -53,7 +53,7 @@ export function evaluateNeuralResult(input = {}) {
     else checksPending++;
   }
 
-  if (checks.length > MAX_CHECKS || (Array.isArray(input.evidence) && input.evidence.length > MAX_EVIDENCE)) {
+  if ((Array.isArray(input.checks) && input.checks.length > MAX_CHECKS) || (Array.isArray(input.evidence) && input.evidence.length > MAX_EVIDENCE)) {
     reasons.push("EVIDENCE_LIMIT_EXCEEDED");
   }
   if (evidence.length === 0) reasons.push("NO_VERIFIABLE_EVIDENCE");
