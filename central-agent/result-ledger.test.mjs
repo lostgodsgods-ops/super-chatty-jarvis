@@ -13,8 +13,9 @@ function fakeDb() {
         async run() {
           if (sql.includes("INSERT INTO redultron_execution_results")) {
             const [resultId, ownerScope, executionId, traceId, taskId, coreId, status, verification, createdAt, buildSha, deploymentId, envelopeJson] = this.values;
-            if (!rows.has(resultId)) rows.set(resultId, { resultId, ownerScope, executionId, traceId, taskId, coreId, status, verification, createdAt, buildSha, deploymentId, envelopeJson });
-            return { success: true, meta: { changes: rows.has(resultId) ? 1 : 0 } };
+            const existed = rows.has(resultId);
+            if (!existed) rows.set(resultId, { resultId, ownerScope, executionId, traceId, taskId, coreId, status, verification, createdAt, buildSha, deploymentId, envelopeJson });
+            return { success: true, meta: { changes: existed ? 0 : 1 } };
           }
           throw new Error("UNEXPECTED_WRITE");
         },
