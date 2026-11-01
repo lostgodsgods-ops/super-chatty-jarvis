@@ -1,3 +1,5 @@
+import { rankVerifiedKnowledge } from "./neural-memory-ranker.mjs";
+
 const MAX_TEXT = 6000;
 const MAX_SOURCES = 12;
 const MAX_LIMIT = 20;
@@ -119,7 +121,7 @@ export async function searchVerifiedKnowledge(db, query, limit = 10) {
       limitations: row.limitations, reuseInstructions: row.reuseInstructions,
       status: row.status, createdAt: row.createdAt, updatedAt: row.updatedAt
     }));
-    return { ok: true, records };
+    return { ok: true, records: rankVerifiedKnowledge(records, normalizedQuery).slice(0, Math.max(1, Math.min(MAX_LIMIT, Number(limit) || 10))) };
   } catch {
     return { ok: false, error: "LEARNING_SEARCH_FAILED" };
   }
