@@ -64,3 +64,22 @@ test("independent evaluator bounds and sanitizes untrusted evidence", () => {
   assert.equal(JSON.stringify(result).includes("abc.def.ghi"), false);
   assert.equal(JSON.stringify(result).includes("do-not-leak"), false);
 });
+test("independent evaluator rejects credential-shaped evidence references", () => {
+  const result = evaluateNeuralResult({
+    checks: [{ id: "auth", status: "passed", evidenceRef: "token=do-not-store" }],
+    evidence: ["token=do-not-store"]
+  });
+  assert.equal(result.verdict, "REVIEW_REQUIRED");
+  assert.equal(result.evidenceCount, 0);
+  assert.equal(JSON.stringify(result).includes("do-not-store"), false);
+});
+
+test("independent evaluator does not pass when checks exceed the supported bound", () => {
+  const checks = Array.from({ length: 21 }, (_, index) => ({
+    id: "check-" + index, status: "passed", evidenceRef: "workflow:" + index
+  }));
+  const evidence = checks.map(check => check.evidenceRef);
+  const result = evaluateNeuralResult({ checks, evidence });
+  assert.equal(result.verdict, "REVIEW_REQUIRED");
+  assert.ok(result.reasons.includes("EVIDENCE_LIMIT_EXCEEDED"));
+});
