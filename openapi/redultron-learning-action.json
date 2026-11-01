@@ -122,7 +122,14 @@
         },
         "responses": {
           "200": {
-            "description": "Knowledge promoted after owner approval"
+            "description": "Knowledge promoted after owner approval",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApprovalResponse"
+                }
+              }
+            }
           },
           "400": {
             "description": "Explicit confirmation missing or invalid"
@@ -283,17 +290,13 @@
           },
           "status": {
             "type": "string",
-            "const": "pending_owner_verification"
+            "const": "verified"
           },
           "createdAt": {
             "type": "string"
           },
           "updatedAt": {
             "type": "string"
-          },
-          "verified": {
-            "type": "boolean",
-            "const": false
           }
         }
       },
@@ -328,7 +331,7 @@
             "const": true
           },
           "record": {
-            "$ref": "#/components/schemas/KnowledgeRecord"
+            "$ref": "#/components/schemas/PendingKnowledgeRecord"
           },
           "requiresOwnerVerification": {
             "type": "boolean",
@@ -352,6 +355,87 @@
           "confirmation": {
             "type": "string",
             "const": "APPROVE_KNOWLEDGE"
+          }
+        }
+      },
+      "PendingKnowledgeRecord": {
+        "type": "object",
+        "required": [
+          "id",
+          "status",
+          "verified"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "problem": {
+            "type": "string"
+          },
+          "solution": {
+            "type": "string"
+          },
+          "sources": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Source"
+            }
+          },
+          "testSummary": {
+            "type": "string"
+          },
+          "testEvidence": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "confidence": {
+            "type": "number"
+          },
+          "limitations": {
+            "type": "string"
+          },
+          "reuseInstructions": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "const": "pending_owner_verification"
+          },
+          "verified": {
+            "type": "boolean",
+            "const": false
+          },
+          "createdAt": {
+            "type": "string"
+          },
+          "updatedAt": {
+            "type": "string"
+          }
+        }
+      },
+      "ApprovalResponse": {
+        "type": "object",
+        "required": [
+          "ok",
+          "ownerApproved",
+          "record"
+        ],
+        "properties": {
+          "ok": {
+            "type": "boolean",
+            "const": true
+          },
+          "ownerApproved": {
+            "type": "boolean",
+            "const": true
+          },
+          "record": {
+            "$ref": "#/components/schemas/KnowledgeRecord"
           }
         }
       }
