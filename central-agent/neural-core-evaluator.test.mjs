@@ -11,6 +11,8 @@ test("independent evaluator does not trust a model self-declared pass", () => {
   });
   assert.equal(result.verdict, "REVIEW_REQUIRED");
   assert.equal(result.independent, true);
+  assert.equal(result.verificationScope, "reference-consistency-only");
+  assert.equal(result.externalEvidenceVerified, false);
 });
 
 test("independent evaluator passes only with explicit successful checks and evidence", () => {

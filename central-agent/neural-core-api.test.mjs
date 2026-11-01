@@ -37,6 +37,56 @@ test("POST invokes the core and records request plus completion audit without lo
   assert.equal(body.result.execution.toolsExecuted, false);
   assert.deepEqual(events.map(event => event.type), ["neural_core.reasoning.requested", "neural_core.reasoning.completed"]);
   assert.equal(JSON.stringify(events).includes("Explain the architecture"), false);
+  assert.equal(JSON.stringify(events).includes("workflow:"), false);
+});
+
+test("POST attaches a default review-required independent evaluation", async () => {
+  const response = await handleNeuralCoreRequest(post({ prompt: "hello" }), {}, {
+    core: makeCore(), publishEvent: async () => ({ ok: true })
+  });
+  const body = await response.json();
+  assert.equal(response.status, 200);
+  assert.equal(body.result.evaluation.verdict, "REVIEW_REQUIRED");
+  assert.equal(body.result.evaluation.independent, true);
+  assert.equal(body.result.evaluation.verificationScope, "reference-consistency-only");
+  assert.equal(body.result.evaluation.externalEvidenceVerified, false);
+});
+
+test("POST evaluates supplied bounded evidence without treating model self-assessment as proof", async () => {
+  const response = await handleNeuralCoreRequest(post({
+    prompt: "hello",
+    selfAssessment: "PASS",
+    evaluation: {
+      checks: [{ id: "unit-tests", status: "passed", evidenceRef: "workflow:123" }],
+      evidence: ["workflow:123"]
+    }
+  }), {}, { core: makeCore(), publishEvent: async () => ({ ok: true }) });
+  const body = await response.json();
+  assert.equal(response.status, 200);
+  assert.equal(body.result.evaluation.verdict, "PASS");
+  assert.equal(body.result.evaluation.checksPassed, 1);
+  assert.equal(body.result.selfAssessment, undefined);
+});
+
+test("POST evaluation fails closed for failed or over-limit checks", async () => {
+  const failed = await handleNeuralCoreRequest(post({
+    prompt: "hello",
+    evaluation: {
+      checks: [{ id: "security", status: "failed", evidenceRef: "workflow:124" }],
+      evidence: ["workflow:124"]
+    }
+  }), {}, { core: makeCore(), publishEvent: async () => ({ ok: true }) });
+  assert.equal((await failed.json()).result.evaluation.verdict, "FAIL");
+
+  const checks = Array.from({ length: 21 }, (_, index) => ({
+    id: "check-" + index, status: "passed", evidenceRef: "workflow:" + index
+  }));
+  const limited = await handleNeuralCoreRequest(post({
+    prompt: "hello", evaluation: { checks, evidence: checks.map(item => item.evidenceRef) }
+  }), {}, { core: makeCore(), publishEvent: async () => ({ ok: true }) });
+  const result = (await limited.json()).result.evaluation;
+  assert.equal(result.verdict, "REVIEW_REQUIRED");
+  assert.ok(result.reasons.includes("EVIDENCE_LIMIT_EXCEEDED"));
 });
 
 test("POST fails closed if audit storage is unavailable before model dispatch", async () => {
