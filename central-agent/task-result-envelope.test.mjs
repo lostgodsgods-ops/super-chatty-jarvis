@@ -23,7 +23,7 @@ test("successful task returns a correlated REDULTRON result envelope", async () 
   assert.match(output.resultEnvelope.result.result_id, /^[0-9a-f-]{36}$/i);
   assert.match(output.resultEnvelope.result.execution_id, /^[0-9a-f-]{36}$/i);
   assert.match(output.resultEnvelope.result.trace_id, /^[0-9a-f-]{36}$/i);
-  assert.equal(output.resultEnvelope.result.task_id, identity-task-1);
+  assert.equal(output.resultEnvelope.result.task_id, "identity-task-1");
   assert.equal(output.resultEnvelope.result.status, "PASS");
   assert.equal(output.resultEnvelope.result.verification, "UNVERIFIED");
   assert.equal(output.resultEnvelope.provenance.build_sha, "abcdef1234567");
