@@ -44,6 +44,7 @@ function mockDb() {
         async run() {
           if (sql.startsWith("CREATE TABLE") || sql.startsWith("CREATE INDEX")) { state.schemaCalls++; return { meta: { changes: 0 } }; }
           if (sql.includes("INSERT INTO pending_knowledge")) { state.pendingInserted = this.args; return { meta: { changes: 1 } }; }
+          if (sql.includes("INSERT INTO pending_knowledge")) { state.pendingInserted = this.args; return { meta: { changes: 1 } }; }
           if (sql.includes("INSERT INTO verified_knowledge")) { state.verifiedInserted = true; return { meta: { changes: 1 } }; }
           throw new Error("Unexpected SQL");
         },
