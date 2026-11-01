@@ -1156,10 +1156,13 @@ export default {
         : searxngSearchConfigured
           ? ["searxng", "duckduckgo-html", "bing-news-rss", "google-news-rss", "gdelt-doc-api", "wikipedia-api"]
           : ["duckduckgo-html", "bing-news-rss", "google-news-rss", "gdelt-doc-api", "wikipedia-api"];
+      const deploymentCommit = typeof env.GITHUB_COMMIT_SHA === "string" &&
+        /^[a-f0-9]{40}$/.test(env.GITHUB_COMMIT_SHA) ? env.GITHUB_COMMIT_SHA : null;
       return json({
         ok: true,
         service: "super-chatty-central-agent",
         version: VERSION,
+        deployment: { commitSha: deploymentCommit },
         capabilities: {
           workersAIConfigured: Boolean(env.AI),
           tavilySearchConfigured,
