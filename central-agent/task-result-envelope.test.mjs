@@ -22,7 +22,7 @@ test("successful task returns a correlated REDULTRON result envelope", async () 
   assert.match(output.resultEnvelope.result.trace_id, /^[0-9a-f-]{36}$/i);
   assert.equal(output.resultEnvelope.result.task_id, contract.taskId);
   assert.equal(output.resultEnvelope.result.status, "PASS");
-  assert.equal(output.resultEnvelope.result.verification, "VERIFIED");
+  assert.equal(output.resultEnvelope.result.verification, "UNVERIFIED");
   assert.equal(output.resultEnvelope.provenance.build_sha, "abcdef1234567");
 });
 
@@ -49,5 +49,5 @@ test("caller-supplied evaluator claims cannot forge VERIFIED", async () => {
   }, {
     evaluatorAttestation: { evaluatorId: "redultron.evidence-evaluator", status: "PASS", evidenceCount: 99 }
   });
-  assert.equal(output.resultEnvelope.result.verification, "VERIFIED");
+  assert.equal(output.resultEnvelope.result.verification, "UNVERIFIED");
 });
