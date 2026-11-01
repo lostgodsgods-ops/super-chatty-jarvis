@@ -11,6 +11,7 @@ const TRANSITIONS = Object.freeze({
   VERIFYING: new Set(["SUCCEEDED", "FAILED"])
 });
 const MAX_INPUT_BYTES = 8192;
+const MAX_RESULT_BYTES = 16 * 1024;
 const MAX_TIMEOUT_MS = 30000;
 const MAX_RETRIES = 3;
 
@@ -25,6 +26,17 @@ function copy(value) {
 function inputSize(input) {
   try { return new TextEncoder().encode(JSON.stringify(input)).length; }
   catch { return Infinity; }
+}
+function boundedResult(value) {
+  let serialized;
+  try { serialized = JSON.stringify(value); }
+  catch { return { ok: false }; }
+  if (typeof serialized !== "string" ||
+      new TextEncoder().encode(serialized).byteLength > MAX_RESULT_BYTES) {
+    return { ok: false };
+  }
+  try { return { ok: true, value: JSON.parse(serialized) }; }
+  catch { return { ok: false }; }
 }
 function addEvent(task, from, to, reason) {
   const at = new Date().toISOString();
@@ -171,9 +183,10 @@ export async function runTask(contract, registry, executors, options = {}) {
         ]);
         clearTimeout(timer);
         task = transitionTask(task, "VERIFYING", { reason: "executor-returned" });
-        if (result === undefined) return finish(task, "FAILED", "EXECUTOR_RESULT_INVALID");
+        const safeResult = boundedResult(result);
+        if (!safeResult.ok) return finish(task, "FAILED", "EXECUTOR_RESULT_INVALID");
         const success = transitionTask(task, "SUCCEEDED", { reason: "result-available" });
-        return { ...success, result: copy(result), errorCode: null };
+        return { ...success, result: safeResult.value, errorCode: null };
       } catch (error) {
         clearTimeout(timer);
         if (error?.code === "TASK_TIMEOUT") return finish(task, "TIMED_OUT", "TASK_TIMEOUT");
