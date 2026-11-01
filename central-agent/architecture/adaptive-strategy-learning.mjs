@@ -1,0 +1,93 @@
+/**
+ * Evidence-gated adaptive strategy scoring for REDULTRON.
+ *
+ * This is a bounded online-learning primitive, not a neural network or model
+ * trainer. Only independently verified outcomes can update strategy scores.
+ * It ranks strategies; it never grants permissions or executes actions.
+ */
+const DEFAULT_LEARNING_RATE = 0.2;
+const DEFAULT_MAX_STRATEGIES = 64;
+const MAX_ID_LENGTH = 80;
+const MAX_EVIDENCE_LENGTH = 300;
+
+function reject(reason) {
+  return Object.freeze({ accepted: false, reason });
+}
+
+function validId(value) {
+  return typeof value === "string" &&
+    value.length > 0 &&
+    value.length <= MAX_ID_LENGTH &&
+    /^[a-zA-Z0-9][a-zA-Z0-9._:-]*$/.test(value);
+}
+
+function cleanEvidence(value) {
+  return typeof value === "string"
+    ? value.replace(/[\u0000-\u001f\u007f]/g, " ").replace(/\s+/g, " ").trim().slice(0, MAX_EVIDENCE_LENGTH)
+    : "";
+}
+
+export function createAdaptiveStrategyLearner(options = {}) {
+  const learningRate = options.learningRate ?? DEFAULT_LEARNING_RATE;
+  const maxStrategies = options.maxStrategies ?? DEFAULT_MAX_STRATEGIES;
+  if (typeof learningRate !== "number" || !Number.isFinite(learningRate) ||
+      learningRate <= 0 || learningRate > 1) {
+    throw new TypeError("LEARNING_RATE_OUT_OF_RANGE");
+  }
+  if (!Number.isInteger(maxStrategies) || maxStrategies < 1 || maxStrategies > 256) {
+    throw new TypeError("MAX_STRATEGIES_OUT_OF_RANGE");
+  }
+
+  const strategies = new Map();
+
+  function recordOutcome(input = {}) {
+    if (!validId(input.strategyId)) return reject("INVALID_STRATEGY_ID");
+    if (input.outcome !== "success" && input.outcome !== "failure") {
+      return reject("INVALID_OUTCOME");
+    }
+    const evidence = cleanEvidence(input.evidence);
+    if (input.verified !== true || !evidence) return reject("VERIFIED_EVIDENCE_REQUIRED");
+
+    let current = strategies.get(input.strategyId);
+    if (!current && strategies.size >= maxStrategies) return reject("STRATEGY_CAPACITY_REACHED");
+
+    const signal = input.outcome === "success" ? 1 : 0;
+    const score = current
+      ? current.score + learningRate * (signal - current.score)
+      : 0.5 + learningRate * (signal - 0.5);
+    current = {
+      strategyId: input.strategyId,
+      score: Math.round(score * 10000) / 10000,
+      samples: (current?.samples || 0) + 1,
+      successes: (current?.successes || 0) + (signal === 1 ? 1 : 0),
+      failures: (current?.failures || 0) + (signal === 0 ? 1 : 0),
+      lastEvidence: evidence
+    };
+    strategies.set(input.strategyId, current);
+    return Object.freeze({
+      accepted: true,
+      strategyId: current.strategyId,
+      score: current.score,
+      samples: current.samples
+    });
+  }
+
+  function rankStrategies() {
+    return Array.from(strategies.values())
+      .sort((a, b) => b.score - a.score || b.samples - a.samples || a.strategyId.localeCompare(b.strategyId))
+      .map(item => Object.freeze({ ...item }));
+  }
+
+  function snapshot() {
+    return Object.freeze({
+      schemaVersion: "1.0.0",
+      learningMode: "verified-outcome-exponential-moving-average",
+      modelTraining: false,
+      permissionChanges: false,
+      strategyCount: strategies.size,
+      strategies: rankStrategies()
+    });
+  }
+
+  return Object.freeze({ recordOutcome, rankStrategies, snapshot });
+}
