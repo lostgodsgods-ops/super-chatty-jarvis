@@ -1,6 +1,6 @@
 const MAX_CHECKS = 20;
 const MAX_EVIDENCE = 40;
-const SECRET_PATTERN = /(?:bearer\\s+\\S+|(?:secret|token|password|api[_-]?key)\\s*[:=]\\s*\\S+)/i;
+const SECRET_PATTERN = /(?:bearer +[^ ]+|(?:secret|token|password|api[_-]?key) *[:=] *[^ ]+)/i;
 const SAFE_REFERENCE = /^[A-Za-z0-9][A-Za-z0-9._:/#-]{0,119}$/;
 
 function safeReference(value) {
