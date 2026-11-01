@@ -146,3 +146,57 @@ export async function searchVerifiedKnowledge(db, query, limit = 10) {
 function safeJson(value, fallback) {
   try { return JSON.parse(value); } catch { return fallback; }
 }
+
+
+/**
+ * Promote exactly one pending record after a separately authenticated owner
+ * explicitly confirms the approval phrase. This function is not an auth system:
+ * callers must derive ownerAuthenticated from the owner session, never a bridge token.
+ */
+export async function approvePendingKnowledge(db, recordId, approval = {}) {
+  if (approval?.ownerAuthenticated !== true || approval?.approvalPhrase !== "APPROVE_KNOWLEDGE") {
+    return { ok: false, error: "OWNER_APPROVAL_REQUIRED" };
+  }
+  const id = typeof recordId === "string" ? recordId.trim() : "";
+  if (!/^[A-Za-z0-9_-]{8,128}$/.test(id)) return { ok: false, error: "INVALID_RECORD_ID" };
+  if (!db || typeof db.prepare !== "function") return { ok: false, error: "LEARNING_STORAGE_UNAVAILABLE" };
+
+  try {
+    await ensureLearningSchema(db);
+    const pending = await db.prepare(`SELECT id, title, problem, solution, sources_json AS sourcesJson,
+      test_summary AS testSummary, test_evidence_json AS testEvidenceJson, confidence,
+      limitations, reuse_instructions AS reuseInstructions, created_at AS createdAt
+      FROM pending_knowledge WHERE id = ? AND owner_scope = 'owner'
+      AND status = 'pending_owner_verification' LIMIT 1`).bind(id).first();
+    if (!pending) return { ok: false, error: "PENDING_KNOWLEDGE_NOT_FOUND" };
+
+    const now = new Date().toISOString();
+    const inserted = await db.prepare(`INSERT OR IGNORE INTO verified_knowledge
+      (id, owner_scope, title, problem, solution, sources_json, test_summary, test_evidence_json,
+       confidence, limitations, reuse_instructions, status, created_at, updated_at)
+      SELECT id, 'owner', title, problem, solution, sources_json, test_summary, test_evidence_json,
+       confidence, limitations, reuse_instructions, 'verified', created_at, ?
+      FROM pending_knowledge WHERE id = ? AND owner_scope = 'owner'
+      AND status = 'pending_owner_verification'`).bind(now, id).run();
+    if (Number(inserted?.meta?.changes || 0) !== 1) {
+      return { ok: false, error: "PENDING_KNOWLEDGE_NOT_FOUND_OR_ALREADY_PROMOTED" };
+    }
+    const removed = await db.prepare(`DELETE FROM pending_knowledge
+      WHERE id = ? AND owner_scope = 'owner' AND status = 'pending_owner_verification'`).bind(id).run();
+    if (Number(removed?.meta?.changes || 0) !== 1) {
+      return { ok: false, error: "PENDING_CLEANUP_FAILED" };
+    }
+    return {
+      ok: true,
+      record: {
+        id: pending.id, title: pending.title, problem: pending.problem, solution: pending.solution,
+        sources: safeJson(pending.sourcesJson, []), testSummary: pending.testSummary,
+        testEvidence: safeJson(pending.testEvidenceJson, []), confidence: pending.confidence,
+        limitations: pending.limitations, reuseInstructions: pending.reuseInstructions,
+        status: "verified", verified: true, createdAt: pending.createdAt, updatedAt: now
+      }
+    };
+  } catch {
+    return { ok: false, error: "LEARNING_PROMOTION_FAILED" };
+  }
+}
