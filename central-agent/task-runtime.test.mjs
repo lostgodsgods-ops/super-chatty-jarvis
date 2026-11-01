@@ -141,3 +141,19 @@ test("task history never records input payloads or raw exception messages", asyn
   const serialized = JSON.stringify(result.history);
   assert.equal(serialized.includes(secretLike), false);
 });
+
+test("executor results must be JSON-safe and bounded before task success", async () => {
+  const oversized = await runTask(contract(), registry, {
+    "safe-reader": async () => ({ payload: "x".repeat(20_000) })
+  });
+  assert.equal(oversized.status, "FAILED");
+  assert.equal(oversized.errorCode, "EXECUTOR_RESULT_INVALID");
+
+  const cyclic = {};
+  cyclic.self = cyclic;
+  const nonSerializable = await runTask(contract(), registry, {
+    "safe-reader": async () => cyclic
+  });
+  assert.equal(nonSerializable.status, "FAILED");
+  assert.equal(nonSerializable.errorCode, "EXECUTOR_RESULT_INVALID");
+});
