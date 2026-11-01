@@ -36,14 +36,14 @@ test("a PASS without evidence is downgraded and cannot be marked verified", () =
   assert.equal(envelope.result.code, "MISSING_EVIDENCE");
 });
 
-test("verification requires a structured evaluator attestation and evidence", () => {
+test("caller-supplied evaluator attestation cannot grant verification", () => {
   const base = {
     ids: { resultId: "r-3", executionId: "e-3", traceId: "t-3" },
     status: "PASS",
     evidence: ["test-report:abc"],
     evaluatorAttestation: { evaluatorId: "redultron.evidence-evaluator", status: "PASS", evidenceCount: 1 }
   };
-  assert.equal(buildResultEnvelope(base).result.verification, "VERIFIED");
+  assert.equal(buildResultEnvelope(base).result.verification, "UNVERIFIED");
   assert.equal(buildResultEnvelope({ ...base, evaluatorAttestation: { evaluatorId: "model", status: "PASS", evidenceCount: 1 } }).result.verification, "UNVERIFIED");
 });
 
