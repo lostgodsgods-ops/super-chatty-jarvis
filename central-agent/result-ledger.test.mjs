@@ -11,7 +11,7 @@ function fakeDb() {
         values: [],
         bind(...values) { this.values = values; return this; },
         async run() {
-          if (sql.includes("INSERT INTO redultron_execution_results")) {
+          if (sql.includes("INSERT OR IGNORE INTO redultron_execution_results")) {
             const [resultId, ownerScope, executionId, traceId, taskId, coreId, status, verification, createdAt, buildSha, deploymentId, envelopeJson] = this.values;
             const existed = rows.has(resultId);
             if (!existed) rows.set(resultId, { resultId, ownerScope, executionId, traceId, taskId, coreId, status, verification, createdAt, buildSha, deploymentId, envelopeJson });
