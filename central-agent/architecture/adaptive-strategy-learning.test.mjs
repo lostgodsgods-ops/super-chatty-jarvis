@@ -37,11 +37,12 @@ test("malformed identifiers and evidence are rejected without mutation", () => {
   assert.equal(learner.snapshot().strategies.length, 0);
 });
 
-test("snapshot is isolated and strategy state is bounded", () => {
+test("snapshot is immutable and strategy state is bounded", () => {
   const learner = createAdaptiveStrategyLearner({ maxStrategies: 2 });
   for (const strategyId of ["a", "b"]) learner.recordOutcome({ strategyId, outcome: "success", verified: true, evidence: "test" });
   assert.equal(learner.recordOutcome({ strategyId: "c", outcome: "success", verified: true, evidence: "test" }).reason, "STRATEGY_CAPACITY_REACHED");
   const snapshot = learner.snapshot();
-  snapshot.strategies[0].score = 0;
-  assert.notEqual(learner.snapshot().strategies[0].score, 0);
+  assert.equal(Object.isFrozen(snapshot), true);
+  assert.equal(Object.isFrozen(snapshot.strategies), true);
+  assert.equal(Object.isFrozen(snapshot.strategies[0]), true);
 });
