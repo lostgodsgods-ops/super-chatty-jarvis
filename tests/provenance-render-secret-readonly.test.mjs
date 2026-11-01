@@ -26,7 +26,7 @@ test("owner-secret parity check compares exact values in memory and reports no s
   assert.match(workflow, /\[\\r\\n\]/);
   assert.match(workflow, /at least 32 characters/);
   assert.match(workflow, /value suppressed|values suppressed/);
-  assert.doesNotMatch(workflow, /console\\.log\\([^)]*(?:githubSecret|renderSecret|REDULTRON_OWNER_SECRET|ownerEntry\\.envVar\\.value)|echo[^\\n]*\\$(?:\\{REDULTRON_OWNER_SECRET\\}|REDULTRON_OWNER_SECRET)/i);
+  assert.doesNotMatch(workflow, /console\.log\([^)]*(?:githubSecret|renderSecret|REDULTRON_OWNER_SECRET|ownerEntry\.envVar\.value)|echo[^\n]*\$(?:\{REDULTRON_OWNER_SECRET\}|REDULTRON_OWNER_SECRET)/i);
 });
 
 test("owner-secret parity check fails closed when either credential or Render value is unavailable", async () => {
