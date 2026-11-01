@@ -17,8 +17,11 @@ const valid = {
   reuseInstructions: "Re-run route-specific auth tests before reuse."
 };
 
-test("verified knowledge requires a real HTTPS source and explicit test evidence", () => {
-  assert.equal(normalizeVerifiedKnowledge(valid).ok, true);
+test("caller-supplied PASS and text evidence can only create pending knowledge", () => {
+  const result = normalizeVerifiedKnowledge(valid);
+  assert.equal(result.ok, true);
+  assert.equal(result.record.status, "pending_owner_verification");
+  assert.equal(result.record.verified, false);
   assert.equal(normalizeVerifiedKnowledge({ ...valid, testsPassed: false }).error, "VERIFIED_TEST_EVIDENCE_REQUIRED");
   assert.equal(normalizeVerifiedKnowledge({ ...valid, testEvidence: [] }).error, "VERIFIED_TEST_EVIDENCE_REQUIRED");
   assert.equal(normalizeVerifiedKnowledge({ ...valid, sources: [{ url: "http://example.com" }] }).error, "HTTPS_SOURCE_REQUIRED");
@@ -32,7 +35,7 @@ test("normalization redacts credential-like text and rejects missing core fields
 });
 
 function mockDb() {
-  const state = { inserted: null, schemaCalls: 0, query: null };
+  const state = { pendingInserted: null, verifiedInserted: false, schemaCalls: 0, query: null };
   return {
     state,
     prepare(sql) {
@@ -40,7 +43,9 @@ function mockDb() {
         bind(...args) { this.args = args; return this; },
         async run() {
           if (sql.startsWith("CREATE TABLE") || sql.startsWith("CREATE INDEX")) { state.schemaCalls++; return { meta: { changes: 0 } }; }
-          if (sql.includes("INSERT INTO verified_knowledge")) { state.inserted = this.args; return { meta: { changes: 1 } }; }
+          if (sql.includes("INSERT INTO pending_knowledge")) { state.pendingInserted = this.args; return { meta: { changes: 1 } }; }
+          if (sql.includes("INSERT INTO pending_knowledge")) { state.pendingInserted = this.args; return { meta: { changes: 1 } }; }
+          if (sql.includes("INSERT INTO verified_knowledge")) { state.verifiedInserted = true; return { meta: { changes: 1 } }; }
           throw new Error("Unexpected SQL");
         },
         async all() {
@@ -58,13 +63,14 @@ function mockDb() {
   };
 }
 
-test("save persists only normalized verified knowledge in owner scope", async () => {
+test("save persists unverified submissions only in the pending owner queue", async () => {
   const db = mockDb();
   const result = await saveVerifiedKnowledge(db, valid);
   assert.equal(result.ok, true);
-  assert.equal(result.record.status, "verified");
-  assert.equal(db.state.inserted[0].length > 0, true);
-  assert.equal(db.state.inserted[1], valid.title);
+  assert.equal(result.record.status, "pending_owner_verification");
+  assert.equal(db.state.pendingInserted[0].length > 0, true);
+  assert.equal(db.state.pendingInserted[1], valid.title);
+  assert.equal(db.state.verifiedInserted, false);
 });
 
 test("retrieval searches only owner-scoped verified records and returns evidence", async () => {
