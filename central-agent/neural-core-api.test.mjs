@@ -8,6 +8,14 @@ function memoryTaskStore() {
   return {
     records,
     async isReady() { return true; },
+    async get(taskId) { return records.get(taskId) || null; },
+    async transition(taskId, status, metadata = {}) {
+      const current = records.get(taskId);
+      if (!current || current.status !== "PLANNED" || status !== "BLOCKED") throw new Error("INVALID_TRANSITION");
+      const next = { ...current, status, errorCode: metadata.errorCode };
+      records.set(taskId, next);
+      return next;
+    },
     async create(plan) {
       if (records.has(plan.taskId)) throw Object.assign(new Error("duplicate"), { code: "BRAIN_TASK_ALREADY_EXISTS", status: 409 });
       const record = { ...plan, persisted: true };
@@ -16,6 +24,8 @@ function memoryTaskStore() {
     }
   };
 }
+
+const normalOwnerGate = async () => ({ ok: true, mode: "normal", reason: "NORMAL_MODE", allowOwnerActions: true, allowBackgroundTasks: true });
 
 function makeCore(overrides = {}) {
   return createNeuralCore({
@@ -117,7 +127,7 @@ test("POST returns a sanitized failure and records failure event", async () => {
   const events = [];
   const core = { inspect: () => ({}), reason: async () => { const error = new Error("private detail"); error.code = "PROVIDER_UNAVAILABLE"; throw error; } };
   const response = await handleNeuralCoreRequest(post({ prompt: "hello" }), {}, {
-    core, taskStore: memoryTaskStore(), publishEvent: async event => { events.push(event); return { ok: true }; }
+    core, taskStore: memoryTaskStore(), readGate: normalOwnerGate, publishEvent: async event => { events.push(event); return { ok: true }; }
   });
   assert.equal(response.status, 502);
   assert.equal((await response.json()).error, "PROVIDER_UNAVAILABLE");
@@ -158,7 +168,7 @@ test("POST plan operation returns a validated plan and records sanitized audit e
   const response = await handleNeuralCoreRequest(post({
     operation: "plan", goal: "Analyze a bounded request", provider: "openai"
   }), {}, {
-    core: makePlanCore(), taskStore,
+    core: makePlanCore(), taskStore, readGate: normalOwnerGate,
     publishEvent: async event => { events.push(event); return { ok: true, id: "plan-audit-" + events.length }; }
   });
   assert.equal(response.status, 200);
@@ -230,4 +240,21 @@ test("POST plan operation blocks before model dispatch when D1 Brain migrations 
   assert.equal(response.status, 503);
   assert.equal((await response.json()).error, "BRAIN_TASK_SCHEMA_UNAVAILABLE");
   assert.equal(invoked, false);
+});
+
+
+test("POST plan operation blocks before provider dispatch when emergency stop is active", async () => {
+  let invoked = false;
+  const events = [];
+  const core = makePlanCore({ complete: async () => { invoked = true; return { ok: true, provider: "mock", model: "m", text: "{}" }; } });
+  const response = await handleNeuralCoreRequest(post({ operation: "plan", goal: "Plan" }), {}, {
+    core,
+    taskStore: memoryTaskStore(),
+    readGate: async () => ({ ok: true, mode: "emergency-stop", reason: "EMERGENCY_STOP_ACTIVE", allowOwnerActions: false, allowBackgroundTasks: false }),
+    publishEvent: async event => { events.push(event); return { ok: true }; }
+  });
+  assert.equal(response.status, 423);
+  assert.equal((await response.json()).error, "EMERGENCY_STOP_ACTIVE");
+  assert.equal(invoked, false);
+  assert.equal(events.at(-1).type, "neural_core.reasoning.failed");
 });
