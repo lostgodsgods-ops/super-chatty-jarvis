@@ -33,6 +33,9 @@ main{max-width:1180px;margin:auto;padding:18px 14px 36px}.head{display:flex;alig
  </div></section>
  <section class="panel"><h2>Recent evidence feed</h2><div class="body"><div class="feed" id="feed"><div class="event"><strong>Monitor initialized</strong><p>Live checks will appear after network requests complete.</p></div></div></div></section>
  <section class="panel"><h2>Repository snapshot</h2><div class="body" id="repoSnapshot"><div class="detail">Checking public GitHub metadata…</div></div></section>
+ <section class="panel"><h2>Recent GitHub Actions</h2><div class="body"><div class="feed" id="workflowFeed"><div class="event"><strong>Loading workflow activity…</strong><p>Read-only GitHub Actions status.</p></div></div></div></section>
+ <section class="panel"><h2>Open pull requests</h2><div class="body"><div class="feed" id="pullRequestFeed"><div class="event"><strong>Loading pull requests…</strong><p>Read-only repository review activity.</p></div></div></div></section>
+ <section class="panel"><h2>Task execution timeline</h2><div class="body" id="taskTimelineStatus"><div class="check"><div><div class="name">NOT CONNECTED</div><div class="detail">The public monitor does not yet consume a durable authenticated Brain task-event feed. No task progress is fabricated.</div></div><span class="badge NOT_TESTED">NOT TESTED</span></div><p class="small">The owner PWA has a separate authenticated Central Event Bus connection. Durable Brain task timeline integration is a remaining engineering task.</p></div></section>
  <section class="panel"><h2>Safety boundaries</h2><div class="body">
   <div class="check"><div><div class="name">Owner authentication / Python execution</div><div class="detail">No authenticated or mutating probe is run from this public monitor.</div></div><span class="badge NOT_TESTED">NOT TESTED</span></div>
   <div class="check"><div><div class="name">Secrets and owner data</div><div class="detail">No secrets are requested, stored, or displayed.</div></div><span class="badge PASS">PASS</span></div>
@@ -51,6 +54,7 @@ main{max-width:1180px;margin:auto;padding:18px 14px 36px}.head{display:flex;alig
  const $ = id => document.getElementById(id);
  const esc = value => String(value ?? "").replace(/[&<>"']/g, ch => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[ch]));
  const records = new Map();
+ let lastGithubFetch = 0;
  function stateClass(state) { return state.replace(/\s+/g, "_"); }
  function setRecord(key, name, state, detail, href) { records.set(key,{key,name,state,detail,href}); render(); }
  function render() {
@@ -83,22 +87,77 @@ main{max-width:1180px;margin:auto;padding:18px 14px 36px}.head{display:flex;alig
      setRecord(label,label,state,reason+" · direct browser probe");event(label+" "+state,reason);return null;
    }
  }
+ async function refreshGithubActivity() {
+   lastGithubFetch = Date.now();
+   const base = "https://api.github.com/repos/" + REPO;
+   async function get(path) {
+     const response = await fetch(base + path, {cache:"no-store",headers:{accept:"application/vnd.github+json"},signal:AbortSignal.timeout(8000)});
+     if (!response.ok) throw new Error("GitHub API HTTP " + response.status);
+     return response.json();
+   }
+   const [commitResult, workflowResult, pullResult] = await Promise.allSettled([
+     get("/commits/main"),
+     get("/actions/runs?per_page=5"),
+     get("/pulls?state=open&per_page=5&sort=updated&direction=desc")
+   ]);
+   if (commitResult.status === "fulfilled") {
+     const commit=commitResult.value, sha=commit.sha||"";
+     $("shaShort").textContent=sha?sha.slice(0,7):"—";
+     $("repoSnapshot").innerHTML='<div class="check"><div><div class="name">Latest main commit</div><div class="detail mono">'+esc(sha||"Not returned")+'</div></div><span class="badge PASS">READ</span></div><div class="detail">'+esc(commit.commit?.message||"No commit message")+'</div><p class="small">Author date: '+esc(commit.commit?.author?.date||"unknown")+'</p><p><a href="'+esc(commit.html_url||"https://github.com/"+REPO)+'" target="_blank" rel="noopener noreferrer">Open commit on GitHub</a></p>';
+     setRecord("GitHub main","GitHub main commit","PASS","Public API returned commit "+sha.slice(0,12));
+     event("GitHub main SHA verified",sha.slice(0,12));
+   } else {
+     const message=String(commitResult.reason?.message||"Public GitHub API unavailable");
+     setRecord("GitHub main","GitHub main commit","BLOCKED",message);
+     $("repoSnapshot").textContent="GitHub metadata could not be verified: "+message;
+   }
+   if (workflowResult.status === "fulfilled") {
+     const runs=workflowResult.value.workflow_runs||[], feed=$("workflowFeed"); feed.replaceChildren();
+     if (!runs.length) { const empty=document.createElement("p"); empty.className="small"; empty.textContent="GitHub returned no recent workflow runs."; feed.append(empty); }
+     for (const run of runs) {
+       const state=run.status==="completed"?String(run.conclusion||"completed").toUpperCase():String(run.status||"UNKNOWN").toUpperCase();
+       const row=document.createElement("div"); row.className="event";
+       const title=document.createElement("strong"); title.textContent=(run.name||"GitHub Actions")+" · "+state;
+       const detail=document.createElement("p"); detail.textContent=(run.display_title||"Workflow run")+" · "+String(run.head_sha||"").slice(0,10)+" · "+(run.updated_at?new Date(run.updated_at).toLocaleString():"time unavailable");
+       row.append(title,detail);
+       if (typeof run.html_url==="string" && new URL(run.html_url).hostname==="github.com") {
+         const link=document.createElement("a"); link.href=run.html_url; link.target="_blank"; link.rel="noopener noreferrer"; link.textContent="Open workflow run"; row.append(link);
+       }
+       feed.append(row);
+     }
+     const failedRuns=runs.filter(run=>run.status==="completed" && run.conclusion==="failure");
+     const workflowState=failedRuns.length?"FAIL":"PASS";
+     setRecord("GitHub workflows","Recent GitHub Actions",workflowState,runs.length+" workflow run(s) read; "+failedRuns.length+" failed run(s) in the recent window");
+   } else {
+     const message=String(workflowResult.reason?.message||"GitHub workflow feed unavailable");
+     $("workflowFeed").textContent="BLOCKED · "+message;
+     setRecord("GitHub workflows","Recent GitHub Actions","BLOCKED",message);
+   }
+   if (pullResult.status === "fulfilled") {
+     const pulls=pullResult.value||[], feed=$("pullRequestFeed"); feed.replaceChildren();
+     if (!pulls.length) { const empty=document.createElement("p"); empty.className="small"; empty.textContent="No open pull requests."; feed.append(empty); }
+     for (const pull of pulls) {
+       const row=document.createElement("div"); row.className="event";
+       const title=document.createElement("strong"); title.textContent="#"+pull.number+" · "+(pull.draft?"DRAFT":"OPEN")+" · "+(pull.title||"Untitled PR");
+       const detail=document.createElement("p"); detail.textContent="Updated "+(pull.updated_at?new Date(pull.updated_at).toLocaleString():"time unavailable");
+       row.append(title,detail);
+       if (typeof pull.html_url==="string" && new URL(pull.html_url).hostname==="github.com") {
+         const link=document.createElement("a"); link.href=pull.html_url; link.target="_blank"; link.rel="noopener noreferrer"; link.textContent="Review pull request"; row.append(link);
+       }
+       feed.append(row);
+     }
+     setRecord("GitHub pull requests","Open pull requests","PASS",pulls.length+" open pull request(s) read from public GitHub API");
+   } else {
+     const message=String(pullResult.reason?.message||"GitHub pull-request feed unavailable");
+     $("pullRequestFeed").textContent="BLOCKED · "+message;
+     setRecord("GitHub pull requests","Open pull requests","BLOCKED",message);
+   }
+ }
  async function refresh() {
    $("refresh").disabled=true; $("updatedAt").textContent="Probing…";
    const worker=await probeJson(WORKER+"/health","Worker health");
    await probeJson(PYTHON+"/health","Python Core health");
-   try {
-     const response=await fetch("https://api.github.com/repos/"+REPO+"/commits/main",{cache:"no-store",headers:{accept:"application/vnd.github+json"},signal:AbortSignal.timeout(8000)});
-     if(!response.ok) throw new Error("GitHub API HTTP "+response.status);
-     const commit=await response.json(), sha=commit.sha||"";
-     $("shaShort").textContent=sha?sha.slice(0,7):"—";
-     $("repoSnapshot").innerHTML='<div class="check"><div><div class="name">Latest main commit</div><div class="detail mono">'+esc(sha||"Not returned")+'</div></div><span class="badge PASS">READ</span></div><div class="detail">'+esc(commit.commit?.message||"No commit message")+'</div><p class="small">Author date: '+esc(commit.commit?.author?.date||"unknown")+'</p><p><a href="'+esc(commit.html_url||"https://github.com/"+REPO) +'" target="_blank" rel="noopener noreferrer">Open commit on GitHub</a></p>';
-     setRecord("GitHub main","GitHub main commit","PASS","Public API returned commit "+sha.slice(0,12));
-     event("GitHub main SHA verified",sha.slice(0,12));
-   } catch(error) {
-     setRecord("GitHub main","GitHub main commit","BLOCKED",error?.message||"Public GitHub API unavailable");
-     $("repoSnapshot").textContent="GitHub metadata could not be verified: "+(error?.message||"request blocked");
-   }
+   if (Date.now() - lastGithubFetch >= 300000) await refreshGithubActivity();
    setRecord("Auth execution","Authenticated Python execution","NOT TESTED","No credentials or state-changing requests sent");
    $("updatedAt").textContent="Last probe: "+new Date().toLocaleString()+" · next refresh in 30s";
    $("refresh").disabled=false;

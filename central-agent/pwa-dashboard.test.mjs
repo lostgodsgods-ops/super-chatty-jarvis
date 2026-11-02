@@ -43,3 +43,19 @@ test("PWA exposes three owner sign-in choices and keeps the device verification 
   assert.ok(html.includes('ownerPasskeyRegister:$("ownerPasskeyRegister")'));
   assert.ok(html.includes('ownerSetupOpen:$("ownerSetupOpen")'));
 });
+
+
+test("PWA gives owners a visible path to the live operations monitor", () => {
+  assert.match(html, /id="liveMonitorLink"[^>]*href="\.\/monitor\.html"/);
+  assert.match(html, /LIVE OPERATIONS/i);
+});
+
+test("live monitor exposes real GitHub workflow and pull-request activity", () => {
+  const monitor = readFileSync(new URL("../jarvis/monitor.html", import.meta.url), "utf8");
+  assert.ok(monitor.includes('id="workflowFeed"'), "missing workflow activity panel");
+  assert.ok(monitor.includes('id="pullRequestFeed"'), "missing pull request activity panel");
+  assert.ok(monitor.includes("/actions/runs?per_page="), "workflow feed must use GitHub Actions read API");
+  assert.ok(monitor.includes("/pulls?state=open"), "PR feed must use GitHub pull requests read API");
+  assert.ok(monitor.includes("NOT CONNECTED"), "task execution timeline must not be fabricated when no durable task feed is connected");
+  assert.ok(monitor.includes("failedRuns.length"), "recent workflow failures must affect the monitor status");
+});
