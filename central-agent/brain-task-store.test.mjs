@@ -59,12 +59,21 @@ class MemoryD1 {
     if (sql.includes("INSERT INTO neural_brain_tasks")) {
       const [taskId, schemaVersion, status, goal, taskType, planJson, provider, model, errorCode, createdAt, updatedAt] = v;
       if (this.tasks.has(taskId)) throw Object.assign(new Error("UNIQUE constraint failed"), { code: "SQLITE_CONSTRAINT_PRIMARYKEY" });
-      this.tasks.set(taskId, { taskId, schemaVersion, status, goal, taskType, planJson, provider, model, errorCode, createdAt, updatedAt });
+      this.tasks.set(taskId, { task_id: taskId, schema_version: schemaVersion, status, goal, task_type: taskType, plan_json: planJson, provider_id: provider, model_id: model, error_code: errorCode, created_at: createdAt, updated_at: updatedAt });
       return { meta: { changes: 1 } };
+    }
+    if (sql.includes("INSERT INTO neural_brain_task_events") && sql.includes("WHERE EXISTS")) {
+      const [eventId, taskId, fromStatus, toStatus, eventType, evidenceJson, errorCode, createdAt, lookupTaskId, expectedStatus, updatedAt] = v;
+      const task = this.tasks.get(lookupTaskId);
+      if (task?.status === expectedStatus && task.updated_at === updatedAt) {
+        this.events.push({ event_id: eventId, task_id: taskId, from_status: fromStatus, to_status: toStatus, event_type: eventType, evidence_refs_json: evidenceJson, error_code: errorCode, created_at: createdAt });
+        return { meta: { changes: 1 } };
+      }
+      return { meta: { changes: 0 } };
     }
     if (sql.includes("INSERT INTO neural_brain_task_events")) {
       const [eventId, taskId, fromStatus, toStatus, eventType, evidenceJson, errorCode, createdAt] = v;
-      this.events.push({ eventId, taskId, fromStatus, toStatus, eventType, evidenceJson, errorCode, createdAt });
+      this.events.push({ event_id: eventId, task_id: taskId, from_status: fromStatus, to_status: toStatus, event_type: eventType, evidence_refs_json: evidenceJson, error_code: errorCode, created_at: createdAt });
       return { meta: { changes: 1 } };
     }
     if (sql.includes("UPDATE neural_brain_tasks")) {
@@ -72,8 +81,8 @@ class MemoryD1 {
       const task = this.tasks.get(taskId);
       if (!task || task.status !== expectedStatus) return { meta: { changes: 0 } };
       task.status = status;
-      task.errorCode = errorCode;
-      task.updatedAt = updatedAt;
+      task.error_code = errorCode;
+      task.updated_at = updatedAt;
       return { meta: { changes: 1 } };
     }
     if (sql.includes("INSERT INTO neural_brain_task_events SELECT")) {
