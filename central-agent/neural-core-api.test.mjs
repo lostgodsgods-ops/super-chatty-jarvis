@@ -120,3 +120,72 @@ test("POST validates method, content type, JSON, and streaming size", async () =
   }));
   assert.equal(oversized.status, 413);
 });
+
+
+function makePlanCore(overrides = {}) {
+  return createNeuralCore({
+    allowedCapabilities: ["brain:analyze", "brain:plan"],
+    complete: async input => ({
+      ok: true, provider: "mock", model: "mock-plan-v1",
+      text: JSON.stringify({
+        goal: "Analyze a bounded request",
+        taskType: "planning",
+        steps: [{ id: "analyze", description: "Analyze request constraints", dependsOn: [], capability: "brain:analyze", acceptanceCriteria: ["Constraints are identified"] }],
+        permissions: ["brain:analyze"]
+      })
+    }),
+    ...overrides
+  });
+}
+
+test("POST plan operation returns a validated plan and records sanitized audit events", async () => {
+  const events = [];
+  const response = await handleNeuralCoreRequest(post({
+    operation: "plan", goal: "Analyze a bounded request", provider: "openai"
+  }), {}, {
+    core: makePlanCore(),
+    publishEvent: async event => { events.push(event); return { ok: true, id: "plan-audit-" + events.length }; }
+  });
+  assert.equal(response.status, 200);
+  const body = await response.json();
+  assert.equal(body.ok, true);
+  assert.equal(body.result.plan.status, "PLANNED");
+  assert.equal(body.result.plan.permissions[0].approved, false);
+  assert.equal(body.result.execution.toolsExecuted, false);
+  assert.deepEqual(events.map(event => event.type), [
+    "neural_core.reasoning.requested", "neural_core.reasoning.completed"
+  ]);
+  assert.equal(JSON.stringify(events).includes("Analyze a bounded request"), false);
+  assert.equal(events[1].payload.planStepCount, 1);
+});
+
+test("POST plan operation fails closed before model dispatch when audit start is unavailable", async () => {
+  let invoked = false;
+  const core = makePlanCore({ complete: async () => { invoked = true; return { ok: true, provider: "mock", model: "m", text: "{}" }; } });
+  const response = await handleNeuralCoreRequest(post({ operation: "plan", goal: "Plan" }), {}, {
+    core, publishEvent: async () => ({ ok: false })
+  });
+  assert.equal(response.status, 503);
+  assert.equal(invoked, false);
+});
+
+test("POST plan operation returns sanitized provider failures and records failure audit", async () => {
+  const events = [];
+  const core = makePlanCore({ complete: async () => { const error = new Error("private prompt or secret"); error.code = "PROVIDER_UNAVAILABLE"; throw error; } });
+  const response = await handleNeuralCoreRequest(post({ operation: "plan", goal: "Plan" }), {}, {
+    core, publishEvent: async event => { events.push(event); return { ok: true }; }
+  });
+  assert.equal(response.status, 502);
+  const body = await response.json();
+  assert.equal(body.code, "PROVIDER_UNAVAILABLE");
+  assert.equal(JSON.stringify(events).includes("private prompt or secret"), false);
+  assert.equal(events.at(-1).type, "neural_core.reasoning.failed");
+});
+
+test("POST rejects unknown neural core operation", async () => {
+  const response = await handleNeuralCoreRequest(post({ operation: "execute", prompt: "Do something" }), {}, {
+    core: makeCore(), publishEvent: async () => ({ ok: true })
+  });
+  assert.equal(response.status, 400);
+  assert.equal((await response.json()).error, "NEURAL_CORE_OPERATION_INVALID");
+});
