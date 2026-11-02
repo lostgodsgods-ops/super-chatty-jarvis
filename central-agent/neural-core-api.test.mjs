@@ -106,7 +106,7 @@ test("POST fails closed if audit storage is unavailable before model dispatch", 
   let invoked = false;
   const core = { inspect: () => ({}), reason: async () => { invoked = true; return {}; } };
   const response = await handleNeuralCoreRequest(post({ prompt: "hello" }), {}, {
-    core, publishEvent: async () => ({ ok: false })
+    core, taskStore: memoryTaskStore(), publishEvent: async () => ({ ok: false })
   });
   assert.equal(response.status, 503);
   assert.equal(invoked, false);
@@ -116,7 +116,7 @@ test("POST returns a sanitized failure and records failure event", async () => {
   const events = [];
   const core = { inspect: () => ({}), reason: async () => { const error = new Error("private detail"); error.code = "PROVIDER_UNAVAILABLE"; throw error; } };
   const response = await handleNeuralCoreRequest(post({ prompt: "hello" }), {}, {
-    core, publishEvent: async event => { events.push(event); return { ok: true }; }
+    core, taskStore: memoryTaskStore(), publishEvent: async event => { events.push(event); return { ok: true }; }
   });
   assert.equal(response.status, 502);
   assert.equal((await response.json()).error, "PROVIDER_UNAVAILABLE");
