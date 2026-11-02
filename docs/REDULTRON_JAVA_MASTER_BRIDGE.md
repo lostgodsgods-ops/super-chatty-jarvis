@@ -15,6 +15,7 @@ does not establish production authentication or deployment readiness.
 From the repository root with Java 17+ and Python 3.12+ installed:
 
 ```bash
+mkdir -p build/java
 javac -encoding UTF-8 -d build/java hybrid-core/RedultronCoreMaster.java
 java -cp build/java RedultronCoreMaster health
 java -cp build/java RedultronCoreMaster status
