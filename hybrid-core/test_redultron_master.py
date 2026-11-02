@@ -32,6 +32,51 @@ class RedultronMasterBridgeTests(unittest.TestCase):
         if hasattr(cls, "build_dir"):
             cls.build_dir.cleanup()
 
+    def run_brain(self, command):
+        return subprocess.run(
+            [sys.executable, str(BRAIN_SCRIPT), command],
+            cwd=ROOT,
+            capture_output=True,
+            text=True,
+            timeout=15,
+        )
+
+    def test_python_brain_health_command_returns_json(self):
+        result = self.run_brain("health")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        payload = json.loads(result.stdout)
+        self.assertEqual(payload["status"], "PASS")
+        self.assertEqual(payload["data"]["brain"], "online")
+
+    def test_python_brain_help_lists_only_supported_commands(self):
+        result = self.run_brain("help")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        payload = json.loads(result.stdout)
+        self.assertEqual(payload["status"], "PASS")
+        self.assertIn("summarize", payload["data"]["commands"])
+        self.assertNotIn("shell", payload["data"]["commands"])
+
+    def test_python_brain_reuses_existing_core_transform(self):
+        result = self.run_brain("summarize First sentence. Second sentence.")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        payload = json.loads(result.stdout)
+        self.assertEqual(payload["data"], "First sentence. Second sentence.")
+
+    def test_python_brain_rejects_unknown_commands_without_echoing_input(self):
+        result = self.run_brain("run_shell do-not-run-this")
+        self.assertEqual(result.returncode, 2)
+        payload = json.loads(result.stdout)
+        self.assertEqual(payload["status"], "REJECTED")
+        self.assertNotIn("do-not-run-this", result.stdout)
+
+    def test_python_brain_rejects_empty_and_oversized_transform_input(self):
+        empty = self.run_brain("summarize")
+        oversized = self.run_brain("summarize " + ("x" * 16001))
+        self.assertEqual(empty.returncode, 2)
+        self.assertEqual(oversized.returncode, 2)
+        self.assertEqual(json.loads(empty.stdout)["status"], "REJECTED")
+        self.assertEqual(json.loads(oversized.stdout)["status"], "REJECTED")
+
     def run_master(self, *args, env=None):
         merged_env = os.environ.copy()
         if env:
