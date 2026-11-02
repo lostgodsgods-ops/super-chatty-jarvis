@@ -1,8 +1,9 @@
 import { createNeuralCore, NeuralCoreError } from "./neural-core.mjs";
+import { BrainPlanError } from "./brain-plan.mjs";
 import { evaluateNeuralResult } from "./neural-core-evaluator.mjs";
 
 const MAX_BODY_BYTES = 16 * 1024;
-const DEFAULT_CORE = createNeuralCore();
+const DEFAULT_CORE = createNeuralCore({ allowedCapabilities: ["brain:analyze", "brain:plan"] });
 
 function json(body, status = 200) {
   return new Response(JSON.stringify(body), {
@@ -62,19 +63,37 @@ export async function handleNeuralCoreRequest(request, env = {}, options = {}) {
   if (!parsed.body) return json({ ok: false, error: "INVALID_JSON" }, 400);
 
   if (typeof options.publishEvent !== "function") return json({ ok: false, error: "AUDIT_STORAGE_UNAVAILABLE" }, 503);
+  const operation = parsed.body.operation === undefined ? "reason" : parsed.body.operation;
+  if (operation !== "reason" && operation !== "plan") {
+    return json({ ok: false, error: "NEURAL_CORE_OPERATION_INVALID" }, 400);
+  }
+  if (operation === "reason" && (typeof parsed.body.prompt !== "string" || !parsed.body.prompt.trim())) {
+    return json({ ok: false, error: "NEURAL_CORE_INVALID_PROMPT" }, 400);
+  }
+  if (operation === "plan" && (typeof parsed.body.goal !== "string" || !parsed.body.goal.trim())) {
+    return json({ ok: false, error: "NEURAL_CORE_INVALID_GOAL" }, 400);
+  }
+
   const provider = typeof parsed.body.provider === "string" ? parsed.body.provider : "openai";
   let auditStart;
   try {
     auditStart = await options.publishEvent({
       type: "neural_core.reasoning.requested",
       source: "redultron-neural-core",
-      payload: { provider: /^[a-z0-9-]{1,64}$/.test(provider) ? provider : "invalid", memoryRequested: typeof parsed.body.memoryQuery === "string" && Boolean(parsed.body.memoryQuery.trim()), promptLogged: false }
+      payload: {
+        operation,
+        provider: /^[a-z0-9-]{1,64}$/.test(provider) ? provider : "invalid",
+        memoryRequested: typeof parsed.body.memoryQuery === "string" && Boolean(parsed.body.memoryQuery.trim()),
+        promptLogged: false
+      }
     });
   } catch { auditStart = null; }
   if (auditStart?.ok !== true) return json({ ok: false, error: "AUDIT_STORAGE_UNAVAILABLE" }, 503);
 
   try {
-    const result = await core.reason(parsed.body, env);
+    const result = operation === "plan"
+      ? await core.plan(parsed.body, env)
+      : await core.reason(parsed.body, env);
     const evaluation = evaluateNeuralResult(parsed.body.evaluation || {});
     let auditDone;
     try {
@@ -82,10 +101,14 @@ export async function handleNeuralCoreRequest(request, env = {}, options = {}) {
         type: "neural_core.reasoning.completed",
         source: "redultron-neural-core",
         payload: {
+          operation,
           provider: result.provider.id,
           model: result.provider.model,
           memoryStatus: result.memory.status,
           recordsUsed: result.memory.recordsUsed,
+          planTaskId: operation === "plan" ? result.plan.taskId : null,
+          planStatus: operation === "plan" ? result.plan.status : null,
+          planStepCount: operation === "plan" ? result.plan.steps.length : null,
           evaluationVerdict: evaluation.verdict,
           evaluationChecksPassed: evaluation.checksPassed,
           evaluationChecksFailed: evaluation.checksFailed,
@@ -98,14 +121,14 @@ export async function handleNeuralCoreRequest(request, env = {}, options = {}) {
     if (auditDone?.ok !== true) return json({ ok: false, error: "AUDIT_STORAGE_UNAVAILABLE" }, 503);
     return json({ ok: true, result: { ...result, evaluation } });
   } catch (error) {
-    const known = error instanceof NeuralCoreError;
+    const known = error instanceof NeuralCoreError || error instanceof BrainPlanError;
     const code = known ? error.code : (typeof error?.code === "string" && /^[A-Z0-9_]{1,80}$/.test(error.code) ? error.code : "NEURAL_CORE_EXECUTION_FAILED");
     const status = known ? error.status : 502;
     try {
       await options.publishEvent({
         type: "neural_core.reasoning.failed",
         source: "redultron-neural-core",
-        payload: { provider: /^[a-z0-9-]{1,64}$/.test(provider) ? provider : "invalid", code, status, promptLogged: false }
+        payload: { operation, provider: /^[a-z0-9-]{1,64}$/.test(provider) ? provider : "invalid", code, status, promptLogged: false }
       });
     } catch {}
     return json({ ok: false, error: code, code }, status);
