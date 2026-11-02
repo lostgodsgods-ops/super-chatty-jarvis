@@ -66,7 +66,7 @@ test("blocks background coordination during owner takeover", async () => {
       allowOwnerActions: true, allowBackgroundTasks: false
     })
   });
-  const result = await coordinateBrainPlan(plan(), deps);
+  const result = await coordinateBrainPlan(plan(), { ...deps, backgroundTask: true });
   assert.equal(result.status, "BLOCKED");
   assert.equal(result.errorCode, "OWNER_TAKEOVER_ACTIVE");
 });
