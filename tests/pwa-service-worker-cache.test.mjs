@@ -15,8 +15,8 @@ test("service worker activation removes superseded REDULTRON shell caches", () =
 test("PWA shell cache version advances when the worker shell changes", () => {
   assert.match(
     worker,
-    /CACHE_NAME\s*=\s*["']redultron-core-shell-v18-core-3["']/,
-    "the shell cache version must be bumped to v18"
+    /CACHE_NAME\s*=\s*["']redultron-core-shell-v19-core-3["']/,
+    "the shell cache version must be bumped to v19"
   );
 });
 
@@ -32,4 +32,9 @@ test("successful network navigation keeps the app-shell cache write alive", () =
     worker.includes('event.waitUntil(cache.put("./index.html", response.clone()).catch(() => {}));'),
     "the service worker lifetime must cover the asynchronous offline-shell cache write"
   );
+});
+
+test("live operations monitor is included in the offline shell", () => {
+  assert.match(worker, /["']\.\/monitor\.html["']/,
+    "the operations monitor must be available from the installed PWA shell");
 });
