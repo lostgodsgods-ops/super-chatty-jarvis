@@ -187,7 +187,7 @@ test("POST plan operation returns a validated plan and records sanitized audit e
     "neural_core.reasoning.completed"
   ]);
   assert.equal(JSON.stringify(events).includes("Analyze a bounded request"), false);
-  assert.equal(events[1].payload.planStepCount, 1);
+  assert.equal(events[3].payload.planStepCount, 1);
 });
 
 test("POST plan operation fails closed before model dispatch when audit start is unavailable", async () => {
