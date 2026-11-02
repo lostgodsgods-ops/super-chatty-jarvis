@@ -53,7 +53,7 @@ class RedultronMasterBridgeTests(unittest.TestCase):
     def test_health_command_returns_structured_json(self):
         result = self.run_master("health")
         self.assertEqual(result.returncode, 0, result.stderr)
-        payload = json.loads(result.stdout.split("=== REDULTRON CORE RESULT ===", 1)[1].split("[EXIT CODE]", 1)[0].strip())
+        payload = json.loads(result.stdout.split("=== REDULTRON CORE EXECUTION RESULT ===", 1)[1].split("[EXIT CODE]", 1)[0].strip())
         self.assertEqual(payload["status"], "PASS")
         self.assertEqual(payload["data"]["brain"], "online")
 
