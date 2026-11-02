@@ -56,7 +56,7 @@ test("blocks a plan when emergency stop is active", async () => {
   assert.equal(result.status, "BLOCKED");
   assert.equal(result.errorCode, "EMERGENCY_STOP_ACTIVE");
   assert.equal(deps.transitions[0].status, "BLOCKED");
-  assert.deepEqual(deps.executors, []);
+  assert.deepEqual(deps.invocations, []);
 });
 
 test("blocks background coordination during owner takeover", async () => {
@@ -90,7 +90,7 @@ test("rejects capabilities outside the trusted server allowlist", async () => {
   }), deps);
   assert.equal(result.status, "BLOCKED");
   assert.equal(result.errorCode, "BRAIN_CAPABILITY_NOT_ALLOWED");
-  assert.deepEqual(deps.executors, []);
+  assert.deepEqual(deps.invocations, []);
 });
 
 test("blocks when audit persistence is unavailable", async () => {
@@ -98,7 +98,7 @@ test("blocks when audit persistence is unavailable", async () => {
   const result = await coordinateBrainPlan(plan(), deps);
   assert.equal(result.status, "BLOCKED");
   assert.equal(result.errorCode, "BRAIN_AUDIT_UNAVAILABLE");
-  assert.deepEqual(deps.executors, []);
+  assert.deepEqual(deps.invocations, []);
 });
 
 test("requires the exact persisted task identity and task store", async () => {
