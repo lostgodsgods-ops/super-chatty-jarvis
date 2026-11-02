@@ -188,7 +188,14 @@ test("POST plan operation returns a validated plan and records sanitized audit e
 
 test("POST plan operation fails closed before model dispatch when audit start is unavailable", async () => {
   let invoked = false;
-  const core = makePlanCore({ complete: async () => { invoked = true; return { ok: true, provider: "mock", model: "m", text: "{}" }; } });
+  const core = makePlanCore({ complete: async () => {
+    invoked = true;
+    return { ok: true, provider: "mock", model: "m", text: JSON.stringify({
+      goal: "Plan", taskType: "planning",
+      steps: [{ id: "analyze", description: "Analyze request", dependsOn: [], capability: "brain:analyze", acceptanceCriteria: ["Request analyzed"] }],
+      permissions: ["brain:analyze"]
+    }) };
+  } });
   const response = await handleNeuralCoreRequest(post({ operation: "plan", goal: "Plan" }), {}, {
     core, publishEvent: async () => ({ ok: false })
   });
