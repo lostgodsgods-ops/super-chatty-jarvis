@@ -105,7 +105,7 @@ class MemoryD1 {
   }
   async all(sql, v) {
     if (sql.includes("FROM neural_brain_task_events")) {
-      return { results: structuredClone(this.events.filter(event => event.taskId === v[0])) };
+      return { results: structuredClone(this.events.filter(event => event.task_id === v[0])) };
     }
     throw new Error("UNEXPECTED_SQL");
   }
