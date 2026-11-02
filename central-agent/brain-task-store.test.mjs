@@ -2,6 +2,8 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { createBrainTaskStore } from "./brain-task-store.mjs";
 
+const ids = () => { let value = 0; return () => "event-" + (++value); };
+
 const plan = (overrides = {}) => ({
   taskId: "brain-task-001",
   status: "PLANNED",
@@ -113,7 +115,7 @@ class MemoryD1 {
 
 test("creates and reads back a normalized plan with append-only lifecycle event", async () => {
   const db = new MemoryD1();
-  const store = createBrainTaskStore(db, { now: () => "2026-11-02T01:00:00.000Z", id: () => "event-1" });
+  const store = createBrainTaskStore(db, { now: () => "2026-11-02T01:00:00.000Z", id: ids() });
   const created = await store.create(plan());
   assert.equal(created.taskId, "brain-task-001");
   assert.equal(created.status, "PLANNED");
@@ -126,14 +128,14 @@ test("creates and reads back a normalized plan with append-only lifecycle event"
 
 test("rejects duplicate task IDs with a stable conflict code", async () => {
   const db = new MemoryD1();
-  const store = createBrainTaskStore(db, { id: () => "event-id" });
+  const store = createBrainTaskStore(db, { id: ids() });
   await store.create(plan());
   await assert.rejects(store.create(plan()), { code: "BRAIN_TASK_ALREADY_EXISTS", status: 409 });
 });
 
 test("allows declared lifecycle transitions and rejects invalid transitions", async () => {
   const db = new MemoryD1();
-  const store = createBrainTaskStore(db, { id: () => "event-1" });
+  const store = createBrainTaskStore(db, { id: ids() });
   await store.create(plan());
   const queued = await store.transition("brain-task-001", "QUEUED", { expectedStatus: "PLANNED" });
   assert.equal(queued.status, "QUEUED");
@@ -145,7 +147,7 @@ test("allows declared lifecycle transitions and rejects invalid transitions", as
 
 test("uses expected status as an optimistic concurrency guard", async () => {
   const db = new MemoryD1();
-  const store = createBrainTaskStore(db, { id: () => "event-1" });
+  const store = createBrainTaskStore(db, { id: ids() });
   await store.create(plan());
   await assert.rejects(
     store.transition("brain-task-001", "QUEUED", { expectedStatus: "RUNNING" }),
@@ -165,7 +167,7 @@ test("persists only the plan contract fields, not injected prompt or secret prop
 
 test("rejects unsafe evidence references and sanitizes lifecycle error codes", async () => {
   const db = new MemoryD1();
-  const store = createBrainTaskStore(db, { id: () => "event-1" });
+  const store = createBrainTaskStore(db, { id: ids() });
   await store.create(plan());
   await assert.rejects(
     store.transition("brain-task-001", "BLOCKED", {
