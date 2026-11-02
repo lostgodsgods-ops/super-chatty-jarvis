@@ -57,4 +57,5 @@ test("live monitor exposes real GitHub workflow and pull-request activity", () =
   assert.ok(monitor.includes("/actions/runs?per_page="), "workflow feed must use GitHub Actions read API");
   assert.ok(monitor.includes("/pulls?state=open"), "PR feed must use GitHub pull requests read API");
   assert.ok(monitor.includes("NOT CONNECTED"), "task execution timeline must not be fabricated when no durable task feed is connected");
+  assert.ok(monitor.includes("failedRuns.length"), "recent workflow failures must affect the monitor status");
 });
