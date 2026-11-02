@@ -2,6 +2,8 @@ import { createNeuralCore, NeuralCoreError } from "./neural-core.mjs";
 import { BrainPlanError } from "./brain-plan.mjs";
 import { createBrainTaskStore, BrainTaskStoreError } from "./brain-task-store.mjs";
 import { evaluateNeuralResult } from "./neural-core-evaluator.mjs";
+import { readOwnerExecutionGate } from "./architecture/owner-execution-gate.mjs";
+import { coordinateBrainPlan } from "./brain-coordinator.mjs";
 
 const MAX_BODY_BYTES = 16 * 1024;
 const DEFAULT_CORE = createNeuralCore({ allowedCapabilities: ["brain:analyze", "brain:plan"] });
@@ -102,11 +104,53 @@ export async function handleNeuralCoreRequest(request, env = {}, options = {}) {
   } catch { auditStart = null; }
   if (auditStart?.ok !== true) return json({ ok: false, error: "AUDIT_STORAGE_UNAVAILABLE" }, 503);
 
+  if (operation === "plan") {
+    let gate;
+    try {
+      const readGate = typeof options.readGate === "function" ? options.readGate : readOwnerExecutionGate;
+      gate = await readGate(env);
+    } catch {
+      gate = null;
+    }
+    const gateError = !gate || gate.ok !== true || gate.mode === "unavailable"
+      ? "OWNER_CONTROL_STORE_UNAVAILABLE"
+      : (gate.mode === "emergency-stop" || gate.allowOwnerActions !== true
+        ? (gate.reason === "EMERGENCY_STOP_ACTIVE" ? "EMERGENCY_STOP_ACTIVE" : "OWNER_ACTIONS_BLOCKED")
+        : null);
+    if (gateError) {
+      try {
+        await options.publishEvent({
+          type: "neural_core.reasoning.failed",
+          source: "redultron-neural-core",
+          payload: { operation, provider: /^[a-z0-9-]{1,64}$/.test(provider) ? provider : "invalid", code: gateError, promptLogged: false }
+        });
+      } catch {}
+      return json({ ok: false, error: gateError, code: gateError }, gateError === "EMERGENCY_STOP_ACTIVE" || gateError === "OWNER_ACTIONS_BLOCKED" ? 423 : 503);
+    }
+  }
+
   try {
     const result = operation === "plan"
       ? await core.plan(parsed.body, env)
       : await core.reason(parsed.body, env);
-    const task = operation === "plan" ? await taskStore.create(result.plan) : null;
+    let task = operation === "plan" ? await taskStore.create(result.plan) : null;
+    let coordination = null;
+    if (operation === "plan") {
+      const coordinate = typeof options.coordinatePlan === "function" ? options.coordinatePlan : coordinateBrainPlan;
+      coordination = await coordinate(result.plan, {
+        env,
+        taskStore,
+        publishEvent: options.publishEvent,
+        readGate: options.readGate,
+        allowedCapabilities: Array.isArray(options.allowedCapabilities)
+          ? options.allowedCapabilities
+          : ["brain:analyze", "brain:plan"],
+        backgroundTask: false
+      });
+      if (typeof taskStore.get === "function") {
+        try { task = await taskStore.get(result.plan.taskId) || task; } catch {}
+      }
+    }
     const evaluation = evaluateNeuralResult(parsed.body.evaluation || {});
     let auditDone;
     try {
@@ -132,7 +176,7 @@ export async function handleNeuralCoreRequest(request, env = {}, options = {}) {
       });
     } catch { auditDone = null; }
     if (auditDone?.ok !== true) return json({ ok: false, error: "AUDIT_STORAGE_UNAVAILABLE" }, 503);
-    return json({ ok: true, result: { ...result, ...(task ? { task } : {}), evaluation } });
+    return json({ ok: true, result: { ...result, ...(task ? { task } : {}), ...(coordination ? { coordination } : {}), evaluation } });
   } catch (error) {
     const known = error instanceof NeuralCoreError || error instanceof BrainPlanError || error instanceof BrainTaskStoreError;
     const code = known ? error.code : (typeof error?.code === "string" && /^[A-Z0-9_]{1,80}$/.test(error.code) ? error.code : "NEURAL_CORE_EXECUTION_FAILED");
