@@ -21,7 +21,7 @@ test("GET returns neural core capability status without credentials", async () =
   assert.equal(response.status, 200);
   const body = await response.json();
   assert.equal(body.core.name, "REDULTRON NEURAL CORE");
-  assert.equal(body.core.version, "1.0.0");
+  assert.equal(body.core.version, "1.1.0");
   assert.equal(JSON.stringify(body).includes("do-not-leak"), false);
 });
 
