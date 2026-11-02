@@ -211,7 +211,7 @@ test("POST plan operation returns sanitized provider failures and records failur
   const events = [];
   const core = makePlanCore({ complete: async () => { const error = new Error("private prompt or secret"); error.code = "PROVIDER_UNAVAILABLE"; throw error; } });
   const response = await handleNeuralCoreRequest(post({ operation: "plan", goal: "Plan" }), {}, {
-    core, taskStore: memoryTaskStore(), publishEvent: async event => { events.push(event); return { ok: true }; }
+    core, taskStore: memoryTaskStore(), readGate: normalOwnerGate, publishEvent: async event => { events.push(event); return { ok: true }; }
   });
   assert.equal(response.status, 502);
   const body = await response.json();
