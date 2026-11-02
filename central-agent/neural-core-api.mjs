@@ -80,6 +80,11 @@ export async function handleNeuralCoreRequest(request, env = {}, options = {}) {
       (!options.taskStore && (!env.DB || typeof env.DB.prepare !== "function" || typeof env.DB.batch !== "function")))) {
     return json({ ok: false, error: "BRAIN_TASK_STORAGE_UNAVAILABLE" }, 503);
   }
+  if (operation === "plan" && typeof taskStore.isReady === "function") {
+    let schemaReady = false;
+    try { schemaReady = await taskStore.isReady() === true; } catch { schemaReady = false; }
+    if (!schemaReady) return json({ ok: false, error: "BRAIN_TASK_SCHEMA_UNAVAILABLE" }, 503);
+  }
 
   const provider = typeof parsed.body.provider === "string" ? parsed.body.provider : "openai";
   let auditStart;
