@@ -60,3 +60,64 @@ test("memory retrieval failure does not silently claim memory was used", async (
   assert.equal(result.memory.recordsUsed, 0);
   assert.equal(result.memory.status, "unavailable");
 });
+
+
+test("neural core creates a validated non-executing structured plan", async () => {
+  let completionInput;
+  const core = createNeuralCore({
+    complete: async input => {
+      completionInput = input;
+      return {
+        ok: true, provider: "mock", model: "mock-plan-v1",
+        text: JSON.stringify({
+          goal: "Review a repository change",
+          taskType: "coding",
+          steps: [
+            { id: "inspect", description: "Inspect source and tests", dependsOn: [], capability: "repo:read", acceptanceCriteria: ["Relevant files identified"] },
+            { id: "verify", description: "Define verification checks", dependsOn: ["inspect"], capability: "plan:create", acceptanceCriteria: ["Checks are explicit"] }
+          ],
+          permissions: ["repo:read", "plan:create"],
+          modelRoute: { provider: "mock", model: "mock-plan-v1" }
+        })
+      };
+    }
+  });
+  const result = await core.plan({ goal: "Review a repository change", provider: "openai" });
+  assert.equal(result.ok, true);
+  assert.equal(result.plan.status, "PLANNED");
+  assert.equal(result.plan.steps.length, 2);
+  assert.equal(result.plan.permissions[0].approved, false);
+  assert.equal(result.execution.toolsExecuted, false);
+  assert.equal(result.execution.infrastructureChanged, false);
+  assert.match(completionInput.prompt, /JSON object/);
+  assert.match(completionInput.prompt, /untrusted/);
+});
+
+test("neural core rejects malformed planning JSON and does not return raw model text", async () => {
+  const core = createNeuralCore({ complete: async () => ({ ok: true, provider: "mock", model: "m", text: "not-json" }) });
+  await assert.rejects(() => core.plan({ goal: "Make a plan", provider: "openai" }), { code: "NEURAL_CORE_INVALID_PLAN_RESPONSE" });
+});
+
+test("neural core rejects model-proposed capabilities outside the trusted allowlist", async () => {
+  const core = createNeuralCore({
+    allowedCapabilities: ["repo:read"],
+    complete: async () => ({
+      ok: true, provider: "mock", model: "m",
+      text: JSON.stringify({
+        goal: "Deploy code",
+        taskType: "action",
+        steps: [{ id: "deploy", description: "Deploy to production", dependsOn: [], capability: "infra:deploy", acceptanceCriteria: ["Deployment finished"] }],
+        permissions: ["infra:deploy"]
+      })
+    })
+  });
+  await assert.rejects(() => core.plan({ goal: "Deploy code", provider: "openai" }), { code: "BRAIN_PLAN_CAPABILITY_NOT_ALLOWED" });
+});
+
+test("neural core planning rejects empty and oversized goals before provider dispatch", async () => {
+  let called = false;
+  const core = createNeuralCore({ complete: async () => { called = true; return { ok: true, provider: "mock", model: "m", text: "{}" }; } });
+  await assert.rejects(() => core.plan({ goal: " " }), { code: "NEURAL_CORE_INVALID_GOAL" });
+  await assert.rejects(() => core.plan({ goal: "x".repeat(12001) }), { code: "NEURAL_CORE_GOAL_TOO_LARGE" });
+  assert.equal(called, false);
+});
