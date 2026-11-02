@@ -405,3 +405,28 @@ test("health exposes only a validated deployment commit marker for drift detecti
   const invalidPayload = await invalid.json();
   assert.deepEqual(invalidPayload.deployment, { commitSha: null });
 });
+
+
+test("internal hybrid probe returns a safe correlation ID when the Python sidecar rejects authentication", async () => {
+  const ownerSecret = "test-owner-secret-for-probe-auth-redaction-32chars";
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async () => new Response("{}", { status: 401 });
+  try {
+    const response = await worker.fetch(new Request("https://example.test/api/internal/hybrid-probe", {
+      method: "POST",
+      headers: { "content-type": "application/json", "x-owner-secret": ownerSecret },
+      body: "{}"
+    }), {
+      ...env(new FakeDB()),
+      PYTHON_CORE_URL: "https://python.example/v1/execute",
+      OWNER_SECRET: ownerSecret
+    });
+    assert.equal(response.status, 502);
+    const payload = await response.json();
+    assert.equal(payload.code, "HYBRID_CORE_AUTH_REJECTED_401");
+    assert.match(payload.requestId, /^[A-Za-z0-9._:-]{8,64}$/);
+    assert.equal(JSON.stringify(payload).includes(ownerSecret), false);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
