@@ -3,6 +3,19 @@ import assert from "node:assert/strict";
 import { handleNeuralCoreRequest } from "./neural-core-api.mjs";
 import { createNeuralCore } from "./neural-core.mjs";
 
+function memoryTaskStore() {
+  const records = new Map();
+  return {
+    records,
+    async create(plan) {
+      if (records.has(plan.taskId)) throw Object.assign(new Error("duplicate"), { code: "BRAIN_TASK_ALREADY_EXISTS", status: 409 });
+      const record = { ...plan, persisted: true };
+      records.set(plan.taskId, record);
+      return record;
+    }
+  };
+}
+
 function makeCore(overrides = {}) {
   return createNeuralCore({
     complete: async input => ({ ok: true, provider: input.provider, model: "mock-v1", text: "Reasoned result" }),
@@ -93,7 +106,7 @@ test("POST fails closed if audit storage is unavailable before model dispatch", 
   let invoked = false;
   const core = { inspect: () => ({}), reason: async () => { invoked = true; return {}; } };
   const response = await handleNeuralCoreRequest(post({ prompt: "hello" }), {}, {
-    core, publishEvent: async () => ({ ok: false })
+    core, taskStore: memoryTaskStore(), publishEvent: async () => ({ ok: false })
   });
   assert.equal(response.status, 503);
   assert.equal(invoked, false);
@@ -103,7 +116,7 @@ test("POST returns a sanitized failure and records failure event", async () => {
   const events = [];
   const core = { inspect: () => ({}), reason: async () => { const error = new Error("private detail"); error.code = "PROVIDER_UNAVAILABLE"; throw error; } };
   const response = await handleNeuralCoreRequest(post({ prompt: "hello" }), {}, {
-    core, publishEvent: async event => { events.push(event); return { ok: true }; }
+    core, taskStore: memoryTaskStore(), publishEvent: async event => { events.push(event); return { ok: true }; }
   });
   assert.equal(response.status, 502);
   assert.equal((await response.json()).error, "PROVIDER_UNAVAILABLE");
@@ -140,16 +153,19 @@ function makePlanCore(overrides = {}) {
 
 test("POST plan operation returns a validated plan and records sanitized audit events", async () => {
   const events = [];
+  const taskStore = memoryTaskStore();
   const response = await handleNeuralCoreRequest(post({
     operation: "plan", goal: "Analyze a bounded request", provider: "openai"
   }), {}, {
-    core: makePlanCore(),
+    core: makePlanCore(), taskStore,
     publishEvent: async event => { events.push(event); return { ok: true, id: "plan-audit-" + events.length }; }
   });
   assert.equal(response.status, 200);
   const body = await response.json();
   assert.equal(body.ok, true);
   assert.equal(body.result.plan.status, "PLANNED");
+  assert.equal(body.result.task.persisted, true);
+  assert.equal(taskStore.records.size, 1);
   assert.equal(body.result.plan.permissions[0].approved, false);
   assert.equal(body.result.execution.toolsExecuted, false);
   assert.deepEqual(events.map(event => event.type), [
@@ -173,7 +189,7 @@ test("POST plan operation returns sanitized provider failures and records failur
   const events = [];
   const core = makePlanCore({ complete: async () => { const error = new Error("private prompt or secret"); error.code = "PROVIDER_UNAVAILABLE"; throw error; } });
   const response = await handleNeuralCoreRequest(post({ operation: "plan", goal: "Plan" }), {}, {
-    core, publishEvent: async event => { events.push(event); return { ok: true }; }
+    core, taskStore: memoryTaskStore(), publishEvent: async event => { events.push(event); return { ok: true }; }
   });
   assert.equal(response.status, 502);
   const body = await response.json();
@@ -188,4 +204,16 @@ test("POST rejects unknown neural core operation", async () => {
   });
   assert.equal(response.status, 400);
   assert.equal((await response.json()).error, "NEURAL_CORE_OPERATION_INVALID");
+});
+
+
+test("POST plan operation requires durable task storage before model dispatch", async () => {
+  let invoked = false;
+  const core = makePlanCore({ complete: async () => { invoked = true; return { ok: true, provider: "mock", model: "m", text: "{}" }; } });
+  const response = await handleNeuralCoreRequest(post({ operation: "plan", goal: "Plan" }), {}, {
+    core, publishEvent: async () => ({ ok: true })
+  });
+  assert.equal(response.status, 503);
+  assert.equal((await response.json()).error, "BRAIN_TASK_STORAGE_UNAVAILABLE");
+  assert.equal(invoked, false);
 });

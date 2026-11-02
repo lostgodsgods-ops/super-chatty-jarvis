@@ -1,5 +1,6 @@
 import { createNeuralCore, NeuralCoreError } from "./neural-core.mjs";
 import { BrainPlanError } from "./brain-plan.mjs";
+import { createBrainTaskStore, BrainTaskStoreError } from "./brain-task-store.mjs";
 import { evaluateNeuralResult } from "./neural-core-evaluator.mjs";
 
 const MAX_BODY_BYTES = 16 * 1024;
@@ -74,6 +75,12 @@ export async function handleNeuralCoreRequest(request, env = {}, options = {}) {
     return json({ ok: false, error: "NEURAL_CORE_INVALID_GOAL" }, 400);
   }
 
+  const taskStore = operation === "plan" ? (options.taskStore || createBrainTaskStore(env.DB)) : null;
+  if (operation === "plan" && (!taskStore || typeof taskStore.create !== "function" ||
+      (!options.taskStore && (!env.DB || typeof env.DB.prepare !== "function" || typeof env.DB.batch !== "function")))) {
+    return json({ ok: false, error: "BRAIN_TASK_STORAGE_UNAVAILABLE" }, 503);
+  }
+
   const provider = typeof parsed.body.provider === "string" ? parsed.body.provider : "openai";
   let auditStart;
   try {
@@ -94,6 +101,7 @@ export async function handleNeuralCoreRequest(request, env = {}, options = {}) {
     const result = operation === "plan"
       ? await core.plan(parsed.body, env)
       : await core.reason(parsed.body, env);
+    const task = operation === "plan" ? await taskStore.create(result.plan) : null;
     const evaluation = evaluateNeuralResult(parsed.body.evaluation || {});
     let auditDone;
     try {
@@ -119,9 +127,9 @@ export async function handleNeuralCoreRequest(request, env = {}, options = {}) {
       });
     } catch { auditDone = null; }
     if (auditDone?.ok !== true) return json({ ok: false, error: "AUDIT_STORAGE_UNAVAILABLE" }, 503);
-    return json({ ok: true, result: { ...result, evaluation } });
+    return json({ ok: true, result: { ...result, ...(task ? { task } : {}), evaluation } });
   } catch (error) {
-    const known = error instanceof NeuralCoreError || error instanceof BrainPlanError;
+    const known = error instanceof NeuralCoreError || error instanceof BrainPlanError || error instanceof BrainTaskStoreError;
     const code = known ? error.code : (typeof error?.code === "string" && /^[A-Z0-9_]{1,80}$/.test(error.code) ? error.code : "NEURAL_CORE_EXECUTION_FAILED");
     const status = known ? error.status : 502;
     try {
