@@ -107,7 +107,7 @@ test("Neural Core status is owner-session gated and reports provider presence wi
   const body = await allowed.json();
   assert.equal(body.ok, true);
   assert.equal(body.core.name, "REDULTRON NEURAL CORE");
-  assert.equal(body.core.version, "1.0.0");
+  assert.equal(body.core.version, "1.1.0");
   assert.equal(body.core.providers.find(provider => provider.id === "openai").configured, true);
   assert.equal(JSON.stringify(body).includes("test-only-never-return"), false);
 });
