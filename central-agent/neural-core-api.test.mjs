@@ -7,6 +7,7 @@ function memoryTaskStore() {
   const records = new Map();
   return {
     records,
+    async isReady() { return true; },
     async create(plan) {
       if (records.has(plan.taskId)) throw Object.assign(new Error("duplicate"), { code: "BRAIN_TASK_ALREADY_EXISTS", status: 409 });
       const record = { ...plan, persisted: true };
@@ -215,5 +216,18 @@ test("POST plan operation requires durable task storage before model dispatch", 
   });
   assert.equal(response.status, 503);
   assert.equal((await response.json()).error, "BRAIN_TASK_STORAGE_UNAVAILABLE");
+  assert.equal(invoked, false);
+});
+
+
+test("POST plan operation blocks before model dispatch when D1 Brain migrations are absent", async () => {
+  let invoked = false;
+  const taskStore = { isReady: async () => false, create: async () => { throw new Error("must not persist"); } };
+  const core = makePlanCore({ complete: async () => { invoked = true; return { ok: true, provider: "mock", model: "m", text: "{}" }; } });
+  const response = await handleNeuralCoreRequest(post({ operation: "plan", goal: "Plan" }), {}, {
+    core, taskStore, publishEvent: async () => ({ ok: true })
+  });
+  assert.equal(response.status, 503);
+  assert.equal((await response.json()).error, "BRAIN_TASK_SCHEMA_UNAVAILABLE");
   assert.equal(invoked, false);
 });

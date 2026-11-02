@@ -26,9 +26,10 @@ const plan = (overrides = {}) => ({
 });
 
 class MemoryD1 {
-  constructor() {
+  constructor({ schemaReady = true } = {}) {
     this.tasks = new Map();
     this.events = [];
+    this.schemaReady = schemaReady;
   }
   prepare(sql) {
     const db = this;
@@ -106,6 +107,9 @@ class MemoryD1 {
     throw new Error("UNEXPECTED_SQL");
   }
   async all(sql, v) {
+    if (sql.includes("sqlite_master")) {
+      return { results: this.schemaReady ? [{ name: "neural_brain_tasks" }, { name: "neural_brain_task_events" }] : [] };
+    }
     if (sql.includes("FROM neural_brain_task_events")) {
       return { results: structuredClone(this.events.filter(event => event.task_id === v[0])) };
     }
@@ -188,4 +192,13 @@ test("rejects unsafe evidence references and sanitizes lifecycle error codes", a
 test("fails closed when the D1 binding is missing", async () => {
   const store = createBrainTaskStore(null);
   await assert.rejects(store.create(plan()), { code: "BRAIN_TASK_STORAGE_UNAVAILABLE", status: 503 });
+});
+
+
+test("reports D1 readiness only when both Brain task tables exist", async () => {
+  const ready = createBrainTaskStore(new MemoryD1());
+  const missing = createBrainTaskStore(new MemoryD1({ schemaReady: false }));
+  assert.equal(await ready.isReady(), true);
+  assert.equal(await missing.isReady(), false);
+  assert.equal(await createBrainTaskStore(null).isReady(), false);
 });

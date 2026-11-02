@@ -111,6 +111,19 @@ export function createBrainTaskStore(db, options = {}) {
     }
   }
 
+  async function isReady() {
+    if (!db || typeof db.prepare !== "function") return false;
+    try {
+      const result = await db.prepare(
+        "SELECT name FROM sqlite_master WHERE type = 'table' AND name IN (?, ?)"
+      ).bind("neural_brain_tasks", "neural_brain_task_events").all();
+      const names = new Set((result?.results || []).map(row => row?.name));
+      return names.has("neural_brain_tasks") && names.has("neural_brain_task_events");
+    } catch {
+      return false;
+    }
+  }
+
   async function get(taskId) {
     requireDb();
     safeId(taskId, "BRAIN_TASK_ID_INVALID");
@@ -206,5 +219,5 @@ export function createBrainTaskStore(db, options = {}) {
     return get(taskId);
   }
 
-  return Object.freeze({ create, get, transition });
+  return Object.freeze({ create, get, transition, isReady });
 }
