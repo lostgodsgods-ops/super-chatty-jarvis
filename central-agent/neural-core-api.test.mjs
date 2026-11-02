@@ -253,7 +253,14 @@ test("POST plan operation blocks before model dispatch when D1 Brain migrations 
 test("POST plan operation blocks before provider dispatch when emergency stop is active", async () => {
   let invoked = false;
   const events = [];
-  const core = makePlanCore({ complete: async () => { invoked = true; return { ok: true, provider: "mock", model: "m", text: "{}" }; } });
+  const core = makePlanCore({ complete: async () => {
+    invoked = true;
+    return { ok: true, provider: "mock", model: "m", text: JSON.stringify({
+      goal: "Plan", taskType: "planning",
+      steps: [{ id: "analyze", description: "Analyze request", dependsOn: [], capability: "brain:analyze", acceptanceCriteria: ["Request analyzed"] }],
+      permissions: ["brain:analyze"]
+    }) };
+  } });
   const response = await handleNeuralCoreRequest(post({ operation: "plan", goal: "Plan" }), {}, {
     core,
     taskStore: memoryTaskStore(),
