@@ -179,8 +179,12 @@ test("POST plan operation returns a validated plan and records sanitized audit e
   assert.equal(taskStore.records.size, 1);
   assert.equal(body.result.plan.permissions[0].approved, false);
   assert.equal(body.result.execution.toolsExecuted, false);
+  assert.equal(body.result.coordination.status, "PLANNED");
   assert.deepEqual(events.map(event => event.type), [
-    "neural_core.reasoning.requested", "neural_core.reasoning.completed"
+    "neural_core.reasoning.requested",
+    "brain.coordination.requested",
+    "brain.coordination.completed",
+    "neural_core.reasoning.completed"
   ]);
   assert.equal(JSON.stringify(events).includes("Analyze a bounded request"), false);
   assert.equal(events[1].payload.planStepCount, 1);
