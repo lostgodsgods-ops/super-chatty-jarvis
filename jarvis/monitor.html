@@ -125,7 +125,9 @@ main{max-width:1180px;margin:auto;padding:18px 14px 36px}.head{display:flex;alig
        }
        feed.append(row);
      }
-     setRecord("GitHub workflows","Recent GitHub Actions","PASS",runs.length+" workflow run(s) read from public GitHub API");
+     const failedRuns=runs.filter(run=>run.status==="completed" && run.conclusion==="failure");
+     const workflowState=failedRuns.length?"FAIL":"PASS";
+     setRecord("GitHub workflows","Recent GitHub Actions",workflowState,runs.length+" workflow run(s) read; "+failedRuns.length+" failed run(s) in the recent window");
    } else {
      const message=String(workflowResult.reason?.message||"GitHub workflow feed unavailable");
      $("workflowFeed").textContent="BLOCKED · "+message;
