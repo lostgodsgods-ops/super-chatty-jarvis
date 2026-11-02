@@ -65,6 +65,7 @@ test("memory retrieval failure does not silently claim memory was used", async (
 test("neural core creates a validated non-executing structured plan", async () => {
   let completionInput;
   const core = createNeuralCore({
+    allowedCapabilities: ["repo:read", "plan:create"],
     complete: async input => {
       completionInput = input;
       return {
