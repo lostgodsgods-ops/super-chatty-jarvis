@@ -15,9 +15,9 @@ const plan = (overrides = {}) => ({
 function dependencies(overrides = {}) {
   const transitions = [];
   const events = [];
-  const executors = [];
+  const invocations = [];
   return {
-    transitions, events, executors,
+    transitions, events, invocations,
     allowedCapabilities: ["repo:read", "brain:plan"],
     readGate: async () => ({
       ok: true, mode: "normal", reason: "NORMAL_MODE",
@@ -30,7 +30,7 @@ function dependencies(overrides = {}) {
       }
     },
     publishEvent: async event => { events.push(event); return { ok: true, id: events.length }; },
-    executors: { run: async () => { executors.push("run"); } },
+    executors: { run: async () => { invocations.push("run"); } },
     ...overrides
   };
 }
@@ -41,7 +41,7 @@ test("keeps an authorized plan PLANNED and never dispatches an executor", async 
   assert.equal(result.status, "PLANNED");
   assert.equal(result.taskId, "brain-task-002");
   assert.deepEqual(deps.transitions, []);
-  assert.deepEqual(deps.executors, []);
+  assert.deepEqual(deps.invocations, []);
   assert.equal(deps.events.at(-1).type, "brain.coordination.completed");
 });
 
