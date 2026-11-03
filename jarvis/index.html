@@ -7,7 +7,7 @@
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="application-version" content="REDULTRON-2026.11.02-CORE-3.0-V19">
+  <meta name="application-version" content="REDULTRON-2026.11.03-CORE-3.0-V20">
   <meta name="description" content="REDULTRON CORE 3.0 — voice-first AI command interface.">
   <meta name="color-scheme" content="dark">
   <title>REDULTRON CORE 3.0 · Neural Console</title>
@@ -358,6 +358,19 @@ body.auth-locked #ownerSessionStatus{font-weight:700}
   </div>
 </section>
 
+<section class="panel dashboard-panel" aria-labelledby="ownerActivityTitle">
+  <div class="panel-head">
+    <div class="panel-title" id="ownerActivityTitle">OWNER ACTIVITY · TASK & BRAIN TIMELINE</div>
+    <span class="status warn" id="ownerActivityState"><i class="dot"></i><span>LOCKED</span></span>
+  </div>
+  <div class="panel-body">
+    <p class="dashboard-note">Authenticated event summaries from the Central Event Bus. Prompts, private results, credentials and raw payloads are not displayed here.</p>
+    <div class="research-feed" id="ownerActivityFeed" role="log" aria-live="polite" aria-relevant="additions">
+      <div class="feed-item"><i class="feed-dot"></i><div><div class="feed-title">Activity timeline locked</div><div class="feed-meta">Sign in to receive real task, Brain and security event summaries.</div></div></div>
+    </div>
+  </div>
+</section>
+
 <section class="agent-army" aria-label="Live agent army HUD">
     <article class="agent-hud">
       <div class="agent-hud-head"><div><h2>Code Mutator Agent</h2><p class="agent-hud-sub">Commit and deployment telemetry</p></div><span class="agent-hud-status" id="hudCodeStatus"><i class="agent-dot"></i>AWAITING EVENTS</span></div>
@@ -591,7 +604,8 @@ body.auth-locked #ownerSessionStatus{font-weight:700}
       ownerBiometricLogin:$("ownerBiometricLogin"), ownerSetupOpen:$("ownerSetupOpen"),
       ownerLogout:$("ownerLogout"), ownerBadge:$("ownerBadge"), ownerSessionStatus:$("ownerSessionStatus"),
       refreshTelemetry:$("refreshTelemetry"), factSearchForm:$("factSearchForm"), factQuery:$("factQuery"),
-      researchSearchBtn:$("researchSearchBtn"), researchSearchStatus:$("researchSearchStatus"), sourceResults:$("sourceResults"), redQueenStatus:$("redQueenStatus"), redQueenMeta:$("redQueenMeta"), redQueenModules:$("redQueenModules"), refreshRedQueenBtn:$("refreshRedQueenBtn")
+      researchSearchBtn:$("researchSearchBtn"), researchSearchStatus:$("researchSearchStatus"), sourceResults:$("sourceResults"), redQueenStatus:$("redQueenStatus"), redQueenMeta:$("redQueenMeta"), redQueenModules:$("redQueenModules"), refreshRedQueenBtn:$("refreshRedQueenBtn"),
+      ownerActivityFeed:$("ownerActivityFeed"), ownerActivityState:$("ownerActivityState")
     };
     const MAX_RECOGNITION_RETRIES = 4;
     const state = { events:null, recognition:null, recognitionStarting:false, recognitionRetryTimer:0, recognitionRetryCount:0, recognitionStartTimer:0, listening:false, handsFree:false, speaking:false, chatBusy:false, chatController:null, eventsCount:0, connected:false, notificationsEnabled:false, started:Date.now(), healthTimer:0, toastTimer:0, ownerToken:"", telemetryTimer:0, researchBusy:false, memoryHistory:[], turnId:0 };
@@ -767,6 +781,11 @@ body.auth-locked #ownerSessionStatus{font-weight:700}
       setRedQueenStatus("LOCKED", "warn");
       if (els.redQueenMeta) els.redQueenMeta.textContent = "Owner session locked. Sign in to retrieve authenticated module status.";
       if (els.redQueenModules) els.redQueenModules.replaceChildren();
+      if (els.ownerActivityFeed) {
+        els.ownerActivityFeed.replaceChildren();
+        addFeedItem(els.ownerActivityFeed, "Activity timeline locked", "Sign in to receive authenticated task and Brain updates.", "info");
+      }
+      if (els.ownerActivityState) status(els.ownerActivityState, "LOCKED", "warn");
       els.commandInput.value = ""; els.chatReply.textContent = ""; els.chatReply.classList.add("hidden");
       els.voiceLabel.textContent = "CHAT WITH CHATTY · OWNER: LOSS GODS";
       disconnectEvents();
@@ -787,6 +806,61 @@ body.auth-locked #ownerSessionStatus{font-weight:700}
       const detail = document.createElement("div"); detail.className = "feed-meta"; detail.textContent = meta;
       content.append(heading,detail); item.append(dot,content); container.append(item);
     }
+    const MAX_OWNER_ACTIVITY_ITEMS = 24;
+    const OWNER_ACTIVITY_LABELS = Object.freeze({
+      "task.execution.completed": ["Task completed", "good"],
+      "task.execution.blocked": ["Task blocked", "warn"],
+      "neural_core.reasoning.requested": ["Brain started reasoning", "info"],
+      "neural_core.reasoning.completed": ["Brain reasoning completed", "good"],
+      "neural_core.reasoning.failed": ["Brain reasoning failed", "error"],
+      "brain.coordination.requested": ["Brain plan coordination started", "info"],
+      "brain.coordination.completed": ["Brain plan prepared", "good"],
+      "brain.coordination.blocked": ["Brain plan blocked", "warn"],
+      "agent.execution.started": ["Agent execution started", "info"],
+      "agent.execution.completed": ["Agent execution completed", "good"],
+      "agent.execution.failed": ["Agent execution failed", "error"],
+      "security.auth.denied": ["Authentication denied", "warn"],
+      "security.request.denied": ["Request blocked by security policy", "warn"]
+    });
+    function summarizeOwnerActivity(eventName, eventPayload) {
+      const label = OWNER_ACTIVITY_LABELS[eventName];
+      if (!label) return null;
+      const outer = eventPayload && typeof eventPayload === "object" && !Array.isArray(eventPayload) ? eventPayload : {};
+      const data = outer.payload && typeof outer.payload === "object" && !Array.isArray(outer.payload) ? outer.payload : outer;
+      const parts = [];
+      const safeId = value => typeof value === "string" && /^[A-Za-z0-9_-]{1,100}$/.test(value) ? value : "";
+      const safeCode = value => typeof value === "string" && /^[A-Z0-9_]{1,80}$/.test(value) ? value : "";
+      const taskId = safeId(data.taskId || data.planTaskId);
+      const capability = typeof data.capability === "string" && /^[a-z][a-z0-9:_-]{0,63}$/i.test(data.capability) ? data.capability : "";
+      const operation = ["reason", "plan"].includes(data.operation) ? data.operation : "";
+      const statusValue = ["PLANNED","QUEUED","RUNNING","VERIFYING","SUCCEEDED","FAILED","BLOCKED","CANCELLED","TIMED_OUT"].includes(data.status) ? data.status : "";
+      const errorCode = safeCode(data.errorCode || data.code);
+      if (taskId) parts.push("Task " + taskId);
+      if (operation) parts.push("Operation " + operation);
+      if (capability) parts.push("Capability " + capability);
+      if (statusValue) parts.push("Status " + statusValue);
+      if (errorCode) parts.push("Code " + errorCode);
+      if (Number.isSafeInteger(data.attempts) && data.attempts >= 0 && data.attempts <= 10) parts.push("Attempts " + data.attempts);
+      const timestamp = typeof outer.createdAt === "string" && Number.isFinite(Date.parse(outer.createdAt))
+        ? new Date(outer.createdAt).toLocaleString() : "Time not supplied";
+      return { title: label[0], kind: label[1], detail: parts.length ? parts.join(" · ") : "Event " + eventName, timestamp, createdAt: outer.createdAt || "" };
+    }
+    function appendOwnerActivity(eventName, payload) {
+      if (!els.ownerActivityFeed) return;
+      const summary = summarizeOwnerActivity(eventName, payload);
+      if (!summary) return;
+      const item = document.createElement("div"); item.className = "feed-item " + summary.kind;
+      const dot = document.createElement("i"); dot.className = "feed-dot";
+      const content = document.createElement("div");
+      const heading = document.createElement("div"); heading.className = "feed-title"; heading.textContent = summary.title;
+      const detail = document.createElement("div"); detail.className = "feed-meta"; detail.textContent = summary.detail;
+      const stamp = document.createElement("div"); stamp.className = "feed-meta"; stamp.textContent = summary.timestamp;
+      if (summary.createdAt) stamp.dateTime = summary.createdAt;
+      content.append(heading, detail, stamp); item.append(dot, content);
+      els.ownerActivityFeed.prepend(item);
+      while (els.ownerActivityFeed.children.length > MAX_OWNER_ACTIVITY_ITEMS) els.ownerActivityFeed.lastElementChild.remove();
+    }
+
     async function refreshTelemetry() {
       if (!state.ownerToken) { setOwnerStatus("Sign in to load authenticated D1 telemetry.","warn"); return; }
       try {
@@ -1164,6 +1238,7 @@ body.auth-locked #ownerSessionStatus{font-weight:700}
             if (response.status === 401) { clearOwnerSession("Owner session expired; sign in again."); return; }
             if (!response.ok || !response.body) throw new Error("SSE HTTP " + response.status);
             state.connected = true;
+            if (els.ownerActivityState) status(els.ownerActivityState, "LIVE", "ok");
             els.streamStatus.textContent = "Authenticated Central Event Bus live";
             status(els.pipelineStatus,"EVENT BUS: LIVE","ok");
             const reader = response.body.getReader(), decoder = new TextDecoder();
@@ -1182,6 +1257,7 @@ body.auth-locked #ownerSessionStatus{font-weight:700}
                 const eventName = eventLine.slice(6).trim();
                 notifyForEvent(eventName);
                 updateAgentHud(eventName, dataLine, "");
+                appendOwnerActivity(eventName, payload);
                 if (eventName === "status" && payload && typeof payload === "object") {
                   const healthy = payload.status === "healthy";
                   status(els.pipelineStatus, healthy ? "SENTINEL: HEALTHY" : "SENTINEL: DEGRADED", healthy ? "ok" : "warn");
@@ -1194,6 +1270,7 @@ body.auth-locked #ownerSessionStatus{font-weight:700}
           } catch (error) {
             if (controller.signal.aborted) break;
             state.connected = false;
+            if (els.ownerActivityState) status(els.ownerActivityState, "RECONNECTING", "warn");
             els.streamStatus.textContent = "Sentinel reconnecting";
             status(els.pipelineStatus,"SENTINEL: RECONNECTING","warn");
             log("Sentinel stream reconnecting: " + (error.message || "connection lost"),"warn","STREAM");
@@ -1206,6 +1283,7 @@ body.auth-locked #ownerSessionStatus{font-weight:700}
     function disconnectEvents() {
       if (state.events) { state.events.close(); state.events = null; }
       state.connected = false; status(els.pipelineStatus,"CI/CD: NOT CONNECTED","warn");
+      if (els.ownerActivityState) status(els.ownerActivityState, state.ownerToken ? "DISCONNECTED" : "LOCKED", "warn");
       els.streamStatus.textContent = "No live event stream";
     }
     // Live agent HUD: update only from received SSE data or explicit local state controls.
