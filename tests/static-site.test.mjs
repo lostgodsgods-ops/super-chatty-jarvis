@@ -551,7 +551,7 @@ test("Central Agent production deploy binds the exact checked-out commit SHA", (
   const deployStart = centralDeployWorkflow.indexOf("- name: Deploy isolated Central Agent");
   assert.ok(deployStart >= 0, "Central Agent deploy step must exist");
   const deployStep = centralDeployWorkflow.slice(deployStart);
-  const deployCommands = deployStep.match(/npx --yes wrangler@4 deploy[^\\n]*/g) || [];
+  const deployCommands = deployStep.split(/\\r?\\n/).map(line => line.trim()).filter(line => line.startsWith("npx --yes wrangler@4 deploy"));
   assert.equal(deployCommands.length, 2, "the secret-binding workflow deploys twice and both deploys must be checked");
   assert.ok(
     deployCommands.every(command => command.includes('--var "GITHUB_COMMIT_SHA:$GITHUB_SHA"')),
