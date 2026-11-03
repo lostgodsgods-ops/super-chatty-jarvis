@@ -59,3 +59,15 @@ test("live monitor exposes real GitHub workflow and pull-request activity", () =
   assert.ok(monitor.includes("NOT CONNECTED"), "task execution timeline must not be fabricated when no durable task feed is connected");
   assert.ok(monitor.includes("failedRuns.length"), "recent workflow failures must affect the monitor status");
 });
+
+
+test("authenticated PWA exposes a readable owner activity timeline without rendering raw event payloads", () => {
+  assert.ok(html.includes('id="ownerActivityFeed"'), "missing owner activity timeline");
+  assert.ok(html.includes('aria-live="polite"'), "activity updates must be announced accessibly");
+  assert.ok(html.includes("appendOwnerActivity(eventName, payload)"), "SSE events must feed the owner timeline");
+  assert.ok(html.includes("MAX_OWNER_ACTIVITY_ITEMS"), "timeline history must be bounded");
+  assert.ok(html.includes("summarizeOwnerActivity"), "events must be translated into safe summaries");
+  assert.ok(html.includes("task.execution.completed"), "task completion events must be recognized");
+  assert.ok(html.includes("neural_core.reasoning.completed"), "Brain plan/reason events must be recognized");
+  assert.ok(html.includes("OWNER ACTIVITY"), "the timeline must have a visible user-facing label");
+});
