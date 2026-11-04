@@ -12,7 +12,7 @@ test("home presents a simple chat-first surface with a separate workspace entry"
   assert.match(home, /simple-view/);
 });
 
-test("workspace exposes distinct system, files, agents and mission areas", () => {
+test("service worker precaches the new workspace and advances the shell cache", async () => {\n  const sw = await readFile(new URL("../jarvis/sw.js", import.meta.url), "utf8");\n  assert.match(sw, /redultron-core-shell-v21-chat-workspace/);\n  assert.match(sw, /"\\.\\/workspace\\.html"/);\n});\n\ntest("workspace exposes distinct system, files, agents and mission areas", () => {
   for (const id of ["workspaceSystem", "workspaceFiles", "workspaceAgents", "workspaceMissions", "workspaceTerminal", "workspaceCode"]) {
     assert.ok(workspace.includes('id="' + id + '"'), "missing workspace section " + id);
   }
