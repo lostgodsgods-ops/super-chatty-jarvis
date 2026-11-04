@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import test from "node:test";
+import vm from "node:vm";
 
 const home = await readFile(new URL("../jarvis/index.html", import.meta.url), "utf8");
 const workspace = await readFile(new URL("../jarvis/workspace.html", import.meta.url), "utf8");
@@ -23,6 +24,12 @@ test("workspace exposes distinct system, files, agents and mission areas", () =>
   for (const id of ["workspaceSystem", "workspaceFiles", "workspaceAgents", "workspaceMissions", "workspaceTerminal", "workspaceCode"]) {
     assert.ok(workspace.includes('id="' + id + '"'), "missing workspace section " + id);
   }
+});
+
+test("workspace inline JavaScript parses before the PWA can serve it", () => {
+  const scripts = [...workspace.matchAll(/<script[^>]*>([\\s\\S]*?)<\\/script>/g)].map(match => match[1]);
+  assert.equal(scripts.length, 1, "workspace should have one self-contained application script");
+  assert.doesNotThrow(() => new vm.Script(scripts[0]));
 });
 
 test("workspace authenticates with the existing cookie-backed owner session", () => {
