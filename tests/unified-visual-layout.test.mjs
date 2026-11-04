@@ -34,7 +34,7 @@ test("the unified layout has explicit phone-first breakpoints and reduced-motion
   assert.match(css, /@media\s*\(max-width:\s*900px\)/);
   assert.match(css, /@media\s*\(max-width:\s*600px\)/);
   assert.match(css, /prefers-reduced-motion/);
-  assert.match(html, /REDULTRON-2026\.11\.03-CORE-3\.0-V20/);
+  assert.match(html, /REDULTRON-2026\.11\.04-CORE-3\.0-V21/);
   const sw = await readFile(new URL("../jarvis/sw.js", import.meta.url), "utf8");
   assert.match(sw, /redultron-core-shell-v20-core-3/);
   const legacy = await readFile(new URL("../jarvis/core3.html", import.meta.url), "utf8");
