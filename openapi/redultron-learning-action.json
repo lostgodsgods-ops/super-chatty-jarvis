@@ -3,7 +3,7 @@
   "info": {
     "title": "REDULTRON CORE 3.0 — Private Knowledge API",
     "version": "1.0.0",
-    "description": "Owner-private verified knowledge store for a private custom GPT Action. Knowledge writes require HTTPS sources and explicit test evidence."
+    "description": "Owner-private knowledge store. Submissions are pending until an owner session explicitly approves promotion. Private bridge credentials may submit/search but cannot approve trust elevation."
   },
   "servers": [
     {
@@ -69,8 +69,8 @@
       },
       "post": {
         "operationId": "saveVerifiedKnowledge",
-        "summary": "Save a verified knowledge record",
-        "description": "Saves only records that include at least one HTTPS source and explicit passing test evidence. Never include secrets, personal data, or credentials.",
+        "summary": "Submit knowledge for owner verification",
+        "description": "Creates a pending knowledge record only. Caller-supplied test claims are not verification and this endpoint never promotes records to verified.",
         "requestBody": {
           "required": true,
           "content": {
@@ -82,24 +82,63 @@
           }
         },
         "responses": {
-          "201": {
-            "description": "Knowledge saved",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/SaveResponse"
-                }
-              }
-            }
+          "202": {
+            "description": "Knowledge submitted to pending owner-verification queue"
           },
           "400": {
-            "description": "Required evidence or fields missing"
+            "description": "Required fields or evidence missing"
           },
           "401": {
             "description": "Bearer secret or owner session rejected"
           },
           "413": {
             "description": "Request too large"
+          },
+          "503": {
+            "description": "Storage or audit unavailable"
+          }
+        }
+      }
+    },
+    "/api/learning/knowledge/approve": {
+      "post": {
+        "operationId": "approvePendingKnowledge",
+        "summary": "Approve one pending knowledge record",
+        "description": "Requires an authenticated owner session bearer. The private BRIDGE_SECRET is explicitly insufficient. The request must include confirmation=APPROVE_KNOWLEDGE. Approval promotes exactly one pending record into verified knowledge and is audited.",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/KnowledgeApprovalInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Knowledge promoted after owner approval",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApprovalResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Explicit confirmation missing or invalid"
+          },
+          "401": {
+            "description": "Owner session required"
+          },
+          "404": {
+            "description": "Pending record not found"
           },
           "503": {
             "description": "Storage or audit unavailable"
@@ -288,6 +327,110 @@
         ],
         "properties": {
           "ok": {
+            "type": "boolean",
+            "const": true
+          },
+          "record": {
+            "$ref": "#/components/schemas/PendingKnowledgeRecord"
+          },
+          "requiresOwnerVerification": {
+            "type": "boolean",
+            "const": true
+          }
+        }
+      },
+      "KnowledgeApprovalInput": {
+        "type": "object",
+        "required": [
+          "recordId",
+          "confirmation"
+        ],
+        "properties": {
+          "recordId": {
+            "type": "string",
+            "minLength": 8,
+            "maxLength": 128,
+            "pattern": "^[A-Za-z0-9_-]+$"
+          },
+          "confirmation": {
+            "type": "string",
+            "const": "APPROVE_KNOWLEDGE"
+          }
+        }
+      },
+      "PendingKnowledgeRecord": {
+        "type": "object",
+        "required": [
+          "id",
+          "status",
+          "verified"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "problem": {
+            "type": "string"
+          },
+          "solution": {
+            "type": "string"
+          },
+          "sources": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Source"
+            }
+          },
+          "testSummary": {
+            "type": "string"
+          },
+          "testEvidence": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "confidence": {
+            "type": "number"
+          },
+          "limitations": {
+            "type": "string"
+          },
+          "reuseInstructions": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "const": "pending_owner_verification"
+          },
+          "verified": {
+            "type": "boolean",
+            "const": false
+          },
+          "createdAt": {
+            "type": "string"
+          },
+          "updatedAt": {
+            "type": "string"
+          }
+        }
+      },
+      "ApprovalResponse": {
+        "type": "object",
+        "required": [
+          "ok",
+          "ownerApproved",
+          "record"
+        ],
+        "properties": {
+          "ok": {
+            "type": "boolean",
+            "const": true
+          },
+          "ownerApproved": {
             "type": "boolean",
             "const": true
           },

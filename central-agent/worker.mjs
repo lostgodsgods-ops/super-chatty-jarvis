@@ -9,7 +9,7 @@ import { describePolicy } from "./policy.mjs";
 import { buildRedQueenStatus } from "./architecture/red-queen-registry.mjs";
 import { randomChallenge, verifyRegistration, verifyAssertion } from "./webauthn.mjs";
 import { enqueueKnowledgeTask, listKnowledgeTasks, getKnowledgeResults, processApprovedKnowledgeTasks, recoverStaleKnowledgeTasks } from "./task-queue.mjs";
-import { saveVerifiedKnowledge, searchVerifiedKnowledge } from "./knowledge-learning.mjs";
+import { saveVerifiedKnowledge, searchVerifiedKnowledge, approvePendingKnowledge } from "./knowledge-learning.mjs";
 import { listProviderCapabilities } from "./architecture/provider-router.mjs";
 import { listMcpCapabilities, listVectorCapabilities, connectMcpAndListTools, vectorUpsertQueryReadback, IntegrationError } from "./architecture/integration-registry.mjs";
 import { createGoal, listGoals, transitionGoal, GoalError } from "./architecture/goal-lifecycle.mjs";
@@ -1496,7 +1496,7 @@ export default {
 
     const gatewayChatRoute = request.method === "POST" && (url.pathname === "/chat" || url.pathname === "/internal/chat");
     const memoryBridgeRoute = url.pathname === "/api/memory";
-    const learningKnowledgeRoute = url.pathname === "/api/learning/knowledge";
+    const learningKnowledgeRoute = url.pathname === "/api/learning/knowledge" || url.pathname === "/api/learning/knowledge/approve";
     // This internal probe uses its own route-specific OWNER_SECRET gate below,
     // not a browser owner session. Keep the exception narrowly scoped to POST.
     const internalHybridProbeRoute = request.method === "POST" && url.pathname === "/api/internal/hybrid-probe";
@@ -2811,16 +2811,53 @@ export default {
     // Persistent learning store supports either the owner session or a private GPT Action
     // bearer secret. The route is excluded from the generic gate only because it enforces
     // its own route-specific authorization immediately below.
+    let learningOwnerAuthorized = false;
     if (learningKnowledgeRoute) {
       const header = request.headers.get("authorization") || "";
       const supplied = header.startsWith("Bearer ") ? header.slice(7).trim() : "";
       const bridgeSecret = typeof env.BRIDGE_SECRET === "string" ? env.BRIDGE_SECRET.trim() : "";
       const bridgeAuthorized = Boolean(bridgeSecret && equalSecret(supplied, bridgeSecret));
       const ownerAuthorized = await authorized(request, env);
+      learningOwnerAuthorized = ownerAuthorized;
       if (!bridgeAuthorized && !ownerAuthorized) {
         await publishEvent(env, { type: "security.auth.denied", source: "persistent-learning-engine", payload: { path: url.pathname, method: request.method } });
         return json({ ok: false, error: "Unauthorized" }, 401, cors);
       }
+    }
+
+    // Knowledge promotion is owner-session-only; the bridge secret cannot approve trust elevation.
+    if (url.pathname === "/api/learning/knowledge/approve") {
+      if (request.method !== "POST") return json({ ok: false, error: "METHOD_NOT_ALLOWED" }, 405, { allow: "POST", ...cors });
+      if (!learningOwnerAuthorized) return json({ ok: false, error: "OWNER_SESSION_REQUIRED" }, 403, cors);
+      if (!(request.headers.get("content-type") || "").toLowerCase().includes("application/json")) {
+        return json({ ok: false, error: "CONTENT_TYPE_JSON_REQUIRED" }, 415, cors);
+      }
+      const parsed = await readBoundedJsonBody(request, 2048);
+      if (parsed.tooLarge) return json({ ok: false, error: "REQUEST_TOO_LARGE" }, 413, cors);
+      if (!parsed.body || typeof parsed.body !== "object" || Array.isArray(parsed.body)) {
+        return json({ ok: false, error: "INVALID_JSON" }, 400, cors);
+      }
+      if (parsed.body.confirmation !== "APPROVE_KNOWLEDGE") {
+        return json({ ok: false, error: "EXPLICIT_APPROVAL_REQUIRED" }, 400, cors);
+      }
+      const recordId = typeof parsed.body.recordId === "string" ? parsed.body.recordId : "";
+      const requestedAudit = await publishEvent(env, {
+        type: "learning.knowledge.approval.requested",
+        source: "persistent-learning-engine",
+        payload: { recordId: /^[A-Za-z0-9_-]{8,128}$/.test(recordId) ? recordId : "invalid", ownerSession: true }
+      });
+      if (!requestedAudit?.ok) return json({ ok: false, error: "LEARNING_AUDIT_UNAVAILABLE" }, 503, cors);
+      const result = await approvePendingKnowledge(env.DB, recordId, {
+        ownerAuthenticated: true, approvalPhrase: parsed.body.confirmation
+      });
+      if (!result.ok) return json({ ok: false, error: result.error }, result.error === "PENDING_KNOWLEDGE_NOT_FOUND" ? 404 : 400, cors);
+      const completedAudit = await publishEvent(env, {
+        type: "learning.knowledge.approved",
+        source: "persistent-learning-engine",
+        payload: { recordId: result.record.id, status: result.record.status, ownerSession: true }
+      });
+      if (!completedAudit?.ok) return json({ ok: false, error: "LEARNING_AUDIT_UNAVAILABLE", promoted: true, recordId: result.record.id }, 503, cors);
+      return json({ ok: true, record: result.record, ownerApproved: true }, 200, cors);
     }
 
     // Persistent learning store: owner session or route-specific private bridge secret required.
