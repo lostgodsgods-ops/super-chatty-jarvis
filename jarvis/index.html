@@ -190,6 +190,13 @@ body.simple-view.owner-ready #simpleAuthSlot{display:none}
 body.simple-view .toast{bottom:90px}
 @media(max-width:600px){body.simple-view .shell{padding:9px 10px 112px}body.simple-view .brandname{font-size:11px}body.simple-view .simple-chat-head h1{font-size:16px}body.simple-view .simple-messages{max-height:calc(100dvh - 230px)}body.simple-view .commandbar{gap:6px;padding-left:9px;padding-right:9px}body.simple-view .hands-free-toggle{padding:7px;font-size:9px}}
 
+
+/* Keep the chat and sign-in gate visible before authentication; legacy dashboard stays hidden. */
+body.auth-locked.simple-view .shell>.topbar,body.auth-locked.simple-view .shell>#simpleChatShell{display:flex!important}
+body.auth-locked.simple-view .shell>.topbar{justify-content:space-between}
+body.auth-locked.simple-view .shell>#simpleChatShell{min-height:calc(100dvh - 90px)}
+body.auth-locked.simple-view .dashboard-grid{display:none!important}
+body.auth-locked.simple-view #simpleAuthSlot>section[aria-labelledby="ownerTitle"]{display:block!important}
 </style>
 
 <style id="redultron-unified-layout-v18">
