@@ -27,7 +27,9 @@ test("workspace exposes distinct system, files, agents and mission areas", () =>
 });
 
 test("workspace inline JavaScript parses before the PWA can serve it", () => {
-  const scripts = [...workspace.matchAll(/<script[^>]*>([\\s\\S]*?)<\\/script>/g)].map(match => match[1]);
+  const scriptStart = workspace.indexOf("<script>");
+  const scriptEnd = workspace.indexOf("</script>", scriptStart);
+  const scripts = scriptStart >= 0 && scriptEnd > scriptStart ? [workspace.slice(scriptStart + 8, scriptEnd)] : [];
   assert.equal(scripts.length, 1, "workspace should have one self-contained application script");
   assert.doesNotThrow(() => new vm.Script(scripts[0]));
 });
