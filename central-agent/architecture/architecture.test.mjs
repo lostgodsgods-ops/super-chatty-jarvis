@@ -74,7 +74,10 @@ test("OpenAI-compatible provider adapter uses fixed endpoint, bounded request an
     provider: "openai", prompt: "say hello", model: "gpt-4o-mini", maxTokens: 64
   }, { OPENAI_API_KEY: "test-key" }, fetchImpl);
   assert.equal(requestedUrl, "https://api.openai.com/v1/chat/completions");
-  assert.equal(requestBody.messages[0].content, "say hello");
+  assert.equal(requestBody.messages[0].role, "system");
+  assert.equal(requestBody.messages[1].role, "user");
+  assert.equal(requestBody.messages[1].content, "say hello");
+  assert.match(requestBody.messages[0].content, /untrusted data/);
   assert.equal(requestBody.max_tokens, 64);
   assert.equal(result.ok, true);
   assert.equal(result.text, "hello from provider");
