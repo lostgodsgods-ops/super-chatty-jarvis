@@ -4,15 +4,22 @@ import test from "node:test";
 
 const home = await readFile(new URL("../jarvis/index.html", import.meta.url), "utf8");
 const workspace = await readFile(new URL("../jarvis/workspace.html", import.meta.url), "utf8");
+const serviceWorker = await readFile(new URL("../jarvis/sw.js", import.meta.url), "utf8");
 
 test("home presents a simple chat-first surface with a separate workspace entry", () => {
   assert.match(home, /id="simpleChatShell"/);
   assert.match(home, /id="simpleMessages"/);
-  assert.match(home, /href="\.\/workspace\.html"/);
+  assert.match(home, /href="\/jarvis\/workspace\.html"/);
   assert.match(home, /simple-view/);
+  assert.match(home, /auth-locked\.simple-view/);
 });
 
-test("service worker precaches the new workspace and advances the shell cache", async () => {\n  const sw = await readFile(new URL("../jarvis/sw.js", import.meta.url), "utf8");\n  assert.match(sw, /redultron-core-shell-v21-chat-workspace/);\n  assert.match(sw, /"\\.\\/workspace\\.html"/);\n});\n\ntest("workspace exposes distinct system, files, agents and mission areas", () => {
+test("service worker precaches the new workspace and advances the shell cache", () => {
+  assert.match(serviceWorker, /redultron-core-shell-v21-chat-workspace/);
+  assert.match(serviceWorker, /"\.\/workspace\.html"/);
+});
+
+test("workspace exposes distinct system, files, agents and mission areas", () => {
   for (const id of ["workspaceSystem", "workspaceFiles", "workspaceAgents", "workspaceMissions", "workspaceTerminal", "workspaceCode"]) {
     assert.ok(workspace.includes('id="' + id + '"'), "missing workspace section " + id);
   }
