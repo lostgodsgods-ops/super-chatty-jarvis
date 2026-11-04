@@ -16,7 +16,7 @@ test("home presents a simple chat-first surface with a separate workspace entry"
 });
 
 test("service worker precaches the new workspace and advances the shell cache", () => {
-  assert.ok(serviceWorker.includes("redultron-core-shell-v21-core-3"));
+  assert.ok(serviceWorker.includes("redultron-core-shell-v22-core-3"));
   assert.ok(serviceWorker.includes('"/jarvis/workspace.html"'));
 });
 
