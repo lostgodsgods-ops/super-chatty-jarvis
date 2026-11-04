@@ -33,6 +33,6 @@ test("workspace authenticates with the existing cookie-backed owner session", ()
 
 test("workspace does not execute shell commands or upload local files", () => {
   assert.match(workspace, /LOCAL FILES ONLY/);
-  assert.match(workspace, /No shell command execution/);
+  assert.match(workspace, /No shell command execution/);\n  assert.match(workspace, /const safeKeys=/);\n  assert.doesNotMatch(workspace, /JSON\.stringify\(event\.payload\)/);
   assert.doesNotMatch(workspace, /child_process|eval\s*\(|new Function\s*\(/);
 });
