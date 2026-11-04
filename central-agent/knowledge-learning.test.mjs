@@ -30,7 +30,7 @@ test("caller-supplied PASS and text evidence can only create pending knowledge",
 test("normalization redacts credential-like text and rejects missing core fields", () => {
   const result = normalizeVerifiedKnowledge({ ...valid, solution: "Use api_key=secret-value only server-side" });
   assert.equal(result.ok, true);
-  assert.match(result.record.solution, /\\[REDACTED\\]/);
+  assert.match(result.record.solution, /\[REDACTED\]/);
   assert.equal(normalizeVerifiedKnowledge({ ...valid, title: "" }).error, "TITLE_PROBLEM_SOLUTION_REQUIRED");
 });
 
