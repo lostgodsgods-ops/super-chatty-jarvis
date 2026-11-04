@@ -1,0 +1,121 @@
+{
+  "schemaVersion": 1,
+  "project": "REDULTRON CORE 3.0",
+  "snapshotDate": "2026-11-02",
+  "repository": "lostgodsgods-ops/super-chatty-jarvis",
+  "inspectedBranch": "main",
+  "latestObservedMainSha": "0b88a65c7bd2a21e757feab665c505f1f30e3db5",
+  "reportBranch": "docs/redultron-master-report-20261102",
+  "overallStatus": "BLOCKED",
+  "releaseReady": false,
+  "evidencePolicy": "A PASS requires dated evidence for the exact commit, environment, route, and behavior. Historical results remain historical.",
+  "latestRuntimeEvidence": {
+    "incidentIssue": 907,
+    "latestScheduledRunId": 41359255744,
+    "latestScheduledRunUrl": "https://github.com/lostgodsgods-ops/super-chatty-jarvis/actions/runs/41359255744",
+    "result": "failure",
+    "failedStep": "Verify Talk to Chatty PWA chat and Tavily proxy end-to-end",
+    "observations": {
+      "stagingPwaHealth": "PASS",
+      "workersAiChatSmoke": "PASS",
+      "unauthenticatedCentralAgentChat": "HTTP 401; expected denial",
+      "pwaLiveSearchProxy": "FAIL: response did not satisfy webSearchExecuted/provider/source URL contract",
+      "authenticatedEventBusAndModuleRegistry": "SKIPPED"
+    },
+    "priorSearchGatewayFailure": {
+      "runId": 41159617465,
+      "result": "HTTP 502 SEARCH_GATEWAY_INCOMPLETE"
+    }
+  },
+  "domains": [
+    {
+      "id": "CI",
+      "status": "NOT TESTED",
+      "next": "Run required CI and static checks on exact latest main SHA."
+    },
+    {
+      "id": "CENTRAL_AGENT",
+      "status": "FAIL",
+      "next": "Recheck deployment provenance and independently probe health/auth/chat/queue."
+    },
+    {
+      "id": "LIVE_SEARCH",
+      "status": "FAIL",
+      "next": "Restore PWA proxy source attribution contract and add regression tests."
+    },
+    {
+      "id": "WORKERS_AI_CHAT",
+      "status": "PASS",
+      "evidence": "Run 41359255744 staging smoke; valid reply; externalActionsPerformed=false."
+    },
+    {
+      "id": "PYTHON_HYBRID",
+      "status": "BLOCKED",
+      "next": "Verify secret parity safely and pass strict authenticated hybrid execution contract."
+    },
+    {
+      "id": "D1",
+      "status": "NOT TESTED",
+      "next": "Verify migrations and owner-scoped durable-result persistence/readback."
+    },
+    {
+      "id": "KV",
+      "status": "NOT TESTED",
+      "next": "Run disposable-key session probe."
+    },
+    {
+      "id": "SENTINEL",
+      "status": "NOT TESTED",
+      "next": "Run controlled duplicate-event replay and audit-integrity checks."
+    },
+    {
+      "id": "AGENTS",
+      "status": "BLOCKED",
+      "evidence": "90 catalog specifications; 0 provisioned catalog agents; 8 bounded runtime roles; automatic dispatch disabled."
+    },
+    {
+      "id": "PWA_ANDROID",
+      "status": "NOT TESTED",
+      "next": "Real Android Chrome install/update/offline smoke test."
+    },
+    {
+      "id": "PHP_CORE",
+      "status": "NOT TESTED",
+      "next": "Verify exact-SHA workflow and runtime smoke test if in release scope."
+    },
+    {
+      "id": "ETHICS_PRIVACY",
+      "status": "NOT TESTED",
+      "next": "Map documented controls to code, negative tests, and audit evidence."
+    },
+    {
+      "id": "FINANCIAL",
+      "status": "NOT IMPLEMENTED",
+      "next": "Simulation-only; no real mutation capability."
+    },
+    {
+      "id": "BUNKER",
+      "status": "BLOCKED",
+      "next": "Identify authoritative repository/API and acceptance contract."
+    }
+  ],
+  "latestIncident": {
+    "issue": 1001,
+    "sourceRunId": 41341023898,
+    "status": "FAIL",
+    "retryAttempts": 3,
+    "retryBudgetExhausted": true,
+    "containment": "No fourth retry, source mutation, merge, deployment, or secret changes."
+  },
+  "releaseGates": [
+    "Exact-SHA CI",
+    "Central Agent production provenance and health",
+    "PWA live-search source contract",
+    "Python authenticated execution",
+    "D1/KV/Durable Object and audit probes",
+    "Production branch protection and Environment reviewers",
+    "Agent pilot safety gates",
+    "Android PWA install/update/offline verification"
+  ],
+  "changeBoundary": "Documentation-only report branch; no production mutation or secret access."
+}
