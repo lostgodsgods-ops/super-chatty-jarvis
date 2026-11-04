@@ -30,7 +30,7 @@ test("caller-supplied PASS and text evidence can only create pending knowledge",
 test("normalization redacts credential-like text and rejects missing core fields", () => {
   const result = normalizeVerifiedKnowledge({ ...valid, solution: "Use api_key=secret-value only server-side" });
   assert.equal(result.ok, true);
-  assert.match(result.record.solution, /\[REDACTED\]/);
+  assert.match(result.record.solution, /\\[REDACTED\\]/);
   assert.equal(normalizeVerifiedKnowledge({ ...valid, title: "" }).error, "TITLE_PROBLEM_SOLUTION_REQUIRED");
 });
 
@@ -105,7 +105,6 @@ test("private GPT Action OpenAPI contract exposes only the protected knowledge e
   assert.equal(spec.components.schemas.KnowledgeInput.properties.sources.minItems, 1);
 });
 
-
 test("knowledge promotion requires an explicit owner approval signal", async () => {
   const db = mockDb();
   const result = await approvePendingKnowledge(db, "pending-1", { ownerAuthenticated: false, approvalPhrase: "APPROVE_KNOWLEDGE" });
@@ -127,7 +126,7 @@ test("owner approval promotes one pending record and removes it from pending que
 test("approval refuses missing or repeated pending records", async () => {
   const db = mockDb();
   db.state.noPending = true;
-  const result = await approvePendingKnowledge(db, "missing", { ownerAuthenticated: true, approvalPhrase: "APPROVE_KNOWLEDGE" });
+  const result = await approvePendingKnowledge(db, "missing-record-0001", { ownerAuthenticated: true, approvalPhrase: "APPROVE_KNOWLEDGE" });
   assert.equal(result.ok, false);
   assert.equal(result.error, "PENDING_KNOWLEDGE_NOT_FOUND");
   assert.equal(db.state.promoted, false);
