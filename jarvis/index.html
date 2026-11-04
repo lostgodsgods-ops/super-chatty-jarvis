@@ -161,12 +161,12 @@ body.simple-view .brandname{letter-spacing:.04em}
 body.simple-view .telemetry .status,body.simple-view #liveMonitorLink{display:none}
 body.simple-view #updateAppBtn{font-size:10px;min-height:34px}
 body.simple-view .grid,body.simple-view .red-queen-panel,body.simple-view #ownerActivityTitle,body.simple-view .agent-army,body.simple-view .utility-dock{display:none!important}
-body.simple-view .dashboard-grid{display:block;margin:10px 0}
+body.simple-view .dashboard-grid{display:none!important}
 body.simple-view .dashboard-grid>section:not([aria-labelledby="ownerTitle"]){display:none!important}
-body.simple-view .dashboard-grid>section[aria-labelledby="ownerTitle"]{display:block;padding:14px;background:#191e25;border:1px solid #303944;border-radius:15px}
-body.simple-view .dashboard-grid>section[aria-labelledby="ownerTitle"] .panel-head{min-height:0}
-body.simple-view .dashboard-grid>section[aria-labelledby="ownerTitle"] .panel-body{padding:8px 0 0}
-body.simple-view .dashboard-grid>section[aria-labelledby="ownerTitle"] .dashboard-note:not(#ownerSessionStatus){display:none}
+body.simple-view #simpleAuthSlot>section[aria-labelledby="ownerTitle"]{display:block;padding:14px;background:#191e25;border:1px solid #303944;border-radius:15px}
+body.simple-view #simpleAuthSlot>section[aria-labelledby="ownerTitle"] .panel-head{min-height:0}
+body.simple-view #simpleAuthSlot>section[aria-labelledby="ownerTitle"] .panel-body{padding:8px 0 0}
+body.simple-view #simpleAuthSlot>section[aria-labelledby="ownerTitle"] .dashboard-note:not(#ownerSessionStatus){display:none}
 body.simple-view #ownerPasskeyRegister,body.simple-view #ownerRecoveryGenerate,body.simple-view #ownerRecoveryCodes,body.simple-view #ownerRecoveryInput,body.simple-view #ownerRecoveryLogin{display:none!important}
 body.simple-view #simpleChatShell{display:flex;flex-direction:column;min-height:calc(100dvh - 112px);gap:12px}
 body.simple-view .simple-chat-head{display:flex;align-items:center;justify-content:space-between;gap:12px}
@@ -654,6 +654,9 @@ body.simple-view .toast{bottom:90px}
     };
     const MAX_RECOGNITION_RETRIES = 4;
     const state = { events:null, recognition:null, recognitionStarting:false, recognitionRetryTimer:0, recognitionRetryCount:0, recognitionStartTimer:0, listening:false, handsFree:false, speaking:false, chatBusy:false, chatController:null, eventsCount:0, connected:false, notificationsEnabled:false, started:Date.now(), healthTimer:0, toastTimer:0, ownerToken:"", telemetryTimer:0, researchBusy:false, memoryHistory:[], turnId:0 };
+    const ownerPanel = document.querySelector(".dashboard-grid > section[aria-labelledby=\"ownerTitle\"]");
+    const authSlot = $("simpleAuthSlot");
+    if (ownerPanel && authSlot) authSlot.append(ownerPanel);
     const time = () => new Date().toLocaleTimeString([], {hour12:false});
     function log(message, type="info", source="UI") {
       const row = document.createElement("div"); row.className = "log";
@@ -818,6 +821,7 @@ body.simple-view .toast{bottom:90px}
       els.ownerSessionStatus.textContent = message;
     }
     function clearOwnerSession(message="Signed out. Session token cleared from memory.") {
+      document.body.classList.remove("owner-ready");
       document.body.classList.add("auth-locked");
       stopHandsFree("Owner session locked.");
       if (state.chatController) state.chatController.abort();
@@ -1004,9 +1008,6 @@ body.simple-view .toast{bottom:90px}
       status(els.ownerBadge,"OWNER VERIFIED","ok");
       status(els.researchSearchStatus,"SESSION VERIFIED","ok");
       setOwnerStatus("Owner session verified with " + methodLabel + ". Register a device passkey for future sign-ins.", "ok");
-      const authPanel = document.querySelector(".dashboard-grid > section[aria-labelledby=\"ownerTitle\"]");
-      const authSlot = $("simpleAuthSlot");
-      if (authPanel && authSlot) authSlot.append(authPanel);
       document.body.classList.add("owner-ready");
       const optionalSteps = [
         ["health check", () => checkHealth()],
