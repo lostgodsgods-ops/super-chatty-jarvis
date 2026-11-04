@@ -17,7 +17,7 @@ function json(body, status = 200) {
 
 async function readBoundedJson(request) {
   const declared = request.headers.get("content-length");
-  if (declared !== null && (!/^\\d+$/.test(declared) || Number(declared) > MAX_BODY_BYTES)) {
+  if (declared !== null && (!/^\d+$/.test(declared) || Number(declared) > MAX_BODY_BYTES)) {
     return { tooLarge: true, body: null };
   }
   if (!request.body) return { tooLarge: false, body: null };
