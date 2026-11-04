@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#111111">
+<meta name="description" content="REDULTRON — chat, voice and media workspace">
+<title>REDULTRON · Chat</title>
+<link rel="manifest" href="./manifest.webmanifest">
+<style>
+:root{color-scheme:dark;--bg:#111;--panel:#191919;--panel2:#202020;--line:#303030;--text:#f2f2f2;--muted:#a1a1aa;--red:#e5484d;--red2:#ff686d;--safe:env(safe-area-inset-bottom,0px)}
+*{box-sizing:border-box}html,body{margin:0;min-height:100%;background:var(--bg);color:var(--text);font:15px/1.5 Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif}button,input,textarea{font:inherit}button{color:inherit;cursor:pointer}button:focus-visible,input:focus-visible,textarea:focus-visible{outline:2px solid var(--red2);outline-offset:2px}
+.app{min-height:100dvh;display:grid;grid-template-columns:260px minmax(0,1fr)}.sidebar{height:100dvh;position:sticky;top:0;background:#171717;border-right:1px solid var(--line);padding:16px;display:flex;flex-direction:column;gap:18px}.brand{display:flex;align-items:center;gap:10px;font-size:15px;font-weight:800;letter-spacing:.09em}.brand-mark{width:31px;height:31px;border-radius:10px;background:var(--red);display:grid;place-items:center;color:#fff;font-weight:900}.new-chat{border:1px solid #454545;background:transparent;border-radius:10px;padding:11px 12px;text-align:left;font-size:13px}.new-chat:hover,.nav-button:hover,.history-item:hover{background:#252525}.side-label{font-size:10px;color:#777;letter-spacing:.12em;text-transform:uppercase;margin:3px 0}.history{display:flex;flex-direction:column;gap:4px;overflow:auto}.history-item{padding:9px 10px;border-radius:8px;color:#c9c9c9;font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.side-bottom{margin-top:auto;display:grid;gap:8px}.nav-button{border:0;background:transparent;text-align:left;padding:10px;border-radius:9px;color:#c9c9c9;font-size:12px}.owner-note{border-top:1px solid var(--line);padding-top:12px;color:#777;font-size:10px}
+.main{min-width:0;display:flex;flex-direction:column;min-height:100dvh}.topbar{height:58px;display:flex;align-items:center;justify-content:space-between;padding:0 22px;border-bottom:1px solid var(--line);background:#111e;position:sticky;top:0;z-index:5;backdrop-filter:blur(12px)}.model-name{font-size:13px;font-weight:650;color:#e5e5e5}.top-actions{display:flex;gap:8px}.subtle-btn{border:1px solid var(--line);background:transparent;border-radius:8px;padding:7px 10px;font-size:11px;color:#c5c5c5}.subtle-btn:hover{border-color:#555}.chat-scroll{width:min(820px,100%);margin:0 auto;flex:1;padding:32px 24px 180px}.welcome{min-height:50vh;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center}.welcome-mark{width:54px;height:54px;border-radius:18px;background:linear-gradient(145deg,#f25b60,#a91e28);display:grid;place-items:center;font-size:25px;font-weight:900;box-shadow:0 10px 40px #e5484d22}.welcome h1{font-size:clamp(24px,4vw,34px);font-weight:650;letter-spacing:-.04em;margin:20px 0 7px}.welcome p{color:var(--muted);font-size:13px;margin:0}.suggestions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;width:min(600px,100%);margin-top:30px}.suggestion{border:1px solid var(--line);background:#181818;border-radius:12px;padding:13px;text-align:left;color:#ddd;font-size:12px}.suggestion small{display:block;color:#888;margin-top:4px}.messages{display:flex;flex-direction:column;gap:22px}.message{display:flex;gap:12px;align-items:flex-start}.avatar{width:28px;height:28px;flex:0 0 28px;border-radius:9px;background:#292929;display:grid;place-items:center;font-size:11px;font-weight:800}.message.user .avatar{background:#393939}.message.assistant .avatar{background:var(--red)}.message-body{min-width:0;flex:1;font-size:14px;line-height:1.7;white-space:pre-wrap;overflow-wrap:anywhere;padding-top:2px}.message-label{font-size:10px;color:#888;margin-bottom:4px}.attachment-preview{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}.attachment-preview img,.attachment-preview video{max-width:min(260px,100%);max-height:190px;border-radius:10px;border:1px solid var(--line);object-fit:contain;background:#080808}.attachment-chip{border:1px solid var(--line);border-radius:9px;padding:7px 10px;color:#bbb;font-size:11px}
+.composer-wrap{position:fixed;z-index:6;bottom:0;left:260px;right:0;padding:18px 22px calc(12px + var(--safe));background:linear-gradient(180deg,transparent,#111 22%)}.composer{width:min(820px,100%);margin:0 auto;border:1px solid #454545;background:#1c1c1c;border-radius:20px;padding:10px 12px 9px;box-shadow:0 12px 45px #0008}.composer:focus-within{border-color:#666}.attach-row{display:flex;gap:7px;align-items:center;flex-wrap:wrap;margin-bottom:5px}.tool-btn{width:34px;height:34px;border:0;border-radius:9px;background:transparent;color:#b8b8b8;font-size:18px;display:grid;place-items:center}.tool-btn:hover{background:#303030;color:#fff}.tool-btn.recording{color:#ff777b;background:#492326}.prompt{display:block;width:100%;min-height:48px;max-height:180px;resize:vertical;border:0;outline:0;background:transparent;color:#f4f4f4;padding:8px 5px;font-size:14px}.prompt::placeholder{color:#888}.composer-footer{display:flex;align-items:center;justify-content:space-between;gap:10px}.composer-hint{font-size:10px;color:#777}.send-btn{border:0;border-radius:10px;background:#eee;color:#171717;font-weight:750;width:34px;height:34px;font-size:17px}.send-btn:disabled{opacity:.35;cursor:not-allowed}.file-input{display:none}.selected-files{display:flex;gap:7px;flex-wrap:wrap;padding:4px 2px 8px}.file-pill{display:flex;align-items:center;gap:6px;border:1px solid #444;border-radius:8px;padding:5px 8px;font-size:10px;color:#ccc;max-width:100%}.file-pill button{border:0;background:none;color:#999;padding:0 2px}.video-box{width:100%;margin-top:10px;border:1px solid var(--line);border-radius:12px;overflow:hidden;background:#080808}.video-box video{width:100%;max-height:360px;display:block}.notice{font-size:10px;color:#999;text-align:center;margin-top:9px}
+.mobile-menu{display:none}.drawer-backdrop{display:none}
+@media(max-width:720px){.app{grid-template-columns:1fr}.sidebar{position:fixed;z-index:20;left:0;top:0;width:min(290px,85vw);transform:translateX(-105%);transition:transform .2s ease;box-shadow:15px 0 45px #0008}.sidebar.open{transform:translateX(0)}.drawer-backdrop.show{display:block;position:fixed;inset:0;background:#0009;z-index:19}.mobile-menu{display:inline-grid}.topbar{padding:0 13px}.chat-scroll{padding:24px 16px 175px}.composer-wrap{left:0;padding:12px 10px calc(9px + var(--safe))}.suggestions{grid-template-columns:1fr}.welcome{min-height:42vh}.composer{border-radius:17px}.composer-hint{max-width:70%;line-height:1.3}}
+</style>
+</head>
+<body>
+<div class="app">
+<aside class="sidebar" id="sidebar">
+<div class="brand"><span class="brand-mark">R</span><span>REDULTRON</span></div>
+<button class="new-chat" id="newChat">＋ &nbsp; New chat</button>
+<div><div class="side-label">Recent</div><div class="history" id="history"><div class="history-item">New conversation</div></div></div>
+<div class="side-bottom">
+<button class="nav-button" id="workspaceLink">⚙ &nbsp; Technical workspace</button>
+<button class="nav-button" id="aboutButton">ⓘ &nbsp; System status</button>
+<div class="owner-note">REDULTRON CORE 3.0<br>Chat interface preview · backend connection not yet verified</div>
+</div>
+</aside>
+<div class="drawer-backdrop" id="backdrop"></div>
+<main class="main">
+<header class="topbar">
+<div style="display:flex;align-items:center;gap:11px"><button class="subtle-btn mobile-menu" id="menuButton" aria-label="Open menu">☰</button><div class="model-name">REDULTRON <span style="color:#888;font-weight:400">/ Chat</span></div></div>
+<div class="top-actions"><button class="subtle-btn" id="statusButton">System status</button></div>
+</header>
+<section class="chat-scroll" id="chatScroll">
+<div class="welcome" id="welcome">
+<div class="welcome-mark">R</div><h1>What can I help with?</h1><p>Chat, speak, share an image, or add a video.</p>
+<div class="suggestions">
+<button class="suggestion" data-prompt="Explain this topic clearly.">Explain something <small>Learn a concept step by step</small></button>
+<button class="suggestion" data-prompt="Help me plan and organize this project.">Plan a project <small>Turn an idea into clear steps</small></button>
+<button class="suggestion" data-prompt="Analyze the image or video I attach.">Analyze media <small>Share an image or video file</small></button>
+<button class="suggestion" data-prompt="Help me debug this code.">Debug code <small>Work through a technical problem</small></button>
+</div></div>
+<div class="messages" id="messages" aria-live="polite"></div>
+</section>
+<div class="composer-wrap"><form class="composer" id="composer">
+<div class="selected-files" id="selectedFiles"></div>
+<div class="attach-row">
+<button class="tool-btn" type="button" id="attachButton" aria-label="Attach image or video" title="Attach image or video">＋</button>
+<button class="tool-btn" type="button" id="cameraButton" aria-label="Open camera" title="Open camera">▣</button>
+<button class="tool-btn" type="button" id="micButton" aria-label="Voice input" title="Voice input">♩</button>
+<span style="font-size:10px;color:#777">Attach · Camera · Voice</span>
+</div>
+<textarea class="prompt" id="prompt" rows="1" placeholder="Message REDULTRON" aria-label="Message REDULTRON"></textarea>
+<div class="composer-footer"><span class="composer-hint">Media previews stay on this device until a backend upload is configured.</span><button class="send-btn" id="sendButton" type="submit" aria-label="Send message" disabled>↑</button></div>
+<input class="file-input" id="fileInput" type="file" accept="image/*,video/*" multiple>
+<input class="file-input" id="cameraInput" type="file" accept="image/*" capture="environment">
+</form><div class="notice">REDULTRON can make mistakes. Verify important information.</div></div>
+</main>
+</div>
+<script>
+(()=>{
+"use strict";
+const $=id=>document.getElementById(id);
+const prompt=$("prompt"),files=$("fileInput"),camera=$("cameraInput"),selected=$("selectedFiles");
+let pending=[],recognition=null;
+const objectUrls=[];
+function renderFiles(){selected.replaceChildren();pending.forEach((f,i)=>{const pill=document.createElement("span");pill.className="file-pill";pill.textContent=(f.type.startsWith("image/")?"Image · ":f.type.startsWith("video/")?"Video · ":"File · ")+f.name;const x=document.createElement("button");x.type="button";x.textContent="×";x.setAttribute("aria-label","Remove "+f.name);x.addEventListener("click",()=>{pending.splice(i,1);renderFiles();});pill.append(x);selected.append(pill);});}
+function addFiles(list){for(const f of Array.from(list||[])){if(!/^(image|video)\//.test(f.type))continue;if(f.size>100*1024*1024){alert("Files must be 100 MB or smaller.");continue;}if(pending.length<8)pending.push(f);}renderFiles();}
+function addMessage(text,role,attachments=[]){$("welcome").hidden=true;const row=document.createElement("article");row.className="message "+role;const avatar=document.createElement("div");avatar.className="avatar";avatar.textContent=role==="user"?"Y":"R";const body=document.createElement("div");body.className="message-body";const label=document.createElement("div");label.className="message-label";label.textContent=role==="user"?"You":"REDULTRON";const content=document.createElement("div");content.textContent=text;body.append(label,content);if(attachments.length){const previews=document.createElement("div");previews.className="attachment-preview";attachments.forEach(f=>{const url=URL.createObjectURL(f);objectUrls.push(url);if(f.type.startsWith("image/")){const img=document.createElement("img");img.src=url;img.alt=f.name;previews.append(img);}else if(f.type.startsWith("video/")){const wrap=document.createElement("div");wrap.className="video-box";const v=document.createElement("video");v.src=url;v.controls=true;v.playsInline=true;v.preload="metadata";wrap.append(v);previews.append(wrap);}else{const chip=document.createElement("span");chip.className="attachment-chip";chip.textContent=f.name;previews.append(chip);}});body.append(previews);}row.append(avatar,body);$("messages").append(row);$("chatScroll").scrollTop=$("chatScroll").scrollHeight;}
+function submit(){const text=prompt.value.trim();if(!text&&!pending.length)return;const filesNow=pending.slice();addMessage(text||"Please review these attachments.", "user",filesNow);prompt.value="";pending=[];renderFiles();$("sendButton").disabled=true;addMessage("The chat interface is active, but the REDULTRON conversation API is not connected in this build. Your message and media have only been displayed locally; nothing has been sent to an AI backend.", "assistant");}
+$("composer").addEventListener("submit",e=>{e.preventDefault();submit();});
+prompt.addEventListener("input",()=>{$("sendButton").disabled=!prompt.value.trim()&&!pending.length;prompt.style.height="auto";prompt.style.height=Math.min(prompt.scrollHeight,180)+"px";});
+$("attachButton").addEventListener("click",()=>files.click());files.addEventListener("change",e=>{addFiles(e.target.files);files.value="";$("sendButton").disabled=!prompt.value.trim()&&!pending.length;});
+$("cameraButton").addEventListener("click",()=>camera.click());camera.addEventListener("change",e=>{addFiles(e.target.files);camera.value="";$("sendButton").disabled=!prompt.value.trim()&&!pending.length;});
+$("micButton").addEventListener("click",()=>{const SR=window.SpeechRecognition||window.webkitSpeechRecognition;if(!SR){alert("Voice input is not supported by this browser. Try Chrome on Android.");return;}if(recognition){recognition.stop();recognition=null;$("micButton").classList.remove("recording");return;}recognition=new SR();recognition.lang="en-IN";recognition.interimResults=true;recognition.continuous=false;$("micButton").classList.add("recording");recognition.onresult=e=>{let t="";for(let i=e.resultIndex;i<e.results.length;i++)t+=e.results[i][0].transcript;prompt.value=t;$("sendButton").disabled=!t.trim();};recognition.onerror=()=>{};recognition.onend=()=>{$("micButton").classList.remove("recording");recognition=null;};recognition.start();});
+document.querySelectorAll("[data-prompt]").forEach(b=>b.addEventListener("click",()=>{prompt.value=b.dataset.prompt;prompt.focus();$("sendButton").disabled=false;}));
+function newChat(){$("messages").replaceChildren();$("welcome").hidden=false;prompt.value="";pending=[];renderFiles();$("sendButton").disabled=true;closeSidebar();}
+$("newChat").addEventListener("click",newChat);
+function closeSidebar(){$("sidebar").classList.remove("open");$("backdrop").classList.remove("show");}
+$("menuButton").addEventListener("click",()=>{$("sidebar").classList.add("open");$("backdrop").classList.add("show");});$("backdrop").addEventListener("click",closeSidebar);
+function status(){alert("UI preview: loaded locally in the page. Worker authentication, Python execution, live search, and AI chat API are not verified or connected by this screen.");}
+$("statusButton").addEventListener("click",status);$("aboutButton").addEventListener("click",status);
+$("workspaceLink").addEventListener("click",()=>{location.href="./workspace.html";});
+window.addEventListener("pagehide",()=>objectUrls.forEach(URL.revokeObjectURL));
+})();
+</script>
+</body></html>
