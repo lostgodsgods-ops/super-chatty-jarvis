@@ -1920,7 +1920,16 @@ body.auth-locked.simple-view #simpleAuthSlot>section[aria-labelledby="ownerTitle
     $("articleOpen").addEventListener("click",()=>{const raw=articleUrl.value.trim();if(!raw){drawerStatus.textContent="Enter a public HTTPS article URL first.";return;}let url;try{url=new URL(raw);if(url.protocol!=="https:")throw new Error();}catch{drawerStatus.textContent="Use a valid HTTPS URL.";return;}const frame=document.createElement("iframe");frame.title="Sandboxed article preview";frame.referrerPolicy="no-referrer";frame.sandbox="allow-forms allow-popups";frame.src=url.href;openCinema("ARTICLE / MEDIA VIEW",frame,"Sandboxed remote preview. Some sites block iframes; use the source site directly if it does not render.");closeDrawer();});
     $("mediaItems").addEventListener("click",event=>{const media=event.target.closest("img,video");if(!media)return;const clone=media.cloneNode(true);clone.controls=true;clone.style.objectFit="contain";openCinema("LOCAL MEDIA PREVIEW",clone,"Local file preview only; no upload or external transmission occurs.");});
     document.addEventListener("keydown",event=>{if(event.key==="Escape"){closeCinema();closeDrawer();}});
+    let workspaceNavigationPending=false;
+    document.querySelectorAll('a[href="/jarvis/workspace.html"]').forEach(link=>link.addEventListener("click",()=>{workspaceNavigationPending=true;}));
     function lockOwnerOnBackground(reason="App backgrounded; owner verification required.") {
+      if(workspaceNavigationPending){
+        try{if(state.recognition)state.recognition.abort();}catch{}
+        stopHandsFree("Opening Workspace. Voice session stopped.");
+        stopAudioMeter().catch(()=>{});disconnectEvents();clearInterval(state.healthTimer);state.healthTimer=0;
+        log("Owner session handed off to the same-origin Workspace; voice and event streams stopped.","info","SECURITY");
+        return;
+      }
       const token=state.ownerToken,base=workerBaseUrl();
       state.ownerToken="";state.memoryHistory=[];clearOwnerSession(reason);
       try{if(state.recognition)state.recognition.abort();}catch{}
@@ -1933,6 +1942,7 @@ body.auth-locked.simple-view #simpleAuthSlot>section[aria-labelledby="ownerTitle
     document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="hidden"){backgroundLockTriggered=true;lockOwnerOnBackground("app hidden / screen lock");}else if(backgroundLockTriggered){backgroundLockTriggered=false;setOwnerStatus("Locked after backgrounding. Re-verify with password or registered passkey.","warn");}});
     window.addEventListener("pagehide",()=>lockOwnerOnBackground("page hidden or closed"));
     document.addEventListener("freeze",()=>lockOwnerOnBackground("page frozen"));
+    window.addEventListener("pageshow",event=>{if(event.persisted){workspaceNavigationPending=false;resumeOwnerSession();}});
 
     // Lightweight animated particle mesh; capped for phone GPUs and disabled for reduced motion.
     (function initParticleMesh(){
