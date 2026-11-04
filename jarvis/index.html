@@ -154,7 +154,7 @@ body.auth-locked #ownerSessionStatus{font-weight:700}
 /* REDULTRON simple chat-first shell; legacy modules remain available in Workspace. */
 body.simple-view{background:#101318;color:#edf1f5}
 body.simple-view #particleMesh{display:none}
-body.simple-view .shell{width:min(920px,100%);min-height:100vh;padding:12px 14px 118px;gap:12px}
+body.simple-view .shell{width:min(920px,100%);min-height:100vh;padding:12px 14px 118px;gap:12px;justify-content:flex-start}
 body.simple-view .topbar{padding:8px 0 12px;border-bottom:1px solid #303944}
 body.simple-view .brandmark{background:#382126;color:#f07a83;box-shadow:none}
 body.simple-view .brandname{letter-spacing:.04em}
@@ -343,8 +343,8 @@ body.auth-locked.simple-view #simpleAuthSlot>section[aria-labelledby="ownerTitle
 
     <section id="simpleChatShell" aria-label="REDULTRON chat">
       <div class="simple-chat-head"><div><h1>REDULTRON</h1><p>Your AI workspace starts here.</p></div><a class="simple-workspace-link" href="/jarvis/workspace.html">Open workspace ↗</a></div>
-      <div id="simpleMessages" class="simple-messages" role="log" aria-live="polite"><div class="simple-empty" id="simpleEmpty">Ask REDULTRON anything.<br>Your agents, files and system activity are available separately in Workspace.</div></div>
       <div id="simpleAuthSlot" aria-label="Owner sign-in"></div>
+      <div id="simpleMessages" class="simple-messages" role="log" aria-live="polite"><div class="simple-empty" id="simpleEmpty">Ask REDULTRON anything.<br>Your agents, files and system activity are available separately in Workspace.</div></div>
     </section>
     <div class="grid">
       <section class="panel core-panel" aria-labelledby="coreHeading">
