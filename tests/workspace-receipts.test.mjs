@@ -5,7 +5,7 @@ import { readFile } from "node:fs/promises";
 const workspace = await readFile(new URL("../jarvis/workspace.html", import.meta.url), "utf8");
 
 test("workspace exposes an honest execution receipt panel", () => {
-  for (const id of ["receipts", "receiptFeed", "receiptCount"]) {
+  for (const id of ["workspaceReceipts", "receiptFeed", "receiptCount"]) {
     assert.ok(workspace.includes('id="' + id + '"'), "missing receipt UI: " + id);
   }
   for (const state of ["PASS", "FAIL", "BLOCKED", "NOT TESTED"]) {
