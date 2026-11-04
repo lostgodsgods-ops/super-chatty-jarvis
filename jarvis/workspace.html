@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#101318">
+<meta name="description" content="REDULTRON CORE 3.0 owner workspace and evidence monitor">
+<link rel="manifest" href="./manifest.webmanifest">
+<title>REDULTRON · Workspace</title>
+<style>
+:root{color-scheme:dark;--bg:#101318;--panel:#191e25;--panel2:#202731;--line:#303944;--text:#edf1f5;--muted:#9aa6b2;--red:#ed5964;--cyan:#64d8e8;--green:#63d6a0;--amber:#f1bd68}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font:15px/1.5 system-ui,-apple-system,Segoe UI,sans-serif}
+button,a,input{font:inherit}a{color:var(--cyan)}button{border:1px solid var(--line);background:var(--panel2);color:var(--text);border-radius:10px;padding:9px 12px;cursor:pointer}button:focus-visible,a:focus-visible,input:focus-visible{outline:2px solid var(--cyan);outline-offset:2px}
+.app{max-width:1280px;margin:auto;padding:16px 16px calc(30px + env(safe-area-inset-bottom))}
+header{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:8px 0 16px;border-bottom:1px solid var(--line)}
+.brand{font-weight:800;letter-spacing:.06em}.brand span{color:var(--red)}.header-actions{display:flex;gap:8px;align-items:center}
+.status{font-size:12px;color:var(--muted);padding:7px 10px;border:1px solid var(--line);border-radius:99px}
+.layout{display:grid;grid-template-columns:210px minmax(0,1fr);gap:16px;margin-top:16px}
+nav{display:flex;flex-direction:column;gap:6px;align-self:start;position:sticky;top:12px}
+nav button{text-align:left;background:transparent;border-color:transparent;color:var(--muted)}
+nav button[aria-current="page"]{background:#382126;border-color:#63313a;color:#fff}
+main{min-width:0}.intro{margin:4px 0 14px}.intro h1{font-size:23px;margin:0 0 3px}.intro p{color:var(--muted);margin:0;font-size:13px}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:15px;padding:16px;margin-bottom:12px;min-width:0}
+.panel h2{font-size:15px;margin:0 0 12px}.muted{color:var(--muted);font-size:12px}
+.cards{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}.metric{background:var(--panel2);border:1px solid var(--line);padding:12px;border-radius:12px;min-width:0}.metric strong{display:block;font-size:19px;overflow-wrap:anywhere}.metric span{font-size:11px;color:var(--muted)}
+.feed{display:flex;flex-direction:column;gap:8px;max-height:440px;overflow:auto}.event{border:1px solid var(--line);background:#151a20;border-radius:10px;padding:10px 12px;overflow-wrap:anywhere}.event strong{display:block;font-size:13px}.event p{font-size:12px;color:var(--muted);margin:4px 0 0}.event time{font-size:10px;color:var(--muted)}
+.badge{font-size:10px;padding:3px 7px;border-radius:99px;background:#303944;color:var(--muted);display:inline-block}.badge.ok{color:var(--green)}.badge.warn{color:var(--amber)}.badge.fail{color:var(--red)}
+.section{display:none}.section.active{display:block}
+.file-list{display:grid;gap:7px}.file-row{padding:10px;border:1px solid var(--line);border-radius:9px;color:var(--muted);font-size:12px;overflow-wrap:anywhere}
+pre{white-space:pre-wrap;overflow-wrap:anywhere;background:#10151b;border:1px solid var(--line);padding:12px;border-radius:10px;font:12px/1.5 ui-monospace,monospace;max-height:420px;overflow:auto}
+@media(max-width:720px){.app{padding:10px 10px calc(20px + env(safe-area-inset-bottom))}.layout{grid-template-columns:1fr}.layout nav{position:static;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:5px}.layout nav button{text-align:center;padding:8px 4px;font-size:11px}.cards{grid-template-columns:repeat(2,minmax(0,1fr))}.intro h1{font-size:20px}header{align-items:flex-start}.status{display:none}}
+</style>
+</head>
+<body>
+<div class="app">
+<header><div class="brand">REDULTRON <span>CORE 3.0</span> · WORKSPACE</div><div class="header-actions"><span class="status" id="connectionState">Checking owner session…</span><a href="/">Back to chat</a></div></header>
+<div class="layout">
+<nav aria-label="Workspace sections">
+<button data-section="overview" aria-current="page">Overview</button>
+<button data-section="brain">Brain & Tasks</button>
+<button data-section="agents">Agents</button>
+<button data-section="files">Files</button>
+<button data-section="system">System Monitor</button>
+<button data-section="terminal">Activity Logs</button>
+<button data-section="code">Code Studio</button>
+<button data-section="missions">Mission History</button>
+</nav>
+<main>
+<div class="intro"><h1 id="sectionTitle">Workspace overview</h1><p id="sectionDescription">A separate view of REDULTRON's real activity and system evidence.</p></div>
+<section class="section active" id="workspaceOverview">
+<div class="cards">
+<div class="metric"><strong id="ownerState">CHECKING</strong><span>Owner session</span></div>
+<div class="metric"><strong id="workerState">CHECKING</strong><span>Worker health</span></div>
+<div class="metric"><strong id="eventCount">0</strong><span>Events received this visit</span></div>
+</div>
+<div class="panel" style="margin-top:12px"><h2>Recent activity</h2><div class="feed" id="overviewFeed"><div class="event"><strong>Waiting for authenticated event feed</strong><p>No activity is assumed until received from the backend.</p></div></div></div>
+</section>
+<section class="section" id="workspaceBrain"><div class="panel"><h2>Brain & task timeline</h2><p class="muted">High-level task states and recorded events only. This view does not expose private model reasoning.</p><div class="feed" id="brainFeed"><div class="event"><strong>No task events received</strong><p>Task activity will appear here when the backend publishes it.</p></div></div></div></section>
+<section class="section" id="workspaceAgents"><div class="panel"><h2>Agent activity</h2><p class="muted">Agent starts, completions and failures from the Central Event Bus.</p><div class="feed" id="agentFeed"><div class="event"><strong>Awaiting agent events</strong></div></div></div></section>
+<section class="section" id="workspaceFiles"><div class="panel"><h2>Files</h2><p class="muted">Choose files to view their names and sizes locally. This panel does not upload or transmit files.</p><label for="workspaceFilePicker">Select local files</label><input id="workspaceFilePicker" type="file" multiple style="display:block;margin:12px 0"><div class="file-list" id="workspaceFileList"><div class="file-row">No files selected · LOCAL FILES ONLY</div></div></div></section>
+<section class="section" id="workspaceSystem"><div class="panel"><h2>System Monitor</h2><div class="cards"><div class="metric"><strong id="monitorWorker">NOT TESTED</strong><span>Cloudflare Worker</span></div><div class="metric"><strong id="monitorAuth">NOT TESTED</strong><span>Owner session</span></div><div class="metric"><strong id="monitorBus">NOT TESTED</strong><span>Event stream</span></div></div><div class="event" id="healthDetails" style="margin-top:12px"><strong>Health evidence pending</strong><p>Direct HTTP response will be recorded here.</p></div><h2 style="margin-top:16px">Backend modules</h2><div class="feed" id="moduleFeed"><div class="event">Not loaded</div></div></div></section>
+<section class="section" id="workspaceTerminal"><div class="panel"><h2>Activity logs</h2><p class="muted">Read-only event summaries. No shell command execution is available from this page.</p><pre id="workspaceLogs">Waiting for real backend events…</pre></div></section>
+<section class="section" id="workspaceCode"><div class="panel"><h2>Code Studio</h2><p class="muted">Repository review surface. This page does not edit or commit code.</p><p><a href="https://github.com/lostgodsgods-ops/super-chatty-jarvis" target="_blank" rel="noopener noreferrer">Open REDULTRON repository</a></p><div class="event"><strong>Implementation evidence</strong><p>Use actual commit SHAs, pull requests and CI runs when reporting code changes. No simulated build status is displayed.</p></div></div></section>
+<section class="section" id="workspaceMissions"><div class="panel"><h2>Mission history</h2><div class="feed" id="missionFeed"><div class="event"><strong>No mission events received</strong></div></div></div></section>
+</main>
+</div>
+</div>
+<script>
+(() => {
+"use strict";
+const $=id=>document.getElementById(id);
+const state={cursor:0,count:0,events:[],controller:null,closed:false,locked:false};
+const labels={overview:["Workspace overview","A simple view of current status and recent activity."],brain:["Brain & Tasks","High-level task states and recorded evidence."],agents:["Agents","Real agent run events from the backend."],files:["Files","Local file selection only; nothing is uploaded."],system:["System Monitor","Direct health and authenticated connection checks."],terminal:["Activity Logs","Read-only event summaries; no shell command execution."],code:["Code Studio","Repository and verification references."],missions:["Mission History","Recorded mission events, not estimated progress."]};
+function addEvent(target,title,detail,when){const row=document.createElement("div");row.className="event";const strong=document.createElement("strong");strong.textContent=title;const p=document.createElement("p");p.textContent=detail||"";const time=document.createElement("time");time.textContent=when||new Date().toLocaleString();row.append(strong,p,time);target.prepend(row);while(target.children.length>60)target.lastElementChild.remove();}
+function setBadge(id,value,kind){const node=$(id);if(node){node.textContent=value;node.className="badge "+(kind||"");}}
+function showSection(name){for(const button of document.querySelectorAll("nav button"))button.setAttribute("aria-current",button.dataset.section===name?"page":"false");for(const section of document.querySelectorAll(".section"))section.classList.remove("active");const map={overview:"workspaceOverview",brain:"workspaceBrain",agents:"workspaceAgents",files:"workspaceFiles",system:"workspaceSystem",terminal:"workspaceTerminal",code:"workspaceCode",missions:"workspaceMissions"};$(map[name]).classList.add("active");$("sectionTitle").textContent=labels[name][0];$("sectionDescription").textContent=labels[name][1];}
+document.querySelectorAll("nav button").forEach(button=>button.addEventListener("click",()=>showSection(button.dataset.section)));
+$("workspaceFilePicker").addEventListener("change",event=>{const files=Array.from(event.target.files||[]);const list=$("workspaceFileList");list.replaceChildren();if(!files.length){const row=document.createElement("div");row.className="file-row";row.textContent="No files selected · LOCAL FILES ONLY";list.append(row);return;}for(const file of files.slice(0,40)){const row=document.createElement("div");row.className="file-row";row.textContent=file.name+" · "+Math.max(1,Math.round(file.size/1024))+" KB · local only";list.append(row);}});
+async function checkOwner(){const response=await fetch("/auth/session",{credentials:"include",cache:"no-store",headers:{accept:"application/json"}});if(!response.ok)throw new Error("Owner session required · sign in from the chat home screen.");const data=await response.json();if(data.authenticated!==true)throw new Error("Owner session not verified.");$("ownerState").textContent="VERIFIED";$("monitorAuth").textContent="PASS";$("connectionState").textContent="OWNER VERIFIED";}
+async function checkHealth(){const response=await fetch("/health",{credentials:"omit",cache:"no-store",headers:{accept:"application/json"}});const data=await response.json().catch(()=>({}));$("workerState").textContent=response.ok&&data.ok===true?"HEALTHY":"HTTP "+response.status;$("monitorWorker").textContent=response.ok&&data.ok===true?"PASS":"FAIL";$("healthDetails").replaceChildren();const title=document.createElement("strong");title.textContent="Worker · HTTP "+response.status;const detail=document.createElement("p");detail.textContent="Service: "+String(data.service||"not reported")+" · Version: "+String(data.version||"not reported")+" · Checked: "+new Date().toLocaleString();$("healthDetails").append(title,detail);}
+async function loadModules(){const response=await fetch("/api/modules",{credentials:"include",cache:"no-store",headers:{accept:"application/json"}});if(!response.ok)throw new Error("Module registry HTTP "+response.status);const data=await response.json();const list=$("moduleFeed");list.replaceChildren();for(const module of data.modules||[]){const row=document.createElement("div");row.className="event";const title=document.createElement("strong");title.textContent=module.id+" · v"+module.version;const detail=document.createElement("p");detail.textContent=(module.capabilities||[]).join(" · ");row.append(title,detail);list.append(row);}}
+function routeEvent(event){state.count++;state.events.unshift(event);state.events=state.events.slice(0,100);$("eventCount").textContent=String(state.count);const safeKeys=["status","taskId","role","requestId","moduleId","mode","code","errorCode","ok","count","sourceCount","itemCount","authenticated","sideEffectsExecuted"];const summary={};for(const key of safeKeys){const value=event.payload&&event.payload[key];if(["string","number","boolean"].includes(typeof value))summary[key]=String(value).slice(0,180);}const detail=Object.keys(summary).length?JSON.stringify(summary):"Event received; private payload omitted.";const title=event.type+" · "+event.source;const when=event.createdAt||new Date().toISOString();addEvent($("overviewFeed"),title,detail,when);const type=String(event.type||"");if(/brain|task|mission|goal/i.test(type))addEvent($("brainFeed"),title,detail,when);if(/agent/i.test(type))addEvent($("agentFeed"),title,detail,when);if(/mission|task|goal/i.test(type))addEvent($("missionFeed"),title,detail,when);const line=new Date(when).toISOString()+"  "+title+"  "+detail;$("workspaceLogs").textContent=(line+"\n"+$("workspaceLogs").textContent).slice(0,12000);if(type==="heartbeat"){$("monitorBus").textContent="CONNECTED";}}
+async function connectEvents(){let retries=0;while(!state.closed){try{state.controller=new AbortController();const response=await fetch("/api/events?after="+state.cursor,{credentials:"include",cache:"no-store",headers:{accept:"text/event-stream"},signal:state.controller.signal});if(!response.ok)throw new Error("Event feed HTTP "+response.status);if(!response.body)throw new Error("Streaming response unavailable");$("monitorBus").textContent="CONNECTED";const reader=response.body.getReader();const decoder=new TextDecoder();let buffer="";while(!state.closed){const result=await reader.read();if(result.done)break;buffer+=decoder.decode(result.value,{stream:true});let split;while((split=buffer.indexOf("\n\n"))>=0){const packet=buffer.slice(0,split);buffer=buffer.slice(split+2);let id=0,data="{}";for(const line of packet.split("\n")){if(line.startsWith("id:"))id=Number(line.slice(3).trim())||0;if(line.startsWith("data:"))data=line.slice(5).trim();}if(id>state.cursor)state.cursor=id;try{const parsed=JSON.parse(data);if(parsed.source)routeEvent({id,type:packet.match(/^event: (.+)$/m)?.[1]||"event",source:parsed.source,payload:parsed.payload||{},createdAt:parsed.createdAt});}catch{}}}await reader.cancel().catch(()=>{});state.controller=null;retries=0;await new Promise(resolve=>setTimeout(resolve,300));}catch(error){$("monitorBus").textContent="RECONNECTING";if(retries===0)addEvent($("overviewFeed"),"Event stream reconnecting",error.message);retries=Math.min(retries+1,6);await new Promise(resolve=>setTimeout(resolve,Math.min(1000*retries,8000)));}}}
+async function init(){try{await checkOwner();await Promise.all([checkHealth(),loadModules()]);connectEvents();}catch(error){$("connectionState").textContent="LOCKED";$("ownerState").textContent="LOCKED";$("monitorAuth").textContent="BLOCKED";$("monitorBus").textContent="BLOCKED";addEvent($("overviewFeed"),"Owner sign-in required",error.message);const warning=document.createElement("div");warning.className="event";warning.innerHTML='<strong>Workspace locked</strong><p>Return to chat home, sign in with your Owner account, then reopen Workspace.</p><a href="./index.html">Return to chat home</a>';$("overviewFeed").prepend(warning);}}
+function lockWorkspaceSession(){if(state.locked)return;state.locked=true;state.closed=true;if(state.controller)state.controller.abort();fetch("/auth/logout",{method:"POST",credentials:"include",cache:"no-store",keepalive:true,headers:{accept:"application/json"}}).catch(()=>{});$("connectionState").textContent="LOCKED";$("ownerState").textContent="LOCKED";}
+document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="hidden")lockWorkspaceSession();});
+window.addEventListener("pagehide",lockWorkspaceSession);
+window.addEventListener("pageshow",event=>{if(event.persisted)window.location.reload();});
+init();
+})();
+</script>
+</body>
+</html>
