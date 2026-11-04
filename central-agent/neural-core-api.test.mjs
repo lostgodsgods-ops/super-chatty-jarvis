@@ -276,3 +276,22 @@ test("POST plan operation blocks before provider dispatch when emergency stop is
   assert.equal(invoked, false);
   assert.equal(events.at(-1).type, "neural_core.reasoning.failed");
 });
+
+
+test("POST accepts a valid numeric Content-Length header", async () => {
+  const body = JSON.stringify({ prompt: "content length regression" });
+  const request = new Request("https://example.test/api/neural-core", {
+    method: "POST",
+    headers: {
+      "content-type": "application/json",
+      "content-length": String(new TextEncoder().encode(body).byteLength)
+    },
+    body
+  });
+  const response = await handleNeuralCoreRequest(request, {}, {
+    core: makeCore(),
+    publishEvent: async () => ({ ok: true })
+  });
+  assert.equal(response.status, 200);
+  assert.equal((await response.json()).result.text, "Reasoned result");
+});
