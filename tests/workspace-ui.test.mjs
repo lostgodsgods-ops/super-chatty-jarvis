@@ -15,7 +15,7 @@ test("home presents a simple chat-first surface with a separate workspace entry"
 });
 
 test("service worker precaches the new workspace and advances the shell cache", () => {
-  assert.match(serviceWorker, /redultron-core-shell-v21-chat-workspace/);
+  assert.match(serviceWorker, /redultron-core-shell-v21-core-3/);
   assert.match(serviceWorker, /"\.\/workspace\.html"/);
 });
 
