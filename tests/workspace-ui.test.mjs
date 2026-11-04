@@ -40,6 +40,20 @@ test("workspace authenticates with the existing cookie-backed owner session", ()
   assert.doesNotMatch(workspace, /localStorage\.setItem\([^)]*(token|session)/i);
 });
 
+test("home preserves authentication only for the explicit same-origin workspace handoff", () => {
+  assert.ok(home.includes('a[href="/jarvis/workspace.html"]'));
+  assert.ok(home.includes("workspaceNavigationPending=true"));
+  assert.ok(home.includes("Owner session handed off to the same-origin Workspace"));
+  assert.ok(home.includes("event.persisted"));
+});
+
+test("workspace revokes the cookie session and aborts its event stream when hidden or exited", () => {
+  assert.ok(workspace.includes('fetch("/auth/logout"'));
+  assert.ok(workspace.includes('document.addEventListener("visibilitychange"'));
+  assert.ok(workspace.includes("window.addEventListener(\"pagehide\",lockWorkspaceSession)"));
+  assert.ok(workspace.includes("state.controller.abort()"));
+});
+
 test("workspace limits event display and does not execute shell commands or upload local files", () => {
   assert.ok(workspace.includes("LOCAL FILES ONLY"));
   assert.ok(workspace.includes("No shell command execution"));
