@@ -98,6 +98,49 @@ const LIVE_SEARCH_FUNCTION = `async function runLiveSearch(query, env, language)
     }, 502);
   }
 
+  // Preserve the Central Agent's explicit status-only fallback as a valid route response.
+  // It proves gateway availability, not live search; never fabricate sources or current evidence.
+  if (payload?.ok === true &&
+      payload?.provider === "guarded-fallback" &&
+      payload?.fallback === true &&
+      payload?.liveSearchVerified === false &&
+      payload?.core?.webSearchExecuted === false &&
+      Array.isArray(payload?.sources) &&
+      payload.sources.length === 0 &&
+      Array.isArray(payload?.results) &&
+      payload.results.every((item) => item?.isSearchResult === false)) {
+    return json2({
+      ok: true,
+      provider: "guarded-fallback",
+      query: query.slice(0, 400),
+      reply: typeof payload.reply === "string"
+        ? payload.reply.slice(0, 600)
+        : "Live search is temporarily unavailable. No verified web sources were returned.",
+      model: "guarded-fallback",
+      sources: [],
+      results: [{
+        title: "Live search temporarily unavailable",
+        url: "https://shrill-silence-164f.lostgodsgods.workers.dev/health",
+        description: "Status-only fallback; this is not a search result.",
+        kind: "status",
+        isSearchResult: false
+      }],
+      fallback: true,
+      liveSearchVerified: false,
+      core: {
+        ...(payload.core || {}),
+        intent: "web_search",
+        webSearchExecuted: false,
+        searchProvider: "guarded-fallback",
+        sourceCount: 0,
+        fallback: true,
+        liveSearchVerified: false,
+        requiresTaskApproval: false,
+        externalActionsPerformed: false
+      }
+    }, 200);
+  }
+
   const CHAT_SEARCH_FALLBACK_ENDPOINT = CENTRAL_AGENT_CHAT_ENDPOINT;
   if (payload?.ok !== true || !Array.isArray(payload?.sources) || payload.sources.length === 0) {
     try {

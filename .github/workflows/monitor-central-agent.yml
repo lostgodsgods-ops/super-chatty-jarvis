@@ -136,7 +136,7 @@ jobs:
           test -n "$AGENT_GATEWAY_TOKEN" || { echo "::error::Missing AGENT_GATEWAY_TOKEN"; exit 1; }
           tmp="$(mktemp)"
           trap 'rm -f "$tmp"; unset AGENT_GATEWAY_TOKEN' EXIT
-          code="$(curl --silent --show-error --max-time 20 --output "$tmp" --write-out '%{http_code}' -H 'content-type: application/json' -H "authorization: Bearer $AGENT_GATEWAY_TOKEN" -X POST "$CENTRAL_AGENT_URL/internal/search" --data '{"query":"Cloudflare Workers health checks documentation","language":"en-IN"}')"
+          code="$(curl --silent --show-error --max-time 20 --output "$tmp" --write-out '%{http_code}' -H 'content-type: application/json' -H "authorization: Bearer $AGENT_GATEWAY_TOKEN" -X POST "$CENTRAL_AGENT_URL/internal/search" --data '{"query":"latest Cloudflare Workers health check updates 2026","language":"en-IN"}')"
           if [[ "$code" != "200" ]]; then
             echo "::error::Scoped bridge endpoint /internal/search failed with HTTP $code"
             node -e 'const fs=require("fs"); try {const x=JSON.parse(fs.readFileSync(process.argv[1],"utf8")); console.log(JSON.stringify({error:x.error||"Bridge search failed",code:x.code||null}));} catch {console.log("Bridge response was not valid JSON.");}' "$tmp"
@@ -203,7 +203,7 @@ jobs:
           else
             node -e 'const fs=require("node:fs"); const x=JSON.parse(fs.readFileSync(process.argv[1],"utf8")); if(x.ok!==true||typeof x.reply!=="string"||!x.reply.trim()||x.core?.intent!=="chat"||x.core?.externalActionsPerformed!==false) throw Error("Expected a real AI chat reply with no external actions"); console.log(JSON.stringify({ok:x.ok,provider:x.provider,model:x.model,replyLength:x.reply.length,intent:x.core.intent,externalActionsPerformed:x.core.externalActionsPerformed}));' "$tmp/chat.json"
           fi
-          search_code="$(curl --silent --show-error --max-time 25 --output "$tmp/search.json" --write-out '%{http_code}' -H 'content-type: application/json' -H "authorization: Bearer $AGENT_GATEWAY_TOKEN" -X POST "$PASSKEY_WORKER_URL/internal/search-smoke" --data '{"query":"Cloudflare Workers health checks documentation"}')"
+          search_code="$(curl --silent --show-error --max-time 25 --output "$tmp/search.json" --write-out '%{http_code}' -H 'content-type: application/json' -H "authorization: Bearer $AGENT_GATEWAY_TOKEN" -X POST "$PASSKEY_WORKER_URL/internal/search-smoke" --data '{"query":"latest Cloudflare Workers health check updates 2026"}')"
           if [[ "$search_code" != "200" ]]; then
             echo "::error::Talk to Chatty PWA Tavily proxy failed with HTTP $search_code"
             node -e 'const fs=require("node:fs"); try {const x=JSON.parse(fs.readFileSync(process.argv[1],"utf8")); console.log(JSON.stringify({error:x.error||"Search proxy failed",code:x.code||null,providerStatus:x.providerStatus||null,upstreamPath:x.upstreamPath||null}));} catch {console.log("Search response was not valid JSON.");}' "$tmp/search.json"
