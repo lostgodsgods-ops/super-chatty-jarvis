@@ -179,3 +179,17 @@ test("upgrades an already-patched staging health route from the stale Tavily lab
   assert.match(upgraded, /searchProvider: "central-agent-search", searchStrategy: "open-source-first"/);
   assert.doesNotMatch(upgraded, /liveSearchConfigured: Boolean\(env\.SEARCH_BRIDGE_TOKEN\), searchProvider: "tavily"/);
 });
+
+
+test("preserves an explicit guarded search fallback as HTTP 200 without claiming live evidence", () => {
+  const result = patchWorkerBundle(fixture);
+  const start = result.indexOf("async function runLiveSearch");
+  const end = result.indexOf('__name(runLiveSearch, "runLiveSearch");', start);
+  const searchFunction = result.slice(start, end);
+  assert.match(searchFunction, /payload\?\.provider === "guarded-fallback"/);
+  assert.match(searchFunction, /payload\?\.fallback === true/);
+  assert.match(searchFunction, /liveSearchVerified: false/);
+  assert.match(searchFunction, /webSearchExecuted: false/);
+  assert.match(searchFunction, /sources: \[\]/);
+  assert.match(searchFunction, /}, 200\);/);
+});
