@@ -154,7 +154,7 @@ jobs:
           test -n "$AGENT_GATEWAY_TOKEN" || { echo "::error::Missing AGENT_GATEWAY_TOKEN"; exit 1; }
           tmp="$(mktemp)"
           trap 'rm -f "$tmp"; unset AGENT_GATEWAY_TOKEN' EXIT
-          code="$(curl --silent --show-error --max-time 30 --output "$tmp" --write-out '%{http_code}' -H 'content-type: application/json' -H "authorization: Bearer $AGENT_GATEWAY_TOKEN" -X POST "$CENTRAL_AGENT_URL/chat" --data '{"message":"What is the latest 2026 Cloudflare Workers update?","language":"en-IN"}')"
+          code="$(curl --silent --show-error --max-time 30 --output "$tmp" --write-out '%{http_code}' -H 'content-type: application/json' -H "authorization: Bearer $AGENT_GATEWAY_TOKEN" -X POST "$CENTRAL_AGENT_URL/chat" --data '{"message":"latest Cloudflare Workers health check updates 2026","language":"en-IN"}')"
           if [[ "$code" != "200" ]]; then
             if node -e 'const fs=require("fs"); try {const x=JSON.parse(fs.readFileSync(process.argv[1],"utf8")); process.exit(x.code==="AI_QUOTA_EXHAUSTED"?0:1)} catch {process.exit(1)}' "$tmp"; then
               echo "Current-information chat DEGRADED: model quota exhausted; separate Tavily search-proxy checks remain mandatory."
