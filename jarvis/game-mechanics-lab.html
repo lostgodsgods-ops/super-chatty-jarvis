@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#080d14">
+<title>REDULTRON · Mechanics Lab</title>
+<style>
+:root{color-scheme:dark;--bg:#070b12;--panel:#101a27;--line:#244357;--cyan:#62e6ff;--muted:#9bb1c1;--green:#72e2b2;--amber:#ffc477}
+*{box-sizing:border-box}body{margin:0;background:radial-gradient(ellipse at 20% 0,#123044 0,transparent 45%),var(--bg);color:#e9f7ff;font:14px/1.5 system-ui,sans-serif}
+main{max-width:1100px;margin:auto;padding:22px 16px 48px}.top{display:flex;justify-content:space-between;gap:14px;align-items:center;flex-wrap:wrap;margin-bottom:20px}
+h1{font-size:clamp(22px,5vw,34px);margin:0;letter-spacing:.04em}h1 span{color:var(--cyan)}p{color:var(--muted)}
+.pill{border:1px solid #39715e;color:var(--green);padding:6px 10px;border-radius:99px;font-size:11px;font-weight:800}
+.grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}.card,.panel{background:linear-gradient(145deg,#142333,#0c1520);border:1px solid var(--line);border-radius:16px;padding:16px;min-width:0}
+.metric strong{font-size:27px;display:block;color:var(--cyan);font-variant-numeric:tabular-nums}.metric small{color:var(--muted);font-size:10px;letter-spacing:.1em;text-transform:uppercase}
+.layout{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px}.panel h2{font-size:13px;letter-spacing:.12em;text-transform:uppercase;color:var(--cyan);margin:0 0 12px}
+.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}select,button{font:inherit;border-radius:10px;padding:10px 12px;border:1px solid #376078;background:#0b1722;color:#e9f7ff;min-height:42px}button{cursor:pointer;background:#123247;color:var(--cyan);font-weight:750}button.secondary{background:#17212b;color:#d6e5ed}button:focus-visible,select:focus-visible{outline:2px solid var(--cyan);outline-offset:2px}
+table{width:100%;border-collapse:collapse;font-size:12px}th,td{text-align:left;padding:9px 6px;border-bottom:1px solid #223746}th{color:var(--muted);font-size:10px;text-transform:uppercase;letter-spacing:.08em}
+.timeline{display:grid;gap:8px}.event{display:flex;justify-content:space-between;gap:10px;padding:9px 10px;border:1px solid #233b4c;border-radius:10px;background:#0a1520}.event b{font-size:12px}.event small{color:var(--muted)}
+.note{font-size:11px;border-left:3px solid var(--amber);padding:8px 11px;background:#ffc4770b;color:#d7c5a9;margin-top:14px}
+.empty{color:var(--muted);font-size:12px;padding:12px 0}
+@media(max-width:720px){.grid{grid-template-columns:repeat(2,minmax(0,1fr))}.layout{grid-template-columns:1fr}main{padding:16px 12px 32px}}
+</style>
+</head>
+<body>
+<main>
+<header class="top"><div><h1>REDULTRON <span>MECHANICS LAB</span></h1><p>Local observation dashboard · evidence-first · no external connection</p></div><span class="pill">READ-ONLY DEMO</span></header>
+<section class="grid" aria-label="Observation summary">
+<div class="card metric"><strong id="samples">0</strong><small>Observed events</small></div>
+<div class="card metric"><strong id="states">0</strong><small>Distinct UI states</small></div>
+<div class="card metric"><strong id="repeats">0</strong><small>Repeated sequences</small></div>
+<div class="card metric"><strong id="latest">—</strong><small>Latest state</small></div>
+</section>
+<section class="layout">
+<div class="panel">
+<h2>Record visible UI state</h2>
+<p>Use only what is visibly displayed. The sample data stays in this browser tab and is not uploaded.</p>
+<div class="row"><select id="state" aria-label="Visible UI state"><option>UNKNOWN</option><option>IDLE</option><option>COUNTDOWN</option><option>ENTRY_WINDOW</option><option>LOCKED</option><option>SPINNING</option><option>RESULT</option><option>SETTLEMENT</option><option>NEXT_ROUND</option></select><button id="add">Add observation</button><button id="sample" class="secondary">Load demo sequence</button><button id="clear" class="secondary">Clear</button></div>
+<div class="note">This lab analyzes interface-state history only. It does not calculate winning odds, predict game outcomes, place wagers, or connect to player accounts.</div>
+</div>
+<div class="panel">
+<h2>State distribution</h2><div id="distribution" class="timeline"><div class="empty">No observations yet.</div></div>
+</div>
+<div class="panel">
+<h2>Recent observation timeline</h2><div id="timeline" class="timeline"><div class="empty">Add a visible state or load the sample sequence.</div></div>
+</div>
+<div class="panel">
+<h2>Analysis boundaries</h2>
+<table><tbody>
+<tr><th>Data source</th><td>Manual / demo only</td></tr>
+<tr><th>Storage</th><td>In-memory tab session</td></tr>
+<tr><th>Identity fields</th><td>Not collected</td></tr>
+<tr><th>External requests</th><td>None</td></tr>
+<tr><th>Outcome prediction</th><td>Disabled by design</td></tr>
+</tbody></table>
+</div>
+</section>
+</main>
+<script>
+(()=>{"use strict";
+const allowed=["UNKNOWN","IDLE","COUNTDOWN","ENTRY_WINDOW","LOCKED","SPINNING","RESULT","SETTLEMENT","NEXT_ROUND"];
+const rows=[];const $=id=>document.getElementById(id);
+function add(state){if(!allowed.includes(state))return;rows.push({state,at:new Date().toLocaleTimeString()});render();}
+function render(){
+$("samples").textContent=rows.length;
+$("states").textContent=new Set(rows.map(x=>x.state)).size;
+$("latest").textContent=rows.at(-1)?.state??"—";
+const counts=Object.fromEntries(allowed.map(s=>[s,0]));rows.forEach(x=>counts[x.state]++);
+const windows=new Map();for(let i=0;i<=rows.length-3;i++){const key=rows.slice(i,i+3).map(x=>x.state).join(">");windows.set(key,(windows.get(key)||0)+1);}const repeated=[...windows.values()].filter(n=>n>1).length;
+$("repeats").textContent=repeated;
+const dist=allowed.filter(s=>counts[s]).map(s=>'<div class="event"><b>'+s+'</b><small>'+counts[s]+' event(s) · '+Math.round(counts[s]/rows.length*100)+'%</small></div>').join("");
+$("distribution").innerHTML=dist||'<div class="empty">No observations yet.</div>';
+$("timeline").innerHTML=rows.slice(-12).reverse().map(x=>'<div class="event"><b>'+x.state+'</b><small>'+x.at+'</small></div>').join("")||'<div class="empty">No observations yet.</div>';
+}
+$("add").addEventListener("click",()=>add($("state").value));
+$("sample").addEventListener("click",()=>{["IDLE","COUNTDOWN","ENTRY_WINDOW","LOCKED","SPINNING","RESULT","SETTLEMENT","NEXT_ROUND"].forEach(add);});
+$("clear").addEventListener("click",()=>{rows.length=0;render();});
+render();
+})();
+</script>
+</body>
+</html>
