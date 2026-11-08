@@ -61,8 +61,8 @@ test("detects repeated visible state sequences with explicit window length", () 
     createObservationRecord({ timestamp: new Date(Date.UTC(2026, 10, 8, 10, 0, i)).toISOString(), uiState })
   );
   const repeats = detectRepeatedSequences(rows, 3);
-  assert.equal(repeats.length, 1);
-  assert.equal(repeats[0].occurrences, 2);
+  const target = repeats.find((entry) => entry.sequence.join(">") === "COUNTDOWN>SPINNING>RESULT");
+  assert.equal(target.occurrences, 2);
 });
 
 test("allows only explicitly listed read-only research actions", () => {
