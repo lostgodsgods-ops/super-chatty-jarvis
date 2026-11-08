@@ -66,7 +66,7 @@ $("samples").textContent=rows.length;
 $("states").textContent=new Set(rows.map(x=>x.state)).size;
 $("latest").textContent=rows.at(-1)?.state??"—";
 const counts=Object.fromEntries(allowed.map(s=>[s,0]));rows.forEach(x=>counts[x.state]++);
-const repeated=rows.length<6?0:Math.max(0,rows.length-5);
+const windows=new Map();for(let i=0;i<=rows.length-3;i++){const key=rows.slice(i,i+3).map(x=>x.state).join(">");windows.set(key,(windows.get(key)||0)+1);}const repeated=[...windows.values()].filter(n=>n>1).length;
 $("repeats").textContent=repeated;
 const dist=allowed.filter(s=>counts[s]).map(s=>'<div class="event"><b>'+s+'</b><small>'+counts[s]+' event(s) · '+Math.round(counts[s]/rows.length*100)+'%</small></div>').join("");
 $("distribution").innerHTML=dist||'<div class="empty">No observations yet.</div>';
