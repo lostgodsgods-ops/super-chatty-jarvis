@@ -131,3 +131,21 @@ test("approval refuses missing or repeated pending records", async () => {
   assert.equal(result.error, "PENDING_KNOWLEDGE_NOT_FOUND");
   assert.equal(db.state.promoted, false);
 });
+
+
+test("learning operations do not execute schema DDL at request time", async () => {
+  const db = mockDb();
+
+  const saved = await saveVerifiedKnowledge(db, valid);
+  const searched = await searchVerifiedKnowledge(db, "Cloudflare authentication");
+  const approved = await approvePendingKnowledge(db, "pending-1", {
+    ownerAuthenticated: true,
+    approvalPhrase: "APPROVE_KNOWLEDGE"
+  });
+
+  assert.equal(saved.ok, true);
+  assert.equal(searched.ok, true);
+  assert.equal(approved.ok, true);
+  assert.equal(db.state.schemaCalls, 0, "D1 schema must be provisioned only by the approved migration workflow");
+  assert.equal(db.state.statements.some(({ sql }) => /^CREATE (?:TABLE|INDEX)/i.test(sql)), false);
+});
