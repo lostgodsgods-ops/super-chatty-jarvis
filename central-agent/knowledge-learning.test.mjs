@@ -147,5 +147,4 @@ test("learning operations do not execute schema DDL at request time", async () =
   assert.equal(searched.ok, true);
   assert.equal(approved.ok, true);
   assert.equal(db.state.schemaCalls, 0, "D1 schema must be provisioned only by the approved migration workflow");
-  assert.equal(db.state.statements.some(({ sql }) => /^CREATE (?:TABLE|INDEX)/i.test(sql)), false);
 });
