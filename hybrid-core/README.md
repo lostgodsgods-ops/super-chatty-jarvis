@@ -37,7 +37,8 @@ The default listener is `127.0.0.1:8788`. For a container, set `HOST=0.0.0.0` an
 - Route: `POST /api/hybrid/execute`.
 - The caller must first have a valid owner session (`Authorization: Bearer <owner-session-token>`). The Worker forwards the server-side secret to Python.
 - Supported body: `{"task":"summarize","text":"..."}`, with task allowlist and a 16,000-character limit.
-- Timeout: 5 seconds. Missing bindings, non-HTTPS URLs, upstream auth failures, malformed responses, and timeouts fail closed with structured error codes.
+- Python request envelope: 16 KiB maximum, enforced as UTF-8 bytes at the Worker and Python sidecar boundaries; oversized requests return HTTP 413. The separately configured PHP sidecar retains its 10 KiB limit.
+- Worker-to-sidecar timeout: 20 seconds. Upstream 401/403 authentication failures preserve their exact HTTP status; 413 remains a payload-size error. Other upstream failures, malformed responses, and timeouts remain fail-closed with sanitized structured error codes.
 - Health reports configuration only; it does not prove Python service reachability. A successful authenticated query is required for runtime verification.
 
 ## Secret-safe configuration diagnostics

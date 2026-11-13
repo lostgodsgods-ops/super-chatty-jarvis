@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { executeHybridTask, validateHybridTask, validateHybridResultSchema, inspectHybridCoreConfiguration, HybridCoreError } from "./hybrid-core.mjs";
+import { executeHybridTask, validateHybridTask, validateHybridResultSchema, inspectHybridCoreConfiguration, HybridCoreError, HYBRID_CORE_MAX_BODY_BYTES, HYBRID_CORE_TIMEOUT_MS } from "./hybrid-core.mjs";
 
 test("hybrid tasks are allowlisted and bounded before any network request", () => {
   assert.deepEqual(validateHybridTask({ task: "summarize", text: " facts " }), { task: "summarize", text: "facts" });
@@ -112,10 +112,20 @@ test("sends server-side owner secret and a browser-compatible user agent, and va
   assert.deepEqual(result, { ok: true, engine: "python-edge-hybrid", task: "summarize", result: "A safe bounded task." });
 });
 
-test("upstream auth failures and invalid payloads become safe structured errors", async () => {
+test("upstream auth failures preserve the exact 401/403 status without converting to 502", async () => {
+  const env = { PYTHON_CORE_URL: "https://python.example/v1/execute", OWNER_SECRET: "x".repeat(32) };
+  for (const status of [401, 403]) {
+    await assert.rejects(
+      executeHybridTask({ task: "summarize", text: "Hi." }, env, { fetchImpl: async () => new Response("{}", { status }) }),
+      error => error.code === "HYBRID_CORE_AUTH_REJECTED" && error.status === status && error.upstreamStatus === status
+    );
+  }
+});
+
+test("upstream 413 remains a clean payload-too-large response", async () => {
   await assert.rejects(
-    executeHybridTask({ task: "summarize", text: "Hi." }, { PYTHON_CORE_URL: "https://python.example/v1/execute", OWNER_SECRET: "x".repeat(32) }, { fetchImpl: async () => new Response("{}", { status: 401 }) }),
-    error => error.code === "HYBRID_CORE_AUTH_REJECTED"
+    executeHybridTask({ task: "summarize", text: "Hi." }, { PYTHON_CORE_URL: "https://python.example/v1/execute", OWNER_SECRET: "x".repeat(32) }, { fetchImpl: async () => new Response("{}", { status: 413 }) }),
+    error => error.code === "HYBRID_CORE_PAYLOAD_TOO_LARGE" && error.status === 413 && error.upstreamStatus === 413
   );
   await assert.rejects(
     executeHybridTask({ task: "summarize", text: "Hi." }, { PYTHON_CORE_URL: "https://python.example/v1/execute", OWNER_SECRET: "x".repeat(32) }, { fetchImpl: async () => new Response(JSON.stringify({ ok: true, task: "classify_text", result: {} }), { status: 200 }) }),
@@ -123,6 +133,37 @@ test("upstream auth failures and invalid payloads become safe structured errors"
   );
 });
 
+
+test("uses a bounded 20-second sidecar timeout and a 16 KiB request envelope cap", () => {
+  assert.equal(HYBRID_CORE_TIMEOUT_MS, 20_000);
+  assert.equal(HYBRID_CORE_MAX_BODY_BYTES, 16 * 1024);
+});
+
+test("preserves the PHP sidecar's 10 KiB request contract", async () => {
+  let called = false;
+  await assert.rejects(
+    executeHybridTask(
+      { task: "summarize", text: "é".repeat(6_000) },
+      { PHP_CORE_URL: "https://php.example/v1/execute", OWNER_SECRET: "x".repeat(32) },
+      { fetchImpl: async () => { called = true; return new Response("{}"); } }
+    ),
+    error => error.code === "HYBRID_CORE_PAYLOAD_TOO_LARGE" && error.status === 413
+  );
+  assert.equal(called, false);
+});
+
+test("rejects a JSON envelope over 16 KiB before contacting Python", async () => {
+  let called = false;
+  await assert.rejects(
+    executeHybridTask(
+      { task: "summarize", text: "漢".repeat(6_000) },
+      { PYTHON_CORE_URL: "https://python.example/v1/execute", OWNER_SECRET: "x".repeat(32) },
+      { fetchImpl: async () => { called = true; return new Response("{}"); } }
+    ),
+    error => error.code === "HYBRID_CORE_PAYLOAD_TOO_LARGE" && error.status === 413
+  );
+  assert.equal(called, false);
+});
 
 test("forwards a validated correlation ID and attaches it to upstream auth failures", async () => {
   const requestId = "diag-test-12345678";
