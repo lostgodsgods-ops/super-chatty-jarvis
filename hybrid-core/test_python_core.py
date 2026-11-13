@@ -174,7 +174,7 @@ class HybridCoreHTTPTests(unittest.TestCase):
         body = prefix + text + suffix
         self.assertEqual(len(body), 16 * 1024)
         status, _, response_body = self.request(
-            body.decode("ascii"),
+            body.decode("utf-8"),
             {"X-Owner-Secret": TEST_SECRET, "Content-Type": "application/json"},
         )
         self.assertEqual(status, 200, response_body.decode("utf-8"))
@@ -187,7 +187,7 @@ class HybridCoreHTTPTests(unittest.TestCase):
         body = prefix + text + suffix
         self.assertEqual(len(body), 16 * 1024 + 1)
         status, _, response_body = self.request(
-            body.decode("ascii"),
+            body.decode("utf-8"),
             {"X-Owner-Secret": TEST_SECRET, "Content-Type": "application/json"},
         )
         self.assertEqual(status, 413)
