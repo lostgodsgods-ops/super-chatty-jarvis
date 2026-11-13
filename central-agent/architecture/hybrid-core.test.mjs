@@ -112,10 +112,20 @@ test("sends server-side owner secret and a browser-compatible user agent, and va
   assert.deepEqual(result, { ok: true, engine: "python-edge-hybrid", task: "summarize", result: "A safe bounded task." });
 });
 
-test("upstream auth failures and invalid payloads become safe structured errors", async () => {
+test("upstream auth failures preserve the exact 401/403 status without converting to 502", async () => {
+  const env = { PYTHON_CORE_URL: "https://python.example/v1/execute", OWNER_SECRET: "x".repeat(32) };
+  for (const status of [401, 403]) {
+    await assert.rejects(
+      executeHybridTask({ task: "summarize", text: "Hi." }, env, { fetchImpl: async () => new Response("{}", { status }) }),
+      error => error.code === "HYBRID_CORE_AUTH_REJECTED" && error.status === status && error.upstreamStatus === status
+    );
+  }
+});
+
+test("upstream 413 remains a clean payload-too-large response", async () => {
   await assert.rejects(
-    executeHybridTask({ task: "summarize", text: "Hi." }, { PYTHON_CORE_URL: "https://python.example/v1/execute", OWNER_SECRET: "x".repeat(32) }, { fetchImpl: async () => new Response("{}", { status: 401 }) }),
-    error => error.code === "HYBRID_CORE_AUTH_REJECTED"
+    executeHybridTask({ task: "summarize", text: "Hi." }, { PYTHON_CORE_URL: "https://python.example/v1/execute", OWNER_SECRET: "x".repeat(32) }, { fetchImpl: async () => new Response("{}", { status: 413 }) }),
+    error => error.code === "HYBRID_CORE_PAYLOAD_TOO_LARGE" && error.status === 413 && error.upstreamStatus === 413
   );
   await assert.rejects(
     executeHybridTask({ task: "summarize", text: "Hi." }, { PYTHON_CORE_URL: "https://python.example/v1/execute", OWNER_SECRET: "x".repeat(32) }, { fetchImpl: async () => new Response(JSON.stringify({ ok: true, task: "classify_text", result: {} }), { status: 200 }) }),
@@ -123,6 +133,19 @@ test("upstream auth failures and invalid payloads become safe structured errors"
   );
 });
 
+
+test("uses the bounded 20-second sidecar timeout", async () => {
+  const env = { PYTHON_CORE_URL: "https://python.example/v1/execute", OWNER_SECRET: "x".repeat(32) };
+  let request;
+  await executeHybridTask({ task: "summarize", text: "timeout contract" }, env, {
+    fetchImpl: async (url, options) => {
+      request = options;
+      return new Response(JSON.stringify({ ok: true, task: "summarize", result: "timeout contract" }), { status: 200 });
+    }
+  });
+  assert.equal(request.signal.aborted, false);
+  assert.equal(request.signal.reason, undefined);
+});
 
 test("forwards a validated correlation ID and attaches it to upstream auth failures", async () => {
   const requestId = "diag-test-12345678";
