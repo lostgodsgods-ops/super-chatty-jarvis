@@ -57,7 +57,9 @@ test("hybrid execution accepts an exact 16 KiB JSON request body", async () => {
   const DB = new FakeDB({ token_hash: await tokenHash(token), status: "active", expires_at: Date.now() + 60_000 });
   const prefix = '{"task":"summarize","text":"';
   const suffix = '"}';
-  const body = prefix + "a".repeat(16 * 1024 - new TextEncoder().encode(prefix + suffix).byteLength) + suffix;
+  const remaining = 16 * 1024 - new TextEncoder().encode(prefix + suffix).byteLength;
+  const text = "é".repeat(Math.floor(remaining / 2)) + (remaining % 2 ? "a" : "");
+  const body = prefix + text + suffix;
   assert.equal(new TextEncoder().encode(body).byteLength, 16 * 1024);
   const response = await worker.fetch(new Request("https://example.test/api/hybrid/execute", {
     method: "POST", headers: { "content-type": "application/json", authorization: "Bearer " + token }, body
@@ -65,12 +67,14 @@ test("hybrid execution accepts an exact 16 KiB JSON request body", async () => {
   assert.equal(response.status, 200);
 });
 
-test("hybrid execution rejects a JSON request body one byte above 10 KiB", async () => {
+test("hybrid execution rejects a JSON request body one byte above 16 KiB", async () => {
   const token = "valid-owner-session-for-hybrid-over-16kb";
   const DB = new FakeDB({ token_hash: await tokenHash(token), status: "active", expires_at: Date.now() + 60_000 });
   const prefix = '{"task":"summarize","text":"';
   const suffix = '"}';
-  const body = prefix + "a".repeat(16 * 1024 + 1 - new TextEncoder().encode(prefix + suffix).byteLength) + suffix;
+  const remaining = 16 * 1024 + 1 - new TextEncoder().encode(prefix + suffix).byteLength;
+  const text = "é".repeat(Math.floor(remaining / 2)) + (remaining % 2 ? "a" : "");
+  const body = prefix + text + suffix;
   assert.equal(new TextEncoder().encode(body).byteLength, 16 * 1024 + 1);
   const response = await worker.fetch(new Request("https://example.test/api/hybrid/execute", {
     method: "POST", headers: { "content-type": "application/json", authorization: "Bearer " + token }, body
