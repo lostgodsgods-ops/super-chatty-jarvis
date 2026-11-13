@@ -6,8 +6,10 @@
  * supported edge-to-Python boundary. It fails closed when configuration is absent.
  */
 const MAX_INPUT_CHARS = 16000;
+export const HYBRID_CORE_MAX_BODY_BYTES = 16 * 1024;
+export const HYBRID_CORE_TIMEOUT_MS = 20_000;
 const ALLOWED_TASKS = new Set(["summarize", "extract_keywords", "classify_text"]);
-const REQUEST_TIMEOUT_MS = 5000;
+const REQUEST_TIMEOUT_MS = HYBRID_CORE_TIMEOUT_MS;
 const MIN_OWNER_SECRET_LENGTH = 32;
 
 export class HybridCoreError extends Error {
@@ -119,6 +121,10 @@ export async function executeHybridTask(input, env, options = {}) {
 
   const requestId = typeof options.requestId === "string" && /^[A-Za-z0-9._:-]{8,64}$/.test(options.requestId)
     ? options.requestId : crypto.randomUUID();
+  const requestBody = JSON.stringify(payload);
+  if (new TextEncoder().encode(requestBody).byteLength > HYBRID_CORE_MAX_BODY_BYTES) {
+    throw new HybridCoreError("HYBRID_CORE_PAYLOAD_TOO_LARGE", 413);
+  }
   const fetchImpl = typeof options.fetchImpl === "function" ? options.fetchImpl : fetch;
   let response;
   try {
@@ -132,7 +138,7 @@ export async function executeHybridTask(input, env, options = {}) {
         "x-request-id": requestId,
         "x-owner-secret": secret
       },
-      body: JSON.stringify(payload),
+      body: requestBody,
       signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS)
     });
   } catch (error) {
@@ -143,10 +149,17 @@ export async function executeHybridTask(input, env, options = {}) {
     throw failure;
   }
   if (response.status === 401 || response.status === 403) {
-    const failure = new HybridCoreError("HYBRID_CORE_AUTH_REJECTED", 502);
+    const failure = new HybridCoreError("HYBRID_CORE_AUTH_REJECTED", response.status);
     failure.upstreamStatus = response.status;
     failure.requestId = requestId;
     console.warn("hybrid_core_upstream_auth_rejected", { requestId, upstreamStatus: response.status });
+    throw failure;
+  }
+  if (response.status === 413) {
+    const failure = new HybridCoreError("HYBRID_CORE_PAYLOAD_TOO_LARGE", 413);
+    failure.upstreamStatus = 413;
+    failure.requestId = requestId;
+    console.warn("hybrid_core_upstream_payload_rejected", { requestId, upstreamStatus: 413 });
     throw failure;
   }
   if (!response.ok) {
