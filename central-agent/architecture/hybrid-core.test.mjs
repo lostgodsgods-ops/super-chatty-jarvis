@@ -143,7 +143,7 @@ test("rejects a JSON envelope over 16 KiB before contacting Python", async () =>
   let called = false;
   await assert.rejects(
     executeHybridTask(
-      { task: "summarize", text: "\u00e9".repeat(8_000) },
+      { task: "summarize", text: "漢".repeat(6_000) },
       { PYTHON_CORE_URL: "https://python.example/v1/execute", OWNER_SECRET: "x".repeat(32) },
       { fetchImpl: async () => { called = true; return new Response("{}"); } }
     ),
