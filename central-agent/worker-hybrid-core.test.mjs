@@ -282,10 +282,10 @@ test("internal hybrid probe reports upstream auth rejection without exposing end
       OWNER_SECRET: secret,
       PYTHON_CORE_URL: endpoint
     });
-    assert.equal(response.status, 502);
+    assert.equal(response.status, 401);
     const payload = await response.json();
-    assert.equal(payload.code, "HYBRID_CORE_AUTH_REJECTED_401");
-    assert.equal(payload.fallbackEngaged, true);
+    assert.equal(payload.code, "HYBRID_CORE_AUTH_REJECTED");
+    assert.equal(payload.fallbackEngaged, false);
     assert.equal(payload.configDiagnostics.provider, "python");
     assert.equal(payload.configDiagnostics.endpointValid, true);
     assert.equal(payload.configDiagnostics.ownerSecretConfigured, true);
