@@ -2576,7 +2576,7 @@ export default {
     if (url.pathname === "/api/hybrid/execute" && request.method === "POST") {
       if (!(await authorized(request, env))) return json({ ok: false, error: "Owner session required.", code: "OWNER_SESSION_REQUIRED" }, 401, cors);
       const declaredLength = request.headers.get("content-length");
-      if (declaredLength !== null && (!/^\d+$/.test(declaredLength) || Number(declaredLength) > 10 * 1024)) {
+      if (declaredLength !== null && (!/^\d+$/.test(declaredLength) || Number(declaredLength) > 16 * 1024)) {
         return json({ ok: false, error: "REQUEST_TOO_LARGE", code: "REQUEST_TOO_LARGE" }, 413, cors);
       }
       let rawBody;
@@ -2585,7 +2585,7 @@ export default {
       } catch {
         return json({ ok: false, error: "INVALID_REQUEST_BODY", code: "INVALID_REQUEST_BODY" }, 400, cors);
       }
-      if (new TextEncoder().encode(rawBody).byteLength > 10 * 1024) {
+      if (new TextEncoder().encode(rawBody).byteLength > 16 * 1024) {
         return json({ ok: false, error: "REQUEST_TOO_LARGE", code: "REQUEST_TOO_LARGE" }, 413, cors);
       }
       let body;
