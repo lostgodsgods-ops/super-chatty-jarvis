@@ -2303,7 +2303,13 @@ export default {
             configDiagnostics
           }, status, cors);
         }
-        return json({ ok: false, code, configDiagnostics }, status, cors);
+        return json({
+          ok: false,
+          code,
+          ...(requestId ? { requestId } : {}),
+          fallbackEngaged: false,
+          configDiagnostics
+        }, status, cors);
       }
     }
 
