@@ -169,7 +169,8 @@ class HybridCoreHTTPTests(unittest.TestCase):
     def test_accepts_request_body_at_exact_16_kibibyte_limit(self):
         prefix = b'{"task":"summarize","text":"'
         suffix = b'"}'
-        text = b"a" * (16 * 1024 - len(prefix) - len(suffix))
+        remaining = 16 * 1024 - len(prefix) - len(suffix)
+        text = b"\xc3\xa9" * (remaining // 2) + b"a" * (remaining % 2)
         body = prefix + text + suffix
         self.assertEqual(len(body), 16 * 1024)
         status, _, response_body = self.request(
@@ -181,7 +182,8 @@ class HybridCoreHTTPTests(unittest.TestCase):
     def test_rejects_request_body_one_byte_over_16_kibibyte_limit(self):
         prefix = b'{"task":"summarize","text":"'
         suffix = b'"}'
-        text = b"a" * (16 * 1024 + 1 - len(prefix) - len(suffix))
+        remaining = 16 * 1024 + 1 - len(prefix) - len(suffix)
+        text = b"\xc3\xa9" * (remaining // 2) + b"a" * (remaining % 2)
         body = prefix + text + suffix
         self.assertEqual(len(body), 16 * 1024 + 1)
         status, _, response_body = self.request(
