@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { executeHybridTask, validateHybridTask, validateHybridResultSchema, inspectHybridCoreConfiguration, HybridCoreError } from "./hybrid-core.mjs";
+import { executeHybridTask, validateHybridTask, validateHybridResultSchema, inspectHybridCoreConfiguration, HybridCoreError, HYBRID_CORE_MAX_BODY_BYTES, HYBRID_CORE_TIMEOUT_MS } from "./hybrid-core.mjs";
 
 test("hybrid tasks are allowlisted and bounded before any network request", () => {
   assert.deepEqual(validateHybridTask({ task: "summarize", text: " facts " }), { task: "summarize", text: "facts" });
@@ -134,17 +134,22 @@ test("upstream 413 remains a clean payload-too-large response", async () => {
 });
 
 
-test("uses the bounded 20-second sidecar timeout", async () => {
-  const env = { PYTHON_CORE_URL: "https://python.example/v1/execute", OWNER_SECRET: "x".repeat(32) };
-  let request;
-  await executeHybridTask({ task: "summarize", text: "timeout contract" }, env, {
-    fetchImpl: async (url, options) => {
-      request = options;
-      return new Response(JSON.stringify({ ok: true, task: "summarize", result: "timeout contract" }), { status: 200 });
-    }
-  });
-  assert.equal(request.signal.aborted, false);
-  assert.equal(request.signal.reason, undefined);
+test("uses a bounded 20-second sidecar timeout and a 16 KiB request envelope cap", () => {
+  assert.equal(HYBRID_CORE_TIMEOUT_MS, 20_000);
+  assert.equal(HYBRID_CORE_MAX_BODY_BYTES, 16 * 1024);
+});
+
+test("rejects a JSON envelope over 16 KiB before contacting Python", async () => {
+  let called = false;
+  await assert.rejects(
+    executeHybridTask(
+      { task: "summarize", text: "x".repeat(16_000) },
+      { PYTHON_CORE_URL: "https://python.example/v1/execute", OWNER_SECRET: "x".repeat(32) },
+      { fetchImpl: async () => { called = true; return new Response("{}"); } }
+    ),
+    error => error.code === "HYBRID_CORE_PAYLOAD_TOO_LARGE" && error.status === 413
+  );
+  assert.equal(called, false);
 });
 
 test("forwards a validated correlation ID and attaches it to upstream auth failures", async () => {
