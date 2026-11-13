@@ -122,7 +122,9 @@ export async function executeHybridTask(input, env, options = {}) {
   const requestId = typeof options.requestId === "string" && /^[A-Za-z0-9._:-]{8,64}$/.test(options.requestId)
     ? options.requestId : crypto.randomUUID();
   const requestBody = JSON.stringify(payload);
-  if (new TextEncoder().encode(requestBody).byteLength > HYBRID_CORE_MAX_BODY_BYTES) {
+  // PHP Core retains its separately documented 10 KiB contract; Python Core accepts 16 KiB.
+  const maxBodyBytes = usePhpCore ? 10 * 1024 : HYBRID_CORE_MAX_BODY_BYTES;
+  if (new TextEncoder().encode(requestBody).byteLength > maxBodyBytes) {
     throw new HybridCoreError("HYBRID_CORE_PAYLOAD_TOO_LARGE", 413);
   }
   const fetchImpl = typeof options.fetchImpl === "function" ? options.fetchImpl : fetch;
