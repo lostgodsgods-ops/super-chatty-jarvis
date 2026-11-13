@@ -139,6 +139,19 @@ test("uses a bounded 20-second sidecar timeout and a 16 KiB request envelope cap
   assert.equal(HYBRID_CORE_MAX_BODY_BYTES, 16 * 1024);
 });
 
+test("preserves the PHP sidecar's 10 KiB request contract", async () => {
+  let called = false;
+  await assert.rejects(
+    executeHybridTask(
+      { task: "summarize", text: "é".repeat(6_000) },
+      { PHP_CORE_URL: "https://php.example/v1/execute", OWNER_SECRET: "x".repeat(32) },
+      { fetchImpl: async () => { called = true; return new Response("{}"); } }
+    ),
+    error => error.code === "HYBRID_CORE_PAYLOAD_TOO_LARGE" && error.status === 413
+  );
+  assert.equal(called, false);
+});
+
 test("rejects a JSON envelope over 16 KiB before contacting Python", async () => {
   let called = false;
   await assert.rejects(
