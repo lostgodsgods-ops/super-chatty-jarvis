@@ -52,13 +52,13 @@ test("hybrid execution rejects callers without an owner session", async () => {
   assert.notEqual(payload.ok, true);
 });
 
-test("hybrid execution accepts an exact 10 KiB JSON request body", async () => {
-  const token = "valid-owner-session-for-hybrid-10kb-boundary";
+test("hybrid execution accepts an exact 16 KiB JSON request body", async () => {
+  const token = "valid-owner-session-for-hybrid-16kb-boundary";
   const DB = new FakeDB({ token_hash: await tokenHash(token), status: "active", expires_at: Date.now() + 60_000 });
   const prefix = '{"task":"summarize","text":"';
   const suffix = '"}';
-  const body = prefix + "a".repeat(10 * 1024 - new TextEncoder().encode(prefix + suffix).byteLength) + suffix;
-  assert.equal(new TextEncoder().encode(body).byteLength, 10 * 1024);
+  const body = prefix + "a".repeat(16 * 1024 - new TextEncoder().encode(prefix + suffix).byteLength) + suffix;
+  assert.equal(new TextEncoder().encode(body).byteLength, 16 * 1024);
   const response = await worker.fetch(new Request("https://example.test/api/hybrid/execute", {
     method: "POST", headers: { "content-type": "application/json", authorization: "Bearer " + token }, body
   }), env(DB));
@@ -66,12 +66,12 @@ test("hybrid execution accepts an exact 10 KiB JSON request body", async () => {
 });
 
 test("hybrid execution rejects a JSON request body one byte above 10 KiB", async () => {
-  const token = "valid-owner-session-for-hybrid-over-10kb";
+  const token = "valid-owner-session-for-hybrid-over-16kb";
   const DB = new FakeDB({ token_hash: await tokenHash(token), status: "active", expires_at: Date.now() + 60_000 });
   const prefix = '{"task":"summarize","text":"';
   const suffix = '"}';
-  const body = prefix + "a".repeat(10 * 1024 + 1 - new TextEncoder().encode(prefix + suffix).byteLength) + suffix;
-  assert.equal(new TextEncoder().encode(body).byteLength, 10 * 1024 + 1);
+  const body = prefix + "a".repeat(16 * 1024 + 1 - new TextEncoder().encode(prefix + suffix).byteLength) + suffix;
+  assert.equal(new TextEncoder().encode(body).byteLength, 16 * 1024 + 1);
   const response = await worker.fetch(new Request("https://example.test/api/hybrid/execute", {
     method: "POST", headers: { "content-type": "application/json", authorization: "Bearer " + token }, body
   }), env(DB));
@@ -284,7 +284,7 @@ test("internal hybrid probe reports upstream auth rejection without exposing end
     });
     assert.equal(response.status, 401);
     const payload = await response.json();
-    assert.equal(payload.code, "HYBRID_CORE_AUTH_REJECTED");
+    assert.equal(payload.code, "HYBRID_CORE_AUTH_REJECTED_401");
     assert.equal(payload.fallbackEngaged, false);
     assert.equal(payload.configDiagnostics.provider, "python");
     assert.equal(payload.configDiagnostics.endpointValid, true);
@@ -421,7 +421,7 @@ test("internal hybrid probe returns a safe correlation ID when the Python sideca
       PYTHON_CORE_URL: "https://python.example/v1/execute",
       OWNER_SECRET: ownerSecret
     });
-    assert.equal(response.status, 502);
+    assert.equal(response.status, 401);
     const payload = await response.json();
     assert.equal(payload.code, "HYBRID_CORE_AUTH_REJECTED_401");
     assert.match(payload.requestId, /^[A-Za-z0-9._:-]{8,64}$/);
