@@ -12,7 +12,7 @@ from collections import Counter
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import urlparse
 
-MAX_BODY_BYTES = 10 * 1024
+MAX_BODY_BYTES = 16 * 1024
 MAX_TEXT_CHARS = 16_000
 REQUEST_TIMEOUT_SECONDS = 5
 ALLOWED_TASKS = {"summarize", "extract_keywords", "classify_text"}
