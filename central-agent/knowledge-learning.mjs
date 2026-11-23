@@ -61,44 +61,6 @@ export function normalizeVerifiedKnowledge(input) {
   };
 }
 
-export async function ensureLearningSchema(db) {
-  if (!db || typeof db.prepare !== "function") throw new Error("LEARNING_STORAGE_UNAVAILABLE");
-  await db.prepare(`CREATE TABLE IF NOT EXISTS pending_knowledge (
-    id TEXT PRIMARY KEY,
-    owner_scope TEXT NOT NULL CHECK (owner_scope = 'owner'),
-    title TEXT NOT NULL,
-    problem TEXT NOT NULL,
-    solution TEXT NOT NULL,
-    sources_json TEXT NOT NULL,
-    test_summary TEXT NOT NULL,
-    test_evidence_json TEXT NOT NULL,
-    confidence REAL NOT NULL,
-    limitations TEXT NOT NULL,
-    reuse_instructions TEXT NOT NULL,
-    status TEXT NOT NULL CHECK (status = 'pending_owner_verification'),
-    created_at TEXT NOT NULL,
-    updated_at TEXT NOT NULL
-  )`).run();
-  await db.prepare("CREATE INDEX IF NOT EXISTS idx_pending_knowledge_owner_updated ON pending_knowledge(owner_scope, updated_at DESC)").run();
-  await db.prepare(`CREATE TABLE IF NOT EXISTS verified_knowledge (
-    id TEXT PRIMARY KEY,
-    owner_scope TEXT NOT NULL CHECK (owner_scope = 'owner'),
-    title TEXT NOT NULL,
-    problem TEXT NOT NULL,
-    solution TEXT NOT NULL,
-    sources_json TEXT NOT NULL,
-    test_summary TEXT NOT NULL,
-    test_evidence_json TEXT NOT NULL,
-    confidence REAL NOT NULL,
-    limitations TEXT NOT NULL,
-    reuse_instructions TEXT NOT NULL,
-    status TEXT NOT NULL CHECK (status = 'verified'),
-    created_at TEXT NOT NULL,
-    updated_at TEXT NOT NULL
-  )`).run();
-  await db.prepare("CREATE INDEX IF NOT EXISTS idx_verified_knowledge_owner_updated ON verified_knowledge(owner_scope, updated_at DESC)").run();
-}
-
 export async function saveVerifiedKnowledge(db, input) {
   const normalized = normalizeVerifiedKnowledge(input);
   if (!normalized.ok) return normalized;
@@ -106,7 +68,6 @@ export async function saveVerifiedKnowledge(db, input) {
   const now = new Date().toISOString();
   const id = crypto.randomUUID();
   try {
-    await ensureLearningSchema(db);
     await db.prepare(`INSERT INTO pending_knowledge
       (id, owner_scope, title, problem, solution, sources_json, test_summary, test_evidence_json, confidence, limitations, reuse_instructions, status, created_at, updated_at)
       VALUES (?, 'owner', ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending_owner_verification', ?, ?)`)
@@ -125,7 +86,6 @@ export async function searchVerifiedKnowledge(db, query, limit = 10) {
   if (!normalizedQuery) return { ok: false, error: "QUERY_REQUIRED" };
   if (!db || typeof db.prepare !== "function") return { ok: false, error: "LEARNING_STORAGE_UNAVAILABLE" };
   try {
-    await ensureLearningSchema(db);
     const terms = normalizedQuery.split(" ").filter(Boolean).slice(0, 6);
     const where = terms.map(() => "(title LIKE ? OR problem LIKE ? OR solution LIKE ?)").join(" AND ");
     const args = [];
@@ -164,7 +124,6 @@ export async function approvePendingKnowledge(db, recordId, approval = {}) {
   if (!db || typeof db.prepare !== "function") return { ok: false, error: "LEARNING_STORAGE_UNAVAILABLE" };
 
   try {
-    await ensureLearningSchema(db);
     const pending = await db.prepare(`SELECT id, title, problem, solution, sources_json AS sourcesJson,
       test_summary AS testSummary, test_evidence_json AS testEvidenceJson, confidence,
       limitations, reuse_instructions AS reuseInstructions, created_at AS createdAt
