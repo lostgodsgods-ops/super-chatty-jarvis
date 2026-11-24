@@ -1,0 +1,126 @@
+{
+  "schemaVersion": "1.0.0",
+  "project": "LIMITLESS LAB",
+  "registryMode": "review-before-activation",
+  "policy": {
+    "defaultEnabled": false,
+    "requireHttps": true,
+    "requireLicenseApproval": true,
+    "requireAttribution": true,
+    "externalContentIsUntrustedData": true,
+    "secretsClientSide": false
+  },
+  "sources": [
+    {
+      "id": "fred-series-observations",
+      "provider": "Federal Reserve Bank of St. Louis",
+      "category": "macro",
+      "description": "FRED time-series observations API; candidate for macro indicators.",
+      "url": "https://api.stlouisfed.org/fred/series/observations",
+      "access": "api-key-required",
+      "enabled": false,
+      "licensing": {
+        "status": "review-required",
+        "termsUrl": "https://fred.stlouisfed.org/docs/api/terms_of_use.html",
+        "attributionRequired": true,
+        "commercialUseReviewed": false
+      },
+      "cadence": "series-dependent",
+      "failurePolicy": {
+        "mode": "stale-cache",
+        "timeoutMs": 5000,
+        "maxRetries": 1,
+        "cacheTtlSeconds": 21600,
+        "staleMaxSeconds": 604800
+      },
+      "allowedUse": [
+        "research",
+        "historical-analysis"
+      ],
+      "notes": "No API key is stored in this registry; confirm terms and key handling before activation."
+    },
+    {
+      "id": "us-treasury-fiscal-data",
+      "provider": "U.S. Department of the Treasury",
+      "category": "macro",
+      "description": "Fiscal Data API; candidate for public debt and Treasury datasets.",
+      "url": "https://api.fiscaldata.treasury.gov/services/api/fiscal_service",
+      "access": "public-api",
+      "enabled": false,
+      "licensing": {
+        "status": "review-required",
+        "termsUrl": "https://fiscaldata.treasury.gov/api-documentation/",
+        "attributionRequired": true,
+        "commercialUseReviewed": false
+      },
+      "cadence": "dataset-dependent",
+      "failurePolicy": {
+        "mode": "stale-cache",
+        "timeoutMs": 5000,
+        "maxRetries": 1,
+        "cacheTtlSeconds": 21600,
+        "staleMaxSeconds": 604800
+      },
+      "allowedUse": [
+        "research",
+        "historical-analysis"
+      ],
+      "notes": "Verify endpoint-specific freshness and terms before production use."
+    },
+    {
+      "id": "sec-companyfacts",
+      "provider": "U.S. Securities and Exchange Commission",
+      "category": "hyperscaler-financials",
+      "description": "Companyfacts XBRL API; candidate for reported financial facts and capex analysis.",
+      "url": "https://data.sec.gov/api/xbrl/companyfacts/",
+      "access": "public-api",
+      "enabled": false,
+      "licensing": {
+        "status": "review-required",
+        "termsUrl": "https://www.sec.gov/about/privacy.htm",
+        "attributionRequired": true,
+        "commercialUseReviewed": false
+      },
+      "cadence": "filing-dependent",
+      "failurePolicy": {
+        "mode": "circuit-breaker",
+        "timeoutMs": 5000,
+        "maxRetries": 0,
+        "cacheTtlSeconds": 86400,
+        "staleMaxSeconds": 1209600
+      },
+      "allowedUse": [
+        "research",
+        "historical-analysis"
+      ],
+      "notes": "SEC fair-access rules and user-agent identification must be reviewed before activation."
+    },
+    {
+      "id": "nse-india-market-data",
+      "provider": "National Stock Exchange of India",
+      "category": "india-market",
+      "description": "Official NSE market-data site; candidate source pending machine-access and licensing review.",
+      "url": "https://www.nseindia.com/",
+      "access": "website-review-required",
+      "enabled": false,
+      "licensing": {
+        "status": "review-required",
+        "termsUrl": "https://www.nseindia.com/terms-of-use",
+        "attributionRequired": true,
+        "commercialUseReviewed": false
+      },
+      "cadence": "market-session-dependent",
+      "failurePolicy": {
+        "mode": "skip-source",
+        "timeoutMs": 5000,
+        "maxRetries": 0,
+        "cacheTtlSeconds": 900,
+        "staleMaxSeconds": 86400
+      },
+      "allowedUse": [
+        "research"
+      ],
+      "notes": "This registry does not imply permission to scrape, redistribute, or use exchange data commercially."
+    }
+  ]
+}
