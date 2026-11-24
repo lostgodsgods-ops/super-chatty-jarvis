@@ -128,7 +128,7 @@ body{background:radial-gradient(ellipse at 50% 38%,#50330f45 0,transparent 35%),
 
 /* REDULTRON authenticated-first gate: hide all private modules until server verification. */
 body.auth-locked{min-height:100svh;background:radial-gradient(ellipse at 50% 12%,#0b3446 0,transparent 46%),linear-gradient(145deg,#04080e,#07111b 56%,#050b12)}
-body.auth-locked #installBanner{display:none!important}
+/* Install onboarding stays available before login; private dashboard modules remain locked below. */
 body.auth-locked .shell{min-height:100svh;padding:clamp(18px,6vh,64px) 14px calc(22px + var(--safe-bottom));justify-content:center}
 body.auth-locked .shell> :not(.dashboard-grid){display:none!important}
 body.auth-locked .dashboard-grid{display:block!important;grid-template-columns:1fr!important;width:min(100%,520px);margin:auto}
