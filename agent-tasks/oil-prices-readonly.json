@@ -1,0 +1,43 @@
+{
+  "taskId": "public-oil-prices-readonly-v1",
+  "title": "Collect latest public Brent and WTI crude-oil futures prices",
+  "status": "PREPARED_NOT_DISPATCHED",
+  "purpose": "Research-only snapshot of public market data, with source URLs and timestamps.",
+  "benchmarks": [
+    { "name": "Brent", "symbol": "BZ=F", "currency": "USD", "unit": "barrel" },
+    { "name": "WTI", "symbol": "CL=F", "currency": "USD", "unit": "barrel" }
+  ],
+  "requiredFields": [
+    "latest price in USD per barrel",
+    "daily dollar change",
+    "daily percentage change",
+    "source timestamp in ISO 8601 UTC",
+    "primary source URL",
+    "secondary source URL and cross-check status"
+  ],
+  "sourcePolicy": {
+    "primary": "Yahoo Finance public chart endpoint",
+    "secondary": "Stooq public daily CSV endpoint",
+    "sourceLinksMustBeIncluded": true,
+    "doNotInventMissingValues": true,
+    "ifUnavailable": "Mark source unavailable and report partial/blocked status"
+  },
+  "permissions": {
+    "network": "Public HTTPS GET requests only to the two hard-coded source hosts",
+    "credentials": "None",
+    "trading": false,
+    "accountAccess": false,
+    "payments": false,
+    "writes": false,
+    "externalSideEffects": false,
+    "humanApprovalRequiredForAnyScopeChange": true
+  },
+  "completionCriteria": [
+    "Brent and WTI each include latest and previous daily closes when available",
+    "Daily dollar and percentage changes are calculated from the same source's two latest valid closes",
+    "UTC timestamp and source URLs are included",
+    "Secondary-source check is marked verified, mismatch, or unavailable",
+    "Source or contract timing differences are disclosed",
+    "No financial recommendation or trade instruction is generated"
+  ]
+}
