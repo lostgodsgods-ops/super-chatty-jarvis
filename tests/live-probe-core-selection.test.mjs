@@ -40,3 +40,15 @@ test("scheduled live probe rejects a stale Worker deployment before hybrid certi
   assert.match(workflow, /\$GITHUB_SHA/);
   assert.match(workflow, /WORKER_DEPLOYMENT_STALE/);
 });
+
+test("scheduled live probe runs the negative-auth control before a stale-provenance gate", async () => {
+  const workflow = await readFile(new URL("../.github/workflows/redultron-live-probe.yml", import.meta.url), "utf8");
+  const negativeAuthProbe = workflow.indexOf('invalid_auth_status="$(curl');
+  const provenanceGate = workflow.indexOf("WORKER_DEPLOYMENT_STALE");
+  const authenticatedProbe = workflow.indexOf('hybrid_status="$(curl');
+  assert.ok(negativeAuthProbe >= 0, "negative-auth control must exist");
+  assert.ok(provenanceGate >= 0, "strict deployment-provenance gate must exist");
+  assert.ok(authenticatedProbe >= 0, "authenticated hybrid probe must exist");
+  assert.ok(negativeAuthProbe < provenanceGate, "negative-auth control must run even when provenance is stale");
+  assert.ok(provenanceGate < authenticatedProbe, "authenticated secret-bearing probe must remain behind provenance gate");
+});
