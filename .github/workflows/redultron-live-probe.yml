@@ -60,24 +60,29 @@ jobs:
             echo "::error::Health response schema check failed."
             exit 1
           fi
-          invalid_auth_status="$(curl --silent --show-error --max-time 10 --output "$invalid_auth_file" --write-out '%{http_code}' \
+          if ! invalid_auth_status="$(curl --silent --max-time 10 --output "$invalid_auth_file" --write-out '%{http_code}' \
             -X POST "$BASE_URL/api/internal/hybrid-probe" \
             -H 'content-type: application/json' \
             -H 'x-owner-secret: invalid-redultron-owner-secret-probe' \
-            --data '{}')"
+            --data '{}')"; then
+            invalid_auth_status="000"
+          fi
+          if [[ "$invalid_auth_status" == "401" || "$invalid_auth_status" == "403" ]]; then
+            echo "PASS: invalid owner credential was rejected (HTTP $invalid_auth_status)."
+          else
+            echo "::warning::Negative authentication control returned HTTP $invalid_auth_status; defer final classification until deployment provenance is checked."
+          fi
+
+          if ! jq -e --arg expected "$GITHUB_SHA" '.deployment.commitSha == $expected' "$health_file" >/dev/null; then
+            deployed_commit="$(jq -r 'if (.deployment.commitSha | type) == "string" and (.deployment.commitSha | test("^[a-f0-9]{40}$")) then .deployment.commitSha else "UNKNOWN" end' "$health_file" 2>/dev/null || printf 'UNKNOWN')"
+            echo "::error::WORKER_DEPLOYMENT_STALE: expected commit=$GITHUB_SHA; deployed commit=$deployed_commit; negative-auth-control-http=$invalid_auth_status."
+            exit 1
+          fi
+          echo "PASS: /health returned HTTP 200 and deployment commit matches this workflow's source SHA."
           if [[ "$invalid_auth_status" != "401" && "$invalid_auth_status" != "403" ]]; then
             echo "::error::Negative authentication control failed: invalid owner credential returned HTTP $invalid_auth_status (expected 401 or 403)."
             exit 1
           fi
-          echo "PASS: invalid owner credential was rejected (HTTP $invalid_auth_status)."
-
-
-          if ! jq -e --arg expected "$GITHUB_SHA" '.deployment.commitSha == $expected' "$health_file" >/dev/null; then
-            deployed_commit="$(jq -r 'if (.deployment.commitSha | type) == "string" and (.deployment.commitSha | test("^[a-f0-9]{40}$")) then .deployment.commitSha else "UNKNOWN" end' "$health_file" 2>/dev/null || printf 'UNKNOWN')"
-            echo "::error::WORKER_DEPLOYMENT_STALE: expected commit=$GITHUB_SHA; deployed commit=$deployed_commit."
-            exit 1
-          fi
-          echo "PASS: /health returned HTTP 200 and deployment commit matches this workflow's source SHA."
 
           hybrid_status="$(curl --silent --show-error --max-time 15 --output "$hybrid_file" --write-out '%{http_code}' \
             -X POST "$BASE_URL/api/internal/hybrid-probe" \
