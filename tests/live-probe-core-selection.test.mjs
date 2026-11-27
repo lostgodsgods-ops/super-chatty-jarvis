@@ -52,3 +52,19 @@ test("scheduled live probe runs the negative-auth control before a stale-provena
   assert.ok(negativeAuthProbe < provenanceGate, "negative-auth control must run even when provenance is stale");
   assert.ok(provenanceGate < authenticatedProbe, "authenticated secret-bearing probe must remain behind provenance gate");
 });
+
+test("scheduled live probe defers negative-auth failure until after stale provenance is reported", async () => {
+  const workflow = await readFile(new URL("../.github/workflows/redultron-live-probe.yml", import.meta.url), "utf8");
+  const negativeAuthProbe = workflow.indexOf('invalid_auth_status="$(curl');
+  const provenanceGate = workflow.indexOf("WORKER_DEPLOYMENT_STALE");
+  const negativeAuthFailure = workflow.indexOf("Negative authentication control failed:");
+  const authenticatedProbe = workflow.indexOf('hybrid_status="$(curl');
+  assert.ok(negativeAuthProbe >= 0, "negative-auth control must exist");
+  assert.ok(provenanceGate >= 0, "strict deployment-provenance gate must exist");
+  assert.ok(negativeAuthFailure >= 0, "negative-auth failure must be checked");
+  assert.ok(authenticatedProbe >= 0, "authenticated hybrid probe must exist");
+  assert.ok(negativeAuthProbe < provenanceGate, "negative-auth request must run before provenance check");
+  assert.ok(provenanceGate < negativeAuthFailure, "stale provenance must be reported before a negative-auth status failure");
+  assert.ok(negativeAuthFailure < authenticatedProbe, "negative-auth control must pass before the owner-secret request");
+  assert.match(workflow, /invalid_auth_status="000"/, "transport errors must be recorded as status 000 so provenance can still be diagnosed");
+});
