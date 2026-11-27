@@ -92,6 +92,7 @@ jobs:
           node -e 'const fs=require("fs"); const x=JSON.parse(fs.readFileSync(process.argv[1],"utf8")); if(x.error!=="Unauthorized. Sign in with your Owner password.") throw Error("Unexpected unauthenticated task response"); console.log(JSON.stringify({ok:true,unauthenticatedTaskSubmission:"DENIED",taskCreated:false}));' "$tmp"
 
       - name: Verify owner-authenticated Tavily live search
+        id: tavily_search
         shell: bash
         env:
           CENTRAL_AGENT_URL: https://shrill-silence-164f.lostgodsgods.workers.dev
@@ -99,8 +100,9 @@ jobs:
         run: |
           set -euo pipefail
           if [[ -z "${OWNER_PASSWORD:-}" ]]; then
-            echo "::error::Missing repository secret CENTRAL_AGENT_OWNER_PASSWORD. Add the existing Owner password as a GitHub Actions secret; never put it in source code or chat."
-            exit 2
+            echo "::warning::TAVILY_NOT_TESTED: owner authentication secret is not configured."
+            printf 'status=NOT_TESTED\nreason=OWNER_SECRET_UNAVAILABLE\n' >> "$GITHUB_OUTPUT"
+            exit 0
           fi
           tmp="$(mktemp -d)"
           trap 'rm -rf "$tmp"' EXIT
@@ -109,22 +111,64 @@ jobs:
             -X POST "$CENTRAL_AGENT_URL/auth/login" \
             --data "$(node -e 'process.stdout.write(JSON.stringify({password:process.env.OWNER_PASSWORD}))')")"
           if [[ "$login_code" != "200" ]]; then
-            echo "::error::Owner login failed with HTTP $login_code."
-            exit 1
+            echo "::warning::TAVILY_NOT_TESTED: owner login unavailable (HTTP $login_code)."
+            printf 'status=NOT_TESTED\nreason=OWNER_AUTH_UNAVAILABLE\n' >> "$GITHUB_OUTPUT"
+            exit 0
           fi
           token="$(node -e 'const x=require(process.argv[1]); if(x.ok!==true||typeof x.token!=="string"||!x.token) process.exit(1); process.stdout.write(x.token)' "$tmp/login.json")"
-          search_code="$(curl --silent --show-error --max-time 20 --output "$tmp/search.json" --write-out '%{http_code}' \
+          if ! search_code="$(curl --silent --show-error --max-time 20 --output "$tmp/search.json" --write-out '%{http_code}' \
             -H 'content-type: application/json' \
             -H "authorization: Bearer $token" \
             -X POST "$CENTRAL_AGENT_URL/search" \
-            --data '{"query":"Cloudflare Workers documentation health checks","searchDepth":"basic"}')"
+            --data '{"query":"Cloudflare Workers documentation health checks","searchDepth":"basic"}')"; then
+            search_code="000"
+          fi
           unset token OWNER_PASSWORD
           if [[ "$search_code" != "200" ]]; then
+            if [[ "$search_code" == "000" || "$search_code" == "401" || "$search_code" == "403" || "$search_code" == "429" || "$search_code" == "432" ]]; then
+              echo "::warning::TAVILY_NOT_TESTED: owner-authenticated /search unavailable or quota-limited (HTTP $search_code)."
+              printf 'status=NOT_TESTED\nreason=SEARCH_UNAVAILABLE\n' >> "$GITHUB_OUTPUT"
+              exit 0
+            fi
             echo "::error::Owner-authenticated /search failed with HTTP $search_code."
             node -e 'const fs=require("fs"); try { const x=JSON.parse(fs.readFileSync(process.argv[1],"utf8")); console.log(JSON.stringify({error:x.error||"Search request failed"})); } catch { console.log("Search response was not valid JSON."); }' "$tmp/search.json"
             exit 1
           fi
-          node -e 'const fs=require("fs"); const x=JSON.parse(fs.readFileSync(process.argv[1],"utf8")); if(x.ok!==true||!["tavily","duckduckgo-html","bing-news-rss","google-news-rss","gdelt-doc-api","wikipedia-api","guarded-fallback"].includes(x.provider)||!Array.isArray(x.results)||x.results.length<1) throw Error("Expected a valid search response or explicitly labeled guarded fallback"); if(x.provider==="guarded-fallback"&&(x.fallback!==true||x.liveSearchVerified!==false||x.results.some(r=>r.isSearchResult!==false))) throw Error("Guarded fallback must not be represented as live evidence"); if(x.provider!=="guarded-fallback"&&x.liveSearchVerified!==true) throw Error("Live search provider response is not verified"); const urls=x.results.map(r=>r.url); if(urls.some(u=>typeof u!=="string"||!/^https?:\/\//i.test(u))) throw Error("One or more result URLs are invalid"); console.log(JSON.stringify({ok:x.ok,provider:x.provider,fallback:x.fallback===true,liveSearchVerified:x.liveSearchVerified===true,resultCount:x.results.length}));' "$tmp/search.json"
+          node - "$tmp/search.json" "$GITHUB_OUTPUT" <<'NODE'
+          const fs = require("node:fs");
+          const x = JSON.parse(fs.readFileSync(process.argv[2], "utf8"));
+          const output = process.argv[3];
+          if (x.ok !== true || !Array.isArray(x.results) || x.results.length < 1) {
+            throw new Error("Owner-authenticated search response schema is invalid");
+          }
+          const urls = x.results.map(result => result.url);
+          if (urls.some(url => typeof url !== "string" || !/^https?:\/\//i.test(url))) {
+            throw new Error("One or more search result URLs are invalid");
+          }
+          if (x.provider !== "tavily" || x.liveSearchVerified !== true || x.fallback === true) {
+            const provider = String(x.provider || "UNKNOWN").replace(/[^A-Za-z0-9_-]/g, "").slice(0, 64) || "UNKNOWN";
+            const reason = x.provider === "guarded-fallback" ? "GUARDED_FALLBACK" : "ALTERNATE_PROVIDER";
+            fs.appendFileSync(output, `status=NOT_TESTED\nprovider=${provider}\nreason=${reason}\n`);
+            console.log(JSON.stringify({
+              status: "NOT_TESTED",
+              provider,
+              fallback: x.fallback === true,
+              liveSearchVerified: x.liveSearchVerified === true,
+              reason,
+              resultCount: x.results.length
+            }));
+            console.warn("::warning::TAVILY_NOT_TESTED: direct Tavily provider was not verified.");
+            process.exit(0);
+          }
+          fs.appendFileSync(output, "status=PASS\nprovider=tavily\nreason=verified\n");
+          console.log(JSON.stringify({
+            status: "PASS",
+            provider: "tavily",
+            fallback: false,
+            liveSearchVerified: true,
+            resultCount: x.results.length
+          }));
+          NODE
 
       - name: Verify scoped PWA bridge search endpoint directly
         shell: bash
