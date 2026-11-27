@@ -19,5 +19,5 @@ test("Tavily monitor reports NOT TESTED when another provider or guarded fallbac
 test("Tavily monitor reports PASS only for directly verified Tavily results", () => {
   assert.match(tavilyStep, /status:\s*"PASS"/);
   assert.match(tavilyStep, /provider:\s*"tavily"/);
-  assert.match(tavilyStep, /x\.fallback\s*!==\s*true/);
+  assert.match(tavilyStep, /x\.fallback\s*===\s*true/);
 });
