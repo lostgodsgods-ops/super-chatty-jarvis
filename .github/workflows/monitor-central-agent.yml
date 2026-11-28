@@ -99,20 +99,35 @@ jobs:
           OWNER_PASSWORD: ${{ secrets.CENTRAL_AGENT_OWNER_PASSWORD }}
         run: |
           set -euo pipefail
+          report_tavily_status() {
+            local status="$1"
+            local provider="$2"
+            local reason="$3"
+            {
+              echo "### Tavily provider verification"
+              echo "- Status: **${status}**"
+              echo "- Provider: \`${provider}\`"
+              echo "- Reason: \`${reason}\`"
+            } >> "$GITHUB_STEP_SUMMARY"
+          }
           if [[ -z "${OWNER_PASSWORD:-}" ]]; then
             echo "::warning::TAVILY_NOT_TESTED: owner authentication secret is not configured."
-            printf 'status=NOT_TESTED\nreason=OWNER_SECRET_UNAVAILABLE\n' >> "$GITHUB_OUTPUT"
+            printf 'status=NOT_TESTED\nprovider=UNKNOWN\nreason=OWNER_SECRET_UNAVAILABLE\n' >> "$GITHUB_OUTPUT"
+            report_tavily_status "NOT_TESTED" "UNKNOWN" "OWNER_SECRET_UNAVAILABLE"
             exit 0
           fi
           tmp="$(mktemp -d)"
           trap 'rm -rf "$tmp"' EXIT
-          login_code="$(curl --silent --show-error --max-time 15 --output "$tmp/login.json" --write-out '%{http_code}' \
+          if ! login_code="$(curl --silent --show-error --max-time 15 --output "$tmp/login.json" --write-out '%{http_code}' \
             -H 'content-type: application/json' \
             -X POST "$CENTRAL_AGENT_URL/auth/login" \
-            --data "$(node -e 'process.stdout.write(JSON.stringify({password:process.env.OWNER_PASSWORD}))')")"
+            --data "$(node -e 'process.stdout.write(JSON.stringify({password:process.env.OWNER_PASSWORD}))')")"; then
+            login_code="000"
+          fi
           if [[ "$login_code" != "200" ]]; then
             echo "::warning::TAVILY_NOT_TESTED: owner login unavailable (HTTP $login_code)."
-            printf 'status=NOT_TESTED\nreason=OWNER_AUTH_UNAVAILABLE\n' >> "$GITHUB_OUTPUT"
+            printf 'status=NOT_TESTED\nprovider=UNKNOWN\nreason=OWNER_AUTH_UNAVAILABLE\nhttp_status=%s\n' "$login_code" >> "$GITHUB_OUTPUT"
+            report_tavily_status "NOT_TESTED" "UNKNOWN" "OWNER_AUTH_UNAVAILABLE"
             exit 0
           fi
           token="$(node -e 'const x=require(process.argv[1]); if(x.ok!==true||typeof x.token!=="string"||!x.token) process.exit(1); process.stdout.write(x.token)' "$tmp/login.json")"
@@ -127,7 +142,8 @@ jobs:
           if [[ "$search_code" != "200" ]]; then
             if [[ "$search_code" == "000" || "$search_code" == "401" || "$search_code" == "403" || "$search_code" == "429" || "$search_code" == "432" ]]; then
               echo "::warning::TAVILY_NOT_TESTED: owner-authenticated /search unavailable or quota-limited (HTTP $search_code)."
-              printf 'status=NOT_TESTED\nreason=SEARCH_UNAVAILABLE\n' >> "$GITHUB_OUTPUT"
+              printf 'status=NOT_TESTED\nprovider=UNKNOWN\nreason=SEARCH_UNAVAILABLE\nhttp_status=%s\n' "$search_code" >> "$GITHUB_OUTPUT"
+              report_tavily_status "NOT_TESTED" "UNKNOWN" "SEARCH_UNAVAILABLE"
               exit 0
             fi
             echo "::error::Owner-authenticated /search failed with HTTP $search_code."
@@ -157,6 +173,7 @@ jobs:
               reason,
               resultCount: x.results.length
             }));
+            report_tavily_status("NOT_TESTED", provider, reason);
             console.warn("::warning::TAVILY_NOT_TESTED: direct Tavily provider was not verified.");
             process.exit(0);
           }
@@ -168,6 +185,7 @@ jobs:
             liveSearchVerified: true,
             resultCount: x.results.length
           }));
+          report_tavily_status("PASS", "tavily", "verified");
           NODE
 
       - name: Verify scoped PWA bridge search endpoint directly
