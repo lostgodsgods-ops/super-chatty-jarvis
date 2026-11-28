@@ -9,17 +9,17 @@ const tavilyStep = workflow.slice(start, nextStep < 0 ? undefined : nextStep);
 
 test("Tavily monitor reports NOT TESTED when another provider or guarded fallback answers", () => {
   assert.ok(start >= 0, "Tavily-specific monitor step must exist");
-  assert.match(tavilyStep, /x\\.provider\\s*!==\\s*"tavily"/);
-  assert.match(tavilyStep, /x\\.liveSearchVerified\\s*!==\\s*true/);
-  assert.match(tavilyStep, /status:\\s*"NOT_TESTED"/);
+  assert.match(tavilyStep, /x\.provider\s*!==\s*"tavily"/);
+  assert.match(tavilyStep, /x\.liveSearchVerified\s*!==\s*true/);
+  assert.match(tavilyStep, /status:\s*"NOT_TESTED"/);
   assert.match(tavilyStep, /TAVILY_NOT_TESTED/);
   assert.match(tavilyStep, /GITHUB_OUTPUT/);
 });
 
 test("Tavily monitor reports PASS only for directly verified Tavily results", () => {
-  assert.match(tavilyStep, /status:\\s*"PASS"/);
-  assert.match(tavilyStep, /provider:\\s*"tavily"/);
-  assert.match(tavilyStep, /x\\.fallback\\s*===\\s*true/);
+  assert.match(tavilyStep, /status:\s*"PASS"/);
+  assert.match(tavilyStep, /provider:\s*"tavily"/);
+  assert.match(tavilyStep, /x\.fallback\s*===\s*true/);
 });
 
 test("Tavily classification is visible in the workflow job summary", () => {
@@ -30,7 +30,7 @@ test("Tavily classification is visible in the workflow job summary", () => {
 });
 
 test("Tavily owner-login transport failures are classified as NOT TESTED", () => {
-  assert.match(tavilyStep, /if ! login_code="\\$\\(curl/);
-  assert.match(tavilyStep, /login_code="000"/);
-  assert.match(tavilyStep, /reason=OWNER_AUTH_UNAVAILABLE/);
+  assert.ok(tavilyStep.includes('if ! login_code="$(curl'), "login curl transport errors must be captured");
+  assert.ok(tavilyStep.includes('login_code="000"'), "login transport failure must use HTTP status 000");
+  assert.ok(tavilyStep.includes("reason=OWNER_AUTH_UNAVAILABLE"), "login unavailability must be explicitly classified");
 });
