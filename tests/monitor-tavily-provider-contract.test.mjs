@@ -24,7 +24,7 @@ test("Tavily monitor reports PASS only for directly verified Tavily results", ()
 
 test("Tavily classification is visible in the workflow job summary on shell and Node paths", () => {
   assert.match(tavilyStep, /GITHUB_STEP_SUMMARY/);
-  assert.match(tavilyStep, /function report_tavily_status/);
+  assert.ok(tavilyStep.includes("report_tavily_status() {"), "shell early-return paths must write the job summary");
   assert.match(tavilyStep, /report_tavily_status "NOT_TESTED"/);
   assert.match(tavilyStep, /function reportTavilyStatus/);
   assert.match(tavilyStep, /reportTavilyStatus\("NOT_TESTED"/);
