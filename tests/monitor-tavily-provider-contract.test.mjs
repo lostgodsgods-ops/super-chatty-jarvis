@@ -22,11 +22,13 @@ test("Tavily monitor reports PASS only for directly verified Tavily results", ()
   assert.match(tavilyStep, /x\.fallback\s*===\s*true/);
 });
 
-test("Tavily classification is visible in the workflow job summary", () => {
+test("Tavily classification is visible in the workflow job summary on shell and Node paths", () => {
   assert.match(tavilyStep, /GITHUB_STEP_SUMMARY/);
-  assert.match(tavilyStep, /report_tavily_status/);
+  assert.match(tavilyStep, /function report_tavily_status/);
   assert.match(tavilyStep, /report_tavily_status "NOT_TESTED"/);
-  assert.match(tavilyStep, /report_tavily_status "PASS"/);
+  assert.match(tavilyStep, /function reportTavilyStatus/);
+  assert.match(tavilyStep, /reportTavilyStatus\("NOT_TESTED"/);
+  assert.match(tavilyStep, /reportTavilyStatus\("PASS"/);
 });
 
 test("Tavily owner-login transport failures are classified as NOT TESTED", () => {
