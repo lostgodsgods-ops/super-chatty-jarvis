@@ -154,6 +154,19 @@ jobs:
           const fs = require("node:fs");
           const x = JSON.parse(fs.readFileSync(process.argv[2], "utf8"));
           const output = process.argv[3];
+          const summaryPath = process.env.GITHUB_STEP_SUMMARY;
+          function reportTavilyStatus(status, provider, reason) {
+            if (typeof summaryPath !== "string" || !summaryPath) {
+              throw new Error("GitHub Actions job summary path is unavailable");
+            }
+            fs.appendFileSync(summaryPath, [
+              "### Tavily provider verification",
+              `- Status: **${status}**`,
+              `- Provider: \`${provider}\``,
+              `- Reason: \`${reason}\``,
+              ""
+            ].join("\n"));
+          }
           if (x.ok !== true || !Array.isArray(x.results) || x.results.length < 1) {
             throw new Error("Owner-authenticated search response schema is invalid");
           }
@@ -173,7 +186,7 @@ jobs:
               reason,
               resultCount: x.results.length
             }));
-            report_tavily_status("NOT_TESTED", provider, reason);
+            reportTavilyStatus("NOT_TESTED", provider, reason);
             console.warn("::warning::TAVILY_NOT_TESTED: direct Tavily provider was not verified.");
             process.exit(0);
           }
@@ -185,7 +198,7 @@ jobs:
             liveSearchVerified: true,
             resultCount: x.results.length
           }));
-          report_tavily_status("PASS", "tavily", "verified");
+          reportTavilyStatus("PASS", "tavily", "verified");
           NODE
 
       - name: Verify scoped PWA bridge search endpoint directly
